@@ -257,6 +257,76 @@
                   (and then-expr else-expr (list expr0 then-expr else-expr)))]
                [else #f])])))
 
+      ;; stmt->if-chain-body: A19 generalisation of stmt->if-expression-body.
+      ;; Admits non-unit-returning impure-circuit bodies of shape:
+      ;;   (a) single statement-expression       — `return expr;`
+      ;;       (verificationMethodExists)
+      ;;   (b) if/else-if/.../else chain         — `if (..) return ... else if ... else return ...;`
+      ;;       (tiny.get)
+      ;;   (c) if/else-if/...; trailing return    — `if ... else if ...; return default;`
+      ;;       (verificationMethodRelationMember)
+      ;; Returns
+      ;;   (list arms else-expr)
+      ;; where arms = ((cond-expr then-expr) ...) (possibly empty) and
+      ;; else-expr is always present. Caller dispatches via
+      ;; emit-if-chain-body. Returns #f on structural mismatch.
+      (define (stmt->if-chain-body stmt)
+        (let ([stmts (stmt-flatten stmt)])
+          (cond
+            [(null? stmts) #f]
+            [(null? (cdr stmts))
+             ;; Single stmt: either a top-level if (recurse into chain) or
+             ;; a statement-expression (no arms, just the expr).
+             (nanopass-case (Ltypescript Statement) (car stmts)
+               [(if ,src ,expr0 ,stmt1 ,stmt2)
+                (collect-if-chain (car stmts) '())]
+               [(statement-expression ,expr) (list '() expr)]
+               [else #f])]
+            [(and (pair? (cdr stmts))
+                  (null? (cddr stmts)))
+             ;; Two stmts: an if (without final else) plus a trailing
+             ;; return-expression. The trailing expr becomes the chain's
+             ;; else.
+             (let ([trailing (stmt->return-expr (cadr stmts))])
+               (and trailing
+                    (nanopass-case (Ltypescript Statement) (car stmts)
+                      [(if ,src ,expr0 ,stmt1 ,stmt2)
+                       (collect-if-chain (car stmts) (list trailing))]
+                      [else #f])))]
+            [else #f])))
+
+      ;; collect-if-chain: walk a (possibly nested) if-then-else statement,
+      ;; collecting (cond, then-expr) pairs and unwinding into the final
+      ;; else-expr. `trailing-else` is the override else-expr to use when
+      ;; the innermost if has no else of its own (case (c) above).
+      (define (collect-if-chain stmt trailing-else)
+        (let loop ([s stmt] [arms '()])
+          (nanopass-case (Ltypescript Statement) s
+            [(if ,src ,expr0 ,stmt1 ,stmt2)
+             (let ([then-expr (stmt->return-expr stmt1)])
+               (and then-expr
+                    (let ([else-stmts (stmt-flatten stmt2)])
+                      (cond
+                        ;; else is itself a nested if: extend the chain.
+                        [(and (pair? else-stmts) (null? (cdr else-stmts))
+                              (nanopass-case (Ltypescript Statement) (car else-stmts)
+                                [(if ,src ,expr0 ,stmt1 ,stmt2) #t]
+                                [else #f]))
+                         (loop (car else-stmts) (cons (list expr0 then-expr) arms))]
+                        ;; else is a no-op `(tuple)` AND we have a trailing
+                        ;; override: use the trailing as else.
+                        [(and (pair? trailing-else)
+                              (null? else-stmts))
+                         (list (reverse (cons (list expr0 then-expr) arms))
+                               (car trailing-else))]
+                        ;; otherwise else is a return-expr.
+                        [else
+                         (let ([else-expr (stmt->return-expr stmt2)])
+                           (and else-expr
+                                (list (reverse (cons (list expr0 then-expr) arms))
+                                      else-expr)))]))))]
+            [else #f])))
+
       ;; stmt->return-expr: pull the single return expression out of a
       ;; branch Statement. The branches of a return-value if-expression
       ;; come out of typescript-passes lowering as a single
@@ -1094,6 +1164,70 @@
              (out "        })\n")
              #t])))
 
+      ;; emit-if-chain-body: A19 generalisation of emit-if-expression-body.
+      ;; Renders a non-unit-returning impure circuit body composed of zero
+      ;; or more if/else-if arms followed by a final else expression, then
+      ;; wraps the value in CircuitResults. arms is a list of
+      ;; (cond-expr then-expr) pairs (possibly empty for a single-return
+      ;; body); else-expr is the final value.
+      (define (emit-if-chain-body return-type arms else-expr
+                                  native-id-ht witness-id-ht circuit-id-ht)
+        (let* ([arm-strs
+                (map (lambda (a)
+                       (let ([c-str (cond-rust (car a) '()
+                                               native-id-ht witness-id-ht
+                                               circuit-id-ht)]
+                             [t-str (ctor-expr-rust (cadr a) '()
+                                                    native-id-ht witness-id-ht
+                                                    circuit-id-ht)])
+                         (list c-str t-str)))
+                     arms)]
+               [else-str (ctor-expr-rust else-expr '()
+                                         native-id-ht witness-id-ht
+                                         circuit-id-ht)]
+               [any-todo?
+                (or (rendered-has-todo? else-str)
+                    (let loop ([xs arm-strs])
+                      (cond
+                        [(null? xs) #f]
+                        [(or (rendered-has-todo? (caar xs))
+                             (rendered-has-todo? (cadar xs))) #t]
+                        [else (loop (cdr xs))])))])
+          (cond
+            [any-todo? #f]
+            [(null? arms)
+             ;; No arms: body is just `return <expr>;`. Emit directly.
+             (out (format "        let result = ~a;\n" else-str))
+             (out "        Ok(CircuitResults {\n")
+             (out "            result,\n")
+             (out "            context: ctx,\n")
+             (out "            gas_cost: compact_runtime::RunningCost::default(),\n")
+             (out "        })\n")
+             #t]
+            [else
+             (let loop ([xs arm-strs] [first? #t])
+               (cond
+                 [(null? xs)
+                  (out " else {\n")
+                  (out (format "            ~a\n" else-str))
+                  (out "        };\n")]
+                 [first?
+                  (out (format "        let result = if ~a {\n" (caar xs)))
+                  (out (format "            ~a\n" (cadar xs)))
+                  (out "        }")
+                  (loop (cdr xs) #f)]
+                 [else
+                  (out (format " else if ~a {\n" (caar xs)))
+                  (out (format "            ~a\n" (cadar xs)))
+                  (out "        }")
+                  (loop (cdr xs) #f)]))
+             (out "        Ok(CircuitResults {\n")
+             (out "            result,\n")
+             (out "            context: ctx,\n")
+             (out "            gas_cost: compact_runtime::RunningCost::default(),\n")
+             (out "        })\n")
+             #t])))
+
       ;; rendered-has-todo?: returns #t if the rendered Rust string
       ;; contains a TODO marker (`/* TODO`). Used by body emitters to
       ;; bail out (fall through to the method-level rust-feature-error)
@@ -1186,6 +1320,18 @@
                            (emit-if-expression-body
                              type (car parts) (cadr parts) (caddr parts)
                              native-id-ht witness-id-ht circuit-id-ht)))
+                    ;; A19: multi-arm if/else-if returning non-unit, or a
+                    ;; single trailing return-expression body. Closes
+                    ;; did.compact's verificationMethodExists (single
+                    ;; return `member(x) || member(y)`) and
+                    ;; verificationMethodRelationMember (5-arm if/else-if
+                    ;; with trailing `return false`).
+                    (let ([chain (stmt->if-chain-body stmt)])
+                      (and chain
+                           (not (unit-type? type))
+                           (emit-if-chain-body
+                             type (car chain) (cadr chain)
+                             native-id-ht witness-id-ht circuit-id-ht)))
                     (and (unit-type? type)
                          (or
                            ;; I3a: counter-style single public-ledger call.
@@ -1209,11 +1355,13 @@
                                                        native-id-ht witness-id-ht circuit-id-ht))
                            ;; Streaming walker for richer multi-stage bodies
                            ;; (zerocash.spend, election.vote$commit /
-                           ;; vote$reveal). Triggered only when the simpler
-                           ;; emit-body-or-fallback shape doesn't apply.
+                           ;; vote$reveal). Tried when emit-body-or-fallback
+                           ;; bails — A18 dropped the body-needs-streaming?
+                           ;; preference gate so terminal multi-arm if-chains
+                           ;; (did.compact's insertVerificationMethodRelation,
+                           ;; removeVerificationMethodRelationFromLedger) also
+                           ;; route through streaming.
                            (and (body-streaming-walkable?
-                                  stmt native-id-ht witness-id-ht circuit-id-ht)
-                                (body-needs-streaming?
                                   stmt native-id-ht witness-id-ht circuit-id-ht)
                                 (emit-streaming-body
                                   stmt native-id-ht witness-id-ht circuit-id-ht)))))])

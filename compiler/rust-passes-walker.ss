@@ -1332,14 +1332,20 @@
         (nanopass-case (Ltypescript Program-Element) cdefn
           [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
            (or (stmt->if-expression-body stmt)
+               ;; A19: multi-arm chain / single-return body.
+               (stmt->if-chain-body stmt)
                (and (unit-type? type)
                     (or (stmt->single-public-ledger-call stmt)
                         (body-walkable?
                           stmt native-id-ht witness-id-ht circuit-id-ht)
-                        (and (body-streaming-walkable?
-                               stmt native-id-ht witness-id-ht circuit-id-ht)
-                             (body-needs-streaming?
-                               stmt native-id-ht witness-id-ht circuit-id-ht)))))]
+                        ;; A18: drop the body-needs-streaming? preference
+                        ;; gate. Any body the streaming walker accepts is a
+                        ;; superset of body-walkable?'s shapes, so when the
+                        ;; simpler walker rejects we should still try
+                        ;; streaming (e.g. terminal multi-arm if/else-if
+                        ;; chains with single pl-call arms).
+                        (body-streaming-walkable?
+                          stmt native-id-ht witness-id-ht circuit-id-ht))))]
           [else #f]))
 
       ;; body-walkable?: pre-validate that the flat statement sequence is
