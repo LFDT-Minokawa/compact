@@ -43,15 +43,21 @@ use crate::{
 };
 
 /// A Schnorr signature over the embedded curve. Layout matches the
-/// Compact-side `Schnorr.SchnorrSignature` struct
-/// (`announcement: JubjubPoint`, `response: Field`) so codegen-generated
-/// struct conversions line up.
+/// Compact-side `Schnorr.SchnorrSignature` struct exactly
+/// (`announcement: JubjubPoint`, `response: Field`) so the codegen's
+/// generated user-struct lines up by name + field types and the
+/// `schnorr_verify_jubjub` wrapper accepts both. The `response` field
+/// is stored as the outer scalar `Fr` (matching Compact's `Field`); the
+/// off-circuit verifier reduces it to `EmbeddedFr` modulo the Jubjub
+/// scalar order before the group-arithmetic check (`fr_to_embedded_fr`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct SchnorrSignature {
     /// The announcement point, `R = k * G`.
     pub announcement: JubjubPoint,
-    /// The response scalar, `s = k + c * sk`.
-    pub response: EmbeddedFr,
+    /// The response scalar, encoded as an outer-curve `Fr`. The
+    /// off-circuit verifier reduces this modulo the Jubjub scalar
+    /// field order before use.
+    pub response: Fr,
 }
 
 /// Hash `(ann_x, ann_y, pk_x, pk_y, ...msg)` with the Poseidon-based
@@ -105,8 +111,12 @@ pub fn verify(pk: JubjubPoint, msg: &[Fr], sig: &SchnorrSignature) -> bool {
     };
 
     let challenge = compute_challenge(ann_x, ann_y, pk_x, pk_y, msg);
-
-    let lhs = JubjubPoint::generator() * sig.response;
+    // Compact's `SchnorrSignature.response` is declared `Field` (Fr) —
+    // wider than the embedded scalar order. Reduce before the
+    // group-arithmetic check, matching what the in-circuit
+    // `getSchnorrReduction` witness would expose as (q, r).
+    let response_embed = fr_to_embedded_fr(sig.response);
+    let lhs = JubjubPoint::generator() * response_embed;
     let rhs = sig.announcement + pk * challenge;
     lhs == rhs
 }
