@@ -329,9 +329,15 @@
                               ;; fields (BinaryHashRepr isn't impl'd on
                               ;; upstream EmbeddedGroupAffine; we go
                               ;; through compact_runtime helpers).
+                              ;; R5b: same shape for `[T; N]` whose
+                              ;; element T has BinaryHashRepr — upstream
+                              ;; has no `[T; N]: BinaryHashRepr` impl.
                               (cond
                                 [(problematic-jubjub-point? type)
                                  (out (format "        compact_runtime::jubjub_point_binary_repr(&self.~a, writer);\n"
+                                              name))]
+                                [(problematic-vector? type)
+                                 (out (format "        for _e in self.~a.iter() { _e.binary_repr(writer); }\n"
                                               name))]
                                 [else
                                  (out (format "        self.~a.binary_repr(writer);\n"
@@ -350,6 +356,9 @@
                                       (cond
                                         [(problematic-jubjub-point? (car types))
                                          (format "compact_runtime::jubjub_point_binary_len(&self.~a)"
+                                                 (car names))]
+                                        [(problematic-vector? (car types))
+                                         (format "self.~a.iter().map(|e| e.binary_len()).sum::<usize>()"
                                                  (car names))]
                                         [else
                                          (format "self.~a.binary_len()"

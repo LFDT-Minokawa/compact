@@ -126,8 +126,13 @@
            (problematic-jubjub-point? type)]
           [else #f]))
 
-      ;; Recognise tvector whose element is itself a user struct / enum.
-      ;; (Upstream provides no `[T; N]` impls for non-u8 T.)
+      ;; Recognise tvector whose element type has no `[T; N]` repr impls
+      ;; available upstream. Covers:
+      ;;   - User structs / enums (no upstream `[T; N]` for non-u8 T).
+      ;;   - R5b: tfield — `[Fr; N]` (Schnorr digest, etc.) — upstream
+      ;;     impls FromFieldRepr/FieldRepr on Fr alone but not on the
+      ;;     fixed-size array. Codegen routes through array_from_field_repr
+      ;;     and the iter().map().sum() field_size pattern.
       (define (problematic-vector? type)
         (nanopass-case (Ltypescript Type) type
           [(tvector ,src ,len ,type)
@@ -135,6 +140,7 @@
              [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
               (not (eq? struct-name 'Maybe))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
+             [(tfield ,src) #t]
              [else #f])]
           [else #f]))
 
