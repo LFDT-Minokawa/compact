@@ -132,7 +132,7 @@ export interface CircuitContext<PS = any> {
    * *any* of its circuits on *every* call, including later calls to a different circuit of an
    * already-resolved callee. The entry contract is not recorded here; only fetched callees are.
    */
-  calleeContractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
+  contractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
   /**
    * The cost model to use for the execution.
    */
@@ -224,7 +224,7 @@ export const createCircuitContext = <PS>(
     ),
     queryContexts: { [contractAddress]: callContext.currentQueryContext },
     gasCosts: { [contractAddress]: callContext.currentGasCost },
-    calleeContractStates: {},
+    contractStates: {},
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
@@ -247,7 +247,7 @@ export const copyCircuitContext = (context: CircuitContext): CircuitContext => (
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
-  calleeContractStates: { ...context.calleeContractStates },
+  contractStates: { ...context.contractStates },
   callProofDataTrace: [...context.callProofDataTrace],
 });
 

@@ -137,7 +137,7 @@ const resolveQueryContext = async (
     // Retain the full deployed state. The cached query context keeps only ledger data, not the
     // operations' verifier keys, so stashing it here is what lets the implementation-binding guard
     // below run on every call — including a later call to a *different* circuit of this same callee.
-    (context.calleeContractStates ??= {})[callee] = contractState;
+    (context.contractStates ??= {})[callee] = contractState;
     queryContext = createInitialQueryContext(
       contractState,
       callee,
@@ -148,7 +148,7 @@ const resolveQueryContext = async (
     context.queryContexts[callee] = queryContext;
     context.gasCosts[callee] = emptyRunningCost();
   }
-  const deployedState = context.calleeContractStates?.[callee];
+  const deployedState = context.contractStates?.[callee];
   assertDefined(deployedState, `deployed contract state for callee '${callee}'`);
   assertImplementationMatches(deployedState, calleeModule, calleeCircuitId, callee);
   return queryContext;
@@ -266,6 +266,7 @@ const restoreCircuitContext = (
   restoreCallContext(callerCircuitContext, callerCallContext);
   callerCircuitContext.queryContexts = calleeCircuitContext.queryContexts;
   callerCircuitContext.gasCosts = calleeCircuitContext.gasCosts;
+  callerCircuitContext.contractStates = calleeCircuitContext.contractStates;
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
   // Re-point the caller's `currentQueryContext` at the threaded state for its own
   // contract (advanced if the sub-call re-entered the caller).
