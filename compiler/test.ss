@@ -61395,6 +61395,55 @@ groups than for single tests.
         "  ]"
         "}")))
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness bar(): Bytes<32>;"
+      "export struct S { F: Field };"
+      "export circuit foo (): [] {"
+      "  return emit ( disclose (ShieldedSpend {bar()} ));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 0,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"private_input\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
+        "    { \"op\": \"private_input\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 248 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"33\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 15 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"09\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 }"
+        "  ]"
+        "}"))
+    )
+
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -85684,13 +85733,7 @@ groups than for single tests.
         "  });"
         ))
     )
-)
 
-(run-javascript)
-)
-
-(with-parameter-values ([feature-zkir-v3 #t])
-(run-tests save-manifest
   (test
     '(
       "import CompactStandardLibrary;"
