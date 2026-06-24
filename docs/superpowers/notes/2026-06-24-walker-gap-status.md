@@ -177,23 +177,28 @@ still has ~12 unique Rust compile errors, grouped:
   available. Top-level body keeps the existing move semantics.
 
 ### Runtime-side (R5)
-- `EmbeddedGroupAffine: FromFieldRepr / field_repr / field_size /
-  binary_repr / binary_len` — missing trait impls. **Orphan-rule
-  blocked**: both `EmbeddedGroupAffine` and the `FromFieldRepr`
-  trait live in upstream `midnight-transient-crypto`, so a downstream
-  impl in `compact-runtime` violates Rust's coherence rules. Closing
-  this needs either (a) a wrapper newtype around `EmbeddedGroupAffine`
-  that compact-runtime owns + a codegen change to use it instead of
-  the raw alias, OR (b) an upstream PR adding the impls to
-  midnight-transient-crypto. Option (b) is cleaner long-term;
-  option (a) is faster locally but locks compact-runtime into the
-  wrapper indefinitely.
-- `[Fr; 4]: Aligned / FromFieldRepr`, `Value: From<[Fr; 4]>`,
-  `binary_repr`, `binary_len` — fixed-size `Fr` array marshalling.
-  Same orphan-rule shape. A typed helper-function path (à la
-  `field_repr::array_from_field_repr`) already exists for `[T; N]`
-  with `T: FromFieldRepr`; codegen would have to route `[Fr; 4]`
-  through it instead of emitting raw `<[Fr;4] as FromFieldRepr>`.
+- ~~**R5a**: `EmbeddedGroupAffine: FromFieldRepr / field_repr /
+  field_size / binary_repr / binary_len`~~ **Closed 2026-06-24**
+  ([defbce4](../../../runtime-rs/src/std_lib/jubjub.rs) +
+  [defbce4](../../../compiler/rust-passes-types.ss)):
+  added free helper functions `jubjub_point_field_repr` /
+  `jubjub_point_from_field_repr` / `jubjub_point_field_size` /
+  `jubjub_point_binary_repr` / `jubjub_point_binary_len` in
+  `compact_runtime`, plus a `problematic-jubjub-point?` predicate in
+  codegen that routes `topaque "JubjubPoint"` struct fields through
+  the helpers (mirroring the orphan-safe `bytes_from_field_repr`
+  pattern used for `[u8; N]` / `Vec<u8>`). Encoding matches upstream's
+  `From<EmbeddedGroupAffine> for Value` semantics (identity → `(0, 0)`).
+- ~~**R5b**: `[Fr; 4]: Aligned / FromFieldRepr`,
+  `Value: From<[Fr; 4]>`, `binary_repr`, `binary_len`~~ **Closed
+  2026-06-24** ([071ac36](../../../compiler/rust-passes-types.ss)):
+  extended `problematic-vector?` to also match
+  `(tvector _ _ (tfield ...))`. The existing handlers for problematic
+  vectors then route `[Fr; N]` fields through the same per-element
+  iter / `array_from_field_repr::<Fr, N>` shape used for
+  `[UserStruct; N]`. Also extended BinaryHashRepr emission in
+  `rust-passes-decls.ss` to iterate `[T; N]` element-by-element
+  (upstream has no `[T; N]: BinaryHashRepr` blanket).
 - ~~`OpProgramVerify::rem`~~ **Resolved 2026-06-24** by refreshing
   midnight-did-rs's flake input
   (`nix flake update compact`) — the worktree branch had `rem` in
