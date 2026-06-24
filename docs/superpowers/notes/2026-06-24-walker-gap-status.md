@@ -6,6 +6,16 @@ SPDX-License-Identifier: Apache-2.0
 
 # Walker-gap closure status — codegen-rust (2026-06-24)
 
+> **MILESTONE (2026-06-24)**: did.compact compiles end-to-end through
+> `compactc --rust` → `cargo check -p midnight-did-runtime` clean with
+> **0 errors**. All A1–A19 walker shapes closed; all 7 bug fixes
+> (Bug-1..7) shipped; R5a/R5b runtime trait gaps closed via
+> orphan-safe helpers; Module-1 (Schnorr-on-Jubjub) routes to a
+> circuit-shaped wrapper around midnight-ledger's off-circuit
+> verifier. Remaining work in midnight-did-rs is the R2 contract
+> abstraction reform (R2-1 ✓ committed, R2-2 in flight, R2-3 pending).
+
+
 This note documents the cumulative state of the `compactc --rust` walker
 gap taxonomy as of the A19 closure. It supersedes the partial taxonomy
 in [ADR 0005 (midnight-did-rs)](../../../midnight-did-rs/doc/adr/0005-codegen-gap-handling.md)
@@ -204,12 +214,18 @@ still has ~12 unique Rust compile errors, grouped:
   (`nix flake update compact`) — the worktree branch had `rem` in
   op_builder.rs:78 the whole time; only the downstream Cargo
   resolution was stale.
-- `schnorr_verify` witness method missing — actually a circuit
-  module-import issue, not a witness. The `Schnorr_schnorrVerify<#n>`
-  generic circuit from the inner schnorr module isn't being emitted
-  as a `pub(crate) fn` even though jubjub-schnorr's
-  `schnorrVerifyDigest` calls it. Likely a module/generic
-  resolution gap — see [project_walker_gaps](#) for the chain.
+- ~~`schnorr_verify` witness method missing — module-import / generic-
+  resolution gap~~ **Closed 2026-06-24** (commits `8c0ec16` + `4536209`
+  + `960fc26`): the imported `Schnorr_schnorrVerify<#n>` is now routed
+  to `compact_runtime::schnorr_verify_jubjub` (a circuit-shaped
+  wrapper around an off-circuit Schnorr verifier vendored from
+  midnight-ledger's `transient_crypto::schnorr`). Codegen uses a new
+  `impure-call-target` helper to swap `self.<cname>(ctx, ...)` for the
+  override path when `cname == "schnorr_verify"`. The Compact-side
+  `SchnorrSignature` struct is aliased to the runtime mirror via
+  `stdlib-struct-mappings`, matching the Maybe / MerkleTreePath
+  pattern. `response: Field` reduces to `EmbeddedFr` inside `verify`,
+  mirroring the in-circuit `getSchnorrReduction` witness output.
 
 ### Test status
 - All `compactc` tests except the pre-existing `test_compact_check_no_param`
