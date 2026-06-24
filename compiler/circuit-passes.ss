@@ -444,7 +444,7 @@
             [,type (format-type type)]))
         (nanopass-case (Linlined Type) type
           [(tboolean ,src) "Boolean"]
-          [(tfield ,src ,ftype) (format-field-type)]
+          [(tfield ,src ,ftype) (format-field-type ftype)]
           [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
           [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
           [(tunknown) "Unknown"]
