@@ -25,6 +25,83 @@
 use crate::base_crypto::hash::HashOutput;
 use crate::transient_crypto::hash as transient_hash_mod;
 use crate::{Fr, JubjubPoint};
+use midnight_base_crypto::repr::MemWrite;
+
+// R5a (2026-06-24): orphan-safe helpers for codegen of struct fields
+// whose type is `JubjubPoint` (alias for upstream
+// `midnight_transient_crypto::curve::EmbeddedGroupAffine`).
+//
+// Upstream provides `Aligned` for EmbeddedGroupAffine (two field atoms
+// — x and y) plus `From<EmbeddedGroupAffine> for Value` /
+// `TryFrom<&ValueSlice> for EmbeddedGroupAffine`, but no `FieldRepr`,
+// `FromFieldRepr`, or `BinaryHashRepr` impl. Rust's orphan rules forbid
+// us from impl'ing them downstream (both type and trait are upstream).
+//
+// To sidestep the rule, codegen routes `JubjubPoint`-typed struct
+// fields through the free functions below — mirroring the
+// `field_repr.rs` pattern used for `[u8; N]` (N != 32) and `Vec<u8>`.
+//
+// Layout matches upstream's `From<EmbeddedGroupAffine> for Value` /
+// `TryFrom<&ValueSlice> for EmbeddedGroupAffine`:
+//   - field repr: two Fr values (x, y); identity → (0, 0)
+//   - binary repr: two 32-byte LE Fr serialisations (64 bytes total)
+
+/// Compile-time `FIELD_SIZE` for `JubjubPoint` (matches the two-atom
+/// `Aligned::alignment()` upstream provides).
+pub const JUBJUB_POINT_FIELD_SIZE: usize = 2;
+
+/// Bytes written by `jubjub_point_binary_repr` per call — two 32-byte
+/// LE Fr serialisations.
+pub const JUBJUB_POINT_BINARY_LEN: usize = 64;
+
+/// `<JubjubPoint as FromFieldRepr>::from_field_repr` replacement.
+/// Reads two `Fr` values and reconstructs the curve point via
+/// `EmbeddedGroupAffine::new(x, y)`. The `(0, 0)` reading maps to
+/// identity (matches upstream's `TryFrom<&ValueSlice>` semantics).
+pub fn jubjub_point_from_field_repr(r: &[Fr]) -> Option<JubjubPoint> {
+    if r.len() < JUBJUB_POINT_FIELD_SIZE {
+        return None;
+    }
+    let x = r[0];
+    let y = r[1];
+    if x == Fr::from(0u64) && y == Fr::from(0u64) {
+        Some(JubjubPoint::identity())
+    } else {
+        JubjubPoint::new(x, y)
+    }
+}
+
+/// `<JubjubPoint as FieldRepr>::field_repr` replacement.
+/// Writes `x()` then `y()` (or `0` for the identity element's missing
+/// coordinates).
+pub fn jubjub_point_field_repr<W: MemWrite<Fr>>(p: &JubjubPoint, writer: &mut W) {
+    let x = p.x().unwrap_or_else(|| Fr::from(0u64));
+    let y = p.y().unwrap_or_else(|| Fr::from(0u64));
+    writer.write(&[x]);
+    writer.write(&[y]);
+}
+
+/// `<JubjubPoint as FieldRepr>::field_size` replacement.
+#[inline]
+pub fn jubjub_point_field_size(_p: &JubjubPoint) -> usize {
+    JUBJUB_POINT_FIELD_SIZE
+}
+
+/// `<JubjubPoint as BinaryHashRepr>::binary_repr` replacement.
+/// Writes the two coordinate `Fr` values' little-endian byte encodings
+/// back to back (`FR_BYTES * 2 = 64`).
+pub fn jubjub_point_binary_repr<W: MemWrite<u8>>(p: &JubjubPoint, writer: &mut W) {
+    let x = p.x().unwrap_or_else(|| Fr::from(0u64));
+    let y = p.y().unwrap_or_else(|| Fr::from(0u64));
+    writer.write(&x.as_le_bytes());
+    writer.write(&y.as_le_bytes());
+}
+
+/// `<JubjubPoint as BinaryHashRepr>::binary_len` replacement.
+#[inline]
+pub fn jubjub_point_binary_len(_p: &JubjubPoint) -> usize {
+    JUBJUB_POINT_BINARY_LEN
+}
 
 /// `jubjubPointX(p)` — affine X coordinate, or zero if `p` is
 /// identity. The Compact native returns `Field`, treating identity as

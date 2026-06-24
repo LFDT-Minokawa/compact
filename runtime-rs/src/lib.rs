@@ -222,8 +222,14 @@ pub mod std_lib;
 pub use std_lib::{
     array_from_field_repr, bytes_field_size, bytes_from_field_repr, construct_jubjub_point,
     default_merkle_path, degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator,
-    jubjub_point_x, jubjub_point_y, merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash,
-    none, pad, some, upgrade_from_transient, vec_u8_from_field_repr, Bytes, Maybe,
+    // R5a: orphan-safe repr helpers for JubjubPoint-typed struct fields,
+    // promoted to crate-root so codegen can spell
+    // `compact_runtime::jubjub_point_*` without the `std_lib::` segment.
+    jubjub_point_binary_len, jubjub_point_binary_repr, jubjub_point_field_repr,
+    jubjub_point_field_size, jubjub_point_from_field_repr, jubjub_point_x, jubjub_point_y,
+    merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash, none, pad, some,
+    upgrade_from_transient, vec_u8_from_field_repr, Bytes, Maybe, JUBJUB_POINT_BINARY_LEN,
+    JUBJUB_POINT_FIELD_SIZE,
 };
 
 pub mod builders;

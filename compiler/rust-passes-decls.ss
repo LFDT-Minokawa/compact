@@ -324,23 +324,38 @@
                           (out "        let _ = writer;\n")]
                          [else
                           (for-each
-                            (lambda (name)
-                              (out (format "        self.~a.binary_repr(writer);\n"
-                                           name)))
-                            elt-name*)])
+                            (lambda (name type)
+                              ;; R5a: orphan-safe routing for JubjubPoint
+                              ;; fields (BinaryHashRepr isn't impl'd on
+                              ;; upstream EmbeddedGroupAffine; we go
+                              ;; through compact_runtime helpers).
+                              (cond
+                                [(problematic-jubjub-point? type)
+                                 (out (format "        compact_runtime::jubjub_point_binary_repr(&self.~a, writer);\n"
+                                              name))]
+                                [else
+                                 (out (format "        self.~a.binary_repr(writer);\n"
+                                              name))]))
+                            elt-name* type*)])
                        (out "    }\n")
                        (out "    fn binary_len(&self) -> usize {\n        ")
                        (cond
                          [(null? elt-name*) (out "0")]
                          [else
-                          (let loop ([names elt-name*] [first? #t])
+                          (let loop ([names elt-name*] [types type*] [first? #t])
                             (cond
                               [(null? names) (void)]
                               [else
-                               (out (format "~aself.~a.binary_len()"
-                                            (if first? "" " + ")
-                                            (car names)))
-                               (loop (cdr names) #f)]))])
+                               (let ([term
+                                      (cond
+                                        [(problematic-jubjub-point? (car types))
+                                         (format "compact_runtime::jubjub_point_binary_len(&self.~a)"
+                                                 (car names))]
+                                        [else
+                                         (format "self.~a.binary_len()"
+                                                 (car names))])])
+                                 (out (format "~a~a" (if first? "" " + ") term)))
+                               (loop (cdr names) (cdr types) #f)]))])
                        (out "\n    }\n")
                        (out "}\n")
                        (out "\n")])]

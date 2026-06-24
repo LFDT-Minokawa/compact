@@ -53,10 +53,13 @@
            ;; "string" uses an OpaqueString newtype (compact_runtime::std_lib)
            ;; that carries the Aligned/FieldRepr impls bare String can't have
            ;; under orphan rules. "Uint8Array" maps to Vec<u8> since Vec<u8>
-           ;; has the needed impls upstream. Other opaque tags stay flagged.
+           ;; has the needed impls upstream. "JubjubPoint" maps to the
+           ;; upstream alias (orphan-safe repr helpers live in
+           ;; compact_runtime::jubjub_point_*). Other opaque tags stay flagged.
            (cond
              [(equal? opaque-type "string") "compact_runtime::std_lib::OpaqueString"]
              [(equal? opaque-type "Uint8Array") "Vec<u8>"]
+             [(equal? opaque-type "JubjubPoint") "JubjubPoint"]
              [else (format "/* TODO M3-F4: topaque ~a */" opaque-type)])]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
            ;; Stdlib structs (Maybe<T>, MerkleTreePath<#n, T>,
@@ -108,6 +111,21 @@
           [(tbytes ,src ,len) (not (= len 32))]
           [else #f]))
 
+      ;; R5a: Recognise the `JubjubPoint` opaque type. Lowered through
+      ;; Ltypescript as `tstruct 'JubjubPoint` with no body fields.
+      ;; Upstream `EmbeddedGroupAffine` (= JubjubPoint) has an `Aligned`
+      ;; impl but no `FieldRepr` / `FromFieldRepr` / `BinaryHashRepr`,
+      ;; and Rust's orphan rules forbid us from supplying them
+      ;; downstream. Codegen routes JubjubPoint-typed struct fields
+      ;; through compact_runtime::jubjub_point_* free functions.
+      (define (problematic-jubjub-point? type)
+        (nanopass-case (Ltypescript Type) type
+          [(topaque ,src ,opaque-type)
+           (equal? opaque-type "JubjubPoint")]
+          [(talias ,src ,nominal? ,type-name ,type)
+           (problematic-jubjub-point? type)]
+          [else #f]))
+
       ;; Recognise tvector whose element is itself a user struct / enum.
       ;; (Upstream provides no `[T; N]` impls for non-u8 T.)
       (define (problematic-vector? type)
@@ -139,6 +157,9 @@
            ;; Vec<u8> has no fixed FIELD_SIZE; codegen treats this as 0
            ;; (the surrounding ADT carries the byte count).
            "0"]
+          [(problematic-jubjub-point? type)
+           ;; R5a: orphan-safe const from compact_runtime.
+           "compact_runtime::JUBJUB_POINT_FIELD_SIZE"]
           [(problematic-vector? type)
            (nanopass-case (Ltypescript Type) type
              [(tvector ,src ,len ,type)
@@ -162,6 +183,11 @@
             [(problematic-vec-u8? type)
              (out (format "        let ~a = compact_runtime::vec_u8_from_field_repr(&r[_offset.._offset])?;\n"
                           name))]
+            [(problematic-jubjub-point? type)
+             ;; R5a: orphan-safe parse via compact_runtime helper.
+             (out (format "        let ~a = compact_runtime::jubjub_point_from_field_repr(&r[_offset.._offset + ~a])?;\n"
+                          name size-expr))
+             (out (format "        _offset += ~a;\n" size-expr))]
             [(problematic-vector? type)
              (nanopass-case (Ltypescript Type) type
                [(tvector ,src ,len ,type)
@@ -208,6 +234,9 @@
            ;; iter().map(|e| e.field_size()).sum() avoids requiring
            ;; FieldRepr to be impl'd on [T; N].
            (format "self.~a.iter().map(|e| e.field_size()).sum::<usize>()" field-name)]
+          [(problematic-jubjub-point? type)
+           ;; R5a: orphan-safe field_size.
+           (format "compact_runtime::jubjub_point_field_size(&self.~a)" field-name)]
           [else
            (format "self.~a.field_size()" field-name)]))
 
@@ -217,6 +246,10 @@
         (cond
           [(problematic-vector? type)
            (out (format "        for _e in self.~a.iter() { _e.field_repr(writer); }\n"
+                        field-name))]
+          [(problematic-jubjub-point? type)
+           ;; R5a: orphan-safe field_repr.
+           (out (format "        compact_runtime::jubjub_point_field_repr(&self.~a, writer);\n"
                         field-name))]
           [else
            (out (format "        self.~a.field_repr(writer);\n" field-name))]))

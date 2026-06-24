@@ -41,8 +41,14 @@ pub use field_repr::{
     array_from_field_repr, bytes_field_size, bytes_from_field_repr, vec_u8_from_field_repr,
 };
 pub use jubjub::{
-    construct_jubjub_point, degrade_to_transient, ec_add, ec_mul, ec_mul_generator, jubjub_point_x,
-    jubjub_point_y, upgrade_from_transient,
+    construct_jubjub_point, degrade_to_transient, ec_add, ec_mul, ec_mul_generator,
+    // R5a: orphan-safe repr helpers used by codegen for JubjubPoint-typed
+    // struct fields. Re-exported into `compact_runtime::std_lib::` so
+    // generated code can avoid `<JubjubPoint as FromFieldRepr>::*`
+    // syntax (which the orphan rule forbids us from impl'ing).
+    jubjub_point_binary_len, jubjub_point_binary_repr, jubjub_point_field_repr,
+    jubjub_point_field_size, jubjub_point_from_field_repr, jubjub_point_x, jubjub_point_y,
+    upgrade_from_transient, JUBJUB_POINT_BINARY_LEN, JUBJUB_POINT_FIELD_SIZE,
 };
 pub use maybe::{none, some, Maybe};
 pub use merkle_path::{
