@@ -138,6 +138,12 @@
       ;; classification distinguish pure-circuit / witness / native calls.
       (define (ctor-expr-rust expr local-binds
                               native-id-ht witness-id-ht circuit-id-ht)
+        ;; Bug-1: thread local-binds through current-var-substitution so
+        ;; sub-expressions that route through expr-rust (which doesn't take
+        ;; local-binds) can still resolve formal→actual substitutions
+        ;; introduced by inline-circuit-call. The dynamic binding mirrors
+        ;; the explicit local-binds parameter — both must stay in sync.
+        (parameterize ([current-var-substitution local-binds])
         (let ([e (expr-strip-cast expr)])
           (nanopass-case (Ltypescript Expression) e
             [(var-ref ,src ,var-name)
@@ -282,7 +288,7 @@
              (render-map-mvp src fun map-arg native-id-ht)]
             [else
              ;; quote/tuple/etc. fall through to the existing expr-rust.
-             (expr-rust e native-id-ht)])))
+             (expr-rust e native-id-ht)]))))
 
       ;; render-map-mvp: render a `(map src len fun map-arg)` IR node
       ;; as a Rust array literal `[v0, v1, ..., vN-1]`. Assumes

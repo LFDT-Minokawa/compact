@@ -70,6 +70,20 @@
       (define current-impure-call-binds
         (make-parameter '()))
 
+      ;; current-var-substitution: alist of (var-name . rust-rendered-string),
+      ;; threaded dynamically by ctor-expr-rust so that downstream callees
+      ;; reachable only through `expr-rust` (e.g. emit-ledger-read-expr →
+      ;; expr->vm-value → expr-rust) can still resolve var-ref substitutions
+      ;; that came from inline-circuit-call's formal-binds. Without this,
+      ;; rendering `verificationMethodExists(disclosedMethodId)` inlined into
+      ;; an assert leaks the inner formal `id` into the final Rust because
+      ;; expr-rust's var-ref clause has no access to ctor-expr-rust's
+      ;; explicit local-binds parameter. Default `'()` matches "no
+      ;; substitution active" — expr-rust falls back to its plain snake-case
+      ;; rendering. Bug-1 (post-A19 inventory).
+      (define current-var-substitution
+        (make-parameter '()))
+
       ;; current-enum-ref-typed?: when #t, ctor-expr-rust renders an
       ;; `enum-ref` as `EnumName::r#variant` instead of the integer
       ;; discriminant. Used inside an `==` comparison whose other operand

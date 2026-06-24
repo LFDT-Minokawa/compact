@@ -1446,7 +1446,15 @@
              [else (rust-feature-error src 'quote-variant
                      "unsupported quote datum: ~s" datum)])]
           [(var-ref ,src ,var-name)
-           (symbol->string (camel->snake (id-sym var-name)))]
+           ;; Bug-1 fix: consult current-var-substitution before falling
+           ;; back to the default snake-case rendering. ctor-expr-rust
+           ;; dynamically binds the parameter from its local-binds so
+           ;; inlined sub-expressions reaching this path (via
+           ;; emit-ledger-read-expr → expr->vm-value → expr-rust) still
+           ;; resolve formal→actual substitutions from inline-circuit-call.
+           (cond
+             [(assq var-name (current-var-substitution)) => cdr]
+             [else (symbol->string (camel->snake (id-sym var-name)))])]
           [(tuple ,src ,tuple-arg* ...)
            ;; Compact's `Vector<N, T>` lowers to a Rust `[T; N]`. The IR
            ;; uses `tuple` for both tuples and vectors at the value level;

@@ -98,8 +98,16 @@
         (out "    _ps: PhantomData<PS>,\n")
         (out "}\n")
         (out "\n")
+        ;; Bug-3: `PS: Clone` is required for A17's `ctx.clone()` in
+        ;; helper-call shapes (drifted-ctx CircuitContext splicing).
+        ;; CircuitContext<PS> derives Clone iff PS: Clone, and the
+        ;; codegen emits `ctx.clone()` in several body shapes (const-
+        ;; binding to impure helper after asserts, bare-call arm in
+        ;; if-chain). Adding the bound here is upward-compatible —
+        ;; downstream consumers that don't use Clone aren't affected.
         (out "impl<PS, W> Contract<PS, W>\n")
         (out "where\n")
+        (out "    PS: Clone,\n")
         (out "    W: Witnesses<PS>,\n")
         (out "{\n")
         (out "    pub fn new(witnesses: W) -> Self {\n")
