@@ -110,7 +110,7 @@ export {
   StateValue,
   VmResults,
   VmStack,
-} from '@midnight-ntwrk/onchain-runtime-v3';
+} from '@midnightntwrk/onchain-runtime-v4';
 
 export {
   contractDependencies,
