@@ -138,26 +138,73 @@ still has ~12 unique Rust compile errors, grouped:
   new `current-var-substitution` dynamic parameter mirrors
   ctor-expr-rust's `local-binds`; `expr-rust`'s var-ref clause
   consults it before the default rendering.
-- **Bug-2**: `ConstructorContext.current_query_context` missing —
-  the constructor body emitter is reaching into a field that exists
-  on `CircuitContext` but not `ConstructorContext`. Still open.
+- ~~**Bug-2**: `ConstructorContext.current_query_context` missing~~
+  **Closed 2026-06-24** ([d551c12](../../../compiler/rust-passes-walker.ss)):
+  emit-ctor-body-or-fallback parameterizes `current-qctx-ref` to
+  `"&qctx"` before delegating, so in-expr ledger reads in the
+  constructor body read from the local qctx (built from the K1 seed)
+  instead of `&ctx.current_query_context` (which doesn't exist on
+  ConstructorContext).
 - ~~**Bug-3**: `compact_runtime::CircuitContext::clone` trait bound
   not satisfied~~ **Closed 2026-06-24** ([1c66b32](../../../compiler/rust-passes-prelude.ss)):
   added `PS: Clone` to the `impl<PS, W> Contract<PS, W>` where-clause
   in `emit-contract-struct`. Upward-compatible.
+- ~~**Bug-4**: enum-typed `==` rendered RHS as `Nu8` instead of
+  `Enum::Variant` (18 sites)~~ **Closed 2026-06-24**
+  ([c58d563](../../../compiler/rust-passes-walker.ss)): the `(==
+  src type expr1 expr2)` IR node carries the resolved comparison
+  type directly. Prefer it via `tenum-name-of-type` before the
+  operand-side heuristics in the `==` / `!=` rendering clauses.
+- ~~**Bug-5**: duplicate `let tmp = X` in arm pre-stmts (2-4 sites)~~
+  **Closed 2026-06-24** ([0da200a](../../../compiler/rust-passes-streaming.ss)):
+  the frontend lift emits the same `(= tmp expr)` more than once
+  per arm when the lifted local is read from both the assert cond
+  and the terminal pl-call. Dedupe by rendered Rust name during the
+  A12/A14 pre-stmts iteration.
+- ~~**Bug-6**: non-Copy var-ref / elt-ref lifted to a `let` without
+  `.clone()` (~6 sites)~~ **Closed 2026-06-24**
+  ([0da200a](../../../compiler/rust-passes-streaming.ss)): route lifted
+  RHSs through `expr-rust-arg-cloned` in three places (arm pre-stmts
+  emit, top-level const-binding else, emit-body-or-fallback
+  const-binding) so partial moves don't break later usage of the
+  parent struct/local.
+- ~~**Bug-7**: `ctx` moved into a hoisted impure call inside an
+  if-arm (2 sites)~~ **Closed 2026-06-24**
+  ([0da200a](../../../compiler/rust-passes-walker.ss)):
+  `emit-hoisted-impure-calls` now detects arm context by indent
+  depth and emits `ctx.clone()` so the surrounding scope's
+  post-arm `CircuitContext { ..ctx }` rebind still has ctx
+  available. Top-level body keeps the existing move semantics.
 
 ### Runtime-side (R5)
 - `EmbeddedGroupAffine: FromFieldRepr / field_repr / field_size /
-  binary_repr / binary_len` — missing trait impls.
+  binary_repr / binary_len` — missing trait impls. **Orphan-rule
+  blocked**: both `EmbeddedGroupAffine` and the `FromFieldRepr`
+  trait live in upstream `midnight-transient-crypto`, so a downstream
+  impl in `compact-runtime` violates Rust's coherence rules. Closing
+  this needs either (a) a wrapper newtype around `EmbeddedGroupAffine`
+  that compact-runtime owns + a codegen change to use it instead of
+  the raw alias, OR (b) an upstream PR adding the impls to
+  midnight-transient-crypto. Option (b) is cleaner long-term;
+  option (a) is faster locally but locks compact-runtime into the
+  wrapper indefinitely.
 - `[Fr; 4]: Aligned / FromFieldRepr`, `Value: From<[Fr; 4]>`,
   `binary_repr`, `binary_len` — fixed-size `Fr` array marshalling.
-- `OpProgramVerify::rem` reported missing — likely a Cargo.toml
-  pin lag in midnight-did-rs (the worktree's `op_builder.rs:78`
-  has it); refresh the compact dependency.
-- `schnorr_verify` witness method missing — codegen emits
-  `self.witnesses.schnorr_verify(...)` but the witness trait
-  doesn't declare it; map to the existing impl or add the
-  declaration.
+  Same orphan-rule shape. A typed helper-function path (à la
+  `field_repr::array_from_field_repr`) already exists for `[T; N]`
+  with `T: FromFieldRepr`; codegen would have to route `[Fr; 4]`
+  through it instead of emitting raw `<[Fr;4] as FromFieldRepr>`.
+- ~~`OpProgramVerify::rem`~~ **Resolved 2026-06-24** by refreshing
+  midnight-did-rs's flake input
+  (`nix flake update compact`) — the worktree branch had `rem` in
+  op_builder.rs:78 the whole time; only the downstream Cargo
+  resolution was stale.
+- `schnorr_verify` witness method missing — actually a circuit
+  module-import issue, not a witness. The `Schnorr_schnorrVerify<#n>`
+  generic circuit from the inner schnorr module isn't being emitted
+  as a `pub(crate) fn` even though jubjub-schnorr's
+  `schnorrVerifyDigest` calls it. Likely a module/generic
+  resolution gap — see [project_walker_gaps](#) for the chain.
 
 ### Test status
 - All `compactc` tests except the pre-existing `test_compact_check_no_param`
