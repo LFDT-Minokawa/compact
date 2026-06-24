@@ -2252,8 +2252,15 @@
       ;; existing call site.
       (define (emit-ctor-body-or-fallback stmt
                                           native-id-ht witness-id-ht circuit-id-ht)
-        (emit-body-or-fallback stmt 'ctor
-                               native-id-ht witness-id-ht circuit-id-ht))
+        ;; Bug-2: ledger reads in the constructor body must read from
+        ;; the local `qctx` we built from the K1 seed, not from
+        ;; `&ctx.current_query_context` (which doesn't exist on
+        ;; ConstructorContext<PS>). Parameterize so any
+        ;; emit-ledger-read-expr triggered downstream by an in-expr
+        ;; ledger read picks up the right source.
+        (parameterize ([current-qctx-ref "&qctx"])
+          (emit-body-or-fallback stmt 'ctor
+                                 native-id-ht witness-id-ht circuit-id-ht)))
 
       ;; classify-const-rhs: inspect a `const` binding's RHS expression and
       ;; classify the call (or return 'unknown). Returns
