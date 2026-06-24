@@ -189,8 +189,18 @@
              ;; u8-decoded ledger read) and election's
              ;; `state.read() == PublicState.commit` (same: ledger decoder
              ;; produces u8).
+             ;;
+             ;; Bug-4 (2026-06-24): the `==` IR node carries the resolved
+             ;; comparison `type` directly. When that type is itself a
+             ;; tenum (did.compact's `disclosed_mutation == MapMutation.Insert`
+             ;; with disclosed_mutation a `const = disclose(mutation)` whose
+             ;; declared type is MapMutation), neither operand-side
+             ;; heuristic fires (the var-ref isn't a formal arg and
+             ;; `disclose` isn't a witness/circuit), but the IR's type
+             ;; field is conclusive. Prefer it.
              (let ([typed?
-                    (or (operand-typed-enum? expr1 witness-id-ht)
+                    (or (tenum-name-of-type type)
+                        (operand-typed-enum? expr1 witness-id-ht)
                         (operand-typed-enum? expr2 witness-id-ht))])
                (parameterize ([current-enum-ref-typed? typed?])
                  (format "(~a == ~a)"
@@ -199,9 +209,11 @@
                          (ctor-expr-rust expr2 local-binds
                                          native-id-ht witness-id-ht circuit-id-ht))))]
             [(!= ,src ,type ,expr1 ,expr2)
-             ;; A9: inequality — same typed-enum threading as `==`.
+             ;; A9: inequality — same typed-enum threading as `==`. Bug-4:
+             ;; also prefer the IR type when it's a tenum.
              (let ([typed?
-                    (or (operand-typed-enum? expr1 witness-id-ht)
+                    (or (tenum-name-of-type type)
+                        (operand-typed-enum? expr1 witness-id-ht)
                         (operand-typed-enum? expr2 witness-id-ht))])
                (parameterize ([current-enum-ref-typed? typed?])
                  (format "(~a != ~a)"
