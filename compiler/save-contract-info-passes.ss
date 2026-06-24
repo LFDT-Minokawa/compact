@@ -203,9 +203,13 @@
       [(tboolean ,src)
        (list
          (cons "type-name" "Boolean"))]
-      [(tfield ,src)
-       (list
-         (cons "type-name" "Field"))]
+      [(tfield ,src ,ftype)
+       (list (cons "type-name"
+               (nanopass-case (Lnodisclose Field-Type) ftype
+                 [(field-native) "Field"]
+                 [(field-scalar (curve-jubjub)) "JubjubScalar"]
+                 [(field-base (curve-secp256k1)) "Secp256k1Base"]
+                 [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])))]
       [(tunsigned ,src ,nat)
        (list
          (cons "type-name" "Uint")

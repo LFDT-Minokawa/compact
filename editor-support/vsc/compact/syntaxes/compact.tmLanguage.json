@@ -22,7 +22,7 @@
 		"support": {
 			"patterns": [
 				{
-					"match": "\\b(Bytes|Boolean|Field|Opaque|Uint|Vector)\\b",
+					"match": "\\b(Bytes|Boolean|Field|JubjubScalar|Opaque|Secp256k1Base|Secp256k1Scalar|Uint|Vector)\\b",
 					"name": "support.class.compact"
 				}
 			]

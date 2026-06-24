@@ -36,7 +36,7 @@ export circuit test1(t1_f: t1_f): t1_f {
   const a = slice<1>(default<t1_Bytes2>, 0);
 
   assert(default<t1_Bytes2> == default<t1_Bytes2_a> as t1_Bytes2, "Comparison failure");
-  return 1;
+  return 1 as Field;
 }
 
 // Test2: pass the data from circuit to circuit
@@ -214,7 +214,7 @@ new type t12_d = Map<Field, T12>;
 export ledger t12_map: Map<Field, t12_d>;
 
 export circuit test12(vara: Field): [t12_a, t12_b, T12] {
-  t12_map.insert(1, default<t12_d>);
+  t12_map.insert(1 as Field, default<t12_d>);
   const a = t12_map.lookup(disclose(vara)).lookup(disclose(vara));
   const b = a.a[0];
 
@@ -286,7 +286,7 @@ export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
     t16_sum_of_fields.insert(a, sum as Field as t16_not_a_field);
   }
 
-  return t16_sum_of_fields.lookup(0);
+  return t16_sum_of_fields.lookup(0 as Field);
 }
 
 // Test 17: witness with custom param and return type

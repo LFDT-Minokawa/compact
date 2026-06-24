@@ -110,8 +110,8 @@ export circuit test4(): Vector<3, Uint<8>> {
     const uint_c = Test4Enum.C as Uint<8>;
 
     const uint_d = (uint_a + uint_b + uint_c) as Test4Enum;
-    test4_var.insert(1, uint_d);
-    const p = (test4_var.lookup(1) as Uint<16>) * (test4_var.lookup(1) as Uint<16>);
+    test4_var.insert(1 as Field, uint_d);
+    const p = (test4_var.lookup(1 as Field) as Uint<16>) * (test4_var.lookup(1 as Field) as Uint<16>);
 
     test4_result = (uint_d as Field) + (1 as Field) as Boolean as Field;
 
@@ -157,20 +157,20 @@ export circuit test6(): Boolean {
 
 // Test 7: Uint to Enum casting
 export circuit test7(): Boolean {
-    const enum_0: Field = 0;
+    const enum_0: Field = 0 as Field;
     const cast_0 = enum_0 as Test4Enum;
 
-    const enum_1: Field = 1;
+    const enum_1: Field = 1 as Field;
     const cast_1 = enum_1 as Test4Enum;
 
-    const enum_2: Field = 2;
+    const enum_2: Field = 2 as Field;
     const cast_2 = enum_2 as Test4Enum;
 
     // why these works - fails at runtime
-    const enum_3: Field = 3;
+    const enum_3: Field = 3 as Field;
     const cast_3 = enum_3 as Test4Enum;
 
-    const enum_4: Field = 4;
+    const enum_4: Field = 4 as Field;
     const cast_4 = enum_4 as Test4Enum;
 
     assert(cast_0 == Test4Enum.A, "Should be equal");
@@ -418,7 +418,7 @@ export circuit test17(m1_enum: $M1_Test17TestEnum, m2_enum: $M1_Test17TestEnum):
     const fancy_enum3 = fancy_enum2 as $M2_Test17TestEnum as $M1_Test17TestEnum as $M3_Test17TestEnum;
     test17_result = ((fancy_enum3 as Field) + (fancy_enum3 as Uint<64>) * (fancy_enum3 as Field)) as Field;
 
-    test17_result2 = fancy_enum3 as Uint<32>;
+    test17_result2 = fancy_enum3 as Uint<32> as Field;
 
     return fancy_enum;
 }

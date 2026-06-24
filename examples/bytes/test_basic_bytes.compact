@@ -58,7 +58,7 @@ export ledger test2_var: Vector<8, Bytes<1>>;
 export ledger test2a_var: Vector<3, Bytes<2>>;
 
 export circuit test2(): Vector<8, Bytes<1>> {
-    const fields = [0, 1, 2, 3, 4, 5, 6, 7];
+    const fields = [0 as Field, 1 as Field, 2 as Field, 3 as Field, 4 as Field, 5 as Field, 6 as Field, 7 as Field];
     test2_var = map((x: Field) => Bytes[x as Uint<8>], fields);
 
     const vec_bytes = [Bytes[1, 2], Bytes[3, 4], Bytes[5, 6]];
