@@ -133,22 +133,18 @@ generated `lib.rs` (drop into
 still has ~12 unique Rust compile errors, grouped:
 
 ### Compiler-side
-- **`id` not in scope (2 sites)**: `inline-circuit-call` substitutes
-  formal→actual via `local-binds` for ctor-expr-rust's var-ref
-  rendering, but the inlined body's nested ADT-read paths route
-  through `emit-ledger-read-expr-with-args` → `expr->vm-value` →
-  `expr-rust`, which renders var-refs without consulting
-  `local-binds`. Fix: thread `local-binds` through the vm-value
-  pipeline or pre-substitute Expression nodes before render. Tagged
-  as **Bug-1** for a future commit.
-- **`ConstructorContext.current_query_context` missing**: the
-  constructor body emitter is reaching into a field that exists on
-  `CircuitContext` but not `ConstructorContext`. Tagged as **Bug-2**.
-- **`compact_runtime::CircuitContext::clone` trait bound not
-  satisfied**: A17 introduced `ctx.clone()` for the drifted-ctx
-  helper-call shape. `CircuitContext<PS>` derives `Clone` but
-  requires `PS: Clone`. Generated code's `PS` bound list needs
-  `Clone`. Tagged as **Bug-3**.
+- ~~**Bug-1**: `id` not in scope inside inlined ADT-read calls~~
+  **Closed 2026-06-24** ([1c66b32](../../../compiler/rust-passes-emit.ss)):
+  new `current-var-substitution` dynamic parameter mirrors
+  ctor-expr-rust's `local-binds`; `expr-rust`'s var-ref clause
+  consults it before the default rendering.
+- **Bug-2**: `ConstructorContext.current_query_context` missing —
+  the constructor body emitter is reaching into a field that exists
+  on `CircuitContext` but not `ConstructorContext`. Still open.
+- ~~**Bug-3**: `compact_runtime::CircuitContext::clone` trait bound
+  not satisfied~~ **Closed 2026-06-24** ([1c66b32](../../../compiler/rust-passes-prelude.ss)):
+  added `PS: Clone` to the `impl<PS, W> Contract<PS, W>` where-clause
+  in `emit-contract-struct`. Upward-compatible.
 
 ### Runtime-side (R5)
 - `EmbeddedGroupAffine: FromFieldRepr / field_repr / field_size /
