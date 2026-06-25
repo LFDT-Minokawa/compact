@@ -70145,7 +70145,7 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "__compactRuntime.checkRuntimeVersion('0.16.101');"
+        "__compactRuntime.checkRuntimeVersion('0.17.101');"
         ""
         "const _descriptor_0 = __compactRuntime.CompactTypeField;"
         ""
@@ -82942,12 +82942,12 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "test('elliptic curve negation', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "test('elliptic curve negation', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  const g = runtime.ecMulGenerator(1n);"
         "  const neg = runtime.ecNeg(g);"
-        "  expect(contract.circuits.foo(context, g).result).toEqual(neg);"
-        "  expect(contract.circuits.foo(context, neg).result).toEqual(g);"
+        "  expect((await contract.circuits.foo(context, g)).result).toEqual(neg);"
+        "  expect((await contract.circuits.foo(context, neg)).result).toEqual(g);"
         "});"
         ))
     )
