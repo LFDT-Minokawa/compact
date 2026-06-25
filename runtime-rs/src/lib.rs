@@ -220,20 +220,44 @@ pub use version::COMPACT_RUNTIME_VERSION;
 
 pub mod std_lib;
 pub use std_lib::{
-    array_from_field_repr, bytes_field_size, bytes_from_field_repr, construct_jubjub_point,
-    default_merkle_path, degrade_to_transient, disclose, ec_add, ec_mul, ec_mul_generator,
+    array_from_field_repr,
+    bytes_field_size,
+    bytes_from_field_repr,
+    construct_jubjub_point,
+    default_merkle_path,
+    degrade_to_transient,
+    disclose,
+    ec_add,
+    ec_mul,
+    ec_mul_generator,
     // R5a: orphan-safe repr helpers for JubjubPoint-typed struct fields,
     // promoted to crate-root so codegen can spell
     // `compact_runtime::jubjub_point_*` without the `std_lib::` segment.
-    jubjub_point_binary_len, jubjub_point_binary_repr, jubjub_point_field_repr,
-    jubjub_point_field_size, jubjub_point_from_field_repr, jubjub_point_x, jubjub_point_y,
-    merkle_tree_path_root, merkle_tree_path_root_no_leaf_hash, none, pad,
+    jubjub_point_binary_len,
+    jubjub_point_binary_repr,
+    jubjub_point_field_repr,
+    jubjub_point_field_size,
+    jubjub_point_from_field_repr,
+    jubjub_point_x,
+    jubjub_point_y,
+    merkle_tree_path_root,
+    merkle_tree_path_root_no_leaf_hash,
+    none,
+    pad,
     // Module-1: Schnorr-on-Jubjub verifier + circuit-shaped wrapper.
     // Codegen rewrites `self.schnorr_verify(ctx, msg, sig, pk)?` calls
     // (the inner generic `schnorrVerify<#n>` from the jubjub-schnorr
     // import chain) into `compact_runtime::schnorr_verify_jubjub(ctx, ...)?`.
-    schnorr_verify, schnorr_verify_jubjub, some, upgrade_from_transient, vec_u8_from_field_repr,
-    Bytes, Maybe, SchnorrSignature, JUBJUB_POINT_BINARY_LEN, JUBJUB_POINT_FIELD_SIZE,
+    schnorr_verify,
+    schnorr_verify_jubjub,
+    some,
+    upgrade_from_transient,
+    vec_u8_from_field_repr,
+    Bytes,
+    Maybe,
+    SchnorrSignature,
+    JUBJUB_POINT_BINARY_LEN,
+    JUBJUB_POINT_FIELD_SIZE,
 };
 
 pub mod builders;
