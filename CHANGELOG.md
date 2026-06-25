@@ -18,8 +18,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `deserialize<T,n>`.  These are defined in `midnight-inlines.ss` and
   the macro expansion is defined in `inlines.ss` and they are inserted during
   `expand-modules-and-types`.  So the end user cannot see their definition,
-  but they can see their type signature in Compact's standard library.
-- Pulls in `ledger-9.0.0-rc.3`.
+  but they can see their type signature in Compact's standard library. 
 
 ### Changed
 
