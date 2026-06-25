@@ -439,6 +439,7 @@ jobs:
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
+          target_commitish: ${{ needs.setup.outputs.branch }}
           name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: true
           prerelease: true

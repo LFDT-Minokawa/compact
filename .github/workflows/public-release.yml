@@ -12,7 +12,7 @@ on:
         required: true
         type: string
       branch:
-        description: 'Branch to use for release notes'
+        description: 'Branch to use for tagging and release notes'
         required: true
         type: choice
         default: 'release/midnight'
