@@ -274,12 +274,14 @@ jobs:
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
           LANGUAGE_VERSION: ${{ inputs.language_version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+          BRANCH: ${{ needs.setup.outputs.branch }}
         run: |
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
           PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
           gh release create "$PUBLIC_TAG" \
             --repo LFDT-Minokawa/compact \
+            --target "$BRANCH" \
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
             --notes-file "$RELEASE_NOTES_FILE" \
             --latest=false \
