@@ -146,7 +146,7 @@ where
     let results = query_for_verify(
         &ctx.current_query_context,
         &ops,
-        ctx.gas_limit.clone(),
+        ctx.gas_limit,
         &ctx.cost_model,
     )?;
     Ok(CircuitResults {

@@ -75,6 +75,7 @@ impl<D: DB> OpProgramVerify<D> {
     /// `rem` — remove the top stack value's key from the container below
     /// it on the stack (Set.remove / Map.remove). Mirrors the
     /// `(rem [cached ...])` vminstruction emitted for ADT `remove` ops.
+    #[allow(clippy::should_implement_trait)]
     pub fn rem(mut self, cached: bool) -> Self {
         self.ops.push(Op::Rem { cached });
         self
