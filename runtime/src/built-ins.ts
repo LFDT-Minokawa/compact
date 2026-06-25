@@ -227,10 +227,7 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
  * Edwards curve, the negation of (x, y) is (-x, y).
  */
 export function ecNeg(a: JubjubPoint): JubjubPoint {
-  return constructJubjubPoint(
-    a.x === 0n ? 0n : FIELD_MODULUS - a.x,
-    a.y
-  );
+  return constructJubjubPoint(a.x === 0n ? 0n : FIELD_MODULUS - a.x, a.y);
 }
 
 /**

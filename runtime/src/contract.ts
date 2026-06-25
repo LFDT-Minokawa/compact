@@ -103,10 +103,7 @@ const assertImplementationMatches = (
     return;
   }
   const expected = calleeModule.expectedVk?.[calleeCircuitId];
-  assertDefined(
-    expected,
-    `verifier-key fingerprint for circuit '${calleeCircuitId}' on the callee module`,
-  );
+  assertDefined(expected, `verifier-key fingerprint for circuit '${calleeCircuitId}' on the callee module`);
   const actual = bytesToHex(sha256(deployedVerifierKey));
   if (actual !== expected) {
     throw new ContractInterfaceMismatchError(calleeAddress, calleeCircuitId, expected, actual);
