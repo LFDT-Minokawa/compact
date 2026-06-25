@@ -2711,7 +2711,8 @@
                      (and (eqv? len len^)
                           (trivs-equal? triv1 triv1^ triv2 triv2^))]
                     [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv) (downcast-unsigned ,src^ ,safe^ ,nat?^ ,nat^ ,triv^)
-                     (and (eqv? nat? nat?^)
+                     (and (eqv? safe safe^)
+                          (eqv? nat? nat?^)
                           (eqv? nat nat^)
                           (triv-equal? triv triv^))]))))
         (define (triv-vec-equal? v1 v2)
@@ -2729,6 +2730,8 @@
       (module (nontriv-single-hash triv-vec-hash assert-hash)
         (define (update hc k)
           (#3%fx+ (#3%fxsll hc 2) hc k))
+        (define (boolean-hash b hc)
+          (update hc (if b 0 1)))
         (define (nat-hash nat hc)
           (update hc (if (fixnum? nat) nat (modulo nat (most-positive-fixnum)))))
         (define (bits-hash bits hc)
@@ -2767,9 +2770,10 @@
                  447395717
                  (cons triv triv*))]
               [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
-               (triv-hash triv
-                 (let ([h (triv-hash nat 314267636)])
-                   (if nat? (triv-hash nat? h) h)))]
+               (boolean-hash safe
+                 (triv-hash triv
+                   (let ([h (triv-hash nat 314267636)])
+                     (if nat? (triv-hash nat? h) h))))]
               [else (internal-errorf 'nontriv-single-hash "unhandled form ~s" (cdr test.single))])))
         (define (triv-vec-hash v)
           (let ([n (vector-length v)])
