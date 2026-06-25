@@ -694,6 +694,7 @@
                                         [(,src ,type ,expr) (make-vmref type (Expr expr (precedence add1 comma) #f))]))
                                     path-elt*)
                                #f
+                               type
                                (append (map cons adt-formal* adt-arg*)
                                        (map (lambda (var-name type expr)
                                               (let ([sym (id-sym var-name)])

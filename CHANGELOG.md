@@ -44,6 +44,12 @@ and Compact runtime versions in the range between 0.16.100 and 0.17.0.
 
 ### Added
 
+- `kernel.caller()` ledger operation returns the caller of a circuit invocation
+  as `Maybe<Either<ContractAddress, UserAddress>>`:
+  - `left(addr)` when called by contract `addr`;
+  - `right(addr)` when this is the top-level call for user `addr`;
+  - `None` when no caller can be determined.
+
 - The compiler now writes a manifest to the file `contract-manifest.json` in the
   `compiler` subdirectory of the target directory.  The manifest contains sizes
   and sha256 sums for each of the generated files except `contract-manifest.json`
@@ -78,7 +84,6 @@ and Compact runtime versions in the range between 0.16.100 and 0.17.0.
 - Schnorr signature verification over the JubJub embedded curve, via the new
   `JubjubSchnorrSignature` struct and `jubjubSchnorrVerify` circuit in the
   standard library.
-
 ## [Toolchain 0.31.103, language 0.23.103, runtime 0.16.100]
 
 ### Added

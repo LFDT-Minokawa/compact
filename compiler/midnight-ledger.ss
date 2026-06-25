@@ -81,6 +81,12 @@
             (type-ref UserAddress))
   "UnshieldedRecipient")
 
+(declare-ledger-type PublicAddress ()
+  (type-ref Either
+            (type-ref ContractAddress)
+            (type-ref UserAddress))
+  "PublicAddress")
+
 (declare-ledger-type TokenType ()
   (type-ref Either
             (primitive-type Bytes 32)
@@ -258,6 +264,49 @@
     ((dup [n 2])
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
+  (function read caller () (Maybe PublicAddress)
+    "Returns the caller of this circuit invocation, if known. \
+     `left(addr)` when called by contract `addr`; `right(addr)` when this is the \
+     top-level call for user `addr` (uniquely identified by the transaction's \
+     unshielded inputs). None when no caller can be determined (e.g. a purely \
+     shielded top-level transaction, or one with unshielded inputs from \
+     multiple distinct owners). \
+     Maybe, Either, ContractAddress, and UserAddress are defined in CompactStandardLibrary."
+    ;; [context, effects, state]
+    ((dup [n 2])
+     ;; [context, effects, state, context]
+     (idx [cached #t] [pushPath #f] [path (list (align 6 1))])
+     ;; [context, effects, state, caller_slot]
+     ;;   caller_slot is Cell(PublicAddress) or Null
+     (dup [n 0])
+     ;; [context, effects, state, caller_slot, caller_slot]
+     (type)
+     ;; [context, effects, state, caller_slot, type_tag]
+     ;;   type_tag = 0 if Cell (some), 1 if Null (none)
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, type_tag, 1]
+     (eq)
+     ;; [context, effects, state, caller_slot, is_none]
+     (branch [skip 4])
+     ;; some-branch:
+     ;; [context, effects, state, caller_slot]
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, is_some=1]
+     (swap [n 0])
+     ;; [context, effects, state, is_some=1, caller_slot]
+     (concat [cached #f] [n (rt-max-sizeof return_type)])
+     ;; [context, effects, state, (1, public_address)]
+     (jmp [skip 2])
+     ;; none-branch:
+     ;; [context, effects, state, caller_slot]
+     (pop)
+     ;; [context, effects, state]
+     (push [storage #f] [value (state-value 'cell (rt-null return_type))])
+     ;; merge:
+     ;; [context, effects, state, (0|1, addr_or_default)]
+     (popeq [cached #t] [result (void)])
+     ;; [context, effects, state]
+     ))
   (function update mintUnshielded
             ([domain_sep Bytes32 (discloses "the domain separator of the unshielded token being minted given by")]
              [amount Uint64 (discloses "the amount of the unshielded token being minted given by")])
