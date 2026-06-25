@@ -1,5 +1,18 @@
 # Detailed API reference
 
+## Type Aliases
+
+### `JubjubPoint`
+
+The type of the embedded native elliptic curve points.  This is a nominal type
+alias for an underlying builtin type.  The alias is used to hide the
+representation of the underlying type, which might change.
+
+`JubjubPoint`s are constructed from their coordinates using
+[`constructJubjubPoint`](#constructjubjubpoint).  The X and Y coordinates can be
+extracted from a `JubjubPoint` using respectively
+[`jubjubPointX`](#jubjubpointx) and [`jubjubPointY`](#jubjubpointy).
+
 ## Structs
 
 ### `Maybe`
@@ -27,17 +40,15 @@ struct Either<A, B> {
 }
 ```
 
-### `NativePoint`
+### `JubjubSchnorrSignature`
 
-A point on the proof systems embedded curve, in affine coordinates.
-
-Only outputs of elliptic curve operations are actually guaranteed to lie on the
-curve.
+A Schnorr signature over the JubJub embedded curve. Contains an announcement
+point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrverify).
 
 ```compact
-struct NativePoint {
-  x: Field;
-  y: Field;
+struct JubjubSchnorrSignature {
+  announcement: JubjubPoint;
+  response: Field;
 }
 ```
 
@@ -308,36 +319,83 @@ This function hashes its input using the Keccak-256 algorithm.  It returns the
 circuit keccak256<T>(value: T): Bytes<32>;
 ```
 
-### `ecAdd`
+### `constructJubjubPoint`
 
-This function add two elliptic [`NativePoint`](#nativepoint)s (in multiplicative
-notation)
+This function constructs a [`JubjubPoint`](#jubjubpoint) from its X and Y
+coordinates.  Neither the standard library nor the Compact JavaScript runtime
+package will actually verify that a constructed point actually lies on the
+Jubjub curve.  The behavior of constructing or operating on an invalid curve
+point is undefined.
 
 ```compact
-circuit ecAdd(a: NativePoint, b: NativePoint): NativePoint;
+circuit constructJubjubPoint(x: Field, y: Field): JubjubPoint;
+```
+
+### `jubjubPointX`
+
+This function extracts the X coordinate from a [`JubjubPoint`](#jubjubpoint).
+
+```compact
+circuit jubjubPointX(pt: JubjubPoint): Field;
+```
+
+### `jubjubPointY`
+
+This function extracts the Y coordinate from a [`JubjubPoint`](#jubjubpoint).
+
+```compact
+circuit jubjubPointY(pt: JubjubPoint): Field;
+```
+
+### `jubjubScalarFromNative`
+
+This function converts a native `Field` value into a `Field` value that is in
+the range of the Jubjub scalar field.
+
+```compact
+circuit jubjubScalarFromNative(x: Field): Field;
+```
+
+### `ecAdd`
+
+This function adds two elliptic [`JubjubPoint`](#jubjubpoint)s.
+
+```compact
+circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
+```
+
+### `ecNeg`
+
+This function negates an elliptic [`JubjubPoint`](#jubjubpoint). On the JubJub
+twisted Edwards curve, the negation of `(x, y)` is `(-x, y)`.
+
+```compact
+circuit ecNeg(a: JubjubPoint): JubjubPoint;
 ```
 
 ### `ecMul`
 
-This function multiplies an elliptic [`NativePoint`](#nativepoint) by a scalar
-(in multiplicative notation)
+This function multiplies an elliptic [`JubjubPoint`](#jubjubpoint) by a Jubjub
+scalar.  The scalar should be in the range of the Jubjub scalar field (see
+[`jubjubScalarFromNative`](#jubjubscalarfromnative)).
 
 ```compact
-circuit ecMul(a: NativePoint, b: Field): NativePoint;
+circuit ecMul(a: JubjubPoint, b: Field): JubjubPoint;
 ```
 
 ### `ecMulGenerator`
 
-This function multiplies the primary group generator of the embedded curve
-by a scalar (in multiplicative notation)
+This function multiplies the primary group generator of the embedded curve by a
+Jubjub scalar.  The scalar should be in the range of the Jubjub scalar field
+(see [`jubjubScalarFromNative`](#jubjubscalarfromnative)).
 
 ```compact
-circuit ecMulGenerator(b: Field): NativePoint;
+circuit ecMulGenerator(b: Field): JubjubPoint;
 ```
 
 ### `hashToCurve`
 
-This function maps arbitrary types to [`NativePoint`](#nativepoint)s.
+This function maps arbitrary types to [`JubjubPoint`](#nativepoint)s.
 
 Outputs are guaranteed to have unknown discrete logarithm with respect to
 the group base, and any other output, but are not guaranteed to be unique (a
@@ -347,7 +405,25 @@ Inputs of different types `T` may have the same output, if they have the same
 field-aligned binary representation.
 
 ```compact
-circuit hashToCurve<T>(value: T): NativePoint;
+circuit hashToCurve<T>(value: T): JubjubPoint;
+```
+
+### `jubjubSchnorrVerify`
+
+Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
+as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
+and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
+Returns true if the signature is valid; false if the signature does not verify.
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit jubjubSchnorrVerify<#N>(
+          msg: Vector<N, Field>,
+          signature: JubjubSchnorrSignature,
+          pk: JubjubPoint
+          ): Boolean;
 ```
 
 ### `jubjubSchnorrVerify`

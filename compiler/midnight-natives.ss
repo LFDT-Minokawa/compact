@@ -70,6 +70,11 @@
    [b (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")])
   (TypeRef JubjubPoint))
 
+(declare-native-entry circuit ecNeg
+  "__compactRuntime.ecNeg"
+  ([a (TypeRef JubjubPoint) (discloses "the elliptic curve negation of")])
+  (TypeRef JubjubPoint))
+
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]

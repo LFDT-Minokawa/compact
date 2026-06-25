@@ -58946,6 +58946,51 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  ;; ecNeg: negate a JubjubPoint (ZKIR v2)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger impure: Boolean;"
+      ""
+      "export circuit foo(a: JubjubPoint): JubjubPoint {"
+      "  impure = true;"
+      "  return ecNeg(a);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 2,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
+        "    { \"op\": \"neg\", \"a\": 0 },"
+        "    { \"op\": \"output\", \"var\": 7 },"
+        "    { \"op\": \"output\", \"var\": 1 }"
+        "  ]"
+        "}")))
+
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -65785,6 +65830,39 @@ groups than for single tests.
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; ecNeg: negate a JubjubPoint
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger impure: Boolean;"
+      ""
+      "export circuit foo(a: JubjubPoint): JubjubPoint {"
+      "  impure = true;"
+      "  return ecNeg(a);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%a.0\", \"type\": \"Point<Jubjub>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Jubjub>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%x.1\", \"%y.2\"], \"input\": \"%a.0\" },"
+        "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"%x.1\" },"
+        "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.4\", \"inputs\": [\"%neg.3\", \"%y.2\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
         "}"))
     )
@@ -82846,6 +82924,30 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([42n, 42n]);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+
+  ;; ecNeg: negate a JubjubPoint
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger impure: Boolean;"
+      ""
+      "export circuit foo(a: JubjubPoint): JubjubPoint {"
+      "  impure = true;"
+      "  return ecNeg(a);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('elliptic curve negation', () => {"
+        "  const [contract, context] = startContract(contractCode, {}, 0);"
+        "  const g = runtime.ecMulGenerator(1n);"
+        "  const neg = runtime.ecNeg(g);"
+        "  expect(contract.circuits.foo(context, g).result).toEqual(neg);"
+        "  expect(contract.circuits.foo(context, neg).result).toEqual(g);"
         "});"
         ))
     )

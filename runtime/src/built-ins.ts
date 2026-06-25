@@ -221,6 +221,19 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
 }
 
 /**
+ * The Compact builtin `ecNeg` function
+ *
+ * This function negates an elliptic curve point. On the JubJub twisted
+ * Edwards curve, the negation of (x, y) is (-x, y).
+ */
+export function ecNeg(a: JubjubPoint): JubjubPoint {
+  return constructJubjubPoint(
+    a.x === 0n ? 0n : FIELD_MODULUS - a.x,
+    a.y
+  );
+}
+
+/**
  * The Compact builtin `ecMul` function
  *
  * This function multiplies an elliptic curve point by a scalar (in

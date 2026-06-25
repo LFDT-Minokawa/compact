@@ -919,16 +919,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1779364811,
-        "narHash": "sha256-8rQis/A4phaaranbLtMwPG0wDt1cmODw5XlCB/IfqUM=",
+        "lastModified": 1781195592,
+        "narHash": "sha256-3R6MnY9e7LhF1R7nks71zNhVTx1pcGRi1uNpcispAMM=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "b00cf781a78017a81b69789e43c927f54407f42c",
+        "rev": "5b97fdbcc2cb72ea0d1db6fdd8e8162f07d775e4",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-9.0.1.0-alpha.1",
+        "ref": "ledger-9.1.0.0-rc.2",
         "repo": "midnight-ledger",
         "type": "github"
       }

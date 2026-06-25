@@ -31,7 +31,7 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.0.1.0-alpha.1"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v4 = {
@@ -226,7 +226,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.31.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.32.101"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

@@ -34,6 +34,7 @@ Key parts of the API are:
   - [`keccak256`](exports.md#keccak256)
 - Elliptic curve functions:
   - [`ecAdd`](exports.md#ecadd)
+  - [`ecNeg`](exports.md#ecneg)
   - [`ecMul`](exports.md#ecmul)
   - [`ecMulGenerator`](exports.md#ecmulgenerator)
   - [`hashToCurve`](exports.md#hashtocurve)
