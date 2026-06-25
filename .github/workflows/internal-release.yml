@@ -365,6 +365,7 @@ jobs:
           name: macos-release-x86_64
 
       - name: Patch release notes in zip artifacts
+        if: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
         env:
           VERSION: ${{ inputs.version }}
           CLEAN_TAG: ${{ needs.setup.outputs.clean_tag }}
@@ -413,6 +414,7 @@ jobs:
           done
 
       - name: Patch release notes file for GitHub release body
+        if: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
         env:
           VERSION: ${{ inputs.version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
