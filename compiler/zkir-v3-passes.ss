@@ -112,7 +112,7 @@
                (cons `(ec_mul_generator ,(car var-name*) ,(car triv*)) instr*)]
               [(jubjubScalarFromNative)
                (assert (= (length var-name*) 1))
-               (cons `(decode "Scalar<Jubjub>" ,(car var-name*) ,(car triv*)) instr*)]
+               (cons `(jubjub_scalar_from_native ,(car var-name*) ,(car triv*)) instr*)]
               [(hashToCurve)
                (assert (= (length var-name*) 1))
                (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
@@ -948,6 +948,8 @@
          `((op . "encode") (outputs . ,(vector outp0 outp1)) (input . ,inp)))]
       [(hash_to_curve ,[* outp] ,[* inp*] ...)
        `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
+      [(jubjub_scalar_from_native ,[* outp] ,[* inp])
+       `((op . "jubjub_scalar_from_native") (output . ,outp) (native . ,inp))]
       [(keccak256 ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
        (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
          `((op . "keccak256") (outputs . ,(vector outp0 outp1))

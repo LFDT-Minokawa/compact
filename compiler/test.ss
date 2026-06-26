@@ -50100,6 +50100,34 @@ groups than for single tests.
           (= 1 (%pt1.10 %pt1.11)
              (call %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
           (%pt1.10 %pt1.11)))))
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "ledger F: [Uint<8>, Uint<8>];"
+      "export circuit foo(x: Uint<32>): [] {"
+      "  F = disclose([x < 256 ? x as Uint<8> : 0, x as Uint<8>]);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.3 () (Kernel)))
+        (public-ledger-declaration
+          ((%F.4
+             (0)
+             (__compact_Cell
+               (ty ((abytes 1) (abytes 1)) ((tfield 255) (tfield 255)))))))
+        (circuit %foo.5 ((argument
+                          (%c.0)
+                          (ty ((abytes 4)) ((tfield 4294967295)))))
+             (ty () ())
+          (= 1 %t.1 (< 32 %c.0 256))
+          (= 1 %t.2 (downcast-unsigned #t 4294967295 255 %c.0))
+          (= 1 %t.6 (select %t.1 %t.2 0))
+          (= 1 %t.7 (downcast-unsigned #f 4294967295 255 %c.0))
+          (= 1 () (public-ledger %F.4 (0) write %t.6 %t.7))
+          ())))
+    )
 )
 
 (run-tests print-zkir

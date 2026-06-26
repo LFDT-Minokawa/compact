@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.32.102, language 0.24.101, runtime 0.17.102]
+## [Toolchain 0.32.104, language 0.24.101, runtime 0.17.103]
 
 ### Added
 
@@ -40,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Some of the downstream type checkers did not handle `let*` forms with
   multiple bindings properly but now do.  This was not previously a problem
   because the upstream passes did not produce such `let*` forms.
+
+## [Toolchain 0.32.103, language 0.24.0, runtime 0.17.102]
+
+### Changed
+
+- Pulls in ledger-9.1.0.0-rc.3
+
+## [Toolchain 0.32.102, language 0.24.0, runtime 0.17.101]
+
+### Fixed
+
+- Code generation for certain casts.
 
 ## [Toolchain 0.32.101, language 0.24.0, runtime 0.17.101]
 

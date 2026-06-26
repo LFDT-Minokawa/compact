@@ -51,13 +51,46 @@ export type Module<C, W> = {
 const pending = new Set<Promise<void>>();
 
 /**
+ * Maximum time a single proof check (e.g. the zkir-v3 `check`/preprocess pass)
+ * may run before it is treated as a failure rather than being allowed to hang
+ * the whole suite. A wasm trap across the async boundary can leave the check's
+ * promise permanently unsettled; without a bound, `flushProofChecks`'
+ * `Promise.allSettled` would wait forever and vitest's timers never fire,
+ * because control has already returned to JS after the trap.
+ *
+ * Must stay below vitest's `hookTimeout` (see vitest.config.ts) so this
+ * check-level bound fires first with a precise message, instead of the hook
+ * timing out generically. A legitimate `check`/preprocess pass is off-circuit
+ * and finishes in well under a second, so this leaves a wide margin.
+ */
+const PROOF_CHECK_TIMEOUT_MS = 10_000;
+
+/**
+ * Race `p` against a timeout so a check that never settles becomes a concrete
+ * rejection instead of an indefinite hang. The timer is always cleared once
+ * the race settles, so it never keeps the Node event loop alive on its own.
+ */
+const withTimeout = (p: Promise<void>, ms: number): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`proof check timed out after ${ms}ms`)),
+      ms,
+    );
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+};
+
+/**
  * Register a proof-check promise so we can fail a test at a controlled boundary.
  * Attaches handlers immediately to avoid unhandled-rejection noise and
- * auto-removes the promise from the queue upon settlement.
+ * auto-removes the promise from the queue upon settlement. The check is bounded
+ * by `PROOF_CHECK_TIMEOUT_MS` so a hung check surfaces as a test failure.
  */
 export const registerProofCheck = (p: Promise<void>): void => {
+  const guarded = withTimeout(p, PROOF_CHECK_TIMEOUT_MS);
   let wrapped: Promise<void>;
-  wrapped = p.then(
+  wrapped = guarded.then(
     () => { pending.delete(wrapped); },
     (e) => { pending.delete(wrapped); throw e; }
   );
