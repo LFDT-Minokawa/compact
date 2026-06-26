@@ -7,7 +7,9 @@
   ],
   "instructions": [
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.0", "guard": null },
-    { "op": "impact", "guard": "0x01", "inputs": ["0x30", "0x50", "0x01", "0x01", "0x02", "0x0c", "0x01", "0x01", "%t.0"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x30"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x50", "0x01", "0x01", "0x02"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x0c", "0x01", "0x01", "%t.0"] },
     { "op": "test_eq", "output": "%t.1", "a": "%t.0", "b": "0x01" },
     { "op": "assert", "cond": "%t.1" },
     { "op": "private_input", "type": "Scalar<BLS12-381>", "output": "%sk.2", "guard": null },
@@ -17,13 +19,21 @@
     { "op": "persistent_hash", "outputs": ["%apk.4", "%apk.5"], "alignment": [{ "tag": "atom", "value": { "length": 32, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x00", "0x6c617265733a74696e793a706b3a", "%sk.2", "%sk.3"] },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.6", "guard": null },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.7", "guard": null },
-    { "op": "impact", "guard": "0x01", "inputs": ["0x30", "0x50", "0x01", "0x01", "0x00", "0x0c", "0x01", "0x20", "%t.6", "%t.7"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x30"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x50", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x0c", "0x01", "0x20", "%t.6", "%t.7"] },
     { "op": "test_eq", "output": "%t.8", "a": "%apk.4", "b": "%t.6" },
     { "op": "test_eq", "output": "%t.9", "a": "%apk.5", "b": "%t.7" },
     { "op": "cond_select", "output": "%t.10", "bit": "%t.8", "a": "%t.9", "b": "0x00" },
     { "op": "assert", "cond": "%t.10" },
-    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00", "0x11", "0x01", "0x01", "0x20", "0x00", "0x00", "0x91"] },
-    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x01", "0x11", "0x01", "0x01", "-0x02", "0x00", "0x91"] },
-    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x02", "0x11", "0x01", "0x01", "0x01", "0x00", "0x91"] }
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "0x00", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x01"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "-0x02", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x02"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] }
   ]
 }
