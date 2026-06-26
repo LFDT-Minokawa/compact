@@ -171,7 +171,7 @@ groups than for single tests.
 
   (define (print-pass-result pass-name pretty-formats result)
     (pretty-print/formats
-      (cons 
+      (cons
         (cons 'pass-returns '(pass-returns pass-name #f e))
         pretty-formats)
       (list 'pass-returns pass-name result)))
@@ -391,7 +391,7 @@ groups than for single tests.
                                      sfn
                                      (and maybe-src (format-source-object maybe-src))))
                   (unless (and (list? code) (andmap string? code))
-                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]" 
+                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]"
                                      (and maybe-src (format-source-object maybe-src))))
                   (mkdir-p (path-parent sfn))
                   (with-output-to-file sfn
@@ -13460,6 +13460,37 @@ groups than for single tests.
 
   (test
     '(
+      "module M1 {"
+      "  import CompactStandardLibrary;"
+      "  export circuit foo1(x: Field): Bytes<32> {"
+      "    return keccak256<Field>(x);"
+      "  }"
+      "}"
+      "module M2 {"
+      "  import CompactStandardLibrary;"
+      "  export circuit foo2(x: Field): Bytes<32> {"
+      "    return keccak256<Field>(x);"
+      "  }"
+      "}"
+      "import M1;"
+      "import M2;"
+      "export { foo1, foo2 };"
+      )
+    (returns
+      (program ((foo1 %foo1.0) (foo2 %foo2.1))
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (native %keccak256.3 ([%value.4 (tfield)])
+             (tbytes 32))
+        (circuit %foo1.0 ([%x.5 (tfield)])
+             (tbytes 32)
+          (call (fref ((%keccak256.3))) %x.5))
+        (circuit %foo2.1 ([%x.6 (tfield)])
+             (tbytes 32)
+          (call (fref ((%keccak256.3))) %x.6))))
+    )
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export circuit CompactStandardLibrary(x: Field): Bytes<32> {"
       " return persistentHash<Field>(x);"
@@ -18027,6 +18058,48 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 38" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (persistentHash #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+
+      "export { keccak256 };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native keccak256)))
+    )
+
+  (test
+    '(
+      "import {keccak256} from CompactStandardLibrary;"
+      "export circuit foo(): Bytes<32> { return keccak256<1>([3]); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (keccak256 "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <size 1>\n      declared generics for function at <standard library>:\n        <type>" #f #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger counter: Counter;"
+      "export circuit foo(): Bytes<32> { return keccak256<Counter>(counter); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Counter")))
+    )
+
+  (test
+    '(
+      "import {keccak256} from CompactStandardLibrary;"
+      "export circuit foo(): Bytes<32> { return keccak256<Bytes<32>>(42); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 42" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (keccak256 #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Uint<0..43>)\n      declared argument types for function at <standard library>:\n        (Bytes<32>)" #f)))
     )
 
   (test
@@ -31066,7 +31139,7 @@ groups than for single tests.
                       [%n.5 (tunsigned 65535)])
                  (tunsigned 4294967295)
               (downcast-unsigned
-                4295032830 
+                4295032830
                 4294967295
                 (+ 33
                    (safe-cast (tunsigned 4295032830) (tunsigned 4294967295) %a.4)
@@ -59331,6 +59404,20 @@ groups than for single tests.
         "}"))
     )
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantZkir: Boolean;"
+      "export circuit foo(v: Vector<4, Uint<8>>): Bytes<32> {"
+      "  wantZkir = true;"
+      "  return keccak256<Vector<4, Uint<8>>>(v);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 10" "keccak256 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+    )
+
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
     '(
@@ -59454,6 +59541,36 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger hash: Bytes<32>;"
+      ""
+      "export circuit foo(msg: Bytes<32>): [] {"
+      "  hash = disclose(keccak256<Bytes<32>>(msg));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%msg.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%msg.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%msg.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%msg.1\", \"bits\": 248 },"
+        "    { \"op\": \"keccak256\", \"outputs\": [\"%tmp.2\", \"%tmp.3\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"%msg.0\", \"%msg.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.2\", \"%tmp.3\", \"0x91\"] }"
         "  ]"
         "}"))
     )
@@ -60180,7 +60297,7 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%n.0\", \"b\": \"%neg.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
-        "}"))    
+        "}"))
     )
 
   (test
@@ -67694,6 +67811,144 @@ groups than for single tests.
         ))
     )
 
+  ; keccak256 of an Opaque<"string"> must match @noble/hashes' keccak_256 of the UTF-8 bytes
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit doKeccak256(s: Opaque<'string'>): Bytes<32> {"
+      "  return keccak256<Opaque<'string'>>(s);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('keccak256 of an Opaque string matches @noble/hashes', async () => {"
+        "  const { keccak_256 } = await import('@noble/hashes/sha3.js');"
+        "  const utf8 = new TextEncoder();"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(keccak_256(utf8.encode('')));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'abc').result).toEqual(keccak_256(utf8.encode('abc')));"
+        "  });"
+        "test('keccak256 of an Opaque string matches known digests', () => {"
+        "  const fromHex = (h: string) => Uint8Array.from(h.match(/../g)!.map((b: string) => parseInt(b, 16)));"
+        "  const zeros = (n: number) => String.fromCharCode(0).repeat(n); // n UTF-8 zero bytes"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.doKeccak256(Ctxt, '').result).toEqual(fromHex('c5d2460186f7233c927e7db2dcc703c0e500b653ca82273b7bfad8045d85a470'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(1)).result).toEqual(fromHex('bc36789e7a1e281436464229828f817d6612f7b477d66591ff96a9e064bcc98a'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(2)).result).toEqual(fromHex('54a8c0ab653c15bfb48b47fd011ba2b9617af01cb45cab344acd57c924d56798'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(5)).result).toEqual(fromHex('c41589e7559804ea4a2080dad19d876a024ccb05117835447d72ce08c1d020ec'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, zeros(10)).result).toEqual(fromHex('6bd2dd6bd408cbee33429358bf24fdc64612fbf8b1b4db604518f40ffd34b607'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'test').result).toEqual(fromHex('9c22ff5f21f0b81b113e63f7db6da94fedef11b2119b4088b89664fb9a3cb658'));"
+        "  expect(C.circuits.doKeccak256(Ctxt, 'longer test string').result).toEqual(fromHex('47bed17bfbbc08d6b5a0f603eff1b3e932c37c10b865847a7bc73d55b260f32a'));"
+        "  });"
+        ))
+    )
+
+  ; keccak256 of non-opaque inputs (Field, Bytes<N>, Vector, a custom struct,
+  ; and a custom union) must digest to Bytes<32>, be deterministic, and map
+  ; distinct values to distinct digests
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Point { x: Field, y: Bytes<4> }"
+      "enum Shape { circle, square, triangle }"
+      "export circuit hashField(x: Field): Bytes<32> {"
+      "  return keccak256<Field>(x);"
+      "}"
+      "export circuit hashBytes(x: Bytes<4>): Bytes<32> {"
+      "  return keccak256<Bytes<4>>(x);"
+      "}"
+      "export circuit hashVector(v: Vector<3, Field>): Bytes<32> {"
+      "  return keccak256<Vector<3, Field>>(v);"
+      "}"
+      "export circuit hashStruct(p: Point): Bytes<32> {"
+      "  return keccak256<Point>(p);"
+      "}"
+      "export circuit hashUnion(s: Shape): Bytes<32> {"
+      "  return keccak256<Shape>(s);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('keccak256 of non-opaque inputs digests to Bytes<32>', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  for (const digest of ["
+        "    C.circuits.hashField(Ctxt, 5n).result,"
+        "    C.circuits.hashBytes(Ctxt, new Uint8Array([1, 2, 3, 4])).result,"
+        "    C.circuits.hashVector(Ctxt, [1n, 2n, 3n]).result,"
+        "    C.circuits.hashStruct(Ctxt, {x: 5n, y: new Uint8Array([1, 2, 3, 4])}).result,"
+        "    C.circuits.hashUnion(Ctxt, 0).result,"
+        "  ]) {"
+        "    expect(digest).toBeInstanceOf(Uint8Array);"
+        "    expect(digest.length).toEqual(32);"
+        "  }"
+        "});"
+        "test('keccak256 is deterministic: equal inputs produce equal digests', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.hashField(Ctxt, 5n).result).toEqual(C.circuits.hashField(Ctxt, 5n).result);"
+        "  expect(C.circuits.hashBytes(Ctxt, new Uint8Array([1, 2, 3, 4])).result).toEqual(C.circuits.hashBytes(Ctxt, new Uint8Array([1, 2, 3, 4])).result);"
+        "  expect(C.circuits.hashVector(Ctxt, [1n, 2n, 3n]).result).toEqual(C.circuits.hashVector(Ctxt, [1n, 2n, 3n]).result);"
+        "  expect(C.circuits.hashStruct(Ctxt, {x: 5n, y: new Uint8Array([1, 2, 3, 4])}).result).toEqual(C.circuits.hashStruct(Ctxt, {x: 5n, y: new Uint8Array([1, 2, 3, 4])}).result);"
+        "  expect(C.circuits.hashUnion(Ctxt, 1).result).toEqual(C.circuits.hashUnion(Ctxt, 1).result);"
+        "});"
+        "test('keccak256 maps distinct inputs to distinct digests', () => {"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  expect(C.circuits.hashField(Ctxt, 5n).result).not.toEqual(C.circuits.hashField(Ctxt, 6n).result);"
+        "  expect(C.circuits.hashBytes(Ctxt, new Uint8Array([1, 2, 3, 4])).result).not.toEqual(C.circuits.hashBytes(Ctxt, new Uint8Array([1, 2, 3, 5])).result);"
+        "  expect(C.circuits.hashVector(Ctxt, [1n, 2n, 3n]).result).not.toEqual(C.circuits.hashVector(Ctxt, [1n, 2n, 4n]).result);"
+        "  expect(C.circuits.hashStruct(Ctxt, {x: 5n, y: new Uint8Array([1, 2, 3, 4])}).result).not.toEqual(C.circuits.hashStruct(Ctxt, {x: 6n, y: new Uint8Array([1, 2, 3, 4])}).result);"
+        "  expect(C.circuits.hashUnion(Ctxt, 0).result).not.toEqual(C.circuits.hashUnion(Ctxt, 2).result);"
+        "});"
+        ))
+    )
+
+  ; keccak256 has raw-byte semantics: it hashes the concatenated field-aligned
+  ; chunks and ignores alignment/type structure. So a Bytes<12> and a struct of
+  ; three Bytes<4> fields produce the SAME digest when they flatten to the same
+  ; bytes -- but Bytes.toValue strips trailing zeros per chunk, so a zero byte at
+  ; a field boundary is kept in the contiguous Bytes<12> yet stripped in the
+  ; struct, making the flattened bytes (and digests) diverge.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Triple { a: Bytes<4>, b: Bytes<4>, c: Bytes<4> }"
+      "export circuit hashBytes12(x: Bytes<12>): Bytes<32> {"
+      "  return keccak256<Bytes<12>>(x);"
+      "}"
+      "export circuit hashTriple(t: Triple): Bytes<32> {"
+      "  return keccak256<Triple>(t);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('keccak256 raw-byte semantics: matching flattened bytes agree across types', async () => {"
+        "  const { keccak_256 } = await import('@noble/hashes/sha3.js');"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  // No zero at an interior field boundary: Bytes<12> and the 3x Bytes<4>"
+        "  // struct both flatten to the same 12 bytes, so the digests agree (and"
+        "  // match a raw keccak_256 over those bytes)."
+        "  const bytes = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);"
+        "  const triple = {a: new Uint8Array([1, 2, 3, 4]), b: new Uint8Array([5, 6, 7, 8]), c: new Uint8Array([9, 10, 11, 12])};"
+        "  const d12 = C.circuits.hashBytes12(Ctxt, bytes).result;"
+        "  expect(d12).toEqual(C.circuits.hashTriple(Ctxt, triple).result);"
+        "  expect(d12).toEqual(keccak_256(bytes));"
+        "});"
+        "test('keccak256 raw-byte semantics: a zero at a field boundary diverges', async () => {"
+        "  const { keccak_256 } = await import('@noble/hashes/sha3.js');"
+        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "  // Byte index 3 is zero. In the contiguous Bytes<12> it is an interior"
+        "  // byte and is kept; in the struct it is field `a`'s trailing byte and is"
+        "  // stripped by Bytes.toValue, so the two flatten to different byte streams."
+        "  const bytes = new Uint8Array([1, 2, 3, 0, 5, 6, 7, 8, 9, 10, 11, 12]);"
+        "  const triple = {a: new Uint8Array([1, 2, 3, 0]), b: new Uint8Array([5, 6, 7, 8]), c: new Uint8Array([9, 10, 11, 12])};"
+        "  const d12 = C.circuits.hashBytes12(Ctxt, bytes).result;"
+        "  const dTriple = C.circuits.hashTriple(Ctxt, triple).result;"
+        "  expect(d12).not.toEqual(dTriple);"
+        "  expect(d12).toEqual(keccak_256(bytes)); // interior zero kept -> 12 bytes"
+        "  expect(dTriple).toEqual(keccak_256(new Uint8Array([1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12]))); // field-trailing zero stripped -> 11 bytes"
+        "});"
+        ))
+    )
+
   (test
     '(
       "circuit foo(n: Field): Boolean {"
@@ -68239,7 +68494,7 @@ groups than for single tests.
         "  expect(C.circuits.foo(Ctxt).result).toEqual([]);"
         "});"
         ))
-    ) 
+    )
   )
 
  (with-compact-path '(".")
