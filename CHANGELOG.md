@@ -15,13 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   a circuit impure.
 - The onchain-runtime requires the argument passed to `emit` to be serialized.
   Compact's standard library provides a generic `serialize<T,n>` and
-  `deserialize<T,n>`.  These are defined in `midnight-inlines.ss` and
-  the macro expansion is defined in `inlines.ss` and they are inserted during
-  `expand-modules-and-types`.  So the end user cannot see their definition,
+  `deserialize<T,n>`.  The end user cannot see their definition,
   but they can see their type signature in Compact's standard library. 
 
 ### Changed
 
+- The generic `serialize` and `deserialize` are defined in `midnight-inlines.ss`
+  and the macro expansion is defined in `inlines.ss` and they are inserted during
+  `expand-modules-and-types`.
 - The TypeScript wrapper for each impure exported circuit now exposes an
   `events` field on the wrapped return value, and a corresponding `events`
   field on `CircuitContext`.  Both refer to the same array; events emitted
