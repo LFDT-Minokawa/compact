@@ -25,7 +25,7 @@ type Point = { x: bigint; y: bigint };
 type Signature = { r: bigint; s: bigint };
 type SignatureWithRecovery = Signature & { R: Point };
 
-// The exported circuits of examples/ecdsa/example_one.compact, as plain pure functions.
+// The exported circuits of examples/ecdsa/example.compact, as plain pure functions.
 interface EcdsaPureCircuits {
     proveEthereumSignature(msg: Uint8Array, sig: Signature, pk: Point): boolean;
     proveBitcoinSignature(msg: Uint8Array, sig: Signature, pk: Point): boolean;
@@ -33,9 +33,9 @@ interface EcdsaPureCircuits {
     recoverEthereumAddress(msg: Uint8Array, sig: SignatureWithRecovery): Uint8Array;
 }
 
-const EXAMPLE = buildPathTo('ecdsa/example_one.compact');
+const EXAMPLE = buildPathTo('ecdsa/example.compact');
 
-describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
+describe('[ECDSA] examples/ecdsa/example.compact', () => {
     let pureCircuits: EcdsaPureCircuits;
 
     // A single key pair, reused across the cases.
@@ -71,7 +71,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         ({ pureCircuits } = (await import(`${outputDir}contract/index.js`)) as { pureCircuits: EcdsaPureCircuits });
     }, 180_000);
 
-    test('proveEthereumSignature accepts a valid signature [WIP gates]', () => {
+    test('proveEthereumSignature accepts a valid signature', () => {
         expect(pureCircuits.proveEthereumSignature(ethMsg, { r: ethSig.r, s: ethSig.s }, pk)).toBe(true);
     });
 
@@ -79,7 +79,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         expect(pureCircuits.proveEthereumSignature(ethMsg, tamper(ethSig), pk)).toBe(false);
     });
 
-    test('proveBitcoinSignature accepts a valid signature [WIP gates]', () => {
+    test('proveBitcoinSignature accepts a valid signature', () => {
         expect(pureCircuits.proveBitcoinSignature(btcMsg, { r: btcSig.r, s: btcSig.s }, pk)).toBe(true);
     });
 
@@ -87,7 +87,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         expect(pureCircuits.proveBitcoinSignature(btcMsg, tamper(btcSig), pk)).toBe(false);
     });
 
-    test('recoverEthereumPublicKey recovers the signing public key [WIP gates]', () => {
+    test('recoverEthereumPublicKey recovers the signing public key', () => {
         const recovered = pureCircuits.recoverEthereumPublicKey(ethMsg, ethSig);
         expect(recovered.x).toBe(pk.x);
         expect(recovered.y).toBe(pk.y);
