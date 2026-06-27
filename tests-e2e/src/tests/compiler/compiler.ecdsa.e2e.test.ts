@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { beforeAll, describe, expect, test } from 'vitest';
-import { Arguments, buildPathTo, compile, createTempFolder, expectCompilerResult } from '@';
+import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult } from '@';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -98,4 +98,13 @@ describe('[ECDSA] examples/ecdsa/example.compact', () => {
         expect(address).toBeInstanceOf(Uint8Array);
         expect(address.length).toBe(20);
     });
+
+    // The secp256k1 types/operators only exist under the V3 ZK-IR feature, so
+    // compiling without FEATURE_V3 must fail with an unbound-identifier error.
+    test('fails to compile without the FEATURE_V3 flag', async () => {
+        const outputDir = createTempFolder();
+        const result = await compile([EXAMPLE, outputDir]);
+
+        expectCompilerResult(result).toBeFailure(/unbound identifier Secp256k1Point/, compilerDefaultOutput());
+    }, 180_000);
 });
