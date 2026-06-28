@@ -52,51 +52,6 @@
   ([value A (discloses "a hash of")])
   (Bytes 32))
 
-;; ==== Fields
-(declare-native-entry circuit add
-  "__compactRuntime.secp256k1ScalarAdd"
-  ([x Secp256k1Scalar (discloses "a sum including")]
-   [y Secp256k1Scalar (discloses "a sum including")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit neg
-  "__compactRuntime.secp256k1ScalarNeg"
-  ([s Secp256k1Scalar (discloses "the negation of")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit mul
-  "__compactRuntime.secp256k1ScalarMul"
-  ([x Secp256k1Scalar (discloses "a product including")]
-   [y Secp256k1Scalar (discloses "a product including")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit inv
-  "__compactRuntime.secp256k1ScalarInv"
-  ([s Secp256k1Scalar (discloses "the inverse of")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit add
-  "__compactRuntime.secp256k1BaseAdd"
-  ([x Secp256k1Base (discloses "a sum including")]
-   [y Secp256k1Base (discloses "a sum including")])
-  Secp256k1Base)
-
-(declare-native-entry circuit neg
-  "__compactRuntime.secp256k1BaseNeg"
-  ([s Secp256k1Base (discloses "the negation of")])
-  Secp256k1Base)
-
-(declare-native-entry circuit mul
-  "__compactRuntime.secp256k1BaseMul"
-  ([x Secp256k1Base (discloses "a product including")]
-   [y Secp256k1Base (discloses "a product including")])
-  Secp256k1Base)
-
-(declare-native-entry circuit inv
-  "__compactRuntime.secp256k1BaseInv"
-  ([s Secp256k1Base (discloses "the inverse of")])
-  Secp256k1Base)
-
 ;; ==== Curves
 (declare-native-entry circuit jubjubPointX
   "__compactRuntime.jubjubPointX"
