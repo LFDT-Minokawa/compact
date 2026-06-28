@@ -51,11 +51,12 @@ export interface JubjubPoint {
 
 /**
  * A point in the foreign secp256k1 elliptic curve. TypeScript representation of the
- * Compact type of the same name
+ * Compact type of the same name.  When identity = true, x and y should be 0.
  */
 export interface Secp256k1Point {
   readonly x: bigint;
   readonly y: bigint;
+  readonly identity: boolean;
 }
 
 /**
@@ -133,23 +134,28 @@ export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
  * Runtime type of {@link Secp256k1Point}
  */
 export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
+  // One base containing the x cordinate
+  // One base containing the y cordinate
+  // One native field containing the identity flag
   alignment(): ocrt.Alignment {
     return CompactTypeSecp256k1Base.alignment()
       .concat(CompactTypeSecp256k1Base.alignment());
   },
   fromValue(value: ocrt.Value): Secp256k1Point {
-    if (value.length != 8) {
+    if (value.length != 5 || value[4] == undefined) {
       throw new CompactError('expected Secp256k1Point');
     }
     // This might throw CompactError('expected Secp256k1Base').
     return {
-      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 4)),
-      y: CompactTypeSecp256k1Base.fromValue(value.slice(4)),
+      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
+      y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
+      identity: CompactTypeSecp256k1Base.fromValue(value.slice(5)) === 1,
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
     return CompactTypeSecp256k1Base.toValue(value.x)
-      .concat(CompactTypeSecp256k1Base.toValue(value.y));
+      .concat(CompactTypeSecp256k1Base.toValue(value.y))
+      .concat(ocrt.bigIntToValue(value.identity ? 1 : 0));
   },
 };
 
@@ -280,27 +286,25 @@ export const CompactTypeField: CompactType<bigint> = {
  * Runtime type of the builtin `Secp256k1Base` type
  */
 export const CompactTypeSecp256k1Base: CompactType<bigint> = {
-  // Four 64-bit limbs in little-endian order.
+  // One native field containing the low-order 192 bits
+  // One native field containing the high-order 64 bits
   alignment(): ocrt.Alignment {
     return [
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
+      { tag: 'atom', value: { tag: 'bytes', length: 24 } },
       { tag: 'atom', value: { tag: 'bytes', length: 8 } },
     ];
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 4 || value[3] == undefined) {
+    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Base');
     }
-    let res = ocrt.valueToBigInt([value[3]]);
-    for (let i = 2; i >= 0; --i) {
-      if (value[i] == undefined) {
-        throw new CompactError('expected Secp256k1Base');
-      }
-      res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
+    const low192 = ocrt.valueToBigInt([value[0]]);
+    const high64 = ocrt.valueToBigInt([value[1]]);
+    if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
+      throw new CompactError('expected Secp256k1Base');
     }
+    let res = high64 << 192n | low192;
     // The ZKIR representation subtracts 1 from the value.
     res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
     if (res > MAX_SECP256K1_BASE) {
@@ -315,13 +319,9 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
-    let res: ocrt.Value = [];
-    const mask = (1n << 64n) - 1n;
-    for (let i = 0; i < 4; ++i) {
-      res = res.concat(ocrt.bigIntToValue(value & mask));
-      value = value >> 64n;
-    }
-    return res;
+    const mask = (1n << 192n) - 1n;
+    return ocrt.bigIntToValue(value & ((1n << 192n) -1n))
+      .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
 
@@ -329,27 +329,25 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
  * Runtime type of the builtin `Secp256k1Scalar` type
  */
 export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
-  // Four 64-bit limbs in little-endian order.
+  // One native field containing the low-order 192 bits
+  // One native field containing the high-order 64 bits
   alignment(): ocrt.Alignment {
     return [
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
+      { tag: 'atom', value: { tag: 'bytes', length: 24 } },
       { tag: 'atom', value: { tag: 'bytes', length: 8 } },
     ];
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 4 || value[3] == undefined) {
+    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Scalar');
     }
-    let res = ocrt.valueToBigInt([value[3]]);
-    for (let i = 2; i >= 0; --i) {
-      if (value[i] == undefined) {
-        throw new CompactError('expected Secp256k1Scalar');
-      }
-      res = (res << 64n) | ocrt.valueToBigInt([value[i]]);
+    const low192 = ocrt.valueToBigInt([value[0]]);
+    const high64 = ocrt.valueToBigInt([value[1]]);
+    if (low192 > (1n << 192n) - 1n) {
+      throw new CompactError('expected Secp256k1Scalar');
     }
+    let res = high64 << 192n | low192;
     // The ZKIR representation subtracts 1 from the value.
     res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
     if (res > MAX_SECP256K1_SCALAR) {
@@ -364,13 +362,9 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
-    let res: ocrt.Value = [];
-    const mask = (1n << 64n) - 1n;
-    for (let i = 0; i < 4; ++i) {
-      res = res.concat(ocrt.bigIntToValue(value & mask));
-      value = value >> 64n;
-    }
-    return res;
+    const mask = (1n << 192n) - 1n;
+    return ocrt.bigIntToValue(value & mask)
+      .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
 

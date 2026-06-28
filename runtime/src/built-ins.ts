@@ -324,13 +324,11 @@ export function secp256k1PointY(pt: Secp256k1Point): bigint {
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
- * projective point. The identity (0, 0) maps to `Point.ZERO`; every other
- * input is validated to lie on the curve by `fromAffine`.
+ * projective point. Identity maps to `Point.ZERO`; every other input is validated
+ * to lie on the curve by `fromAffine`.
  */
 function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.Point.fromAffine> {
-  // TODO: How are we actually representing the identity in Secp256k1Point? In noble
-  // they do use (0,0)
-  if (p.x === 0n && p.y === 0n) {
+  if (p.identity) {
     return secp256k1.Point.ZERO;
   }
   return secp256k1.Point.fromAffine({ x: p.x, y: p.y });
@@ -341,8 +339,13 @@ function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.P
  * `Secp256k1Point` representation.
  */
 function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fromAffine>): Secp256k1Point {
-  const { x, y } = p.toAffine();
-  return { x, y };
+  const k = p.toAffine();
+  if (k == secp256k1.Point.ZERO) {
+    return { x: 0, y: 0, identity: true };
+  } else {
+    const { x, y } = k;
+    return { x: x, y: y, identity: false };
+  }
 }
 
 /**
