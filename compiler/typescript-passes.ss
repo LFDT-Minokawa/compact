@@ -2868,7 +2868,6 @@
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
                   [("JubjubPoint") "({x: 0n, y: 1n})"]
-                  ;; TODO(kmillikin): use a real default for Secp256k1Point.
                   [("Secp256k1Point") "({x: 0n, y: 0n, identity: true})"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
