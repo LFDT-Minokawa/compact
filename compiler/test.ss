@@ -88082,6 +88082,65 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test-group
+    ((source-file "examples/tiny.compact")
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/tiny/compiler/contract-manifest.json"
+       `(
+         "{"
+         "  \"manifest-version\": \"1\","
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"compiler\": {"
+         "    \"type\": \"directory\","
+         "    \"contract-info.json\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 2244,"
+         "      \"hash\": \"27b19a74e709731b417a96847948097e0508d0e329f2f015bf67ceca62acaa11\""
+         "    }"
+         "  },"
+         "  \"contract\": {"
+         "    \"type\": \"directory\","
+         "    \"index.d.ts\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 2342,"
+         "      \"hash\": \"ea93afce17097c10a400883fa541a7f4ee45e68bf4350fdb10d39e9f8423ecd4\""
+         "    },"
+         "    \"index.js\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 31471,"
+         "      \"hash\": \"caf78994e2b7b9c80b872dbadc1e7129285225c4076779aadc2a7718e5d13a97\""
+         "    },"
+         "    \"index.js.map\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 1477,"
+         "      \"hash\": \"69add5e0fe2538fefc60e2304ffe2e84f814976e37c7142b05c3144b8a02a2e5\""
+         "    }"
+         "  },"
+         "  \"zkir\": {"
+         "    \"type\": \"directory\","
+         "    \"clear.zkir\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 4543,"
+         "      \"hash\": \"5e978a02e9592965e39e00f41331ece742e0cff7ae30de458e567e345a7e9d4e\""
+         "    },"
+         "    \"get.zkir\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 2038,"
+         "      \"hash\": \"5048a67bba905dd9a7801351ee50c6c30c07d027bcad7af4c099591742a6d1ed\""
+         "    },"
+         "    \"set.zkir\": {"
+         "      \"type\": \"file\","
+         "      \"size\": 3678,"
+         "      \"hash\": \"13578ea2efcd357ce43607ecdbcc310a7dab89a6ac24b5dd154dbecc30595820\""
+         "    }"
+         "  }"
+         "}"))
+     )
+    )
   )
 
 (run-javascript)
