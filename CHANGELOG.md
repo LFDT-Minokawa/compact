@@ -11,6 +11,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The compiler usage page now introduces `--feature-zkir-v3`.
 
+## [Toolchain 0.32.108, language 0.24.102, runtime 0.17.104]
+
+### Fixed
+
+- a bug that prevented `contract-manifest.json` from including some file hashes
+
 ## [Toolchain 0.32.107, language 0.24.102, runtime 0.17.104]
 
 ### Changed
