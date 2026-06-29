@@ -14194,8 +14194,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit tokenType(domain_sep: Bytes<32>, contract_address: ContractAddress): Bytes<32> {"
-      "  return persistentCommit<Vector<2, Bytes<32>>>([domain_sep, contract_address.bytes], pad(32, 'midnight:derive_token'));"
+      "export circuit tokenType(domainSep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {"
+      "  return persistentCommit<Vector<2, Bytes<32>>>([domainSep, contractAddress.bytes], pad(32, 'midnight:derive_token'));"
       "}"
       )
     (succeeds)
@@ -14738,7 +14738,7 @@ groups than for single tests.
         (export-typedef ShieldedReceive ()
           (tstruct ShieldedReceive
             (commitment (tbytes 32))
-            (contract_address (tstruct Maybe
+            (contractAddress (tstruct Maybe
                                 (is_some (tboolean))
                                 (value (tbytes 32))))
             (ciphertext (tstruct Maybe
@@ -14757,7 +14757,7 @@ groups than for single tests.
         (export-typedef ShieldedMint ()
           (tstruct ShieldedMint
             (commitment (tbytes 32))
-            (domain_sep (tbytes 32))
+            (domainSep (tbytes 32))
             (amount (tstruct Maybe
                       (is_some (tboolean))
                       (value (tunsigned
@@ -14795,7 +14795,8 @@ groups than for single tests.
                       (is_left (tboolean))
                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                       (right (tstruct ContractAddress (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -14816,7 +14817,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -14831,8 +14833,8 @@ groups than for single tests.
       (program ()
         (export-typedef UnshieldedMint ()
           (tstruct UnshieldedMint
-            (domain_sep (tbytes 32))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -14853,13 +14855,13 @@ groups than for single tests.
                          [%a.4 (tunsigned
                                  340282366920938463463374607431768211455)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (emit (new (tstruct UnshieldedMint
-                      (domain_sep (tbytes 32))
-                      (token_type (tbytes 32))
+                      (domainSep (tbytes 32))
+                      (tokenType (tbytes 32))
                       (amount (tunsigned
                                 340282366920938463463374607431768211455)))
                  %d.2
@@ -14880,7 +14882,7 @@ groups than for single tests.
                       (is_left (tboolean))
                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                       (right (tstruct ContractAddress (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -34200,7 +34202,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
                                            (commitment (tbytes 32))
-                                           (contract_address (tstruct Maybe
+                                           (contractAddress (tstruct Maybe
                                                                (is_some (tboolean))
                                                                (value (tbytes
                                                                         32))))
@@ -34212,7 +34214,7 @@ groups than for single tests.
           (let* ([[%t.3 (tstruct Maybe
                           (is_some (tboolean))
                           (value (tbytes 32)))]
-                  (elt-ref %value.2 contract_address 1)]
+                  (elt-ref %value.2 contractAddress 1)]
                  [[%t.4 (tstruct Maybe
                           (is_some (tboolean))
                           (value (tbytes 512)))]
@@ -34232,7 +34234,7 @@ groups than for single tests.
         (circuit %deserialize.5 ([%value.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contract_address (tstruct Maybe
+               (contractAddress (tstruct Maybe
                                    (is_some (tboolean))
                                    (value (tbytes 32))))
                (ciphertext (tstruct Maybe
@@ -34240,7 +34242,7 @@ groups than for single tests.
                              (value (tbytes 512)))))
           (new (tstruct ShieldedReceive
                  (commitment (tbytes 32))
-                 (contract_address (tstruct Maybe
+                 (contractAddress (tstruct Maybe
                                      (is_some (tboolean))
                                      (value (tbytes 32))))
                  (ciphertext (tstruct Maybe
@@ -34263,7 +34265,7 @@ groups than for single tests.
                                                          578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contract_address (tstruct Maybe
+               (contractAddress (tstruct Maybe
                                    (is_some (tboolean))
                                    (value (tbytes 32))))
                (ciphertext (tstruct Maybe
@@ -34273,7 +34275,7 @@ groups than for single tests.
         (circuit %serialize_ShieldedReceive.9 ([%x.10 (tstruct ShieldedReceive
                                                         (commitment (tbytes
                                                                       32))
-                                                        (contract_address (tstruct Maybe
+                                                        (contractAddress (tstruct Maybe
                                                                             (is_some (tboolean))
                                                                             (value (tbytes
                                                                                      32))))
@@ -34301,7 +34303,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedMint
                                            (commitment (tbytes 32))
-                                           (domain_sep (tbytes 32))
+                                           (domainSep (tbytes 32))
                                            (amount (tstruct Maybe
                                                      (is_some (tboolean))
                                                      (value (tunsigned
@@ -34317,7 +34319,7 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 commitment 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 domain_sep 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
                 (if (elt-ref %t.3 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
@@ -34331,14 +34333,14 @@ groups than for single tests.
         (circuit %deserialize.4 ([%value.5 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
-               (domain_sep (tbytes 32))
+               (domainSep (tbytes 32))
                (amount (tstruct Maybe
                          (is_some (tboolean))
                          (value (tunsigned
                                   340282366920938463463374607431768211455)))))
           (new (tstruct ShieldedMint
                  (commitment (tbytes 32))
-                 (domain_sep (tbytes 32))
+                 (domainSep (tbytes 32))
                  (amount (tstruct Maybe
                            (is_some (tboolean))
                            (value (tunsigned
@@ -34356,7 +34358,7 @@ groups than for single tests.
         (circuit %deserialize_ShieldedMint.6 ([%x.7 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
-               (domain_sep (tbytes 32))
+               (domainSep (tbytes 32))
                (amount (tstruct Maybe
                          (is_some (tboolean))
                          (value (tunsigned
@@ -34364,7 +34366,7 @@ groups than for single tests.
           (call %deserialize.4 %x.7))
         (circuit %serialize_ShieldedMint.8 ([%x.9 (tstruct ShieldedMint
                                                     (commitment (tbytes 32))
-                                                    (domain_sep (tbytes 32))
+                                                    (domainSep (tbytes 32))
                                                     (amount (tstruct Maybe
                                                               (is_some (tboolean))
                                                               (value (tunsigned
@@ -34456,14 +34458,14 @@ groups than for single tests.
   (test
    '(
      "import CompactStandardLibrary;"
-     "export circuit deserialize_UnshieldedSpend (x: Bytes<113>) : UnshieldedSpend {"
-     "  return deserialize<UnshieldedSpend, 113>(x);"
+     "export circuit deserialize_UnshieldedSpend (x: Bytes<145>) : UnshieldedSpend {"
+     "  return deserialize<UnshieldedSpend, 145>(x);"
      "}"
-     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<113> {"
-     "  return serialize<UnshieldedSpend, 113>(x);"
+     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<145> {"
+     "  return serialize<UnshieldedSpend, 145>(x);"
      "}"
      )
-    (returns
+   (returns
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
@@ -34476,10 +34478,11 @@ groups than for single tests.
                                                      (right (tstruct ContractAddress
                                                               (bytes (tbytes
                                                                        32))))))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (let* ([[%t.3 (tstruct Either
                           (is_left (tboolean))
                           (left (tstruct ZswapCoinPublicKey
@@ -34487,7 +34490,7 @@ groups than for single tests.
                           (right (tstruct ContractAddress
                                    (bytes (tbytes 32)))))]
                   (elt-ref %value.2 sender 0)])
-            (vector->bytes 113
+            (vector->bytes 145
               (vector
                 (if (elt-ref %t.3 is_left 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
@@ -34497,15 +34500,17 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16
                       (safe-cast (tfield)
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %value.2 amount 2)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
+                        (elt-ref %value.2 amount 3)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34513,7 +34518,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedSpend
@@ -34523,7 +34529,8 @@ groups than for single tests.
                                    (bytes (tbytes 32))))
                            (right (tstruct ContractAddress
                                     (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -34537,11 +34544,12 @@ groups than for single tests.
               (new (tstruct ContractAddress (bytes (tbytes 32)))
                 (bytes-slice %value.5 33 32)))
             (bytes-slice %value.5 65 32)
+            (bytes-slice %value.5 97 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 97 16))))
+              (bytes-slice %value.5 129 16))))
         (circuit %deserialize_UnshieldedSpend.6 ([%x.7 (tbytes
-                                                         113)])
+                                                         145)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34549,7 +34557,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -34562,21 +34571,22 @@ groups than for single tests.
                                                                  (right (tstruct ContractAddress
                                                                           (bytes (tbytes
                                                                                    32))))))
-                                                       (token_type (tbytes 32))
+                                                       (domainSep (tbytes 32))
+                                                       (tokenType (tbytes 32))
                                                        (amount (tunsigned
                                                                  340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit deserialize_UnshieldedReceive (x: Bytes<113>) : UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(x);"
+      "export circuit deserialize_UnshieldedReceive (x: Bytes<145>) : UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 145>(x);"
       "}"
-      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(x);"
+      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<145> {"
+      "  return serialize<UnshieldedReceive, 145>(x);"
       "}"
       )
     (returns
@@ -34592,10 +34602,11 @@ groups than for single tests.
                                                         (right (tstruct ContractAddress
                                                                  (bytes (tbytes
                                                                           32))))))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (let* ([[%t.3 (tstruct Either
                           (is_left (tboolean))
                           (left (tstruct ZswapCoinPublicKey
@@ -34603,7 +34614,7 @@ groups than for single tests.
                           (right (tstruct ContractAddress
                                    (bytes (tbytes 32)))))]
                   (elt-ref %value.2 recipient 0)])
-            (vector->bytes 113
+            (vector->bytes 145
               (vector
                 (if (elt-ref %t.3 is_left 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
@@ -34613,15 +34624,17 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16
                       (safe-cast (tfield)
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %value.2 amount 2)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
+                        (elt-ref %value.2 amount 3)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
                             (is_left (tboolean))
@@ -34629,7 +34642,8 @@ groups than for single tests.
                                     (bytes (tbytes 32))))
                             (right (tstruct ContractAddress
                                      (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedReceive
@@ -34639,7 +34653,8 @@ groups than for single tests.
                                       (bytes (tbytes 32))))
                               (right (tstruct ContractAddress
                                        (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -34653,11 +34668,12 @@ groups than for single tests.
               (new (tstruct ContractAddress (bytes (tbytes 32)))
                 (bytes-slice %value.5 33 32)))
             (bytes-slice %value.5 65 32)
+            (bytes-slice %value.5 97 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 97 16))))
+              (bytes-slice %value.5 129 16))))
         (circuit %deserialize_UnshieldedReceive.6 ([%x.7 (tbytes
-                                                           113)])
+                                                           145)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
                             (is_left (tboolean))
@@ -34665,7 +34681,8 @@ groups than for single tests.
                                     (bytes (tbytes 32))))
                             (right (tstruct ContractAddress
                                      (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -34678,11 +34695,13 @@ groups than for single tests.
                                                                       (right (tstruct ContractAddress
                                                                                (bytes (tbytes
                                                                                         32))))))
-                                                         (token_type (tbytes
-                                                                       32))
+                                                         (domainSep (tbytes
+                                                                      32))
+                                                         (tokenType (tbytes
+                                                                      32))
                                                          (amount (tunsigned
                                                                    340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (call %serialize.1 %x.9))))
     )
 
@@ -34701,8 +34720,8 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct UnshieldedMint
-                                           (domain_sep (tbytes 32))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 80)
@@ -34711,10 +34730,10 @@ groups than for single tests.
             (vector
               (spread
                 32
-                (bytes->vector 32 (elt-ref %value.2 domain_sep 0)))
+                (bytes->vector 32 (elt-ref %value.2 domainSep 0)))
               (spread
                 32
-                (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                (bytes->vector 32 (elt-ref %value.2 tokenType 1)))
               (spread
                 16
                 (bytes->vector
@@ -34727,13 +34746,13 @@ groups than for single tests.
                       (elt-ref %value.2 amount 2))))))))
         (circuit %deserialize.3 ([%value.4 (tbytes 80)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedMint
-                 (domain_sep (tbytes 32))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (bytes-slice %value.4 0 32)
@@ -34743,14 +34762,14 @@ groups than for single tests.
               (bytes-slice %value.4 64 16))))
         (circuit %deserialize_UnshieldedMint.5 ([%x.6 (tbytes 80)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.3 %x.6))
         (circuit %serialize_UnshieldedMint.7 ([%x.8 (tstruct UnshieldedMint
-                                                      (domain_sep (tbytes 32))
-                                                      (token_type (tbytes 32))
+                                                      (domainSep (tbytes 32))
+                                                      (tokenType (tbytes 32))
                                                       (amount (tunsigned
                                                                 340282366920938463463374607431768211455)))])
              (tbytes 80)
@@ -34780,7 +34799,7 @@ groups than for single tests.
                                                      (right (tstruct ContractAddress
                                                               (bytes (tbytes
                                                                        32))))))
-                                           (token_type (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
@@ -34801,7 +34820,7 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 1)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16
@@ -34817,7 +34836,7 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedBurn
@@ -34827,7 +34846,7 @@ groups than for single tests.
                                    (bytes (tbytes 32))))
                            (right (tstruct ContractAddress
                                     (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -34852,7 +34871,7 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -34865,7 +34884,7 @@ groups than for single tests.
                                                                 (right (tstruct ContractAddress
                                                                          (bytes (tbytes
                                                                                   32))))))
-                                                      (token_type (tbytes 32))
+                                                      (tokenType (tbytes 32))
                                                       (amount (tunsigned
                                                                 340282366920938463463374607431768211455)))])
              (tbytes 113)
@@ -61192,7 +61211,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -61220,7 +61241,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -61249,7 +61272,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\", \"bits\": 16 },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -61277,7 +61302,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x05\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.2\", \"a\": \"%a.0\", \"b\": \"%t.1\", \"bits\": 17 },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -61306,7 +61333,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%a.0\", \"bits\": 1 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -61358,7 +61387,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
@@ -61375,7 +61406,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
@@ -61410,7 +61443,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%a.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%a.0\"] }"
         "  ]"
         "}"))
@@ -61456,7 +61491,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
@@ -61477,7 +61514,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"%x.0\"] }"
         "  ]"
         "}"))
@@ -61513,7 +61552,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.2\", \"bits\": 32 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%z.3\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%q.4\", \"divisor\": \"%x.0\", \"modulus\": \"%x.1\", \"bits\": 248 },"
         "    { \"op\": \"mul\", \"output\": \"%t.5\", \"a\": \"%y.2\", \"b\": \"%z.3\" },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%q.4\", \"b\": \"%t.5\" },"
@@ -61555,7 +61596,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
@@ -61574,7 +61617,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 32 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 16 },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%x.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
@@ -61610,7 +61655,9 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%t.10\", \"%t.11\"] },"
         "    { \"op\": \"hash_to_curve\", \"output\": \"%t.12\", \"inputs\": [\"%t.10\", \"%t.11\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.13\", \"a\": \"%t.9\", \"b\": \"%t.12\" },"
         "    { \"op\": \"hash_to_curve\", \"output\": \"%t.14\", \"inputs\": [] },"
@@ -61664,7 +61711,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x00\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/ismember.zkir"
@@ -61681,7 +61732,11 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -61697,7 +61752,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/update.zkir"
@@ -61714,7 +61773,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x0e\", \"%n.1\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/get.zkir"
@@ -61731,7 +61792,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -61767,7 +61830,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/put.zkir"
@@ -61785,7 +61852,11 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%q.2\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%q.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/init.zkir"
@@ -61800,7 +61871,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     )
@@ -61830,7 +61905,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%n.1\", \"a\": \"%n.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%n.1\", \"b\": \"0x01\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%n.1\", \"b\": \"0x00\" },"
@@ -61859,7 +61936,9 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
         "  ]"
         "}"))
     )
@@ -61885,7 +61964,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
@@ -61916,12 +61997,14 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"neg\", \"output\": \"%neg.1\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%n.0\", \"b\": \"%neg.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
-        "}"))    
+        "}"))
     )
 
   (test
@@ -61949,7 +62032,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%n.1\", \"a\": \"%n.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%n.1\", \"b\": \"0x01\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%n.1\", \"b\": \"0x00\" },"
@@ -61987,7 +62072,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"neg\", \"output\": \"%neg.1\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%n.2\", \"a\": \"%n.0\", \"b\": \"%neg.1\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%x.3\", \"a\": \"%n.2\", \"b\": \"0x00\" },"
@@ -62037,7 +62124,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%n.0\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"0x01\", \"b\": \"%t.1\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.3\", \"a\": \"%t.1\", \"b\": \"%t.2\" },"
@@ -62069,7 +62158,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%b.2\", \"a\": \"%x.1\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.4\", \"a\": \"%b.2\", \"b\": \"%neg.3\" },"
@@ -62131,7 +62222,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.11\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.12\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.13\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.14\", \"a\": \"%nv.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.15\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.16\", \"a\": \"%nv.0\", \"b\": \"%neg.15\" },"
@@ -62215,7 +62308,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.11\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.12\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.13\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.14\", \"a\": \"%nv.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.15\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.16\", \"a\": \"%nv.0\", \"b\": \"%neg.15\" },"
@@ -62300,73 +62395,103 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.11\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.12\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.13\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.14\", \"a\": \"%nv.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.15\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.16\", \"a\": \"%nv.0\", \"b\": \"%neg.15\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.17\", \"bit\": \"%bv.7\", \"a\": \"%t.14\", \"b\": \"%t.16\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.18\", \"a\": \"%nv.1\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.19\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.20\", \"a\": \"%nv.1\", \"b\": \"%neg.19\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.21\", \"bit\": \"%bv.8\", \"a\": \"%t.18\", \"b\": \"%t.20\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.22\", \"a\": \"%nv.2\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.23\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.24\", \"a\": \"%nv.2\", \"b\": \"%neg.23\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.25\", \"bit\": \"%bv.9\", \"a\": \"%t.22\", \"b\": \"%t.24\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.26\", \"a\": \"%nv.3\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.27\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.28\", \"a\": \"%nv.3\", \"b\": \"%neg.27\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.29\", \"bit\": \"%bv.10\", \"a\": \"%t.26\", \"b\": \"%t.28\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.30\", \"a\": \"%nv.4\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.31\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.32\", \"a\": \"%nv.4\", \"b\": \"%neg.31\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.33\", \"bit\": \"%bv.11\", \"a\": \"%t.30\", \"b\": \"%t.32\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.34\", \"a\": \"%nv.5\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.35\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.36\", \"a\": \"%nv.5\", \"b\": \"%neg.35\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.37\", \"bit\": \"%bv.12\", \"a\": \"%t.34\", \"b\": \"%t.36\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.38\", \"a\": \"%nv.6\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.39\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.40\", \"a\": \"%nv.6\", \"b\": \"%neg.39\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.41\", \"bit\": \"%bv.13\", \"a\": \"%t.38\", \"b\": \"%t.40\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.42\", \"a\": \"%t.17\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.43\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.44\", \"a\": \"%t.17\", \"b\": \"%neg.43\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.45\", \"bit\": \"%bv.7\", \"a\": \"%t.42\", \"b\": \"%t.44\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.46\", \"a\": \"%t.21\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.47\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.48\", \"a\": \"%t.21\", \"b\": \"%neg.47\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.49\", \"bit\": \"%bv.8\", \"a\": \"%t.46\", \"b\": \"%t.48\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.50\", \"a\": \"%t.25\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.51\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.52\", \"a\": \"%t.25\", \"b\": \"%neg.51\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.53\", \"bit\": \"%bv.9\", \"a\": \"%t.50\", \"b\": \"%t.52\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.54\", \"a\": \"%t.29\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.55\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.56\", \"a\": \"%t.29\", \"b\": \"%neg.55\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.57\", \"bit\": \"%bv.10\", \"a\": \"%t.54\", \"b\": \"%t.56\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.58\", \"a\": \"%t.33\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.59\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.60\", \"a\": \"%t.33\", \"b\": \"%neg.59\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.61\", \"bit\": \"%bv.11\", \"a\": \"%t.58\", \"b\": \"%t.60\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.62\", \"a\": \"%t.37\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.63\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.64\", \"a\": \"%t.37\", \"b\": \"%neg.63\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.65\", \"bit\": \"%bv.12\", \"a\": \"%t.62\", \"b\": \"%t.64\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.66\", \"a\": \"%t.41\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.67\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.68\", \"a\": \"%t.41\", \"b\": \"%neg.67\" },"
@@ -62396,7 +62521,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
@@ -62452,44 +62579,60 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.11\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.12\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%bv.13\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.14\", \"a\": \"%nv.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.15\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.16\", \"a\": \"%nv.0\", \"b\": \"%neg.15\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.17\", \"bit\": \"%bv.7\", \"a\": \"%t.14\", \"b\": \"%t.16\" },"
         "    { \"op\": \"add\", \"output\": \"%a.18\", \"a\": \"0x11\", \"b\": \"%t.17\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.19\", \"a\": \"%nv.1\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.20\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.21\", \"a\": \"%nv.1\", \"b\": \"%neg.20\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.22\", \"bit\": \"%bv.8\", \"a\": \"%t.19\", \"b\": \"%t.21\" },"
         "    { \"op\": \"add\", \"output\": \"%a.23\", \"a\": \"%a.18\", \"b\": \"%t.22\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.24\", \"a\": \"%nv.2\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.25\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.26\", \"a\": \"%nv.2\", \"b\": \"%neg.25\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.27\", \"bit\": \"%bv.9\", \"a\": \"%t.24\", \"b\": \"%t.26\" },"
         "    { \"op\": \"add\", \"output\": \"%a.28\", \"a\": \"%a.23\", \"b\": \"%t.27\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.29\", \"a\": \"%nv.3\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.30\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.31\", \"a\": \"%nv.3\", \"b\": \"%neg.30\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.32\", \"bit\": \"%bv.10\", \"a\": \"%t.29\", \"b\": \"%t.31\" },"
         "    { \"op\": \"add\", \"output\": \"%a.33\", \"a\": \"%a.28\", \"b\": \"%t.32\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.34\", \"a\": \"%nv.4\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.35\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.36\", \"a\": \"%nv.4\", \"b\": \"%neg.35\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.37\", \"bit\": \"%bv.11\", \"a\": \"%t.34\", \"b\": \"%t.36\" },"
         "    { \"op\": \"add\", \"output\": \"%a.38\", \"a\": \"%a.33\", \"b\": \"%t.37\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.39\", \"a\": \"%nv.5\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.40\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.41\", \"a\": \"%nv.5\", \"b\": \"%neg.40\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.42\", \"bit\": \"%bv.12\", \"a\": \"%t.39\", \"b\": \"%t.41\" },"
         "    { \"op\": \"add\", \"output\": \"%a.43\", \"a\": \"%a.38\", \"b\": \"%t.42\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.44\", \"a\": \"%nv.6\", \"b\": \"0x01\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.45\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.46\", \"a\": \"%nv.6\", \"b\": \"%neg.45\" },"
@@ -62520,7 +62663,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x68656c6c6f21\"] }"
         "  ]"
         "}"))
@@ -62548,7 +62693,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x07\", \"0x0b\", \"0x13\"] }"
         "  ]"
         "}"))
@@ -62576,7 +62723,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x17\", \"0x1f\"] }"
         "  ]"
         "}"))
@@ -62606,7 +62755,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\"] }"
@@ -62638,7 +62789,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\"] }"
@@ -62667,7 +62820,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
@@ -62692,7 +62847,9 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x11\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" }"
         "  ]"
@@ -62724,8 +62881,12 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x11\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x05\" },"
@@ -62759,8 +62920,12 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x11\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x05\" },"
@@ -62800,7 +62965,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%n.0\"] }"
         "  ]"
         "}"))
@@ -62828,7 +62995,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%x.0\", \"%x.0\"] }"
         "  ]"
         "}"))
@@ -62858,7 +63027,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 2 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x02\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"%z.2\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.4\", \"a\": \"0x02\", \"b\": \"0x00\" },"
@@ -62891,7 +63062,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%y.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x11\", \"b\": \"0x17\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
@@ -62941,7 +63114,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 32 },"
         "    { \"op\": \"copy\", \"output\": \"%t.2\", \"val\": \"%y.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
@@ -62959,7 +63134,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -62975,7 +63152,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -62991,7 +63170,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -63018,7 +63199,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
@@ -63048,7 +63231,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
@@ -63073,7 +63258,9 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.1\", \"a\": \"0x01\", \"b\": \"%t.2\" },"
@@ -63102,7 +63289,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%b.0\" }"
         "  ]"
         "}"))
@@ -63128,7 +63317,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%b.0\" }"
         "  ]"
         "}"))
@@ -63154,7 +63345,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%b.0\" }"
         "  ]"
         "}"))
@@ -63180,7 +63373,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%b.0\" }"
         "  ]"
         "}"))
@@ -63208,7 +63403,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%b.0\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.1\", \"bit\": \"%b.0\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.1\" },"
@@ -63237,7 +63434,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x03\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.2\", \"a\": \"%x.0\" },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%t.1\", \"b\": \"%neg.2\" },"
@@ -63270,7 +63469,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%y.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.0\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%y.1\", \"a\": \"0x0b\", \"b\": \"0x11\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%t.2\", \"a\": \"0x07\", \"b\": \"%t.3\" },"
@@ -63302,7 +63503,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"%z.2\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.5\", \"a\": \"%t.3\", \"b\": \"%t.4\" },"
@@ -63333,7 +63536,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"0x01\", \"b\": \"%t.4\" },"
@@ -63364,7 +63569,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"%t.4\", \"b\": \"0x00\" },"
@@ -63395,7 +63602,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%y.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.3\", \"a\": \"%t.4\", \"b\": \"0x00\" },"
@@ -63425,7 +63634,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"mul\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x03\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%t.1\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"0x04\" },"
@@ -63463,7 +63674,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"mul\", \"output\": \"%t.1\", \"a\": \"%x.0\", \"b\": \"0x03\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x07\" },"
         "    { \"op\": \"output\", \"vals\": [\"%x.0\", \"%t.1\", \"%t.2\"] }"
@@ -63492,7 +63705,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 40 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
@@ -63521,7 +63736,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.0\", \"bits\": 72 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%arg.1\", \"bits\": 248 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%t.2\", \"divisor\": \"%arg.0\", \"modulus\": \"%arg.1\", \"bits\": 248 },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
@@ -63549,7 +63766,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%arg.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
@@ -63578,7 +63797,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%arg.0\", \"b\": \"0x03\", \"bits\": 2 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%arg.0\"] }"
         "  ]"
         "}"))
@@ -63604,7 +63825,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%arg.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -63633,7 +63856,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%x.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.1\", \"a\": \"0x01\", \"b\": \"0x02\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -63661,7 +63886,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%arg.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 40 },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
@@ -63690,7 +63917,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%x.1\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.1\", \"a\": \"0x01\", \"b\": \"0x02\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -63719,7 +63948,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
@@ -63751,9 +63982,16 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 248 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%x.0\", \"%x.1\", \"0x10\", \"0x00\", \"0xa2\", \"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x80\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%x.0\", \"%x.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -63802,12 +64040,20 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%t.10\", \"a\": \"%t.11\", \"b\": \"0x00\" },"
@@ -63817,7 +64063,12 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.17\"] }"
         "  ]"
         "}"))
@@ -63866,12 +64117,20 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%t.4\", \"%t.5\", \"%t.6\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%t.6\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.7\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.8\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.9\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"-0x02\", \"%n.0\", \"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x02\", \"0x20\", \"0x01\", \"%q.7\", \"%q.8\", \"%q.9\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.10\", \"a\": \"%q.7\", \"b\": \"0x00\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.11\", \"a\": \"%q.8\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.12\", \"bit\": \"%t.10\", \"a\": \"%t.11\", \"b\": \"0x00\" },"
@@ -63881,7 +64140,12 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%tmp.16\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.16\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.17\"] }"
         "  ]"
         "}"))
@@ -63906,7 +64170,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -63931,7 +64197,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -63956,7 +64224,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -63981,7 +64251,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -64006,7 +64278,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -64032,7 +64306,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -64057,7 +64333,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
@@ -64091,7 +64369,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
@@ -64121,7 +64401,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
@@ -64163,7 +64445,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] }"
         "  ]"
         "}"))
@@ -64194,7 +64478,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%x.0\", \"a\": \"%x.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
@@ -64224,7 +64510,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 10 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.1\", \"b\": \"0xff03\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%b.0\", \"a\": \"%t.2\", \"b\": \"0x00\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t1.4\", \"a\": \"%t.3\", \"b\": \"0x0004\", \"bits\": 11 },"
@@ -64260,7 +64548,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.1\", \"bits\": 10 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%x.1\", \"b\": \"0x0004\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%b.0\", \"a\": \"%t.2\", \"b\": \"0x00\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t1.4\", \"a\": \"%t.3\", \"b\": \"0x0004\", \"bits\": 11 },"
@@ -64373,92 +64663,239 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%ci.12\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%ci.13\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%ci.14\", \"bits\": 128 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"0x05\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0f\", \"0x02\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x05\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0f\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.15\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x04\", \"0x01\", \"0x0d\", \"0x01\", \"0x01\", \"%t.15\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.15\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.15\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%q.16\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x0c\", \"0x01\", \"0x01\", \"%q.16\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x11\", \"0x02\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x01\", \"%q.16\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.17\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.17\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.18\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.18\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.19\", \"a\": \"%t.18\", \"b\": \"0x00\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.19\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.20\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.20\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.20\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.21\", \"bit\": \"%t.20\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.21\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"add\", \"output\": \"%tmp.22\", \"a\": \"%x.0\", \"b\": \"0x01\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"add\", \"output\": \"%tmp.23\", \"a\": \"%x.0\", \"b\": \"0x02\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.24\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.24\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.24\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.25\", \"a\": \"%t.24\", \"b\": \"0x03\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.25\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x19\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x19\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.26\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x0d\", \"0x01\", \"0x08\", \"%t.26\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.26\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.27\", \"a\": \"%t.26\", \"b\": \"0x02\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.27\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.28\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x0d\", \"0x01\", \"0x01\", \"%t.28\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.28\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.29\", \"bit\": \"%t.28\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.29\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.30\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.30\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.30\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.31\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.31\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.22\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.31\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.32\", \"bit\": \"%t.31\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.32\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.33\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\", \"0x18\", \"0x0d\", \"0x01\", \"0x01\", \"%t.33\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%tmp.23\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x01\", \"%t.33\"] },"
         "    { \"op\": \"assert\", \"cond\": \"%t.33\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x03\", \"0x11\", \"0x02\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x03\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x11\", \"0x01\", \"0x06\", \"0x20\", \"0x01\", \"0x20\", \"0x20\", \"0x10\", \"0x02\", \"%y.1\", \"%y.2\", \"%y.3\", \"%y.4\", \"%y.5\", \"%y.6\", \"%y.7\", \"%y.8\", \"%y.9\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x04\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x05\", \"0x11\", \"0x23\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x06\", \"0x11\", \"0x33\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\", \"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x32\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0a\", \"0x11\", \"0x00\", \"0xa2\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x03\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x03\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x06\", \"0x20\", \"0x01\", \"0x20\", \"0x20\", \"0x10\", \"0x02\", \"%y.1\", \"%y.2\", \"%y.3\", \"%y.4\", \"%y.5\", \"%y.6\", \"%y.7\", \"%y.8\", \"%y.9\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x05\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x23\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x06\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0xa4\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0a\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.34\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.35\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.38\", \"%hash.39\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\", \"0x33\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.38\", \"%hash.39\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"0x11\", \"0x02\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x33\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.38\", \"%hash.39\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.40\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.41\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.40\", \"%value.41\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.40\", \"%value.41\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.42\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.40\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.44\", \"%hash.45\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.42\", \"%data.43\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\", \"0x34\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.44\", \"%hash.45\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\", \"0x11\", \"0x02\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x34\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.44\", \"%hash.45\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.46\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.47\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.46\", \"%value.47\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.46\", \"%value.47\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.48\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.46\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.49\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.47\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.50\", \"%hash.51\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.48\", \"%data.49\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\", \"0x35\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.50\", \"%hash.51\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x35\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.50\", \"%hash.51\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.52\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.53\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\", \"0x60\", \"0x01\", \"0x01\", \"0x00\", \"0x0d\", \"0x01\", \"0x20\", \"%value.52\", \"%value.53\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.52\", \"%value.53\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.54\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.52\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.55\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.53\" },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.56\", \"%hash.57\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.54\", \"%data.55\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x37\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.56\", \"%hash.57\", \"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\", \"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x40\", \"0x17\", \"0x5b\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x37\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.56\", \"%hash.57\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%q.16\"] }"
         "  ]"
         "}"))
@@ -64485,7 +64922,9 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -64515,7 +64954,9 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%c.0\", \"guard\": null },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.1\", \"a\": \"%c.0\", \"scalar\": \"0x03\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%c.0\", \"b\": \"%t.1\" },"
@@ -64552,7 +64993,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
@@ -64570,7 +65013,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x00\", \"b\": \"0x03\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
@@ -64606,7 +65051,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
@@ -64624,7 +65071,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%t.2\", \"a\": \"0x00\", \"b\": \"0x03\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\"] }"
@@ -64665,7 +65114,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.1\", \"bits\": 32 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 32 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.3\", \"bits\": 32 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%q.0\", \"a\": \"0x01\", \"b\": \"0x02\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
         "  ]"
@@ -64687,7 +65138,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%q.0\", \"b\": \"%q.3\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%q.1\", \"b\": \"%q.4\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.8\", \"bit\": \"%t.6\", \"a\": \"%t.7\", \"b\": \"0x00\" },"
@@ -64733,7 +65186,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.1\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.2\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.3\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.5\", \"a\": \"%q.3\", \"b\": \"0x01\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.6\", \"a\": \"%q.3\", \"b\": \"0x01\", \"bits\": 12 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.7\", \"bit\": \"%t.6\", \"a\": \"0x00\", \"b\": \"0x01\" },"
@@ -64761,7 +65216,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.4\" },"
         "    { \"op\": \"output\", \"vals\": [\"%q.3\"] }"
@@ -64814,7 +65271,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.1\", \"bits\": 12 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.4\", \"a\": \"%t.3\", \"b\": \"%q.2\", \"bits\": 13 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.4\", \"a\": \"0x00\", \"b\": \"0x01\" },"
@@ -64841,7 +65300,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.0\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.1\" },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.2\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%q.0\", \"a\": \"%q.1\", \"b\": \"0x00\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.4\", \"bit\": \"%t.3\", \"a\": \"0x01\", \"b\": \"%q.2\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.4\"] }"
@@ -64864,7 +65325,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.1\", \"bits\": 12 },"
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%q.2\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"mul\", \"output\": \"%t.4\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%q.2\", \"a\": \"%t.3\", \"b\": \"%t.4\" },"
@@ -64905,7 +65368,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.4\", \"a\": \"%q.2\" },"
         "    { \"op\": \"add\", \"output\": \"%t.5\", \"a\": \"%t.3\", \"b\": \"%neg.4\" },"
@@ -64949,7 +65414,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.1\", \"bits\": 12 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
         "    { \"op\": \"less_than\", \"output\": \"%t.4\", \"a\": \"%t.3\", \"b\": \"%q.2\", \"bits\": 13 },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.4\", \"a\": \"0x00\", \"b\": \"0x01\" },"
@@ -64982,7 +65449,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x01\", \"%t.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x01\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
@@ -65025,7 +65494,9 @@ groups than for single tests.
         "    { \"op\": \"add\", \"output\": \"%t.8\", \"a\": \"%t.7\", \"b\": \"0x05\" },"
         "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.8\", \"b\": \"0x02\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.10\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.10\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.11\", \"a\": \"%t.9\", \"b\": \"%t.10\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.11\"] }"
         "  ]"
@@ -65067,7 +65538,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"neg\", \"output\": \"%neg.1\", \"a\": \"0x01\" },"
         "    { \"op\": \"add\", \"output\": \"%t.2\", \"a\": \"%my_guess.0\", \"b\": \"%neg.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -65097,7 +65570,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"transient_hash\", \"output\": \"%t.1\", \"inputs\": [\"0x00\", \"%x.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -65128,7 +65603,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 12 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%t.1\", \"%t.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"%x.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
         "  ]"
@@ -65157,7 +65634,9 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%x.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"hash_to_curve\", \"output\": \"%t.1\", \"inputs\": [\"%x.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -65192,10 +65671,25 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x2a\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x17\", \"0x11\", \"0x00\", \"0x91\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x2a\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x17\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.0\", \"%hash.1\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"0x47\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\", \"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x32\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%hash.0\", \"%hash.1\", \"0x91\", \"0xa1\", \"0x70\", \"0x01\", \"0x01\", \"0x01\", \"0x0e\", \"0x01\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%hash.0\", \"%hash.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/root_of.zkir" #f)
@@ -65225,7 +65719,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
@@ -65256,7 +65752,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"output\", \"vals\": [\"0x03\"] }"
         "  ]"
         "}"))
@@ -65338,7 +65836,16 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x32\", \"0x50\", \"0x01\", \"0x01\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%hash.1\", \"%hash.2\", \"0x91\", \"0xa1\", \"0x70\", \"0x01\", \"0x01\", \"0x01\", \"0x0e\", \"0x01\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%hash.1\", \"%hash.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/root_of.zkir" #f)
@@ -65370,9 +65877,27 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\", \"0x80\", \"0x01\", \"0x01\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x20\", \"0x00\", \"0x00\", \"0x31\", \"0x31\", \"0x18\", \"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x05\", \"0x40\", \"0x08\", \"0x12\", \"0x04\", \"0x32\", \"0x32\", \"0x60\", \"-0x01\", \"0x14\", \"0xa2\", \"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x80\", \"0x01\", \"0x01\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x31\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x31\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x08\", \"0x05\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x08\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x12\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"-0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
@@ -65402,11 +65927,31 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x02\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x04\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     )
@@ -65438,14 +65983,88 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x02\", \"0x0e\", \"0x01\", \"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\", \"0x00\", \"0x00\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x40\", \"0xa1\", \"0x40\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x03\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x05\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x30\", \"0x03\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x02\", \"0x12\", \"0x04\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x40\", \"0x16\", \"0x26\", \"0x13\", \"0x02\", \"0x0b\", \"0x10\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x00\", \"0x00\", \"0x0d\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x03\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x12\", \"0x04\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x16\", \"0x26\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x13\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x02\", \"0x01\", \"-0x02\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x02\", \"0x01\", \"-0x02\", \"%t.0\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.0\", \"%t.1\"] }"
         "  ]"
         "}"))
@@ -65503,8 +66122,16 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x00\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/get.zkir"
@@ -65523,7 +66150,10 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -65607,8 +66237,16 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\", \"0x11\", \"0x01\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"0x00\", \"0x00\", \"0x00\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/get.zkir"
@@ -65633,7 +66271,10 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.3\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.4\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x04\", \"0x01\", \"0x0a\", \"0x01\", \"0x01\", \"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\", \"%t.3\", \"%t.4\", \"%t.5\"] }"
         "  ]"
         "}"))
@@ -65669,7 +66310,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/put.zkir"
@@ -65687,7 +66332,11 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%q.2\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%q.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/get.zkir"
@@ -65706,7 +66355,10 @@ groups than for single tests.
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%n.1\", \"bits\": 16 },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x50\", \"0x01\", \"0x02\", \"%n.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -65751,7 +66403,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/incr_nested_counter.zkir"
@@ -65768,7 +66424,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%k.1\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0e\", \"%k.1\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%k.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
@@ -65785,7 +66443,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -65803,7 +66463,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -65865,7 +66527,11 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/insert_nested_map.zkir"
@@ -65881,7 +66547,11 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%n1.0\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n2.1\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%n3.2\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%n1.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n2.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"%n3.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
@@ -65895,7 +66565,11 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     )
@@ -65973,7 +66647,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\", \"0x11\", \"0x02\", \"0x91\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
@@ -65989,7 +66667,11 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.1\", \"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\", \"0x91\", \"0xa2\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x71\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/increment_nested_counter.zkir"
@@ -66007,7 +66689,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%k.2\", \"bits\": 16 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x72\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0e\", \"%k.2\", \"0xa3\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x72\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%k.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa3\"] }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
@@ -66025,7 +66709,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -66044,7 +66730,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_to_boolean\", \"val\": \"%b.0\" },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\", \"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x52\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"%b.0\", \"0x01\", \"-0x02\", \"%n.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x08\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -66137,7 +66825,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%q.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
@@ -66168,7 +66858,9 @@ groups than for single tests.
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%q.0\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -66255,7 +66947,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
@@ -66357,7 +67051,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
@@ -66390,13 +67086,21 @@ groups than for single tests.
      )
     (returns
       (program
-        (circuit (init) ((%b.0 "Scalar<BLS12-381>") (%n.1 "Scalar<BLS12-381>"))
+        (circuit (init) ((%b.0 "Scalar<BLS12-381>")
+                         (%n.1 "Scalar<BLS12-381>"))
           ()
           (constrain_to_boolean %b.0)
           (constrain_bits %n.1 16)
-          (impact 1 112 1 1 0 16 1 1 1 %b.0 17 2 145 161)
-          (impact 1 113 1 1 0 1 1 %b.0 16 1 1 2 %n.1 17 1 2 -2 -2 0 0
-           145 162))))
+          (impact 1 112 1 1 0)
+          (impact 1 16 1 1 1 %b.0)
+          (impact 1 17 2)
+          (impact 1 145)
+          (impact 1 161)
+          (impact 1 113 1 1 0 1 1 %b.0)
+          (impact 1 16 1 1 2 %n.1)
+          (impact 1 17 1 2 -2 -2 0 0)
+          (impact 1 145)
+          (impact 1 162))))
     )
 
   (test
@@ -66566,7 +67270,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"less_than\", \"output\": \"%tmp.1\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -66597,7 +67303,9 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%tmp.2\" },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.3\", \"a\": \"%y.1\", \"b\": \"0x06\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.3\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.4\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.4\" }"
         "  ]"
@@ -66631,7 +67339,9 @@ groups than for single tests.
         "    { \"op\": \"assert\", \"cond\": \"%tmp.4\" },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.5\", \"a\": \"%z.2\", \"b\": \"0x07\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.5\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.6\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.7\", \"a\": \"%t.6\", \"b\": \"%z.2\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.7\" }"
@@ -66663,7 +67373,9 @@ groups than for single tests.
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%x.0\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.2\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 4 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.3\" }"
         "  ]"
@@ -66693,7 +67405,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
         "    { \"op\": \"less_than\", \"output\": \"%tmp.2\", \"a\": \"%y.1\", \"b\": \"0x05\", \"bits\": 4 },"
         "    { \"op\": \"assert\", \"cond\": \"%tmp.2\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.3\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.3\" }"
         "  ]"
@@ -66722,7 +67436,9 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%x.0\", \"bits\": 4 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%y.1\", \"bits\": 4 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"test_eq\", \"output\": \"%t.2\", \"a\": \"%x.0\", \"b\": \"%y.1\" },"
         "    { \"op\": \"assert\", \"cond\": \"%t.2\" }"
         "  ]"
@@ -66794,9 +67510,13 @@ groups than for single tests.
                         (%v.3 "Scalar<BLS12-381>")
                         (%v.4 "Scalar<BLS12-381>"))
           ("Scalar<BLS12-381>")
-          (impact 1 16 1 1 1 0 17 1 1 -2 %v.3 145)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 -2 %v.3)
+          (impact 1 145)
           (public_input "Scalar<BLS12-381>" %t.5)
-          (impact 1 48 80 1 1 0 12 1 -2 %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 1 -2 %t.5)
           (output %t.5))))
     )
 
@@ -66826,19 +67546,25 @@ groups than for single tests.
           (assert %t.3)
           (neg %neg.11 %v.0)
           (add %tmp.12 %v.1 %neg.11)
-          (impact 1 112 1 1 0 14 %tmp.12 161)
+          (impact 1 112 1 1 0)
+          (impact 1 14 %tmp.12)
+          (impact 1 161)
           (less_than %t.5 %v.4 %v.1 16)
           (cond_select %t.6 %t.5 0 1)
           (assert %t.6)
           (neg %neg.13 %v.1)
           (add %tmp.14 %v.4 %neg.13)
-          (impact 1 112 1 1 0 14 %tmp.14 161)
+          (impact 1 112 1 1 0)
+          (impact 1 14 %tmp.14)
+          (impact 1 161)
           (less_than %t.8 %v.7 %v.4 16)
           (cond_select %t.9 %t.8 0 1)
           (assert %t.9)
           (neg %neg.15 %v.4)
           (add %tmp.16 %v.7 %neg.15)
-          (impact 1 112 1 1 0 14 %tmp.16 161))))
+          (impact 1 112 1 1 0)
+          (impact 1 14 %tmp.16)
+          (impact 1 161))))
     )
 
   (test
@@ -66863,8 +67589,12 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x00\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -66895,9 +67625,13 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%bv.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -66937,13 +67671,17 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.5\", \"%tmp.6\"], \"val\": \"%quo.3\", \"bits\": 8 },"
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%tmp.8\"], \"val\": \"%quo.5\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.9\", \"val\": \"%quo.7\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.9\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.9\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.10\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.11\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.12\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.13\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.14\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x05\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.10\", \"%t.11\", \"%t.12\", \"%t.13\", \"%t.14\"] }"
         "  ]"
         "}"))
@@ -67035,7 +67773,9 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.57\", \"%tmp.58\"], \"val\": \"%quo.55\", \"bits\": 8 },"
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.59\", \"%tmp.60\"], \"val\": \"%quo.57\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.61\", \"val\": \"%quo.59\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.10\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.61\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.2\", \"%tmp.4\", \"%tmp.6\", \"%tmp.8\", \"%tmp.10\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.61\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.62\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.63\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.64\", \"guard\": null },"
@@ -67067,7 +67807,9 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.90\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.91\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.92\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x1f\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.62\", \"%t.63\", \"%t.64\", \"%t.65\", \"%t.66\", \"%t.67\", \"%t.68\", \"%t.69\", \"%t.70\", \"%t.71\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\"] }"
         "  ]"
         "}"))
@@ -67171,7 +67913,9 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.67\", \"%tmp.68\"], \"val\": \"%quo.65\", \"bits\": 8 },"
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.69\", \"%tmp.70\"], \"val\": \"%quo.67\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.71\", \"val\": \"%quo.69\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.62\", \"%tmp.64\", \"%tmp.66\", \"%tmp.68\", \"%tmp.70\", \"%tmp.71\", \"%tmp.3\", \"%tmp.5\", \"%tmp.7\", \"%tmp.9\", \"%tmp.10\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.12\", \"%tmp.14\", \"%tmp.16\", \"%tmp.18\", \"%tmp.20\", \"%tmp.22\", \"%tmp.24\", \"%tmp.26\", \"%tmp.28\", \"%tmp.30\", \"%tmp.32\", \"%tmp.34\", \"%tmp.36\", \"%tmp.38\", \"%tmp.40\", \"%tmp.42\", \"%tmp.44\", \"%tmp.46\", \"%tmp.48\", \"%tmp.50\", \"%tmp.52\", \"%tmp.54\", \"%tmp.56\", \"%tmp.58\", \"%tmp.60\", \"%tmp.62\", \"%tmp.64\", \"%tmp.66\", \"%tmp.68\", \"%tmp.70\", \"%tmp.71\", \"%tmp.3\", \"%tmp.5\", \"%tmp.7\", \"%tmp.9\", \"%tmp.10\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.72\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.73\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.74\", \"guard\": null },"
@@ -67208,7 +67952,9 @@ groups than for single tests.
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.105\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.106\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.107\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x24\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.72\", \"%t.73\", \"%t.74\", \"%t.75\", \"%t.76\", \"%t.77\", \"%t.78\", \"%t.79\", \"%t.80\", \"%t.81\", \"%t.82\", \"%t.83\", \"%t.84\", \"%t.85\", \"%t.86\", \"%t.87\", \"%t.88\", \"%t.89\", \"%t.90\", \"%t.91\", \"%t.92\", \"%t.93\", \"%t.94\", \"%t.95\", \"%t.96\", \"%t.97\", \"%t.98\", \"%t.99\", \"%t.100\", \"%t.101\", \"%t.102\", \"%t.103\", \"%t.104\", \"%t.105\", \"%t.106\", \"%t.107\"] }"
         "  ]"
         "}"))
@@ -67236,8 +67982,12 @@ groups than for single tests.
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x00\", \"0x91\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x00\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -67268,9 +68018,13 @@ groups than for single tests.
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%v.0\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%tmp.1\", \"val\": \"%v.0\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"%tmp.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x01\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -67313,9 +68067,13 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.6\", \"divisor\": \"%div.5\", \"modulus\": \"%v.2\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.7\", \"divisor\": \"%div.6\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.8\", \"divisor\": \"%div.7\", \"modulus\": \"%v.0\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x05\", \"%tmp.8\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x05\", \"%tmp.8\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.9\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x05\", \"%t.9\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x05\", \"%t.9\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
         "  ]"
         "}"))
@@ -67436,9 +68194,13 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.58\", \"divisor\": \"%div.57\", \"modulus\": \"%v.2\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.59\", \"divisor\": \"%div.58\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.60\", \"divisor\": \"%div.59\", \"modulus\": \"%v.0\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%tmp.60\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x1f\", \"%tmp.60\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.61\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x1f\", \"%t.61\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x1f\", \"%t.61\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.61\"] }"
         "  ]"
         "}"))
@@ -67649,10 +68411,14 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.117\", \"divisor\": \"%div.116\", \"modulus\": \"%v.2\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.118\", \"divisor\": \"%div.117\", \"modulus\": \"%v.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.119\", \"divisor\": \"%div.118\", \"modulus\": \"%v.0\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x3d\", \"%tmp.89\", \"%tmp.119\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x3d\", \"%tmp.89\", \"%tmp.119\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.120\", \"guard\": null },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.121\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x3d\", \"%t.120\", \"%t.121\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x3d\", \"%t.120\", \"%t.121\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.120\", \"%t.121\"] }"
         "  ]"
         "}"))
@@ -67681,10 +68447,14 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.0\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"%param1.0\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%param1.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"copy\", \"output\": \"%p.1\", \"val\": \"%param1.0\" },"
         "    { \"op\": \"copy\", \"output\": \"%t.2\", \"val\": \"%p.1\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"%t.2\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     )
@@ -67730,7 +68500,9 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.7\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.8\", \"bits\": 8 },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%param1.9\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"%param1.0\", \"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%param1.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.10\", \"divisor\": \"%param1.9\", \"modulus\": \"%param1.8\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.11\", \"divisor\": \"%div.10\", \"modulus\": \"%param1.7\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.12\", \"divisor\": \"%div.11\", \"modulus\": \"%param1.6\", \"bits\": 8 },"
@@ -67750,7 +68522,9 @@ groups than for single tests.
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.33\", \"%t.34\"], \"val\": \"%quo.31\", \"bits\": 8 },"
         "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.35\", \"%t.36\"], \"val\": \"%quo.33\", \"bits\": 8 },"
         "    { \"op\": \"copy\", \"output\": \"%t.37\", \"val\": \"%quo.35\" },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\", \"0x0e\", \"%t.20\", \"0xa1\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"%t.20\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] }"
         "  ]"
         "}"))
     )
@@ -67804,9 +68578,13 @@ groups than for single tests.
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.16\", \"divisor\": \"%div.15\", \"modulus\": \"%param1.2\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%div.17\", \"divisor\": \"%div.16\", \"modulus\": \"%param1.1\", \"bits\": 8 },"
         "    { \"op\": \"reconstitute_field\", \"output\": \"%tmp.18\", \"divisor\": \"%div.17\", \"modulus\": \"%param1.0\", \"bits\": 8 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x0a\", \"%tmp.18\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x0a\", \"%tmp.18\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x50\", \"0x01\", \"0x01\", \"0x00\", \"0x0c\", \"0x01\", \"0x0a\", \"%t.19\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"0x0a\", \"%t.19\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.19\"] }"
         "  ]"
         "}"))
@@ -67842,7 +68620,10 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"0xd007\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"0xd007\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.0\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.0\"] }"
         "  ]"
         "}"))
@@ -67859,7 +68640,10 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\", \"0x50\", \"0x01\", \"-0x02\", \"%x.0\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"0xe803\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -67876,7 +68660,10 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"0xe803\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"0xe803\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.1\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
         "  ]"
         "}"))
@@ -67894,7 +68681,10 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.2\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\", \"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\", \"0x50\", \"0x01\", \"-0x02\", \"%y.1\", \"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x51\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"-0x02\", \"%x.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"-0x02\", \"%y.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x01\", \"-0x02\", \"%t.2\"] },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
         "  ]"
         "}"))
@@ -67922,7 +68712,9 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"private_input\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"ec_mul\", \"output\": \"%t.2\", \"a\": \"%t.1\", \"scalar\": \"%scalar.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
@@ -67951,7 +68743,9 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%pt.0\", \"inputs\": [\"0x00\", \"0x01\"] },"
         "    { \"op\": \"add\", \"output\": \"%t.1\", \"a\": \"%pt.0\", \"b\": \"%pt.0\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
@@ -67983,7 +68777,9 @@ groups than for single tests.
         "    \"Point<Jubjub>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"encode\", \"outputs\": [\"%x.1\", \"%y.2\"], \"input\": \"%a.0\" },"
         "    { \"op\": \"neg\", \"output\": \"%neg.3\", \"a\": \"%x.1\" },"
         "    { \"op\": \"decode\", \"type\": \"Point<Jubjub>\", \"output\": \"%t.4\", \"inputs\": [\"%neg.3\", \"%y.2\"] },"
@@ -68015,7 +68811,8 @@ groups than for single tests.
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x20\", \"%t.0\", \"%t.1\", \"0x09\"] }"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x20\", \"%t.0\", \"%t.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x09\"] }"
         "  ]"
         "}"))
     )
@@ -86425,7 +87222,7 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "  });"
       "  return n;"
@@ -86433,12 +87230,12 @@ groups than for single tests.
       "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "  });"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) }"
       "  });"
       "  return n;"
@@ -86447,7 +87244,7 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedReceive {"
       "      commitment: disclose(n),"
-      "      contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "      contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "    });"
       "  }"
@@ -86515,7 +87312,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contract_address: { is_some: true, value: N32() },"
+        "    contractAddress: { is_some: true, value: N32() },"
         "    ciphertext: { is_some: true, value: N512() }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedReceive(Ctxt, orig);"
@@ -86527,7 +87324,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contract_address: { is_some: true, value: N32() },"
+        "    contractAddress: { is_some: true, value: N32() },"
         "    ciphertext: { is_some: false, value: N512() }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedReceive(Ctxt, orig);"
@@ -86543,7 +87340,7 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 1000 as Uint<128> }"
       "  });"
       "  return n;"
@@ -86551,12 +87348,12 @@ groups than for single tests.
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 100 as Uint<128> }"
       "  });"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
       "  });"
       "  return n;"
@@ -86565,7 +87362,7 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedMint {"
       "      commitment: disclose(n),"
-      "      domain_sep: disclose(n),"
+      "      domainSep: disclose(n),"
       "      amount: Maybe<Uint<128>> { is_some: true, value: 42 as Uint<128> }"
       "    });"
       "  }"
@@ -86629,7 +87426,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    domain_sep: N32(),"
+        "    domainSep: N32(),"
         "    amount: { is_some: true, value: 999n }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedMint(Ctxt, orig);"
@@ -86640,7 +87437,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    domain_sep: N32(),"
+        "    domainSep: N32(),"
         "    amount: { is_some: true, value: 12345n }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedMint(Ctxt, orig);"
@@ -86759,7 +87556,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
       "  });"
       "  return n;"
@@ -86771,7 +87569,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedSpend {"
@@ -86780,7 +87579,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -86793,7 +87593,8 @@ groups than for single tests.
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "        right: ContractAddress { bytes: disclose(n) }"
       "      },"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
       "    });"
       "  }"
@@ -86802,15 +87603,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<113> {"
-      "  return serialize<UnshieldedSpend, 113>(x);"
+      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<145> {"
+      "  return serialize<UnshieldedSpend, 145>(x);"
       "}"
-      "export circuit deserialize_UnshieldedSpend(x: Bytes<113>): UnshieldedSpend {"
-      "  return deserialize<UnshieldedSpend, 113>(x);"
+      "export circuit deserialize_UnshieldedSpend(x: Bytes<145>): UnshieldedSpend {"
+      "  return deserialize<UnshieldedSpend, 145>(x);"
       "}"
       "export circuit roundtrip_UnshieldedSpend(orig: UnshieldedSpend): UnshieldedSpend {"
-      "  const bytes = serialize<UnshieldedSpend, 113>(orig);"
-      "  return deserialize<UnshieldedSpend, 113>(bytes);"
+      "  const bytes = serialize<UnshieldedSpend, 145>(orig);"
+      "  return deserialize<UnshieldedSpend, 145>(bytes);"
       "}"
       )
     (stage-javascript
@@ -86858,16 +87659,16 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedSpend returns 113-byte payload', async () => {"
+        "test('serialize_UnshieldedSpend returns 145-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { sender: senderL(), token_type: N32(), amount: 777n };"
+        "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
-        "  expect(r.result.length).toBe(113);"
+        "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { sender: senderL(), token_type: N32(), amount: 555n };"
+        "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
         "});"
@@ -86884,7 +87685,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
       "  });"
       "  return n;"
@@ -86896,7 +87698,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedReceive {"
@@ -86905,7 +87708,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -86918,7 +87722,8 @@ groups than for single tests.
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "        right: ContractAddress { bytes: disclose(n) }"
       "      },"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
       "    });"
       "  }"
@@ -86927,15 +87732,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(x);"
+      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<145> {"
+      "  return serialize<UnshieldedReceive, 145>(x);"
       "}"
-      "export circuit deserialize_UnshieldedReceive(x: Bytes<113>): UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(x);"
+      "export circuit deserialize_UnshieldedReceive(x: Bytes<145>): UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 145>(x);"
       "}"
       "export circuit roundtrip_UnshieldedReceive(orig: UnshieldedReceive): UnshieldedReceive {"
-      "  const bytes = serialize<UnshieldedReceive, 113>(orig);"
-      "  return deserialize<UnshieldedReceive, 113>(bytes);"
+      "  const bytes = serialize<UnshieldedReceive, 145>(orig);"
+      "  return deserialize<UnshieldedReceive, 145>(bytes);"
       "}"
       )
     (stage-javascript
@@ -86983,16 +87788,16 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedReceive returns 113-byte payload', async () => {"
+        "test('serialize_UnshieldedReceive returns 145-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { recipient: recipL(), token_type: N32(), amount: 777n };"
+        "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
-        "  expect(r.result.length).toBe(113);"
+        "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { recipient: recipL(), token_type: N32(), amount: 555n };"
+        "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
         "  // serialize is purely structural — no Either canonicalization."
         "  // whatever bytes sit in the inactive variant (right when is_left=true)"
@@ -87008,21 +87813,21 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1000 as Uint<128>"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -87030,8 +87835,8 @@ groups than for single tests.
       "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
       "    emit(UnshieldedMint {"
-      "      domain_sep: disclose(n),"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 5 as Uint<128>"
       "    });"
       "  }"
@@ -87093,14 +87898,14 @@ groups than for single tests.
         ""
         "test('serialize_UnshieldedMint returns 80-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 999n };"
+        "  const orig = { domainSep: N32(), tokenType: N32(), amount: 999n };"
         "  const r = await C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result.length).toBe(80);"
         "});"
         ""
         "test('roundtrip preserves UnshieldedMint struct', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 12345n };"
+        "  const orig = { domainSep: N32(), tokenType: N32(), amount: 12345n };"
         "  const r = await C.circuits.roundtrip_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
         "});"

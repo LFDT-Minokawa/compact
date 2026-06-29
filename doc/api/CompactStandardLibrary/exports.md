@@ -202,14 +202,14 @@ struct ShieldedSpend {
 
 A contract accepts an incoming shielded coin.
 
-`contract_address` set when received by a contract, absent for user recipients.
+`contractAddress` set when received by a contract, absent for user recipients.
 
  Serialized size is 578.
 
 ```compact
 struct ShieldedReceive {
   commitment: Bytes<32>, // indexed
-  contract_address: Maybe<Bytes<32>>,
+  contractAddress: Maybe<Bytes<32>>,
   ciphertext: Maybe<Bytes<512>>
 }
 ```
@@ -218,14 +218,14 @@ struct ShieldedReceive {
 
 New shielded tokens created.
 
-`token_type` derived by the consumer from `domain_sep` + `ContractLog.address`.
+`tokenType` derived by the consumer from `domainSep` + `ContractLog.address`.
 
  Serialized size is 81.
  
 ```compact
 struct ShieldedMint {
   commitment: Bytes<32>, // indexed
-  domain_sep: Bytes<32>, // indexed
+  domainSep: Bytes<32>, // indexed
   amount: Maybe<Uint<128>>
 }
 ```
@@ -249,12 +249,13 @@ struct ShieldedBurn {
 
 Public token sent from a sender.
 
-Serialized size is 113.
+Serialized size is 145.
 
 ```compact
 struct UnshieldedSpend {
   sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
-  token_type: Bytes<32>, // indexed
+  domainSep: Bytes<32>, // indexed
+  tokenType: Bytes<32>, // indexed
   amount: Uint<128>
 }
 ```
@@ -263,12 +264,13 @@ struct UnshieldedSpend {
 
 Public token sent to a recipient.
 
-Serialized size is 113.
+Serialized size is 145.
 
 ```compact
 struct UnshieldedReceive {
   recipient: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
-  token_type: Bytes<32>, // indexed
+  domainSep: Bytes<32>, // indexed
+  tokenType: Bytes<32>, // indexed
   amount: Uint<128>
 }
 ```
@@ -281,8 +283,8 @@ Serialized size is 80.
 
 ```compact
 struct UnshieldedMint {
-  domain_sep: Bytes<32>, // indexed
-  token_type: Bytes<32>, // indexed
+  domainSep: Bytes<32>, // indexed
+  tokenType: Bytes<32>, // indexed
   amount: Uint<128>
 }
 ```
@@ -296,7 +298,7 @@ Serialized size is 113.
 ```compact
 struct UnshieldedBurn {
   sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
-  token_type: Bytes<32>, // indexed
+  tokenType: Bytes<32>, // indexed
   amount: Uint<128>
 }
 ```
