@@ -2894,8 +2894,7 @@
                           (field-type-equal? ftype ftype^)
                           (triv-equal? triv triv^))]
                     [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) (downcast-unsigned ,src^ ,safe^ ,nat2^ ,nat1^ ,triv^)
-                     ;; TODO(kmillikin): we don't care if safe and safe^ agree?
-                     (and (eqv? nat2 nat2^)
+                     (and (eq? eqv? safe safe^)
                           (eqv? nat1 nat1^)
                           (triv-equal? triv triv^))]))))
         (define (triv-vec-equal? v1 v2)
@@ -2913,6 +2912,8 @@
       (module (nontriv-single-hash triv-vec-hash assert-hash)
         (define (update hc k)
           (#3%fx+ (#3%fxsll hc 2) hc k))
+        (define (boolean-hash b hc)
+          (update hc (if b 0 1)))
         (define (nat-hash nat hc)
           (update hc (if (fixnum? nat) nat (modulo nat (most-positive-fixnum)))))
         (define (bits-hash bits hc)
@@ -2962,8 +2963,11 @@
                (field-type-hash ftype (triv-hash triv 597056600))]
               [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
                (field-type-hash ftype (triv-hash triv (nat-hash nat 680186174)))]
-              [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
-               (triv-hash triv (triv-hash nat2 (triv-hash nat1 314267636)))]
+              [(downcast-unsigned ,src ,safe ,nat? ,nat ,triv)
+               (boolean-hash safe
+                 (triv-hash triv
+                   (let ([h (triv-hash nat 314267636)])
+                     (if nat? (triv-hash nat? h) h))))]
               [else (internal-errorf 'nontriv-single-hash "unhandled form ~s" (cdr test.single))])))
         (define (triv-vec-hash v)
           (let ([n (vector-length v)])
