@@ -28,7 +28,7 @@ export circuit set(b_param: B): [] {
 
 export circuit isOdd(x: Field): Boolean {
   called.increment(1);
-  if (disclose(x) == 0) {
+  if (disclose(x) == 0 as Field) {
     return false;
   }
   return disclose(b).isEven(disclose(x - 1));

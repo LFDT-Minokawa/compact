@@ -5897,7 +5897,7 @@
   (define-pass expand-serialize : Lnodisclose (ir) -> Lnoserialize ()
     (definitions
       (define (format-field-type ftype)
-        (nanopass-case (Ltypes Field-Type) ftype
+        (nanopass-case (Lnoserialize Field-Type) ftype
           [(field-native) "Field"]
           [(field-scalar (curve-jubjub)) "JubjubScalar"]
           [(field-base (curve-secp256k1)) "Secp256k1Base"]
@@ -5994,7 +5994,7 @@
                       (if as-bytes?
                           (let ([ftype (native-field-type)])
                             (with-output-language (Lnoserialize Expression)
-                              `(field->bytes ,src ,ftype 1
+                              `(field->bytes ,src 1 ,ftype
                                  (safe-cast ,src (tfield ,src ,ftype) (tunsigned ,src ,nat) ,expr))))
                           (with-output-language (Lnoserialize Tuple-Argument)
                             `(single ,src
@@ -6010,7 +6010,7 @@
                       (lambda (as-bytes?)
                         (bytes-or-tuple-arg as-bytes? nbytes
                           (with-output-language (Lnoserialize Expression)
-                            `(field->bytes ,src ,ftype ,nbytes
+                            `(field->bytes ,src ,nbytes ,ftype
                                (safe-cast ,src (tfield ,src ,ftype) (tunsigned ,src ,nat) ,expr)))))
                       rta*)))]))
           (nanopass-case (Lnoserialize Type) type
@@ -6036,7 +6036,7 @@
                    (lambda (as-bytes?)
                      (bytes-or-tuple-arg as-bytes? len
                        (with-output-language (Lnoserialize Expression)
-                         `(field->bytes ,src ,ftype ,len ,expr))))
+                         `(field->bytes ,src ,len ,ftype ,expr))))
                    rta*)))]
             [(tunsigned ,src^ ,nat)
              (do-unsigned nat expr)]

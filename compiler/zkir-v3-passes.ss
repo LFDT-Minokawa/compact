@@ -846,13 +846,18 @@
           (internal-errorf 'reduce-to-zkir
             "contract-call primitive-type is not a tcontract")])]
       [(= ,test () (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code))
-       (let* ([payload-alignment*
+       (let* ([payload-primitive-type*
+                (map (lambda (_)
+                       (with-output-language (Lflattened Primitive-Type)
+                         `(tfield (field-native))))
+                     triv*)]
+              [payload-alignment*
                 (with-output-language (Lflattened Alignment)
                   (list `(abytes ,len)))]
               [env (list (cons 'emit-version event-version)
                          (cons 'emit-tag     event-tag)
-                         (cons 'emit-payload (make-zkir-val payload-alignment* triv*)))])
-         (assemble test '() '() src '() env vm-code instr*))]
+                         (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
+         (assemble test '() '() '() src '() env vm-code instr*))]
       [(= ,test (,var-name) (default ,opaque-type))
        (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)

@@ -15015,7 +15015,7 @@ groups than for single tests.
       (program ((foo %foo.0))
         (circuit %foo.0 ()
              (ttuple)
-          (seq (emit (new (tstruct F (bar (tfield))) 1)) (tuple)))))
+          (seq (emit (new (tstruct F (bar (tfield (field-native)))) 1)) (tuple)))))
     )
 
   (test
@@ -25844,7 +25844,7 @@ groups than for single tests.
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return emit ( F {bar: 1} );"
+      "  return emit ( F {bar: 1 as Field} );"
       "}"
       )
     (oops
@@ -25856,7 +25856,7 @@ groups than for single tests.
     '(
       "struct F { bar: Field }"
       "export circuit foo (): F {"
-      "  return emit ( F {1} );"
+      "  return emit ( F {1 as Field} );"
       "}"
       )
     (oops
@@ -26682,7 +26682,7 @@ groups than for single tests.
           (let* ([[%n.2 (tunsigned ,(- (max-bytes/vector-length) 1))] ,(- (max-bytes/vector-length) 1)])
             (vector-ref
               %v.1
-              (+ 8
+              (+ 10
                  (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) %n.2)
                  (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1))))))))
 
@@ -26709,7 +26709,7 @@ groups than for single tests.
              (tfield (field-native))
           (vector-ref
             %v.1
-            (+ 8
+            (+ 10
                (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) ,(- (max-bytes/vector-length) 1))
                (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1)))))))
 
@@ -34641,8 +34641,8 @@ groups than for single tests.
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 16
                   (bytes->vector 16
-                    (field->bytes 16
-                      (safe-cast (tfield)
+                    (field->bytes 16 (field-native)
+                      (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %t.3 value 1)))))))))
@@ -34726,8 +34726,8 @@ groups than for single tests.
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
                 (spread 16
                   (bytes->vector 16
-                    (field->bytes 16
-                      (safe-cast (tfield)
+                    (field->bytes 16 (field-native)
+                      (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %t.3 value 1)))))))))
@@ -34818,8 +34818,8 @@ groups than for single tests.
                   (bytes->vector 32 (elt-ref %value.2 token_type 1)))
                 (spread 16
                   (bytes->vector 16
-                    (field->bytes 16
-                      (safe-cast (tfield)
+                    (field->bytes 16 (field-native)
+                      (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %value.2 amount 2)))))))))
@@ -34934,8 +34934,8 @@ groups than for single tests.
                   (bytes->vector 32 (elt-ref %value.2 token_type 1)))
                 (spread 16
                   (bytes->vector 16
-                    (field->bytes 16
-                      (safe-cast (tfield)
+                    (field->bytes 16 (field-native)
+                      (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %value.2 amount 2)))))))))
@@ -35038,8 +35038,8 @@ groups than for single tests.
                 (bytes->vector
                   16
                   (field->bytes
-                    16
-                    (safe-cast (tfield)
+                    16 (field-native)
+                    (safe-cast (tfield (field-native))
                                (tunsigned
                                  340282366920938463463374607431768211455)
                       (elt-ref %value.2 amount 2))))))))
@@ -35122,8 +35122,8 @@ groups than for single tests.
                   (bytes->vector 32 (elt-ref %value.2 token_type 1)))
                 (spread 16
                   (bytes->vector 16
-                    (field->bytes 16
-                      (safe-cast (tfield)
+                    (field->bytes 16 (field-native)
+                      (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
                         (elt-ref %value.2 amount 2)))))))))
@@ -35348,8 +35348,8 @@ groups than for single tests.
                                            340282366920938463463374607431768211455)])
              (tbytes 16)
           (field->bytes
-            16
-            (safe-cast (tfield)
+            16 (field-native)
+            (safe-cast (tfield (field-native))
                        (tunsigned 340282366920938463463374607431768211455)
               %value.2)))
         (circuit %uint_serialize.3 ([%n.4 (tunsigned
@@ -69313,7 +69313,31 @@ groups than for single tests.
       "  return ecAdd(ecMulGenerator(u1), ecMul(pk, u2));"
       "}"
       )
-    (output-file "compiler/testdir/zkir/test.zkir" #f)
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%s.1\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<Secp256k1>\" },"
+        "    { \"name\": \"%pk.3\", \"type\": \"Point<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x91\"] },"
+        "    { \"op\": \"inv\", \"output\": \"%w.4\", \"a\": \"%s.1\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u1.5\", \"a\": \"%z.2\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u2.6\", \"a\": \"%r.0\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.7\", \"scalar\": \"%u1.5\" },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%pk.3\", \"scalar\": \"%u2.6\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
+        "  ]"
+        "}"))
     )
 
   (test
@@ -69325,7 +69349,23 @@ groups than for single tests.
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
+    (output-file "compiler/testdir/zkir/foo.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.0\", \"bits\": 8 },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 248 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x33\", \"0x01\", \"0x01\", \"0x04\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x01\", \"0x01\", \"0x20\", \"%t.0\", \"%t.1\", \"0x09\"] }"
+        "  ]"
+        "}"))
     )
 )
 )
@@ -70831,7 +70871,7 @@ groups than for single tests.
            (constructor ([%c.9 (tcontract Calculator
                                  (get_square #f ((tunsigned 100))
                                    (tunsigned 10000)))])
-             (seq (public-ledger %calc.8 (0) write %c.9) (tuple))))))
+             (seq (public-ledger %calc.9 (0) write %c.9) (tuple))))))
       ))
 
   (test
@@ -70850,6 +70890,7 @@ groups than for single tests.
           (%descriptor.45 (tfield (field-native)))
           (%descriptor.46 (tboolean))
           (%descriptor.47 (tunsigned 255))
+          (%descriptor.50 (tunsigned 4294967295))
           (%descriptor.48 (tunsigned 18446744073709551615))
           (%descriptor.49
             (tunsigned 340282366920938463463374607431768211455)))
@@ -70933,6 +70974,7 @@ groups than for single tests.
           (%descriptor.7 (tfield (field-native)))
           (%descriptor.8 (tboolean))
           (%descriptor.9 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295))
           (%descriptor.10 (tunsigned 18446744073709551615))
           (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -71617,6 +71659,7 @@ groups than for single tests.
           (%descriptor.7 (tboolean))
           (%descriptor.8 (tfield (field-native)))
           (%descriptor.9 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295))
           (%descriptor.10 (tunsigned 18446744073709551615))
           (%descriptor.6 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -72678,7 +72721,7 @@ groups than for single tests.
         "});"
         "test('check 2b', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow('range error at testfile.compact line 1 char 52: Field or Uint value 6618611909121 does not fit into 5 bytes');"
+        "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow('range error at testfile.compact line 1 char 52: field or Uint value 6618611909121 does not fit into 5 bytes');"
         "});"
         ))
     )
@@ -72858,10 +72901,10 @@ groups than for single tests.
         (circuit %foo.12 ([%x.13 (tbytes 32)])
              (tfield (field-native))
           (seq
-            (public-ledger %kernel.9 () claimZswapNullifier %x.13)
+            (public-ledger %kernel.10 () claimZswapNullifier %x.13)
             (safe-cast (tfield (field-native))
                        (tunsigned 18446744073709551615)
-              (public-ledger %field1.10 (0) read))))))
+              (public-ledger %field1.11 (0) read))))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -73646,7 +73689,7 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "__compactRuntime.checkRuntimeVersion('0.17.104');"
+        "__compactRuntime.checkRuntimeVersion('0.17.105');"
         ""
         "const _descriptor_0 = __compactRuntime.CompactTypeField;"
         ""
@@ -74160,8 +74203,8 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;gEAAR,GAAQ;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,AAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,WAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,MAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,MAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,QAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;\""
-        "}"))
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;\""        "}"
+        ))
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
@@ -77652,6 +77695,7 @@ groups than for single tests.
         (type-descriptors
           (%descriptor.10 (tfield (field-native)))
           (%descriptor.11 (tunsigned 255))
+          (%descriptor.99999 (tunsigned 4294967295))
           (%descriptor.12 (tunsigned 18446744073709551615))
           (%descriptor.9 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -77697,6 +77741,7 @@ groups than for single tests.
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tunsigned 255))
+          (%descriptor.99999 (tunsigned 4294967295))
           (%descriptor.2 (tunsigned 18446744073709551615))
           (%descriptor.3 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -77742,6 +77787,7 @@ groups than for single tests.
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tunsigned 255))
+          (%descriptor.99999 (tunsigned 4294967295))
           (%descriptor.2 (tunsigned 18446744073709551615))
           (%descriptor.3 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -77862,6 +77908,7 @@ groups than for single tests.
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tvector 2 (tfield (field-native))))
           (%descriptor.2 (tunsigned 255))
+          (%descriptor.99999 (tunsigned 4294967295))
           (%descriptor.3 (tunsigned 18446744073709551615))
           (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -77906,6 +77953,7 @@ groups than for single tests.
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tvector 2 (tfield (field-native))))
           (%descriptor.2 (tunsigned 255))
+          (%descriptor.99999 (tunsigned 4294967295))
           (%descriptor.3 (tunsigned 18446744073709551615))
           (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
@@ -78810,7 +78858,8 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.8 (tunsigned 255)))
+          (%descriptor.8 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.9 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %bar.10 ([%x.11 (tboolean)]
@@ -83595,7 +83644,8 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255)))
+           (%descriptor.6 (tunsigned 255))
+           (%descriptor.16 (tunsigned 4294967295)))
          (kernel-declaration (%kernel.7 () (Kernel)))
          (public-ledger-declaration
            ((%F.8
@@ -84034,7 +84084,7 @@ groups than for single tests.
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow('range error at testfile.compact line 3 char 7: Field or Uint value 67305985 does not fit into 3 bytes');"
+        "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow('range error at testfile.compact line 3 char 7: field or Uint value 67305985 does not fit into 3 bytes');"
         "});"
         ))
     )
@@ -84054,7 +84104,7 @@ groups than for single tests.
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow('range error at testfile.compact line 3 char 7: Field or Uint value 67305985 does not fit into 3 bytes');"
+        "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow('range error at testfile.compact line 3 char 7: field or Uint value 67305985 does not fit into 3 bytes');"
         "});"
         ))
     )
@@ -84093,7 +84143,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         ,(format "  expect((await C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn);" #x09080706)
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of target Uint type');"
+        "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of Uint<0..4294967296> type');"
         "});"
         ))
     )
@@ -86887,32 +86937,32 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        "test('JubjubScalar casts', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
-        "  expect(C.circuits.testFtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        "  expect(C.circuits.testFtoJ(Ctxt, 1000n).result).toEqual([1000n, 1000n, 1000n]);"
+        "test('JubjubScalar casts', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.testFtoJ(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
+        "  expect((await C.circuits.testFtoJ(Ctxt, 1000n)).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
         ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
                                              (mod (max-field) (1+ (max-jubjub-scalar)))
                                              (max-field)))
-        "  expect(C.circuits.testFtoJ(Ctxt, MAX_FIELD).result).toEqual([EXPECT, EXPECT, EXPECT]);"
+        "  expect((await C.circuits.testFtoJ(Ctxt, MAX_FIELD)).result).toEqual([EXPECT, EXPECT, EXPECT]);"
         ""
-        "  expect(C.circuits.testJtoF(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        "  expect(C.circuits.testJtoF(Ctxt, 1001n).result).toEqual([1001n, 1001n, 1001n]);"
+        "  expect((await C.circuits.testJtoF(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
+        "  expect((await C.circuits.testJtoF(Ctxt, 1001n)).result).toEqual([1001n, 1001n, 1001n]);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
         "  expect(runtime.MAX_JUBJUB_SCALAR).toEqual(MAX_JUBJUB_SCALAR);"
-        "  expect(C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR).result).toEqual("
+        "  expect((await C.circuits.testJtoF(Ctxt, MAX_JUBJUB_SCALAR)).result).toEqual("
         "    [MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR]);"
         ""
-        "  expect(C.circuits.testUtoJ(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        "  expect(C.circuits.testUtoJ(Ctxt, 1002n).result).toEqual([1002n, 1002n, 1002n]);"
+        "  expect((await C.circuits.testUtoJ(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
+        "  expect((await C.circuits.testUtoJ(Ctxt, 1002n)).result).toEqual([1002n, 1002n, 1002n]);"
         ,(format "  const MAX_UNSIGNED = ~dn;" (max-unsigned))
-        "  expect(C.circuits.testUtoJ(Ctxt, MAX_UNSIGNED).result).toEqual("
+        "  expect((await C.circuits.testUtoJ(Ctxt, MAX_UNSIGNED)).result).toEqual("
         "    [MAX_UNSIGNED, MAX_UNSIGNED, MAX_UNSIGNED]);"
         ""
-        "  expect(C.circuits.testJtoU(Ctxt, 0n).result).toEqual([0n, 0n, 0n]);"
-        "  expect(C.circuits.testJtoU(Ctxt, 1003n).result).toEqual([1003n, 1003n, 1003n]);"
-        "  expect(() => C.circuits.testJtoU(Ctxt, MAX_JUBJUB_SCALAR)).toThrow(runtime.CompactError);"
+        "  expect((await C.circuits.testJtoU(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
+        "  expect((await C.circuits.testJtoU(Ctxt, 1003n)).result).toEqual([1003n, 1003n, 1003n]);"
+        "  await expect(C.circuits.testJtoU(Ctxt, MAX_JUBJUB_SCALAR)).rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
@@ -86954,27 +87004,27 @@ groups than for single tests.
       "export circuit notEquals(x: JubjubScalar, y: JubjubScalar): Boolean { return x != y; }"
       )
     (stage-javascript
-      `("test('JubjubScalar equality', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+      `("test('JubjubScalar equality', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
-        "  expect(C.circuits.equals(Ctxt, 0n, 0n).result).toEqual(true);"
-        "  expect(C.circuits.equals(Ctxt, 0n, 1000n).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, 0n, MAX_JUBJUB_SCALAR).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, 1000n, 0n).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, 1000n, 1000n).result).toEqual(true);"
-        "  expect(C.circuits.equals(Ctxt, 1000n, MAX_JUBJUB_SCALAR).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 0n).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 1000n).result).toEqual(false);"
-        "  expect(C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, 0n, 0n).result).toEqual(false);"
-        "  expect(C.circuits.notEquals(Ctxt, 0n, 1000n).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, 0n, MAX_JUBJUB_SCALAR).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, 1000n, 0n).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, 1000n, 1000n).result).toEqual(false);"
-        "  expect(C.circuits.notEquals(Ctxt, 1000n, MAX_JUBJUB_SCALAR).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 0n).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 1000n).result).toEqual(true);"
-        "  expect(C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, 0n, 0n)).result).toEqual(true);"
+        "  expect((await C.circuits.equals(Ctxt, 0n, 1000n)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, 0n, MAX_JUBJUB_SCALAR)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, 1000n, 0n)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, 1000n, 1000n)).result).toEqual(true);"
+        "  expect((await C.circuits.equals(Ctxt, 1000n, MAX_JUBJUB_SCALAR)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 0n)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, 1000n)).result).toEqual(false);"
+        "  expect((await C.circuits.equals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, 0n, 0n)).result).toEqual(false);"
+        "  expect((await C.circuits.notEquals(Ctxt, 0n, 1000n)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, 0n, MAX_JUBJUB_SCALAR)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, 1000n, 0n)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, 1000n, 1000n)).result).toEqual(false);"
+        "  expect((await C.circuits.notEquals(Ctxt, 1000n, MAX_JUBJUB_SCALAR)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 0n)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, 1000n)).result).toEqual(true);"
+        "  expect((await C.circuits.notEquals(Ctxt, MAX_JUBJUB_SCALAR, MAX_JUBJUB_SCALAR)).result).toEqual(false);"
         "});"
         ))
     )
@@ -87054,13 +87104,13 @@ groups than for single tests.
          "constructor(c2:C2) {contract_c = disclose(c2);}"
          "export circuit foo(): [] { return contract_c.foo2(); }"
          ; TODO(201) cross-contract calls to pure circuits are not presently supported
-         "export circuit bar(): Field { return 0 /* contract_c.bar2() */; }"
+         "export circuit bar(): Field { return 0 as Field /* contract_c.bar2() */; }"
          ))
      (stage-javascript C1 '()))
     ((create-file "C2.compact"
        '(
          "export circuit foo2(): [] { return; }"
-         "export pure circuit bar2(): Field { return 2;}"
+         "export pure circuit bar2(): Field { return 2 as Field;}"
          ))
      (stage-javascript C2 '()))
     ((create-file "testfile.compact"
@@ -87135,7 +87185,7 @@ groups than for single tests.
     ((create-file "C1.compact"
        '(
          "export circuit foo(): [] { return; }"
-         "export circuit bar(): Field { return 3; }"
+         "export circuit bar(): Field { return 3 as Field; }"
          ))
      (stage-javascript C1 '()))
     ((create-file "C2.compact"
@@ -87159,7 +87209,7 @@ groups than for single tests.
     ((create-file "C1.compact"
        '(
          "export circuit foo(x: Uint<16>): Uint<8> { return x as Uint<8>; }"
-         "export circuit bar(): Field { return 3; }"
+         "export circuit bar(): Field { return 3 as Field; }"
          ))
      (stage-javascript C1 '()))
     ((create-file "C2.compact"
@@ -87187,7 +87237,7 @@ groups than for single tests.
     ((create-file "C1.compact"
        '(
          "circuit foo(x: Field): Boolean {"
-         "  return x == 3;"
+         "  return x == 3 as Field;"
          "}"))
      (stage-javascript C1 '()))
     ; TODO(201) this needs to be expanded to actually make a call to foo
@@ -87236,8 +87286,8 @@ groups than for single tests.
       "export circuit serialize_boolean(x: Boolean): Bytes<1> {"
       "  return serialize<Boolean, 1>(x);"
       "}"
-      "export circuit serialize_field(x: Field): Bytes<31> {"
-      "  return serialize<Field, 31>(x);"
+      "export circuit serialize_field(x: Field): Bytes<32> {"
+      "  return serialize<Field, 32>(x);"
       "}"
       "export circuit serialize_uint8(x: Uint<8>): Bytes<1> {"
       "  return serialize<Uint<8>, 1>(x);"
@@ -87251,8 +87301,8 @@ groups than for single tests.
       "export circuit serialize_bytes(x: Bytes<10>): Bytes<10> {"
       "  return serialize<Bytes<10>, 10>(x);"
       "}"
-      "export circuit serialize_tuple(x: [Boolean, Field]): Bytes<32> {"
-      "  return serialize<[Boolean, Field], 32>(x);"
+      "export circuit serialize_tuple(x: [Boolean, Field]): Bytes<33> {"
+      "  return serialize<[Boolean, Field], 33>(x);"
       "}"
       "export circuit serialize_uints(x: [Uint<8>, Uint<16>, Uint<32>]): Bytes<7> {"
       "  return serialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
@@ -87272,8 +87322,8 @@ groups than for single tests.
       "export circuit deserialize_boolean(x: Bytes<1>): Boolean {"
       "  return deserialize<Boolean, 1>(x);"
       "}"
-      "export circuit deserialize_field(x: Bytes<31>): Field {"
-      "  return deserialize<Field, 31>(x);"
+      "export circuit deserialize_field(x: Bytes<32>): Field {"
+      "  return deserialize<Field, 32>(x);"
       "}"
       "export circuit deserialize_uint8(x: Bytes<1>): Uint<8> {"
       "  return deserialize<Uint<8>, 1>(x);"
@@ -87287,8 +87337,8 @@ groups than for single tests.
       "export circuit deserialize_bytes(x: Bytes<10>): Bytes<10> {"
       "  return deserialize<Bytes<10>, 10>(x);"
       "}"
-      "export circuit deserialize_tuple(x: Bytes<32>): [Boolean, Field] {"
-      "  return deserialize<[Boolean, Field], 32>(x);"
+      "export circuit deserialize_tuple(x: Bytes<33>): [Boolean, Field] {"
+      "  return deserialize<[Boolean, Field], 33>(x);"
       "}"
       "export circuit deserialize_uints(x: Bytes<7>): [Uint<8>, Uint<16>, Uint<32>] {"
       "  return deserialize<[Uint<8>, Uint<16>, Uint<32>], 7>(x);"
@@ -87333,29 +87383,29 @@ groups than for single tests.
         (circuit %note.301 ((argument
                               (%tag.0 %tag.1)
                               (ty ((abytes 32))
-                                  ((tfield 255)
-                                    (tfield
+                                  ((tunsigned 255)
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655))))
                             (argument
                               (%data.2 %data.3 %data.4 %data.5 %data.6 %data.7
                                 %data.8 %data.9 %data.10)
                               (ty ((abytes 256))
-                                  ((tfield 18446744073709551615)
-                                    (tfield
+                                  ((tunsigned 18446744073709551615)
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                    (tfield
+                                    (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
           (= 1 (%t.237) (bytes->vector %tag.0))
@@ -87481,8 +87531,8 @@ groups than for single tests.
         (public-ledger-declaration ())
         (witness %bar.1 ()
              (ty ((abytes 32))
-                 ((tfield 255)
-                   (tfield
+                 ((tunsigned 255)
+                   (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
         (circuit %foo.2 ()
              (ty () ())
@@ -87538,7 +87588,7 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.js"
       `(
         "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
-        "__compactRuntime.checkRuntimeVersion('0.17.104');"
+        "__compactRuntime.checkRuntimeVersion('0.17.105');"
         ""
         "const _descriptor_0 = new __compactRuntime.CompactTypeBytes(32);"
         ""
@@ -88829,22 +88879,22 @@ groups than for single tests.
           (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
           (output %t.3))))
     (stage-javascript
-      `("test('Secp256k1Base round tripping through the ledger', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
-        "  var r = contract.circuits.test(context, 0n);"
+      `("test('Secp256k1Base round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(0n);"
-        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1000n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1000n);"
         ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
         "  expect(runtime.MAX_SECP256K1_BASE).toEqual(MAX_SECP256K1_BASE);"
-        "  r = contract.circuits.test(context, MAX_SECP256K1_BASE);"
+        "  r = await contract.circuits.test(context, MAX_SECP256K1_BASE);"
         "  expect(r.result).toEqual(MAX_SECP256K1_BASE);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base)"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base)"
         "      .toEqual(MAX_SECP256K1_BASE);"
-        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE + 1n))"
-        "      .toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_BASE + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
@@ -88870,22 +88920,22 @@ groups than for single tests.
           (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Base passing through witnesses', () => {"
+      `("test('Secp256k1Base passing through witnesses', async () => {"
         "  const witnesses = {"
         "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
         "      return [wc.privateState, s + 1n];"
         "    },"
         "  };"
-        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
-        "  var r = contract.circuits.test(context, 0n);"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1n);"
-        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1001n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1001n);"
         ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
-        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_BASE))"
-        "      .toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_BASE))"
+        "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
@@ -88909,22 +88959,22 @@ groups than for single tests.
           (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
           (output %t.3))))
     (stage-javascript
-      `("test('Secp256k1Scalar round tripping through the ledger', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
-        "  var r = contract.circuits.test(context, 0n);"
+      `("test('Secp256k1Scalar round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(0n);"
-        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1000n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1000n);"
         ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
         "  expect(runtime.MAX_SECP256K1_SCALAR).toEqual(MAX_SECP256K1_SCALAR);"
-        "  r = contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
+        "  r = await contract.circuits.test(context, MAX_SECP256K1_SCALAR);"
         "  expect(r.result).toEqual(MAX_SECP256K1_SCALAR);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar)"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar)"
         "      .toEqual(MAX_SECP256K1_SCALAR);"
-        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR + 1n))"
-        "      .toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_SCALAR + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
@@ -88950,22 +89000,22 @@ groups than for single tests.
           (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Scalar passing through witnesses', () => {"
+      `("test('Secp256k1Scalar passing through witnesses', async () => {"
         "  const witnesses = {"
         "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
         "      return [wc.privateState, s + 1n];"
         "    },"
         "  };"
-        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
-        "  var r = contract.circuits.test(context, 0n);"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1n);"
-        "  r = contract.circuits.test(context, 1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1001n);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1001n);"
         ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
-        "  expect(() => contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
-        "      .toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
+        "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
@@ -88994,26 +89044,26 @@ groups than for single tests.
             %fld.10 %fld.11)
           (output %t.6))))
     (stage-javascript
-      `("test('Secp256k1Point round tripping through the ledger', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
+      `("test('Secp256k1Point round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
         "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
         "      identity: false,"
         "  };"
-        "  var r = contract.circuits.test0(context, pt);"
+        "  var r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
         "  // The point G."
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
         "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
         "      identity: false,"
         "  };"
-        "  r = contract.circuits.test0(context, pt);"
+        "  r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
         "});"
         ))
     )
@@ -89058,7 +89108,7 @@ groups than for single tests.
             %fld.21 %fld.22 %fld.23)
           (output %t.18))))
     (stage-javascript
-      `("test('Secp256k1Point coming from witnesses', () => {"
+      `("test('Secp256k1Point coming from witnesses', async () => {"
         "  const witnesses = {"
         "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
         "      return ["
@@ -89081,25 +89131,25 @@ groups than for single tests.
         "      ];"
         "    },"
         "  };"
-        "  const [contract, context] = startContract(contractCode, witnesses, 0);"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
         "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
         "      identity: false,"
         "  };"
-        "  var r = contract.circuits.test0(context);"
+        "  var r = await contract.circuits.test0(context);"
         "  expect(r.result).toEqual(pt);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
         "  // The point G."
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
         "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
         "      identity: false,"
         "  };"
-        "  r = contract.circuits.test1(context);"
+        "  r = await contract.circuits.test1(context);"
         "  expect(r.result).toEqual(pt);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).point).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
         "});"
         ))
     )
@@ -89157,8 +89207,8 @@ groups than for single tests.
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1 17 1 2 24 8 %fld.10 %fld.11 145))))
     (stage-javascript
-      `("test('Bytes to secp256k1 field casts', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
+      `("test('Bytes to secp256k1 field casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -89174,9 +89224,9 @@ groups than for single tests.
         "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
         "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
         "  ]);"
-        "  var r = contract.circuits.test(context, baseBytes, scalarBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  var r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
         "  base = 0n;"
         "  scalar = runtime.MAX_SECP256K1_SCALAR;"
         "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
@@ -89186,9 +89236,9 @@ groups than for single tests.
         "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "  ]);"
-        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
         "  base = runtime.MAX_SECP256K1_BASE;"
         "  scalar = 0n;"
         "  baseBytes = new Uint8Array(["
@@ -89198,9 +89248,9 @@ groups than for single tests.
         "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "  ]);"
         "  scalarBytes = new Uint8Array(32);"
-        "  r = contract.circuits.test(context, baseBytes, scalarBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(base);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
         "});"
         ))
     )
@@ -89260,8 +89310,8 @@ groups than for single tests.
           (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
           (impact 1 16 1 1 1 1 17 1 1 32 %tmp.8 %tmp.9 145))))
     (stage-javascript
-      `("test('Bytes to secp256k1 field casts', () => {"
-        "  const [contract, context] = startContract(contractCode, {}, 0);"
+      `("test('Bytes to secp256k1 field casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -89277,9 +89327,9 @@ groups than for single tests.
         "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
         "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
         "  ]);"
-        "  var r = contract.circuits.test(context, base, scalar);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  var r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
         "  base = 0n;"
         "  scalar = runtime.MAX_SECP256K1_SCALAR;"
         "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
@@ -89289,9 +89339,9 @@ groups than for single tests.
         "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "  ]);"
-        "  r = contract.circuits.test(context, base, scalar);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
         "  base = runtime.MAX_SECP256K1_BASE;"
         "  scalar = 0n;"
         "  baseBytes = new Uint8Array(["
@@ -89301,9 +89351,9 @@ groups than for single tests.
         "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
         "  ]);"
         "  scalarBytes = new Uint8Array(32);"
-        "  r = contract.circuits.test(context, base, scalar);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).base).toEqual(baseBytes);"
-        "  expect(contractCode.ledger(r.context.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
         "});"
         ))
     )
@@ -89369,8 +89419,8 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "test('check 1', () => {"
-        "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const msg = new Uint8Array(32).fill(0xab);"
         "  const sig = {r: 17n, s: 31n};"
         "  const pk = {"
@@ -89378,7 +89428,7 @@ groups than for single tests.
         "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
         "    identity: false,"
         "  };"
-        "  expect(C.circuits.foo(Ctxt, msg, sig, pk).result).toEqual(false);"
+        "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
         "});"
         ))
     )
