@@ -884,7 +884,6 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
-#|
 (parameterize ([feature-zkir-v3 #t])
 (run-tests save-manifest
   (test
@@ -952,7 +951,11 @@ groups than for single tests.
         "  const [C, Ctxt] = startContract(contractCode, {}, 0);"
         "  const msg = new Uint8Array(32).fill(0xab);"
         "  const sig = {r: 17n, s: 31n};"
-        "  const pk = new Uint8Array(32).fill(0xc7);"
+        "  const pk = {"
+        "    x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "    identity: false,"
+        "  };"
         "  expect(C.circuits.foo(Ctxt, msg, sig, pk).result).toEqual(false);"
         "});"
         ))
@@ -961,8 +964,6 @@ groups than for single tests.
 
 (run-javascript)
 )
-#!eof
-|#
 
 (run-tests parse-file/format/reparse
   (test
@@ -60350,7 +60351,6 @@ groups than for single tests.
         "}"))
     )
 
-  #| TODO(dyb) reenable with zkir v2 check is reinstated
   (test
     '(
       "ledger wantProof: Boolean;"
@@ -60425,7 +60425,6 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
     )
-  |#
 
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
