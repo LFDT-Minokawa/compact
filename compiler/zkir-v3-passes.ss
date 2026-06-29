@@ -387,13 +387,16 @@
                               (zkir-instr*)))
                           (cons* pt1 pt0 -2 -2 2 1 code*))]
                        [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                        (let* ([alignment* (make-list 8 8)]
+                        ;; A Secp256k1Point is two Base coordinates (each a 24-byte low limb and
+                        ;; an 8-byte high limb) followed by a native identity flag field.  The
+                        ;; alignment is stored reversed; the operand stream is reversed on emit.
+                        (let* ([alignment* (list 24 8 24 8 -2)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(8 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(5 1) code*))]
                        [(tfield (field-scalar (curve-jubjub)))
                         (let ([fld (make-temp-id default-src 'fld)])
                           (zkir-instr*
@@ -401,21 +404,27 @@
                               (zkir-instr*)))
                           (cons* fld -2 1 1 code*))]
                        [(tfield (field-base (curve-secp256k1)))
-                        (let* ([alignment* (make-list 4 8)]
+                        ;; A Secp256k1Base is two native fields: a 24-byte low limb (192 bits)
+                        ;; and an 8-byte high limb (64 bits).  The alignment is stored reversed;
+                        ;; the operand stream is reversed on emit.
+                        (let* ([alignment* (list 24 8)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(4 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
                        [(tfield (field-scalar (curve-secp256k1)))
-                        (let* ([alignment* (make-list 4 8)]
+                        ;; A Secp256k1Scalar is two native fields: a 24-byte low limb (192 bits)
+                        ;; and an 8-byte high limb (64 bits).  The alignment is stored reversed;
+                        ;; the operand stream is reversed on emit.
+                        (let* ([alignment* (list 24 8)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(4 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
                        [else (assemble-operand-acc (cons 1 code*) val)]))
                    (assemble-operand-acc (cons 1 code*) val))]
               [(VMstate-value-ADT val type)
@@ -522,7 +531,9 @@
                                   (zkir-instr*)))
                               (values (list -2 -2) (list pt0 pt1)))]
                            [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                            (let* ([alignment* (make-list 8 8)]
+                            ;; Two Base coordinates (24-byte + 8-byte limbs each) plus a native
+                            ;; identity flag field.
+                            (let* ([alignment* (list 24 8 24 8 -2)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*
@@ -540,7 +551,8 @@
                                   (zkir-instr*)))
                               (values (list -2) (list fld)))]
                            [(tfield (field-base (curve-secp256k1)))
-                            (let* ([alignment* (make-list 4 8)]
+                            ;; Two native fields: a 24-byte low limb and an 8-byte high limb.
+                            (let* ([alignment* (list 24 8)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*
@@ -550,7 +562,8 @@
                                   (zkir-instr*)))
                               (values alignment* fld*))]
                            [(tfield (field-scalar (curve-secp256k1)))
-                            (let* ([alignment* (make-list 4 8)]
+                            ;; Two native fields: a 24-byte low limb and an 8-byte high limb.
+                            (let* ([alignment* (list 24 8)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*

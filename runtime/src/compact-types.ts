@@ -139,7 +139,8 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
   // One native field containing the identity flag
   alignment(): ocrt.Alignment {
     return CompactTypeSecp256k1Base.alignment()
-      .concat(CompactTypeSecp256k1Base.alignment());
+      .concat(CompactTypeSecp256k1Base.alignment())
+      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
   },
   fromValue(value: ocrt.Value): Secp256k1Point {
     if (value.length != 5 || value[4] == undefined) {
@@ -149,7 +150,7 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     return {
       x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
       y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: CompactTypeSecp256k1Base.fromValue(value.slice(5)) === 1n,
+      identity: ocrt.valueToBigInt(value.slice(4, 5)) === 1n,
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
@@ -301,12 +302,12 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     }
     const low192 = ocrt.valueToBigInt([value[0]]);
     const high64 = ocrt.valueToBigInt([value[1]]);
-    if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
+    if (low192 >= 6277101735386680763835789423207666416102355444464034512896n) {
       throw new CompactError('expected Secp256k1Base');
     }
-    let res = high64 << 192n | low192;
+    let res = (high64 << 192n) | low192;
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
+    res = res == MAX_SECP256K1_BASE ? 0n : res + 1n;
     if (res > MAX_SECP256K1_BASE) {
       throw new CompactError('expected Secp256k1Base');
     }
@@ -318,10 +319,9 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
       throw new CompactError('expected Secp256k1Base');
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
+    value = value == 0n ? MAX_SECP256K1_BASE : value - 1n;
     const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 192n) -1n))
-      .concat(ocrt.bigIntToValue(value >> 192n));
+    return ocrt.bigIntToValue(value & mask).concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
 
@@ -347,9 +347,9 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     if (low192 > (1n << 192n) - 1n) {
       throw new CompactError('expected Secp256k1Scalar');
     }
-    let res = high64 << 192n | low192;
+    let res = (high64 << 192n) | low192;
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
+    res = res == MAX_SECP256K1_SCALAR ? 0n : res + 1n;
     if (res > MAX_SECP256K1_SCALAR) {
       throw new CompactError('expected Secp256k1Scalar');
     }
@@ -361,10 +361,9 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
       throw new CompactError('expected Secp256k1Scalar');
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
+    value = value == 0n ? MAX_SECP256K1_SCALAR : value - 1n;
     const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & mask)
-      .concat(ocrt.bigIntToValue(value >> 192n));
+    return ocrt.bigIntToValue(value & mask).concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
 
