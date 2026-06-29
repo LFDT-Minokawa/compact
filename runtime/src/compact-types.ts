@@ -139,7 +139,8 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
   // One native field containing the identity flag
   alignment(): ocrt.Alignment {
     return CompactTypeSecp256k1Base.alignment()
-      .concat(CompactTypeSecp256k1Base.alignment());
+      .concat(CompactTypeSecp256k1Base.alignment())
+      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
   },
   fromValue(value: ocrt.Value): Secp256k1Point {
     if (value.length != 5 || value[4] == undefined) {
@@ -149,7 +150,7 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     return {
       x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
       y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: CompactTypeSecp256k1Base.fromValue(value.slice(5)) === 1n,
+      identity: ocrt.valueToBigInt(value.slice(4)) === 1n,
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {

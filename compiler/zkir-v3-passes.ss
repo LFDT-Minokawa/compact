@@ -387,13 +387,15 @@
                               (zkir-instr*)))
                           (cons* pt1 pt0 -2 -2 2 1 code*))]
                        [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                        (let* ([alignment* (make-list 8 8)]
+                        (let* (;; This is the alignment of Secp256k1Point, see
+                               ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
+                               [alignment* '(24 8 24 8 -2)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(8 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(5 1) code*))]
                        [(tfield (field-scalar (curve-jubjub)))
                         (let ([fld (make-temp-id default-src 'fld)])
                           (zkir-instr*
@@ -401,21 +403,23 @@
                               (zkir-instr*)))
                           (cons* fld -2 1 1 code*))]
                        [(tfield (field-base (curve-secp256k1)))
-                        (let* ([alignment* (make-list 4 8)]
+                        (let* (;; This is the alignment of Secp256k1Base, see
+                               ;; CompactTypeSecp256k1Base in runtime/src/compact-types.ts.
+                               [alignment* '(24 8)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(4 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
                        [(tfield (field-scalar (curve-secp256k1)))
-                        (let* ([alignment* (make-list 4 8)]
+                        (let* ([alignment* '(24 8)]
                                [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                        alignment*)])
                           (zkir-instr*
                             (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
                               (zkir-instr*)))
-                          (append (reverse fld*) alignment* '(4 1) code*))]
+                          (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
                        [else (assemble-operand-acc (cons 1 code*) val)]))
                    (assemble-operand-acc (cons 1 code*) val))]
               [(VMstate-value-ADT val type)
@@ -522,7 +526,9 @@
                                   (zkir-instr*)))
                               (values (list -2 -2) (list pt0 pt1)))]
                            [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                            (let* ([alignment* (make-list 8 8)]
+                            (let* (;; This is the alignment of Secp256k1Point, see
+                                   ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
+                                   [alignment* '(24 8 24 8 -2)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*
@@ -540,7 +546,9 @@
                                   (zkir-instr*)))
                               (values (list -2) (list fld)))]
                            [(tfield (field-base (curve-secp256k1)))
-                            (let* ([alignment* (make-list 4 8)]
+                            (let* (;; This is the alignment of Secp256k1Base, see
+                                   ;; CompactTypeSecp256k1Base in runtime/src/compact-types.ts.
+                                   [alignment* '(24 8)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*
@@ -550,7 +558,7 @@
                                   (zkir-instr*)))
                               (values alignment* fld*))]
                            [(tfield (field-scalar (curve-secp256k1)))
-                            (let* ([alignment* (make-list 4 8)]
+                            (let* ([alignment* '(24 8)]
                                    [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
                                            alignment*)])
                               (zkir-instr*

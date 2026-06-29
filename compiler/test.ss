@@ -85171,16 +85171,14 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+        (circuit (test) ((%b.0 "Base<Secp256k1>"))
              ("Base<Secp256k1>")
-          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
-            %fld.4 145)
-          (public_input "Base<Secp256k1>" %t.5)
-          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
-          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
-            %fld.9)
-          (output %t.5))))
+          (encode (%fld.1 %fld.2) %b.0)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.1 %fld.2 145)
+          (public_input "Base<Secp256k1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Base round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85213,17 +85211,15 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%s.0 "Base<Secp256k1>"))
+        (circuit (test) ((%b.0 "Base<Secp256k1>"))
              ("Base<Secp256k1>")
           (private_input "Base<Secp256k1>" %tmp.1)
-          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
-            %fld.5 145)
-          (public_input "Base<Secp256k1>" %t.6)
-          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
-          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
-            %fld.10)
-          (output %t.6))))
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.2 %fld.3 145)
+          (public_input "Base<Secp256k1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
     (stage-javascript
       `("test('Secp256k1Base passing through witnesses', () => {"
         "  const witnesses = {"
@@ -85257,14 +85253,12 @@ groups than for single tests.
       (program
         (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
              ("Scalar<Secp256k1>")
-          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %s.0)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.1 %fld.2 %fld.3
-            %fld.4 145)
-          (public_input "Scalar<Secp256k1>" %t.5)
-          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
-          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.6 %fld.7 %fld.8
-            %fld.9)
-          (output %t.5))))
+          (encode (%fld.1 %fld.2) %s.0)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.1 %fld.2 145)
+          (public_input "Scalar<Secp256k1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Scalar round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85300,14 +85294,12 @@ groups than for single tests.
         (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
              ("Scalar<Secp256k1>")
           (private_input "Scalar<Secp256k1>" %tmp.1)
-          (encode (%fld.2 %fld.3 %fld.4 %fld.5) %tmp.1)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.2 %fld.3 %fld.4
-            %fld.5 145)
-          (public_input "Scalar<Secp256k1>" %t.6)
-          (encode (%fld.7 %fld.8 %fld.9 %fld.10) %t.6)
-          (impact 1 48 80 1 1 0 12 4 8 8 8 8 %fld.7 %fld.8 %fld.9
-            %fld.10)
-          (output %t.6))))
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.2 %fld.3 145)
+          (public_input "Scalar<Secp256k1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
     (stage-javascript
       `("test('Secp256k1Scalar passing through witnesses', () => {"
         "  const witnesses = {"
@@ -85344,19 +85336,14 @@ groups than for single tests.
       (program
         (circuit (test0) ((%pt.0 "Point<Secp256k1>"))
              ("Point<Secp256k1>")
-          (encode
-            (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8)
-            %pt.0)
-          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.1 %fld.2
-           %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8 145)
-          (public_input "Point<Secp256k1>" %t.9)
-          (encode
-            (%fld.10 %fld.11 %fld.12 %fld.13 %fld.14 %fld.15 %fld.16
-              %fld.17)
-            %t.9)
-          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.10 %fld.11
-           %fld.12 %fld.13 %fld.14 %fld.15 %fld.16 %fld.17)
-          (output %t.9))))
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %pt.0)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 145)
+          (public_input "Point<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9
+            %fld.10 %fld.11)
+          (output %t.6))))
     (stage-javascript
       `("test('Secp256k1Point round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85364,6 +85351,7 @@ groups than for single tests.
         "  var pt = {"
         "      x: 1n,"
         "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "      identity: false,"
         "  };"
         "  var r = contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
@@ -85372,6 +85360,7 @@ groups than for single tests.
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
         "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "      identity: false,"
         "  };"
         "  r = contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
@@ -85400,36 +85389,25 @@ groups than for single tests.
         (circuit (test0) ()
              ("Point<Secp256k1>")
           (private_input "Point<Secp256k1>" %tmp.0)
-          (encode
-            (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8)
-            %tmp.0)
-          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.1 %fld.2
-           %fld.3 %fld.4 %fld.5 %fld.6 %fld.7 %fld.8 145)
-          (public_input "Point<Secp256k1>" %t.9)
-          (encode
-            (%fld.10 %fld.11 %fld.12 %fld.13 %fld.14 %fld.15 %fld.16
-              %fld.17)
-            %t.9)
-          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.10 %fld.11
-           %fld.12 %fld.13 %fld.14 %fld.15 %fld.16 %fld.17)
-          (output %t.9))
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %tmp.0)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 145)
+          (public_input "Point<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9
+            %fld.10 %fld.11)
+          (output %t.6))
         (circuit (test1) ()
              ("Point<Secp256k1>")
-          (private_input "Point<Secp256k1>" %tmp.18)
-          (encode
-            (%fld.19 %fld.20 %fld.21 %fld.22 %fld.23 %fld.24 %fld.25
-              %fld.26)
-            %tmp.18)
-          (impact 1 16 1 1 1 0 17 1 8 8 8 8 8 8 8 8 8 %fld.19 %fld.20
-           %fld.21 %fld.22 %fld.23 %fld.24 %fld.25 %fld.26 145)
-          (public_input "Point<Secp256k1>" %t.27)
-          (encode
-            (%fld.28 %fld.29 %fld.30 %fld.31 %fld.32 %fld.33 %fld.34
-              %fld.35)
-            %t.27)
-          (impact 1 48 80 1 1 0 12 8 8 8 8 8 8 8 8 8 %fld.28 %fld.29
-           %fld.30 %fld.31 %fld.32 %fld.33 %fld.34 %fld.35)
-          (output %t.27))))
+          (private_input "Point<Secp256k1>" %tmp.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %tmp.12)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.13 %fld.14
+           %fld.15 %fld.16 %fld.17 145)
+          (public_input "Point<Secp256k1>" %t.18)
+          (encode (%fld.19 %fld.20 %fld.21 %fld.22 %fld.23) %t.18)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.19 %fld.20
+            %fld.21 %fld.22 %fld.23)
+          (output %t.18))))
     (stage-javascript
       `("test('Secp256k1Point coming from witnesses', () => {"
         "  const witnesses = {"
@@ -85439,6 +85417,7 @@ groups than for single tests.
         "        {"
         "          x: 1n,"
         "          y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "          identity: false,"
         "        },"
         "      ];"
         "    },"
@@ -85448,6 +85427,7 @@ groups than for single tests.
         "        {"
         "          x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
         "          y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "          identity: false,"
         "        },"
         "      ];"
         "    },"
@@ -85457,6 +85437,7 @@ groups than for single tests.
         "  var pt = {"
         "      x: 1n,"
         "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "      identity: false,"
         "  };"
         "  var r = contract.circuits.test0(context);"
         "  expect(r.result).toEqual(pt);"
@@ -85465,6 +85446,7 @@ groups than for single tests.
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
         "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "      identity: false,"
         "  };"
         "  r = contract.circuits.test1(context);"
         "  expect(r.result).toEqual(pt);"
@@ -85519,14 +85501,12 @@ groups than for single tests.
           (constrain_bits %s.2 248)
           (bytes32_from_low_high %tmp.4 %b.0 %b.1)
           (from_bytes32 "Base<Secp256k1>" %tmp.5 %tmp.4)
-          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %tmp.5)
-          (impact 1 16 1 1 1 0 17 1 4 8 8 8 8 %fld.6 %fld.7 %fld.8
-            %fld.9 145)
-          (bytes32_from_low_high %tmp.10 %s.2 %s.3)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.11 %tmp.10)
-          (encode (%fld.12 %fld.13 %fld.14 %fld.15) %tmp.11)
-          (impact 1 16 1 1 1 1 17 1 4 8 8 8 8 %fld.12 %fld.13 %fld.14
-            %fld.15 145))))
+          (encode (%fld.6 %fld.7) %tmp.5)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.6 %fld.7 145)
+          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
+          (from_bytes32 "Scalar<Secp256k1>" %tmp.9 %tmp.8)
+          (encode (%fld.10 %fld.11) %tmp.9)
+          (impact 1 16 1 1 1 1 17 1 2 24 8 %fld.10 %fld.11 145))))
     (stage-javascript
       `("test('Bytes to secp256k1 field casts', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
