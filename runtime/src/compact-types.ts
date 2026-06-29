@@ -149,13 +149,13 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     return {
       x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
       y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: CompactTypeSecp256k1Base.fromValue(value.slice(5)) === 1,
+      identity: CompactTypeSecp256k1Base.fromValue(value.slice(5)) === 1n,
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
     return CompactTypeSecp256k1Base.toValue(value.x)
       .concat(CompactTypeSecp256k1Base.toValue(value.y))
-      .concat(ocrt.bigIntToValue(value.identity ? 1 : 0));
+      .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
   },
 };
 

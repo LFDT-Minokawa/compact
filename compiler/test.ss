@@ -48340,15 +48340,16 @@ groups than for single tests.
           ((%F.4
              (0)
              (__compact_Cell
-               (ty ((abytes 1) (abytes 1)) ((tfield 255) (tfield 255)))))))
+               (ty ((abytes 1) (abytes 1))
+                   ((tunsigned 255) (tunsigned 255)))))))
         (circuit %foo.5 ((argument
-                          (%c.0)
-                          (ty ((abytes 4)) ((tfield 4294967295)))))
+                           (%x.0)
+                           (ty ((abytes 4)) ((tunsigned 4294967295)))))
              (ty () ())
-          (= 1 %t.1 (< 32 %c.0 256))
-          (= 1 %t.2 (downcast-unsigned #t 4294967295 255 %c.0))
+          (= 1 %t.1 (< 32 %x.0 256))
+          (= 1 %t.2 (downcast-unsigned #t 4294967295 255 %x.0))
           (= 1 %t.6 (select %t.1 %t.2 0))
-          (= 1 %t.7 (downcast-unsigned #f 4294967295 255 %c.0))
+          (= 1 %t.7 (downcast-unsigned #f 4294967295 255 %x.0))
           (= 1 () (public-ledger %F.4 (0) write %t.6 %t.7))
           ())))
     )

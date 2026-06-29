@@ -408,8 +408,8 @@ function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.P
  */
 function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fromAffine>): Secp256k1Point {
   const k = p.toAffine();
-  if (k == secp256k1.Point.ZERO) {
-    return { x: 0, y: 0, identity: true };
+  if (/* k == secp256k1.Point.ZERO */ k.x == 0n && k.y == 0n) {
+    return { x: 0n, y: 0n, identity: true };
   } else {
     const { x, y } = k;
     return { x: x, y: y, identity: false };
