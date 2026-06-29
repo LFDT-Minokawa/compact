@@ -28,14 +28,14 @@ import { checkProofData } from './key-provider.js';
 
 export type Witness<PS> = (context: WitnessContext<any, PS>, ...rest: any[]) => [PS, any];
 export type Witnesses<PS> = Record<string, Witness<PS>>;
-export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => CircuitResults<PS, any>;
+export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => Promise<CircuitResults<PS, any>>;
 export type Circuits<PS> = Record<string, Circuit<PS>>;
 
 export type Contract<PS, W extends Witnesses<PS>> = {
   witnesses: W;
   impureCircuits: Circuits<PS>;
   circuits: Circuits<PS>;
-  initialState(ctx: ConstructorContext<PS>, ...args: any[]): ConstructorResult<PS>;
+  initialState(ctx: ConstructorContext<PS>, ...args: any[]): Promise<ConstructorResult<PS>>;
 };
 
 export type InitialStateParams<
@@ -108,7 +108,7 @@ export const flushProofChecks = async (): Promise<void> => {
   if (rejected) throw rejected.reason;
 }
 
-export const startContract = <
+export const startContract = async <
   PS,
   W extends Witnesses<PS>,
   C extends Contract<PS, W>
@@ -117,15 +117,16 @@ export const startContract = <
   witnesses: W,
   privateState: PS,
   ...args: InitialStateParams<C>
-): readonly [C, CircuitContext<PS>] => {
+): Promise<readonly [C, CircuitContext<PS>]> => {
 
   const contract = new module.Contract(witnesses);
 
   const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
-  const constructorResult = contract.initialState(constructorContext, ...args);
+  const constructorResult = await contract.initialState(constructorContext, ...args);
 
   const circuitContext = createCircuitContext(
-    ocrt.dummyContractAddress(),
+    'constructor',
+    ocrt.sampleContractAddress(),
     constructorResult.currentZswapLocalState.coinPublicKey,
     constructorResult.currentContractState,
     constructorResult.currentPrivateState,
@@ -134,15 +135,14 @@ export const startContract = <
   const wrappedImpureCircuits = {} as C['impureCircuits'];
 
   for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
-    (wrappedImpureCircuits as any)[circuitId] = (context: any, ...cArgs: any[]): any => {
-      // Execute the original circuit synchronously.
-      const circuitResult = (circuit as any)(context, ...cArgs);
-
+    (wrappedImpureCircuits as any)[circuitId] = async (context: any, ...cArgs: any[]): Promise<any> => {
+      context.callContext.circuitId = circuitId;
+      const circuitResult = await (circuit as any)(context, ...cArgs);
       // For circuits subject to proving, schedule async proof validation and register it globally.
       const zkirFile = `${module.contractDir}/zkir/${circuitId}.zkir`;
       if (fs.existsSync(zkirFile)) {
         const validation = (async () => {
-          await checkProofData(module.contractDir, circuitId, circuitResult.proofData);
+          await checkProofData(module.contractDir, circuitId, circuitResult.context.callProofDataTrace.at(-1));
         })();
 
         registerProofCheck(validation);

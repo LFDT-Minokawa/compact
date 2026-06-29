@@ -5,11 +5,105 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.32.105, language 0.24.101, runtime 0.17.103]
+## [Toolchain 0.32.106, language 0.24.102, runtime 0.17.104]
 
 ### Changed
 
 - The generated zkir reverted back to having separate impact instructions.
+
+## [Toolchain 0.32.105, language 0.24.102, runtime 0.17.104]
+
+### Added
+
+- Multi-contract systems: contract types, contract references, and
+  cross-contract calls (see [CoIP-2](coips/coip-0002.md)). This is the first
+  stage of support for multiple contracts that work together as a system. The
+  new language constructs are:
+  - `contract` type declarations, naming a collection of circuit
+    signatures (parameter types, return type, and purity) that another
+    contract may depend on.
+  - The `contract implements C;` assertion. A contract implements a contract type
+    whenever it exports a matching circuit for each one the contract type declares
+    -- but when the assertion is present the compiler verifies it and rejects
+    the contract at compile time if any required circuit is missing or has a
+    non-matching signature.
+  - Contract references: a contract type is an ordinary
+    program-defined type and may be used as a circuit or witness parameter, a
+    struct field, or the element/value type of a ledger collection (e.g.
+    `List<C>`, `Map<Field, C>`). A reference is introduced
+    from application code by passing a deployed contract's address where a
+    value of the contract type is expected.
+  - Cross-contract calls: `reference.circuit(args...)` invokes a circuit
+    named in the reference's type.
+- Adds runtime support for cross-contract calls (CCC), the execution machinery
+  behind contract interfaces, contract references, and one contract's circuit
+  calling another's (see CoIP-2). Two new modules are added and re-exported from
+  the package index:
+  * `contract.ts`, exporting `crossContractCall` — invokes a circuit on
+    another contract from within the executing circuit, threading the callee's
+    ledger state, gas, and proof data back into the caller's context and
+    emitting the `Kernel.claimContractCall` transcript that links the two.
+  * `providers.ts`, exporting the `ContractStateProvider` interface — a
+    user-supplied `getContractState(blockHash, address)` used to fetch a
+    cross-contract callee's deployed public state at runtime. The
+    `parentBlockHash` recorded on the context is passed as the `blockHash`.
+- **Breaking:** `CircuitContext` is restructured to model a whole call tree
+  rather than a single contract execution.
+  * Per-call state moves into a new `callContext: CallContext<PS>` member
+    (`circuitId`, `contractAddress`, `initialQueryContext`,
+    `currentQueryContext`, `currentGasCost`, `currentPrivateState`,
+    `currentZswapLocalState`, `parentBlockHash`, `time`). Fields previously at
+    the top level — `currentPrivateState`, `currentZswapLocalState`, and
+    `currentQueryContext` — are now reached through `callContext`.
+  * New top-level members: `queryContexts` and `gasCosts` (per-contract-address
+    maps spanning the call tree), `contractStates` (retained deployed states of
+    resolved callees, so the verifier-key guard can run on every call),
+    `callProofDataTrace` (depth-first sequence of `CallProofData` for the root
+    circuit and every sub-call), `stateProvider`, `reentrancyGuard`, and
+    `activeContracts`.
+- **Breaking:** `createCircuitContext` gains a leading `circuitId` argument and
+  new trailing `stateProvider`, `parentBlockHash`, and `reentrancyGuard`
+  arguments. Its full signature is now `(circuitId, contractAddress,
+  coinPublicKeyOrZswapState, contractState, privateState, stateProvider?,
+  gasLimit?, costModel?, time?, parentBlockHash?, reentrancyGuard?)`. The
+  `stateProvider`, `parentBlockHash`, and `reentrancyGuard` arguments are only
+  needed by circuits that make cross-contract calls.
+- **Breaking:** `CircuitResults` no longer carries a `proofData` field. The
+  proof data for each circuit run (root and sub-calls) is now collected in
+  `callProofDataTrace` on the context.
+- Adds dynamic safety guards on every cross-contract call:
+  * Re-entrancy guard — entering a contract already executing on the call
+    stack (`A -> A`, or `A -> B -> A`) throws a `CompactError`. Enabled by
+    default; pass `reentrancyGuard: false` to `createCircuitContext` to opt
+    out (e.g. tests that deliberately exercise recursion).
+  * Implementation-binding guard — hashes the deployed verifier key for the
+    called circuit (SHA-256) and compares it to the `expectedVk` fingerprint
+    the compiler emits onto the contract module; a mismatch throws the new
+    `ContractInterfaceMismatchError`, rejecting a call whose target address
+    points at a different contract than the interface resolves to.
+  * Purity guard — a callee whose actual purity disagrees with the interface's
+    `pure` declaration is rejected.
+  * Witness guard — a cross-contract callee that invokes a witness throws a
+    `CompactError`; called contracts must have no private state.
+  * Calling the default (dummy) contract address throws a `CompactError`.
+- Error module (`error.ts`):
+  * `CompactError` now carries a readonly `isCompactError` brand so consumers
+    can reliably distinguish compiler-originated errors from other failures.
+  * Adds `ContractInterfaceMismatchError` (extends `CompactError`).
+  * Adds internal `assertDefined` / `assertUndefined` assertion helpers.
+- Utilities (`utils.ts`): adds `assertIsContractAddress`, which throws a
+  `CompactError` for values that are not contract addresses.
+- Zswap (`zswap.ts`): `createZswapInput`, `createZswapOutput`, `ownPublicKey`,
+  and `hasCoinCommitment` now read and write Zswap local state and the query
+  context through `circuitContext.callContext`, following the context
+  restructure. A new `assertHasCurrentZswapLocalState` check makes these
+  operations throw a `CompactError` when there is no Zswap local state — for
+  example inside a cross-contract callee, which has none.
+- Adds new exported types and helpers used by the above: `CircuitId`,
+  `CallContext`, `CallProofData`, `CallProofDataTrace`,
+  `CommunicationCommitmentData`, `createCallContext`, `copyCircuitContext`,
+  `finalizeCallProofData`, and a now-exported `createInitialQueryContext` (which
+  gains `parentBlockHash` and `caller` parameters and a required `time`).
 
 ## [Toolchain 0.32.104, language 0.24.101, runtime 0.17.103]
 

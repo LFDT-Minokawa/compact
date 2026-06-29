@@ -31,7 +31,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.compact",
-					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|emit|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
+					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|emit|enum|fold|for|if|implements|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
 				},
 				{
 					"name": "keyword.control.import.compact",

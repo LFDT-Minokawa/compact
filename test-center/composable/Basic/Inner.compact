@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module.exports = {
-    semi: true,
-    trailingComma: 'all',
-    singleQuote: true,
-    printWidth: 120,
-    tabWidth: 2,
-};
+import CompactStandardLibrary;
+
+export ledger v: Field;
+
+export circuit add(value: Field): Field {
+    v = v + disclose(value);
+    return v;
+}

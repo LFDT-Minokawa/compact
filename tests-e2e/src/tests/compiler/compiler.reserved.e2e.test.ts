@@ -289,13 +289,6 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 },
             },
             {
-                testcase: 'implements keyword',
-                file: 'example_39.compact',
-                output: {
-                    stderr: 'Exception: example_39.compact line 16 char 32: parse error: found keyword "implements" (which is reserved for future use) looking for a generic argument or ">"',
-                },
-            },
-            {
                 testcase: 'interface keyword',
                 file: 'example_40.compact',
                 output: {

@@ -45,7 +45,7 @@
       (string-token (str mesg opaque-type file))
       (version-token (version))
       (eof-token (eof))
-      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new))
+      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new kwd-implements))
       (op-token (op langle rangle))
       (punctuation-token (dot dotdot dotdotdot comma semicolon colon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
       )
@@ -62,6 +62,7 @@
       lconstructor
       cdefn
       wdecl
+      cidecl
       ecdecl
       structdef
       enumdef
@@ -127,6 +128,10 @@
     (Witness-Declaration (wdecl)
       (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
         (witness kwd-export? function-name generic-param-list? arg-list 4 return-type)
+      )
+    (Contract-Implements-Declaration (cidecl)
+      (contract-implements src kwd kwd-implements type semicolon) =>
+        (contract-implements kwd kwd-implements type semicolon)
       )
     (External-Contract-Declaration (ecdecl)
       (external-contract src (maybe kwd-export?) kwd contract-name lbrace (ecdecl-circuit* ...) (sep* ...) rbrace (maybe semicolon?)) =>

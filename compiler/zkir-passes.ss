@@ -322,8 +322,7 @@
                                                      [(acompress) -1]
                                                      [(abytes ,nat) nat]
                                                      [(afield) -2]
-                                                     [(aadt) -3]
-                                                     [(acontract) -4]))
+                                                     [(aadt) -3]))
                                                   alignment*)]))]
                           [null-for-alignment (lambda (alignment)
                                                 (apply append
@@ -653,6 +652,50 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
+          [(= ,test (,var-name* ...) (contract-call ,src ,elt-name ((,recv* ...) ,primitive-type) ,triv* ...))
+           ;; The `desugar-contract-calls` circuit pass has already rewritten this
+           ;; cross-contract call into an extended contract-call whose result
+           ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
+           ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
+           ;; `public-ledger`. So all that remains here is to witness the
+           ;; (extended) result vector — the transient hash and the claim are
+           ;; lowered by the generic call / public-ledger handlers.
+           (let ([test-idx (Triv test)])
+             (nanopass-case (Lflattened Primitive-Type) primitive-type
+               [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
+                  (cond
+                    [(null? elt-name*)
+                     (internal-errorf 'print-zkir
+                       "contract-call references unknown circuit ~s on contract ~s"
+                       elt-name contract-name)]
+                    [(eq? (car elt-name*) elt-name)
+                     (let ([prim-type* (type->primitive-types (car type*))])
+                       (unless (fx= (length prim-type*) (length var-name*))
+                         (internal-errorf 'print-zkir
+                           "contract-call result arity mismatch for ~s.~s: ~s expected, ~s var-names"
+                           contract-name elt-name (length prim-type*) (length var-name*)))
+                       (unless (fx= (length (apply append (map type->primitive-types (car type**))))
+                                    (length triv*))
+                         (internal-errorf 'print-zkir
+                           "contract-call argument arity mismatch for ~s.~s: ~s expected, ~s actual"
+                           contract-name elt-name
+                           (length (apply append (map type->primitive-types (car type**))))
+                           (length triv*)))
+                       (for-each
+                         (lambda (type var)
+                           (if (equal? test-idx (hashtable-ref literal-ht 1 #f))
+                               (print-gate "private_input" '[guard null])
+                               (print-gate "private_input" `[guard ,test-idx]))
+                           (let ([index (new-var! var)])
+                             (constrain-type type index)
+                             index))
+                         prim-type*
+                         var-name*))]
+                    [else (loop (cdr elt-name*) (cdr type**) (cdr type*))]))]
+               [else
+                (internal-errorf 'print-zkir
+                  "contract-call primitive-type is not a tcontract")]))]
           [(= ,[* test] () (emit ,src ,event-version ,event-tag ,len ,[* triv*] ... ,vm-code))
            (let ([primitive-type* (map (lambda (_)
                                          (with-output-language (Lflattened Primitive-Type)
@@ -665,8 +708,6 @@
                                                       `(ty ((abytes ,len)) (,primitive-type* ...)))
                                                     triv*)))])
                (assemble-vm-code test src '() env '() #f vm-code)))]
-          [(= ,[* test] (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
-           (source-errorf src "cross-contract calls are not yet supported")]
           [(= ,[* test] (,var-name1 ,var-name2) (default ,opaque-type))
            (guard (string=? opaque-type "JubjubPoint"))
            (bind-var! var-name1 (literal 0))

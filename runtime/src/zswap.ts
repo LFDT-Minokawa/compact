@@ -17,6 +17,7 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext } from './circuit-context.js';
 import { Bytes32Descriptor, ShieldedCoinInfoDescriptor, ShieldedCoinRecipientDescriptor, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
+import { CompactError } from './error.js';
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -198,6 +199,12 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
   })),
 });
 
+const assertHasCurrentZswapLocalState = (circuitContext: CircuitContext): void => {
+  if (!circuitContext.callContext.currentZswapLocalState) {
+    throw new CompactError(`Zswap local state is undefined for contract '${circuitContext.callContext.contractAddress}'`);
+  }
+};
+
 /**
  * Adds a coin to the list of inputs consumed by the circuit.
  *
@@ -208,10 +215,11 @@ export function createZswapInput(
   circuitContext: CircuitContext,
   qualifiedShieldedCoinInfo: EncodedQualifiedShieldedCoinInfo,
 ): [] {
-  circuitContext.currentZswapLocalState = {
-    ...circuitContext.currentZswapLocalState,
-    inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedShieldedCoinInfo),
-  };
+  assertHasCurrentZswapLocalState(circuitContext);
+  circuitContext.callContext.currentZswapLocalState = {
+    ...circuitContext.callContext.currentZswapLocalState,
+    inputs: circuitContext.callContext.currentZswapLocalState!.inputs.concat(qualifiedShieldedCoinInfo),
+  } as EncodedZswapLocalState;
   return [];
 }
 
@@ -249,18 +257,19 @@ export function createZswapOutput(
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
 ): [] {
-  circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
+  assertHasCurrentZswapLocalState(circuitContext);
+  circuitContext.callContext.currentQueryContext = circuitContext.callContext.currentQueryContext.insertCommitment(
     Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
-    circuitContext.currentZswapLocalState.currentIndex,
+    circuitContext.callContext.currentZswapLocalState!.currentIndex,
   );
-  circuitContext.currentZswapLocalState = {
-    ...circuitContext.currentZswapLocalState,
-    currentIndex: circuitContext.currentZswapLocalState.currentIndex + 1n,
-    outputs: circuitContext.currentZswapLocalState.outputs.concat({
+  circuitContext.callContext.currentZswapLocalState = {
+    ...circuitContext.callContext.currentZswapLocalState,
+    currentIndex: circuitContext.callContext.currentZswapLocalState!.currentIndex + 1n,
+    outputs: circuitContext.callContext.currentZswapLocalState!.outputs.concat({
       coinInfo,
       recipient,
     }),
-  };
+  } as EncodedZswapLocalState;
   return [];
 }
 
@@ -270,7 +279,8 @@ export function createZswapOutput(
  * @param circuitContext The current circuit context.
  */
 export function ownPublicKey(circuitContext: CircuitContext<unknown>): EncodedCoinPublicKey {
-  return circuitContext.currentZswapLocalState.coinPublicKey;
+  assertHasCurrentZswapLocalState(circuitContext);
+  return circuitContext.callContext.currentZswapLocalState!.coinPublicKey;
 }
 
 /**
@@ -285,4 +295,6 @@ export const hasCoinCommitment = (
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
 ): boolean =>
-  context.currentQueryContext.comIndices.has(toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)));
+  context.callContext.currentQueryContext.comIndices.has(
+    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+  );

@@ -25,10 +25,8 @@ new type Frob = Uint<16>; // cheer up CI tests by using the new and type keyword
 import CompactStandardLibrary;
 import {} from CompactStandardLibrary; // cheer up CI tests by using the from keyword
 
-// contract C1 {
-//   circuit foo() : [];
-//   circuit bar(X: Field): Field;
-// }
+contract CX { }
+contract implements CX;
 
 module M<#a, b> {
   export struct frob { q: Field }

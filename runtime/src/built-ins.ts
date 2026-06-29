@@ -227,10 +227,7 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
  * Edwards curve, the negation of (x, y) is (-x, y).
  */
 export function ecNeg(a: JubjubPoint): JubjubPoint {
-  return constructJubjubPoint(
-    a.x === 0n ? 0n : FIELD_MODULUS - a.x,
-    a.y
-  );
+  return constructJubjubPoint(a.x === 0n ? 0n : FIELD_MODULUS - a.x, a.y);
 }
 
 /**
@@ -340,7 +337,12 @@ export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey:
  *
  * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
  */
-export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifyingKey: JubjubPoint, sig: JubjubSchnorrSignature): boolean {
+export function jubjubSchnorrVerify<A>(
+  rtType: CompactType<A>,
+  msg: A,
+  verifyingKey: JubjubPoint,
+  sig: JubjubSchnorrSignature,
+): boolean {
   const { announcement, response } = sig;
 
   const challengeAlignment: ocrt.Alignment = [

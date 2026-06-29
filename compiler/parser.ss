@@ -91,6 +91,7 @@
      fold
      for
      if
+     implements
      include
      ledger
      map
@@ -132,7 +133,6 @@
      extends
      finally
      function
-     implements
      in
      instanceof
      interface
@@ -399,6 +399,7 @@
       [program-element-struct-declaration :: struct-declaration => values]
       [program-element-enum-declaration :: enum-declaration => values]
       [program-element-contract-declaration :: contract-declaration => values]
+      [program-element-implements-declaration :: implements-declaration => values]
       [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
       [program-element-witness-declaration :: witness-declaration => values]
@@ -570,6 +571,11 @@
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (Contract-Implements-declaration (implements-declaration)
+      [contract-implements-declaration :: src (KEYWORD contract) (KEYWORD implements) type #\; =>
+       (lambda (src kwd kwd-implements type semicolon)
+         (with-output-language (Lparser Contract-Implements-Declaration)
+           `(contract-implements ,src ,kwd ,kwd-implements ,type ,semicolon)))])
     (External-contract-declaration (contract-declaration)
       [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)

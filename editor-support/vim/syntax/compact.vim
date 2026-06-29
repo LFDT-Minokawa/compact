@@ -17,7 +17,7 @@ if exists("b:current_syntax")
   finish
 endif
 
-syn keyword compactKeyword as assert circuit constructor contract default disclose emit enum export from import include ledger module new pad pragma prefix pure return sealed slice struct type witness
+syn keyword compactKeyword as assert circuit constructor contract default disclose emit enum export from implements import include ledger module new pad pragma prefix pure return sealed slice struct type witness
 syn keyword compactBoolean true false
 syn keyword compactType Boolean Bytes Opaque Field Vector Uint
 syn keyword compactType Kernel Counter Set Map List MerkleTree HistoricMerkleTree
