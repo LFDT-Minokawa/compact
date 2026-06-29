@@ -2894,7 +2894,7 @@
                           (field-type-equal? ftype ftype^)
                           (triv-equal? triv triv^))]
                     [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) (downcast-unsigned ,src^ ,safe^ ,nat2^ ,nat1^ ,triv^)
-                     (and (eq? eqv? safe safe^)
+                     (and (eqv? safe safe^)
                           (eqv? nat1 nat1^)
                           (triv-equal? triv triv^))]))))
         (define (triv-vec-equal? v1 v2)
