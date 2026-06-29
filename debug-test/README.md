@@ -2,6 +2,39 @@
 
 Smart contracts in Compact can be executed standalone, e.g. from TypeScript file. You can debug such smart contract in Visual Studio Code with Midnight VSC Plugin using.
 
+## Local setup
+
+Before running `yarn install`, this project needs two things in place:
+
+A Nix build of the runtime — `nix build .#runtime.forPublish` from the
+repo root produces `result/lib/node_modules/@midnight-ntwrk/compact-runtime`,
+which `package.json` references by relative path. Without this,
+`@midnight-ntwrk/compact-runtime` cannot be resolved at all.
+
+A GitHub Packages auth token in your user-level npm config so yarn can
+fetch `@midnight-ntwrk`-scoped packages — this is where the
+`@midnight-ntwrk/onchain-runtime-v3` transitive dependency actually
+lives (not on public npm). The committed `.npmrc` in this directory
+carries only the scope→registry mapping; the auth token comes from your
+`~/.npmrc`. Create a GitHub personal access token (classic) with the
+`read:packages` scope and add this line to your `~/.npmrc`:
+
+```text
+//npm.pkg.github.com/:_authToken=ghp_yourTokenHere
+```
+
+Then:
+
+```sh
+cd debug-test
+yarn install
+```
+
+CI does the equivalent by overwriting `debug-test/.npmrc` at build time
+with the `MIDNIGHTCI_PACKAGES_WRITE` secret inlined — see the `Setup
+.npmrc` step in `.github/workflows/build-debug-test.yml`. That mirrors
+the pattern in `build-runtime-test.yml`.
+
 ## Setting breakpoints
 
 You can set a breakpoint in TypeScript code using smart contract

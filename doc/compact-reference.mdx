@@ -940,22 +940,24 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Uint<64> {
 A compact program is a sequence of zero or more program elements.
 
 <div className="lang-ref-table">
-|                   |         |                                                                            |
-|-------------------|---------|----------------------------------------------------------------------------|
-| *program*         | &xrarr; | [*program-element*](#programs) ⋯ [*program-element*](#programs)            |
-| *program-element* | &xrarr; | [*pragma-form*](#pragmas)                                                  |
-|                   | \|      | [*module-definition*](#modules-exports-and-imports)                        |
-|                   | \|      | [*import-form*](#imports)                                                  |
-|                   | \|      | [*export-form*](#exports)                                                  |
-|                   | \|      | [*include-form*](#include-files)                                           |
-|                   | \|      | [*struct-declaration*](#structure-types)                                   |
-|                   | \|      | [*enum-declaration*](#enumeration-types)                                   |
-|                   | \|      | [*contract-declaration*](#contract-types)                                  |
-|                   | \|      | [*type-alias-declaration*](#type-aliases)                                  |
-|                   | \|      | [*ledger-declaration*](#declaring-and-maintaining-public-state)            |
-|                   | \|      | [*witness-declaration*](#declaring-witnesses-for-private-state-management) |
-|                   | \|      | [*constructor-definition*](#contract-constructor)                          |
-|                   | \|      | [*circuit-definition*](#circuit-definitions)                               |
+|                          |         |                                                                            |
+|--------------------------|---------|----------------------------------------------------------------------------|
+| *program*                | &xrarr; | [*program-element*](#programs) ⋯ [*program-element*](#programs)            |
+| *program-element*        | &xrarr; | [*pragma-form*](#pragmas)                                                  |
+|                          | \|      | [*module-definition*](#modules-exports-and-imports)                        |
+|                          | \|      | [*import-form*](#imports)                                                  |
+|                          | \|      | [*export-form*](#exports)                                                  |
+|                          | \|      | [*include-form*](#include-files)                                           |
+|                          | \|      | [*struct-declaration*](#structure-types)                                   |
+|                          | \|      | [*enum-declaration*](#enumeration-types)                                   |
+|                          | \|      | [*contract-declaration*](#contract-types)                                  |
+|                          | \|      | [*implements-declaration*](#programs)                                      |
+|                          | \|      | [*type-alias-declaration*](#type-aliases)                                  |
+|                          | \|      | [*ledger-declaration*](#declaring-and-maintaining-public-state)            |
+|                          | \|      | [*witness-declaration*](#declaring-witnesses-for-private-state-management) |
+|                          | \|      | [*constructor-definition*](#contract-constructor)                          |
+|                          | \|      | [*circuit-definition*](#circuit-definitions)                               |
+| *implements-declaration* | &xrarr; | `contract` `implements` [*type*](#primitive-types) `;`                     |
 </div>
 
 Briefly:
@@ -1713,8 +1715,8 @@ The body is evaluated each time the circuit is called.
 A Compact circuit is considered *pure* if it computes its outputs from its
 inputs without reference to or modification of public state (via the ledger) or
 private state (via witnesses). In practice, the compiler considers a circuit to
-be impure if the body of the circuit contains a ledger operation, a call to any
-impure circuit, or a call to a witness.
+be impure if the body of the circuit contains a ledger operation, an emit operation,
+a call to any impure circuit, or a call to a witness.
 
 Some external circuits defined in `CompactStandardLibrary` are witnesses; calls
 to these make the caller impure. The remainder are considered pure, so calls to
@@ -2075,6 +2077,7 @@ of expression.
 |                    | \|      | `Bytes` `[` [*bytes-arg*](#syntax-of-expressions) `,` ⋯ `,` [*bytes-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `]`                                                                    |
 |                    | \|      | [*tref*](#primitive-types) `{` [*struct-arg*](#syntax-of-expressions) `,` ⋯ `,` [*struct-arg*](#syntax-of-expressions) `,`<sup>opt</sup> `}`                                               |
 |                    | \|      | `assert` `(` [*expr*](#syntax-of-expressions) `,` [*str*](#terminal-names) `)`                                                                                                             |
+|                    | \|      | `emit` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                            |
 |                    | \|      | `disclose` `(` [*expr*](#syntax-of-expressions) `)`                                                                                                                                        |
 |                    | \|      | [*term*](#syntax-of-expressions)                                                                                                                                                           |
 | *term*             | &xrarr; | [*id*](#terminal-names)                                                                                                                                                                    |
@@ -3164,6 +3167,52 @@ error, i.e., the `assert` form halts computation of the enclosing top-level
 circuit or constructor with the message *msg*.
 
 Each assertion is checked at run time and constrained in-circuit.
+
+### Emitting events
+
+Events are emitted via the form `emit(`*e*`)` where *e* is an expression whose
+type is a standard event type.
+[The Compact standard library](compact-standard-library) provides detailed
+descriptions of the standard event types.
+
+The type of every `emit` form is `[]`.
+
+An attempt to `emit` the value of an expression that does not have a standard
+event type is a static error.
+An attempt to `emit` an event, directly or indirectly, via the contract
+constructor is a static error.
+
+Evaluation of `emit(`*e*`)` proceeds by evaluating *e*, computing its canonical
+byte encoding, and emitting a structured `VersionedLogItem` with three fields:
+- `version`, the event format version (presently `1`),
+- `eventType`, identifying the declared event type by its tag, and
+- `data`, containing the byte encoding.
+
+The canonical byte encoding of an event is created via the equivalent of
+`serialize<`*T*`, #`*n*`>`.
+A generic `serialize` circuit is defined in the Compact standard library
+along with a `deserialize` counterpart.
+
+While events are serialized implictly via `emit`, they must be deserialized
+explicitly via a call to `deserialize`.
+For example, in the code below, the circuit `deserializeShieldedSpend` can be
+used to decode events emitted by `spend`.
+
+```compact
+import CompactStandardLibrary;
+export circuit spend(n: Bytes<32>): [] {
+  emit(ShieldedSpend { nullifier: disclose(n) });
+}
+
+export circuit deserializeShieldedSpend(x: Bytes<32>): ShieldedSpend {
+  return deserialize<ShieldedSpend, 32>(x);
+}
+```
+
+The emitted item is appended, in order of evaluation, to the events list of
+the enclosing exported circuit's return value, where it can be read
+from TypeScript via the `events` field of `CircuitResults` (see
+[Interacting with Compact from TypeScript](#interacting-with-compact-from-typescript)).
 
 ### Explicit disclosure
 

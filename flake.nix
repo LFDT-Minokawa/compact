@@ -226,7 +226,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.32.104"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.32.106"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -534,6 +534,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.alejandra
@@ -552,6 +553,7 @@
           devShells.with-zkir = packages.runtime.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.binaryen
@@ -570,6 +572,7 @@
           devShells.compiler = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               packages.compactc
               pkgs.yarn
               zkir.packages.${system}.zkir
@@ -581,6 +584,7 @@
 
           devShells.runtime = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.chez
             ];
@@ -589,6 +593,7 @@
 
           devShells.dapp = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               packages.compactc
               packages.runtime.package
               packages.runtime.node-modules

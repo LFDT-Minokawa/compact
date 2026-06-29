@@ -856,6 +856,14 @@
                    0 (make-Qtoken lbrace))))
              2 (make-Qsep/closer #f sep* (map External-Contract-Circuit ecdecl-circuit*) #f rbrace)
              (add-punctuation semicolon? '())))]
+      [(contract-implements ,src ,kwd ,kwd-implements ,type ,semicolon)
+       (// src
+           (apply make-Qconcat #f
+             (cons*
+               (make-Qtoken kwd)
+               nbsp (make-Qtoken kwd-implements)
+               nbsp (Type type)
+               (add-punctuation semicolon '()))))]
       [(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,arg* ...) (,sep* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat #f
@@ -1156,6 +1164,13 @@
                          (make-Qtoken dot)
                          (make-Qtoken elt-name))])
              (make-Qcall qfun lparen (map Expression expr*) comma* rparen)))]
+      [(emit ,src ,kwd ,lparen ,expr ,rparen)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken kwd)
+             (make-Qtoken lparen)
+             (Expression expr)
+             (make-Qtoken rparen)))]
       [(tuple ,src ,lbracket (,tuple-arg* ...) (,comma* ...) ,rbracket)
        (// src
            (make-Qconcat #f
