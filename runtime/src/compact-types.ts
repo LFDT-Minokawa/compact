@@ -150,7 +150,7 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     return {
       x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
       y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: ocrt.valueToBigInt(value.slice(4, 5)) === 1n,
+      identity: ocrt.valueToBigInt(value.slice(4)) === 1n,
     };
   },
   toValue(value: Secp256k1Point): ocrt.Value {

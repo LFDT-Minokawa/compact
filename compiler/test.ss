@@ -85171,27 +85171,13 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test) ((%b.0 "Base<Secp256k1>"))
-          ("Base<Secp256k1>") (encode (%fld.1 %fld.2) %b.0) (impact 1 16 1 1 1 0 17 1
-                                                              2 24 8 %fld.1
-                                                              %fld.2 145) (public_input
-                                                                            "Base<Secp256k1>"
-                                                                            %t.3) (encode
-                                                                                    (%fld.4
-                                                                                      %fld.5)
-                                                                                    %t.3) (impact
-                                                                                            1
-                                                                                            48
-                                                                                            80
-                                                                                            1
-                                                                                            1
-                                                                                            0
-                                                                                            12
-                                                                                            2
-                                                                                            24
-                                                                                            8
-                                                                                            %fld.4
-                                                                                            %fld.5) (output
-                                                                                                      %t.3))))
+             ("Base<Secp256k1>")
+          (encode (%fld.1 %fld.2) %b.0)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.1 %fld.2 145)
+          (public_input "Base<Secp256k1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Base round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85225,42 +85211,14 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test) ((%b.0 "Base<Secp256k1>"))
-          ("Base<Secp256k1>") (private_input "Base<Secp256k1>" %tmp.1) (encode
-                                                                         (%fld.2
-                                                                           %fld.3)
-                                                                         %tmp.1) (impact
-                                                                                   1
-                                                                                   16
-                                                                                   1
-                                                                                   1
-                                                                                   1
-                                                                                   0
-                                                                                   17
-                                                                                   1
-                                                                                   2
-                                                                                   24
-                                                                                   8
-                                                                                   %fld.2
-                                                                                   %fld.3
-                                                                                   145) (public_input
-                                                                                          "Base<Secp256k1>"
-                                                                                          %t.4) (encode
-                                                                                                  (%fld.5
-                                                                                                    %fld.6)
-                                                                                                  %t.4) (impact
-                                                                                                          1
-                                                                                                          48
-                                                                                                          80
-                                                                                                          1
-                                                                                                          1
-                                                                                                          0
-                                                                                                          12
-                                                                                                          2
-                                                                                                          24
-                                                                                                          8
-                                                                                                          %fld.5
-                                                                                                          %fld.6) (output
-                                                                                                                    %t.4))))
+             ("Base<Secp256k1>")
+          (private_input "Base<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.2 %fld.3 145)
+          (public_input "Base<Secp256k1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
     (stage-javascript
       `("test('Secp256k1Base passing through witnesses', () => {"
         "  const witnesses = {"
@@ -85293,27 +85251,13 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
-          ("Scalar<Secp256k1>") (encode (%fld.1 %fld.2) %s.0) (impact 1 16 1 1 1 0 17
-                                                                1 2 24 8 %fld.1
-                                                                %fld.2 145) (public_input
-                                                                              "Scalar<Secp256k1>"
-                                                                              %t.3) (encode
-                                                                                      (%fld.4
-                                                                                        %fld.5)
-                                                                                      %t.3) (impact
-                                                                                              1
-                                                                                              48
-                                                                                              80
-                                                                                              1
-                                                                                              1
-                                                                                              0
-                                                                                              12
-                                                                                              2
-                                                                                              24
-                                                                                              8
-                                                                                              %fld.4
-                                                                                              %fld.5) (output
-                                                                                                        %t.3))))
+             ("Scalar<Secp256k1>")
+          (encode (%fld.1 %fld.2) %s.0)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.1 %fld.2 145)
+          (public_input "Scalar<Secp256k1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Scalar round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85347,37 +85291,14 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test) ((%s.0 "Scalar<Secp256k1>"))
-          ("Scalar<Secp256k1>") (private_input
-                                  "Scalar<Secp256k1>"
-                                  %tmp.1) (encode (%fld.2 %fld.3) %tmp.1) (impact 1
-                                                                            16
-                                                                            1 1
-                                                                            1 0
-                                                                            17
-                                                                            1 2
-                                                                            24
-                                                                            8
-                                                                            %fld.2
-                                                                            %fld.3
-                                                                            145) (public_input
-                                                                                   "Scalar<Secp256k1>"
-                                                                                   %t.4) (encode
-                                                                                           (%fld.5
-                                                                                             %fld.6)
-                                                                                           %t.4) (impact
-                                                                                                   1
-                                                                                                   48
-                                                                                                   80
-                                                                                                   1
-                                                                                                   1
-                                                                                                   0
-                                                                                                   12
-                                                                                                   2
-                                                                                                   24
-                                                                                                   8
-                                                                                                   %fld.5
-                                                                                                   %fld.6) (output
-                                                                                                             %t.4))))
+             ("Scalar<Secp256k1>")
+          (private_input "Scalar<Secp256k1>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.2 %fld.3 145)
+          (public_input "Scalar<Secp256k1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48 80 1 1 0 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
     (stage-javascript
       `("test('Secp256k1Scalar passing through witnesses', () => {"
         "  const witnesses = {"
@@ -85413,25 +85334,15 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test0) ((%pt.0 "Point<Secp256k1>"))
-          ("Point<Secp256k1>") (encode
-                                 (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5)
-                                 %pt.0) (impact 1 16 1 1 1 0 17 1 5 24 8 24 8
-                                         -2 %fld.1 %fld.2 %fld.3 %fld.4 %fld.5
-                                         145) (public_input
-                                                "Point<Secp256k1>"
-                                                %t.6) (encode
-                                                        (%fld.7
-                                                          %fld.8
-                                                          %fld.9
-                                                          %fld.10
-                                                          %fld.11)
-                                                        %t.6) (impact 1 48 80 1 1 0
-                                                                12 5 24 8 24 8
-                                                                -2 %fld.7
-                                                                %fld.8 %fld.9
-                                                                %fld.10
-                                                                %fld.11) (output
-                                                                           %t.6))))
+             ("Point<Secp256k1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %pt.0)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 145)
+          (public_input "Point<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9
+            %fld.10 %fld.11)
+          (output %t.6))))
     (stage-javascript
       `("test('Secp256k1Point round tripping through the ledger', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
@@ -85475,80 +85386,27 @@ groups than for single tests.
     (pass-returns reduce-to-zkir
       (program
         (circuit (test0) ()
-          ("Point<Secp256k1>") (private_input
-                                 "Point<Secp256k1>"
-                                 %tmp.0) (encode
-                                           (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5)
-                                           %tmp.0) (impact 1 16 1 1 1 0 17 1 5
-                                                    24 8 24 8 -2 %fld.1 %fld.2
-                                                    %fld.3 %fld.4 %fld.5 145) (public_input
-                                                                                "Point<Secp256k1>"
-                                                                                %t.6) (encode
-                                                                                        (%fld.7
-                                                                                          %fld.8
-                                                                                          %fld.9
-                                                                                          %fld.10
-                                                                                          %fld.11)
-                                                                                        %t.6) (impact
-                                                                                                1
-                                                                                                48
-                                                                                                80
-                                                                                                1
-                                                                                                1
-                                                                                                0
-                                                                                                12
-                                                                                                5
-                                                                                                24
-                                                                                                8
-                                                                                                24
-                                                                                                8
-                                                                                                -2
-                                                                                                %fld.7
-                                                                                                %fld.8
-                                                                                                %fld.9
-                                                                                                %fld.10
-                                                                                                %fld.11) (output
-                                                                                                           %t.6))
+             ("Point<Secp256k1>")
+          (private_input "Point<Secp256k1>" %tmp.0)
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %tmp.0)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.1 %fld.2
+           %fld.3 %fld.4 %fld.5 145)
+          (public_input "Point<Secp256k1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9
+            %fld.10 %fld.11)
+          (output %t.6))
         (circuit (test1) ()
-          ("Point<Secp256k1>") (private_input
-                                 "Point<Secp256k1>"
-                                 %tmp.12) (encode
-                                            (%fld.13
-                                              %fld.14
-                                              %fld.15
-                                              %fld.16
-                                              %fld.17)
-                                            %tmp.12) (impact 1 16 1 1 1 0 17 1
-                                                      5 24 8 24 8 -2 %fld.13
-                                                      %fld.14 %fld.15 %fld.16
-                                                      %fld.17 145) (public_input
-                                                                     "Point<Secp256k1>"
-                                                                     %t.18) (encode
-                                                                              (%fld.19
-                                                                                %fld.20
-                                                                                %fld.21
-                                                                                %fld.22
-                                                                                %fld.23)
-                                                                              %t.18) (impact
-                                                                                       1
-                                                                                       48
-                                                                                       80
-                                                                                       1
-                                                                                       1
-                                                                                       0
-                                                                                       12
-                                                                                       5
-                                                                                       24
-                                                                                       8
-                                                                                       24
-                                                                                       8
-                                                                                       -2
-                                                                                       %fld.19
-                                                                                       %fld.20
-                                                                                       %fld.21
-                                                                                       %fld.22
-                                                                                       %fld.23) (output
-                                                                                                  %t.18))))
+             ("Point<Secp256k1>")
+          (private_input "Point<Secp256k1>" %tmp.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %tmp.12)
+          (impact 1 16 1 1 1 0 17 1 5 24 8 24 8 -2 %fld.13 %fld.14
+           %fld.15 %fld.16 %fld.17 145)
+          (public_input "Point<Secp256k1>" %t.18)
+          (encode (%fld.19 %fld.20 %fld.21 %fld.22 %fld.23) %t.18)
+          (impact 1 48 80 1 1 0 12 5 24 8 24 8 -2 %fld.19 %fld.20
+            %fld.21 %fld.22 %fld.23)
+          (output %t.18))))
     (stage-javascript
       `("test('Secp256k1Point coming from witnesses', () => {"
         "  const witnesses = {"
@@ -85635,57 +85493,19 @@ groups than for single tests.
                          (%b.0 "Scalar<BLS12-381>")
                          (%s.3 "Scalar<BLS12-381>")
                          (%s.2 "Scalar<BLS12-381>"))
-          () (constrain_bits %b.1 8) (constrain_bits %b.0 248) (constrain_bits
-                                                                 %s.3
-                                                                 8) (constrain_bits
-                                                                      %s.2
-                                                                      248) (bytes32_from_low_high
-                                                                             %tmp.4
-                                                                             %b.0
-                                                                             %b.1) (from_bytes32
-                                                                                     "Base<Secp256k1>"
-                                                                                     %tmp.5
-                                                                                     %tmp.4) (encode
-                                                                                               (%fld.6
-                                                                                                 %fld.7)
-                                                                                               %tmp.5) (impact
-                                                                                                         1
-                                                                                                         16
-                                                                                                         1
-                                                                                                         1
-                                                                                                         1
-                                                                                                         0
-                                                                                                         17
-                                                                                                         1
-                                                                                                         2
-                                                                                                         24
-                                                                                                         8
-                                                                                                         %fld.6
-                                                                                                         %fld.7
-                                                                                                         145) (bytes32_from_low_high
-                                                                                                                %tmp.8
-                                                                                                                %s.2
-                                                                                                                %s.3) (from_bytes32
-                                                                                                                        "Scalar<Secp256k1>"
-                                                                                                                        %tmp.9
-                                                                                                                        %tmp.8) (encode
-                                                                                                                                  (%fld.10
-                                                                                                                                    %fld.11)
-                                                                                                                                  %tmp.9) (impact
-                                                                                                                                            1
-                                                                                                                                            16
-                                                                                                                                            1
-                                                                                                                                            1
-                                                                                                                                            1
-                                                                                                                                            1
-                                                                                                                                            17
-                                                                                                                                            1
-                                                                                                                                            2
-                                                                                                                                            24
-                                                                                                                                            8
-                                                                                                                                            %fld.10
-                                                                                                                                            %fld.11
-                                                                                                                                            145))))
+             ()
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
+          (from_bytes32 "Base<Secp256k1>" %tmp.5 %tmp.4)
+          (encode (%fld.6 %fld.7) %tmp.5)
+          (impact 1 16 1 1 1 0 17 1 2 24 8 %fld.6 %fld.7 145)
+          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
+          (from_bytes32 "Scalar<Secp256k1>" %tmp.9 %tmp.8)
+          (encode (%fld.10 %fld.11) %tmp.9)
+          (impact 1 16 1 1 1 1 17 1 2 24 8 %fld.10 %fld.11 145))))
     (stage-javascript
       `("test('Bytes to secp256k1 field casts', () => {"
         "  const [contract, context] = startContract(contractCode, {}, 0);"
