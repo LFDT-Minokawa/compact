@@ -138,6 +138,9 @@
                  (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
                           (,alignment* ...) ,triv* ...)
                    instr*))]
+              [(mul)
+               (assert (= (length var-name*) 1))
+               (cons `(mul, (car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
               [(neg)
                (assert (= (length var-name*) 1))
                (cons `(neg ,(car var-name*) ,(car triv*)) instr*)]
