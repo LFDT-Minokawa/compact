@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.32.111, language 0.24.104, runtime 0.17.105]
+
+### Changed
+
+- The standard library ECDSA circuits `secp256k1EcdsaVerify` and
+  `secp256k1EcdsaRecover` deserialize the message hash as a big endian 
+  secp256k1 scalar `z` internally, following the ECDSA convention (RFC 6979).
+
 ## [Toolchain 0.32.110, language 0.24.103, runtime 0.17.105]
 
 ### Added
