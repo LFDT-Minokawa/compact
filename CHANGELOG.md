@@ -5,11 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.32.106, language 0.24.103, runtime 0.17.105]
+## [Toolchain 0.32.110, language 0.24.103, runtime 0.17.105]
 
 ### Changed
 
 ????
+
+## [Toolchain 0.32.109, language 0.24.102, runtime 0.17.104]
+
+### Added
+
+- The compiler usage page now introduces `--feature-zkir-v3`.
+
+## [Toolchain 0.32.108, language 0.24.102, runtime 0.17.104]
+
+### Fixed
+
+- a bug that prevented `contract-manifest.json` from including some file hashes
+
+## [Toolchain 0.32.107, language 0.24.102, runtime 0.17.104]
+
+### Changed
+
+- The generated zkir reverted back to having separate impact instructions.
+
+## [Toolchain 0.32.106, language 0.24.102, runtime 0.17.104]
+
+### Changed
+
+- Adds `domainSep` to `UnshieldedSpend` and `UnshieldedReceive` events.
+- Renames event fields to follow camelCase.
 
 ## [Toolchain 0.32.105, language 0.24.102, runtime 0.17.104]
 

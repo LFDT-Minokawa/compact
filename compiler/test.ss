@@ -14495,8 +14495,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit tokenType(domain_sep: Bytes<32>, contract_address: ContractAddress): Bytes<32> {"
-      "  return persistentCommit<Vector<2, Bytes<32>>>([domain_sep, contract_address.bytes], pad(32, 'midnight:derive_token'));"
+      "export circuit tokenType(domainSep: Bytes<32>, contractAddress: ContractAddress): Bytes<32> {"
+      "  return persistentCommit<Vector<2, Bytes<32>>>([domainSep, contractAddress.bytes], pad(32, 'midnight:derive_token'));"
       "}"
       )
     (succeeds)
@@ -15040,7 +15040,7 @@ groups than for single tests.
         (export-typedef ShieldedReceive ()
           (tstruct ShieldedReceive
             (commitment (tbytes 32))
-            (contract_address (tstruct Maybe
+            (contractAddress (tstruct Maybe
                                 (is_some (tboolean))
                                 (value (tbytes 32))))
             (ciphertext (tstruct Maybe
@@ -15059,7 +15059,7 @@ groups than for single tests.
         (export-typedef ShieldedMint ()
           (tstruct ShieldedMint
             (commitment (tbytes 32))
-            (domain_sep (tbytes 32))
+            (domainSep (tbytes 32))
             (amount (tstruct Maybe
                       (is_some (tboolean))
                       (value (tunsigned
@@ -15097,7 +15097,8 @@ groups than for single tests.
                       (is_left (tboolean))
                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                       (right (tstruct ContractAddress (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -15118,7 +15119,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -15133,8 +15135,8 @@ groups than for single tests.
       (program ()
         (export-typedef UnshieldedMint ()
           (tstruct UnshieldedMint
-            (domain_sep (tbytes 32))
-            (token_type (tbytes 32))
+            (domainSep (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -15155,13 +15157,13 @@ groups than for single tests.
                          [%a.4 (tunsigned
                                  340282366920938463463374607431768211455)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (emit (new (tstruct UnshieldedMint
-                      (domain_sep (tbytes 32))
-                      (token_type (tbytes 32))
+                      (domainSep (tbytes 32))
+                      (tokenType (tbytes 32))
                       (amount (tunsigned
                                 340282366920938463463374607431768211455)))
                  %d.2
@@ -15182,7 +15184,7 @@ groups than for single tests.
                       (is_left (tboolean))
                       (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                       (right (tstruct ContractAddress (bytes (tbytes 32))))))
-            (token_type (tbytes 32))
+            (tokenType (tbytes 32))
             (amount (tunsigned
                       340282366920938463463374607431768211455))))
         (public-ledger-declaration %kernel.0 (Kernel))))
@@ -34518,7 +34520,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
                                            (commitment (tbytes 32))
-                                           (contract_address (tstruct Maybe
+                                           (contractAddress (tstruct Maybe
                                                                (is_some (tboolean))
                                                                (value (tbytes
                                                                         32))))
@@ -34530,7 +34532,7 @@ groups than for single tests.
           (let* ([[%t.3 (tstruct Maybe
                           (is_some (tboolean))
                           (value (tbytes 32)))]
-                  (elt-ref %value.2 contract_address 1)]
+                  (elt-ref %value.2 contractAddress 1)]
                  [[%t.4 (tstruct Maybe
                           (is_some (tboolean))
                           (value (tbytes 512)))]
@@ -34550,7 +34552,7 @@ groups than for single tests.
         (circuit %deserialize.5 ([%value.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contract_address (tstruct Maybe
+               (contractAddress (tstruct Maybe
                                    (is_some (tboolean))
                                    (value (tbytes 32))))
                (ciphertext (tstruct Maybe
@@ -34558,7 +34560,7 @@ groups than for single tests.
                              (value (tbytes 512)))))
           (new (tstruct ShieldedReceive
                  (commitment (tbytes 32))
-                 (contract_address (tstruct Maybe
+                 (contractAddress (tstruct Maybe
                                      (is_some (tboolean))
                                      (value (tbytes 32))))
                  (ciphertext (tstruct Maybe
@@ -34581,7 +34583,7 @@ groups than for single tests.
                                                          578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contract_address (tstruct Maybe
+               (contractAddress (tstruct Maybe
                                    (is_some (tboolean))
                                    (value (tbytes 32))))
                (ciphertext (tstruct Maybe
@@ -34591,7 +34593,7 @@ groups than for single tests.
         (circuit %serialize_ShieldedReceive.9 ([%x.10 (tstruct ShieldedReceive
                                                         (commitment (tbytes
                                                                       32))
-                                                        (contract_address (tstruct Maybe
+                                                        (contractAddress (tstruct Maybe
                                                                             (is_some (tboolean))
                                                                             (value (tbytes
                                                                                      32))))
@@ -34619,7 +34621,7 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedMint
                                            (commitment (tbytes 32))
-                                           (domain_sep (tbytes 32))
+                                           (domainSep (tbytes 32))
                                            (amount (tstruct Maybe
                                                      (is_some (tboolean))
                                                      (value (tunsigned
@@ -34635,7 +34637,7 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref %value.2 commitment 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 domain_sep 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
                 (if (elt-ref %t.3 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
@@ -34649,14 +34651,14 @@ groups than for single tests.
         (circuit %deserialize.4 ([%value.5 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
-               (domain_sep (tbytes 32))
+               (domainSep (tbytes 32))
                (amount (tstruct Maybe
                          (is_some (tboolean))
                          (value (tunsigned
                                   340282366920938463463374607431768211455)))))
           (new (tstruct ShieldedMint
                  (commitment (tbytes 32))
-                 (domain_sep (tbytes 32))
+                 (domainSep (tbytes 32))
                  (amount (tstruct Maybe
                            (is_some (tboolean))
                            (value (tunsigned
@@ -34674,7 +34676,7 @@ groups than for single tests.
         (circuit %deserialize_ShieldedMint.6 ([%x.7 (tbytes 81)])
              (tstruct ShieldedMint
                (commitment (tbytes 32))
-               (domain_sep (tbytes 32))
+               (domainSep (tbytes 32))
                (amount (tstruct Maybe
                          (is_some (tboolean))
                          (value (tunsigned
@@ -34682,7 +34684,7 @@ groups than for single tests.
           (call %deserialize.4 %x.7))
         (circuit %serialize_ShieldedMint.8 ([%x.9 (tstruct ShieldedMint
                                                     (commitment (tbytes 32))
-                                                    (domain_sep (tbytes 32))
+                                                    (domainSep (tbytes 32))
                                                     (amount (tstruct Maybe
                                                               (is_some (tboolean))
                                                               (value (tunsigned
@@ -34774,14 +34776,14 @@ groups than for single tests.
   (test
    '(
      "import CompactStandardLibrary;"
-     "export circuit deserialize_UnshieldedSpend (x: Bytes<113>) : UnshieldedSpend {"
-     "  return deserialize<UnshieldedSpend, 113>(x);"
+     "export circuit deserialize_UnshieldedSpend (x: Bytes<145>) : UnshieldedSpend {"
+     "  return deserialize<UnshieldedSpend, 145>(x);"
      "}"
-     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<113> {"
-     "  return serialize<UnshieldedSpend, 113>(x);"
+     "export circuit serialize_UnshieldedSpend (x: UnshieldedSpend) : Bytes<145> {"
+     "  return serialize<UnshieldedSpend, 145>(x);"
      "}"
      )
-    (returns
+   (returns
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
@@ -34794,10 +34796,11 @@ groups than for single tests.
                                                      (right (tstruct ContractAddress
                                                               (bytes (tbytes
                                                                        32))))))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (let* ([[%t.3 (tstruct Either
                           (is_left (tboolean))
                           (left (tstruct ZswapCoinPublicKey
@@ -34805,7 +34808,7 @@ groups than for single tests.
                           (right (tstruct ContractAddress
                                    (bytes (tbytes 32)))))]
                   (elt-ref %value.2 sender 0)])
-            (vector->bytes 113
+            (vector->bytes 145
               (vector
                 (if (elt-ref %t.3 is_left 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
@@ -34815,15 +34818,17 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16 (field-native)
                       (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %value.2 amount 2)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
+                        (elt-ref %value.2 amount 3)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34831,7 +34836,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedSpend
@@ -34841,7 +34847,8 @@ groups than for single tests.
                                    (bytes (tbytes 32))))
                            (right (tstruct ContractAddress
                                     (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -34855,11 +34862,12 @@ groups than for single tests.
               (new (tstruct ContractAddress (bytes (tbytes 32)))
                 (bytes-slice %value.5 33 32)))
             (bytes-slice %value.5 65 32)
+            (bytes-slice %value.5 97 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 97 16))))
+              (bytes-slice %value.5 129 16))))
         (circuit %deserialize_UnshieldedSpend.6 ([%x.7 (tbytes
-                                                         113)])
+                                                         145)])
              (tstruct UnshieldedSpend
                (sender (tstruct Either
                          (is_left (tboolean))
@@ -34867,7 +34875,8 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -34880,21 +34889,22 @@ groups than for single tests.
                                                                  (right (tstruct ContractAddress
                                                                           (bytes (tbytes
                                                                                    32))))))
-                                                       (token_type (tbytes 32))
+                                                       (domainSep (tbytes 32))
+                                                       (tokenType (tbytes 32))
                                                        (amount (tunsigned
                                                                  340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (call %serialize.1 %x.9))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit deserialize_UnshieldedReceive (x: Bytes<113>) : UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(x);"
+      "export circuit deserialize_UnshieldedReceive (x: Bytes<145>) : UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 145>(x);"
       "}"
-      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(x);"
+      "export circuit serialize_UnshieldedReceive (x: UnshieldedReceive) : Bytes<145> {"
+      "  return serialize<UnshieldedReceive, 145>(x);"
       "}"
       )
     (returns
@@ -34910,10 +34920,11 @@ groups than for single tests.
                                                         (right (tstruct ContractAddress
                                                                  (bytes (tbytes
                                                                           32))))))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (let* ([[%t.3 (tstruct Either
                           (is_left (tboolean))
                           (left (tstruct ZswapCoinPublicKey
@@ -34921,7 +34932,7 @@ groups than for single tests.
                           (right (tstruct ContractAddress
                                    (bytes (tbytes 32)))))]
                   (elt-ref %value.2 recipient 0)])
-            (vector->bytes 113
+            (vector->bytes 145
               (vector
                 (if (elt-ref %t.3 is_left 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
@@ -34931,15 +34942,17 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 domainSep 1)))
+                (spread 32
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 2)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16 (field-native)
                       (safe-cast (tfield (field-native))
                                  (tunsigned
                                    340282366920938463463374607431768211455)
-                        (elt-ref %value.2 amount 2)))))))))
-        (circuit %deserialize.4 ([%value.5 (tbytes 113)])
+                        (elt-ref %value.2 amount 3)))))))))
+        (circuit %deserialize.4 ([%value.5 (tbytes 145)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
                             (is_left (tboolean))
@@ -34947,7 +34960,8 @@ groups than for single tests.
                                     (bytes (tbytes 32))))
                             (right (tstruct ContractAddress
                                      (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedReceive
@@ -34957,7 +34971,8 @@ groups than for single tests.
                                       (bytes (tbytes 32))))
                               (right (tstruct ContractAddress
                                        (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -34971,11 +34986,12 @@ groups than for single tests.
               (new (tstruct ContractAddress (bytes (tbytes 32)))
                 (bytes-slice %value.5 33 32)))
             (bytes-slice %value.5 65 32)
+            (bytes-slice %value.5 97 32)
             (cast-from-bytes (tunsigned
                                340282366920938463463374607431768211455) 16
-              (bytes-slice %value.5 97 16))))
+              (bytes-slice %value.5 129 16))))
         (circuit %deserialize_UnshieldedReceive.6 ([%x.7 (tbytes
-                                                           113)])
+                                                           145)])
              (tstruct UnshieldedReceive
                (recipient (tstruct Either
                             (is_left (tboolean))
@@ -34983,7 +34999,8 @@ groups than for single tests.
                                     (bytes (tbytes 32))))
                             (right (tstruct ContractAddress
                                      (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -34996,11 +35013,13 @@ groups than for single tests.
                                                                       (right (tstruct ContractAddress
                                                                                (bytes (tbytes
                                                                                         32))))))
-                                                         (token_type (tbytes
-                                                                       32))
+                                                         (domainSep (tbytes
+                                                                      32))
+                                                         (tokenType (tbytes
+                                                                      32))
                                                          (amount (tunsigned
                                                                    340282366920938463463374607431768211455)))])
-             (tbytes 113)
+             (tbytes 145)
           (call %serialize.1 %x.9))))
     )
 
@@ -35019,8 +35038,8 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct UnshieldedMint
-                                           (domain_sep (tbytes 32))
-                                           (token_type (tbytes 32))
+                                           (domainSep (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 80)
@@ -35029,10 +35048,10 @@ groups than for single tests.
             (vector
               (spread
                 32
-                (bytes->vector 32 (elt-ref %value.2 domain_sep 0)))
+                (bytes->vector 32 (elt-ref %value.2 domainSep 0)))
               (spread
                 32
-                (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                (bytes->vector 32 (elt-ref %value.2 tokenType 1)))
               (spread
                 16
                 (bytes->vector
@@ -35045,13 +35064,13 @@ groups than for single tests.
                       (elt-ref %value.2 amount 2))))))))
         (circuit %deserialize.3 ([%value.4 (tbytes 80)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedMint
-                 (domain_sep (tbytes 32))
-                 (token_type (tbytes 32))
+                 (domainSep (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (bytes-slice %value.4 0 32)
@@ -35061,14 +35080,14 @@ groups than for single tests.
               (bytes-slice %value.4 64 16))))
         (circuit %deserialize_UnshieldedMint.5 ([%x.6 (tbytes 80)])
              (tstruct UnshieldedMint
-               (domain_sep (tbytes 32))
-               (token_type (tbytes 32))
+               (domainSep (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.3 %x.6))
         (circuit %serialize_UnshieldedMint.7 ([%x.8 (tstruct UnshieldedMint
-                                                      (domain_sep (tbytes 32))
-                                                      (token_type (tbytes 32))
+                                                      (domainSep (tbytes 32))
+                                                      (tokenType (tbytes 32))
                                                       (amount (tunsigned
                                                                 340282366920938463463374607431768211455)))])
              (tbytes 80)
@@ -35098,7 +35117,7 @@ groups than for single tests.
                                                      (right (tstruct ContractAddress
                                                               (bytes (tbytes
                                                                        32))))))
-                                           (token_type (tbytes 32))
+                                           (tokenType (tbytes 32))
                                            (amount (tunsigned
                                                      340282366920938463463374607431768211455)))])
              (tbytes 113)
@@ -35119,7 +35138,7 @@ groups than for single tests.
                 (spread 32
                   (bytes->vector 32 (elt-ref (elt-ref %t.3 right 2) bytes 0)))
                 (spread 32
-                  (bytes->vector 32 (elt-ref %value.2 token_type 1)))
+                  (bytes->vector 32 (elt-ref %value.2 tokenType 1)))
                 (spread 16
                   (bytes->vector 16
                     (field->bytes 16 (field-native)
@@ -35135,7 +35154,7 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (new (tstruct UnshieldedBurn
@@ -35145,7 +35164,7 @@ groups than for single tests.
                                    (bytes (tbytes 32))))
                            (right (tstruct ContractAddress
                                     (bytes (tbytes 32))))))
-                 (token_type (tbytes 32))
+                 (tokenType (tbytes 32))
                  (amount (tunsigned
                            340282366920938463463374607431768211455)))
             (new (tstruct Either
@@ -35170,7 +35189,7 @@ groups than for single tests.
                                  (bytes (tbytes 32))))
                          (right (tstruct ContractAddress
                                   (bytes (tbytes 32))))))
-               (token_type (tbytes 32))
+               (tokenType (tbytes 32))
                (amount (tunsigned
                          340282366920938463463374607431768211455)))
           (call %deserialize.4 %x.7))
@@ -35183,7 +35202,7 @@ groups than for single tests.
                                                                 (right (tstruct ContractAddress
                                                                          (bytes (tbytes
                                                                                   32))))))
-                                                      (token_type (tbytes 32))
+                                                      (tokenType (tbytes 32))
                                                       (amount (tunsigned
                                                                 340282366920938463463374607431768211455)))])
              (tbytes 113)
@@ -66265,7 +66284,35 @@ groups than for single tests.
       "import M3;"
       "export { uno, dos, tres }"
      )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
+    (output-file "compiler/testdir/zkir/uno.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%q.0\", \"bits\": 12 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%q.1\", \"bits\": 12 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%q.2\", \"bits\": 12 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"add\", \"output\": \"%t.3\", \"a\": \"%q.0\", \"b\": \"%q.1\" },"
+        "    { \"op\": \"less_than\", \"output\": \"%t.4\", \"a\": \"%t.3\", \"b\": \"%q.2\", \"bits\": 13 },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.5\", \"bit\": \"%t.4\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"assert\", \"cond\": \"%t.5\" },"
+        "    { \"op\": \"neg\", \"output\": \"%neg.6\", \"a\": \"%q.2\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.7\", \"a\": \"%t.3\", \"b\": \"%neg.6\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.7\"] }"
+        "  ]"
+        "}"))
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
@@ -88780,7 +88827,7 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "  });"
       "  return n;"
@@ -88788,12 +88835,12 @@ groups than for single tests.
       "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "  });"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contract_address: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
       "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) }"
       "  });"
       "  return n;"
@@ -88802,7 +88849,7 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedReceive {"
       "      commitment: disclose(n),"
-      "      contract_address: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
+      "      contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
       "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
       "    });"
       "  }"
@@ -88870,7 +88917,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contract_address: { is_some: true, value: N32() },"
+        "    contractAddress: { is_some: true, value: N32() },"
         "    ciphertext: { is_some: true, value: N512() }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedReceive(Ctxt, orig);"
@@ -88882,7 +88929,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    contract_address: { is_some: true, value: N32() },"
+        "    contractAddress: { is_some: true, value: N32() },"
         "    ciphertext: { is_some: false, value: N512() }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedReceive(Ctxt, orig);"
@@ -88898,7 +88945,7 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 1000 as Uint<128> }"
       "  });"
       "  return n;"
@@ -88906,12 +88953,12 @@ groups than for single tests.
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: true, value: 100 as Uint<128> }"
       "  });"
       "  emit(ShieldedMint {"
       "    commitment: disclose(n),"
-      "    domain_sep: disclose(n),"
+      "    domainSep: disclose(n),"
       "    amount: Maybe<Uint<128>> { is_some: false, value: 0 as Uint<128> }"
       "  });"
       "  return n;"
@@ -88920,7 +88967,7 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedMint {"
       "      commitment: disclose(n),"
-      "      domain_sep: disclose(n),"
+      "      domainSep: disclose(n),"
       "      amount: Maybe<Uint<128>> { is_some: true, value: 42 as Uint<128> }"
       "    });"
       "  }"
@@ -88984,7 +89031,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    domain_sep: N32(),"
+        "    domainSep: N32(),"
         "    amount: { is_some: true, value: 999n }"
         "  };"
         "  const r = await C.circuits.serialize_ShieldedMint(Ctxt, orig);"
@@ -88995,7 +89042,7 @@ groups than for single tests.
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const orig = {"
         "    commitment: N32(),"
-        "    domain_sep: N32(),"
+        "    domainSep: N32(),"
         "    amount: { is_some: true, value: 12345n }"
         "  };"
         "  const r = await C.circuits.roundtrip_ShieldedMint(Ctxt, orig);"
@@ -89114,7 +89161,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
       "  });"
       "  return n;"
@@ -89126,7 +89174,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedSpend {"
@@ -89135,7 +89184,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -89148,7 +89198,8 @@ groups than for single tests.
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "        right: ContractAddress { bytes: disclose(n) }"
       "      },"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
       "    });"
       "  }"
@@ -89157,15 +89208,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<113> {"
-      "  return serialize<UnshieldedSpend, 113>(x);"
+      "export circuit serialize_UnshieldedSpend(x: UnshieldedSpend): Bytes<145> {"
+      "  return serialize<UnshieldedSpend, 145>(x);"
       "}"
-      "export circuit deserialize_UnshieldedSpend(x: Bytes<113>): UnshieldedSpend {"
-      "  return deserialize<UnshieldedSpend, 113>(x);"
+      "export circuit deserialize_UnshieldedSpend(x: Bytes<145>): UnshieldedSpend {"
+      "  return deserialize<UnshieldedSpend, 145>(x);"
       "}"
       "export circuit roundtrip_UnshieldedSpend(orig: UnshieldedSpend): UnshieldedSpend {"
-      "  const bytes = serialize<UnshieldedSpend, 113>(orig);"
-      "  return deserialize<UnshieldedSpend, 113>(bytes);"
+      "  const bytes = serialize<UnshieldedSpend, 145>(orig);"
+      "  return deserialize<UnshieldedSpend, 145>(bytes);"
       "}"
       )
     (stage-javascript
@@ -89213,16 +89264,16 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedSpend returns 113-byte payload', async () => {"
+        "test('serialize_UnshieldedSpend returns 145-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { sender: senderL(), token_type: N32(), amount: 777n };"
+        "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
-        "  expect(r.result.length).toBe(113);"
+        "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { sender: senderL(), token_type: N32(), amount: 555n };"
+        "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
         "});"
@@ -89239,7 +89290,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 500 as Uint<128>"
       "  });"
       "  return n;"
@@ -89251,7 +89303,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedReceive {"
@@ -89260,7 +89313,8 @@ groups than for single tests.
       "      left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "      right: ContractAddress { bytes: disclose(n) }"
       "    },"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -89273,7 +89327,8 @@ groups than for single tests.
       "        left: ZswapCoinPublicKey { bytes: disclose(n) },"
       "        right: ContractAddress { bytes: disclose(n) }"
       "      },"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 1 as Uint<128>"
       "    });"
       "  }"
@@ -89282,15 +89337,15 @@ groups than for single tests.
       "export circuit no_emit(n: Bytes<32>): Bytes<32> {"
       "  return n;"
       "}"
-      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<113> {"
-      "  return serialize<UnshieldedReceive, 113>(x);"
+      "export circuit serialize_UnshieldedReceive(x: UnshieldedReceive): Bytes<145> {"
+      "  return serialize<UnshieldedReceive, 145>(x);"
       "}"
-      "export circuit deserialize_UnshieldedReceive(x: Bytes<113>): UnshieldedReceive {"
-      "  return deserialize<UnshieldedReceive, 113>(x);"
+      "export circuit deserialize_UnshieldedReceive(x: Bytes<145>): UnshieldedReceive {"
+      "  return deserialize<UnshieldedReceive, 145>(x);"
       "}"
       "export circuit roundtrip_UnshieldedReceive(orig: UnshieldedReceive): UnshieldedReceive {"
-      "  const bytes = serialize<UnshieldedReceive, 113>(orig);"
-      "  return deserialize<UnshieldedReceive, 113>(bytes);"
+      "  const bytes = serialize<UnshieldedReceive, 145>(orig);"
+      "  return deserialize<UnshieldedReceive, 145>(bytes);"
       "}"
       )
     (stage-javascript
@@ -89338,16 +89393,16 @@ groups than for single tests.
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
-        "test('serialize_UnshieldedReceive returns 113-byte payload', async () => {"
+        "test('serialize_UnshieldedReceive returns 145-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { recipient: recipL(), token_type: N32(), amount: 777n };"
+        "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
-        "  expect(r.result.length).toBe(113);"
+        "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { recipient: recipL(), token_type: N32(), amount: 555n };"
+        "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
         "  // serialize is purely structural — no Either canonicalization."
         "  // whatever bytes sit in the inactive variant (right when is_left=true)"
@@ -89363,21 +89418,21 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "export circuit emit_one(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1000 as Uint<128>"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>): Bytes<32> {"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 1 as Uint<128>"
       "  });"
       "  emit(UnshieldedMint {"
-      "    domain_sep: disclose(n),"
-      "    token_type: disclose(n),"
+      "    domainSep: disclose(n),"
+      "    tokenType: disclose(n),"
       "    amount: 2 as Uint<128>"
       "  });"
       "  return n;"
@@ -89385,8 +89440,8 @@ groups than for single tests.
       "export circuit cond_emit(b: Boolean, n: Bytes<32>): Bytes<32> {"
       "  if (disclose(b)) {"
       "    emit(UnshieldedMint {"
-      "      domain_sep: disclose(n),"
-      "      token_type: disclose(n),"
+      "      domainSep: disclose(n),"
+      "      tokenType: disclose(n),"
       "      amount: 5 as Uint<128>"
       "    });"
       "  }"
@@ -89448,14 +89503,14 @@ groups than for single tests.
         ""
         "test('serialize_UnshieldedMint returns 80-byte payload', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 999n };"
+        "  const orig = { domainSep: N32(), tokenType: N32(), amount: 999n };"
         "  const r = await C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result.length).toBe(80);"
         "});"
         ""
         "test('roundtrip preserves UnshieldedMint struct', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const orig = { domain_sep: N32(), token_type: N32(), amount: 12345n };"
+        "  const orig = { domainSep: N32(), tokenType: N32(), amount: 12345n };"
         "  const r = await C.circuits.roundtrip_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
         "});"
