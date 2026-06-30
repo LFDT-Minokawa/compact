@@ -69,7 +69,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   maximum value.
 
 #### secp256k1 points
-- The standard library has circuits `secp256k1PointX1` and `secp256k1PointY` to
+- The standard library has circuits `secp256k1PointX` and `secp256k1PointY` to
   extract the affine X- and Y-coordinates of a value of type `Secp256k1Point`.
   These coordinates both have type `Secp256k1Base`.  There is no way in Compact
   to explicitly construct `Secp256k1Point`s from their coordinates (but note
