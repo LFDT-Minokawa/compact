@@ -182,6 +182,158 @@ and [`mintUnshieldedToken`](#mintunshieldedtoken).
 struct UserAddress { bytes: Bytes<32>; }
 ```
 
+## Events
+
+Events are struct types that can be emitted using an `emit` operation.
+
+### `ShieldedSpend`
+
+Shielded coin consumed, new coin created for a user recipient.
+
+Serialized size is 32.
+
+```compact
+struct ShieldedSpend {
+  nullifier: Bytes<32> // indexed
+}
+```
+
+### `ShieldedReceive`
+
+A contract accepts an incoming shielded coin.
+
+`contract_address` set when received by a contract, absent for user recipients.
+
+ Serialized size is 578.
+
+```compact
+struct ShieldedReceive {
+  commitment: Bytes<32>, // indexed
+  contract_address: Maybe<Bytes<32>>,
+  ciphertext: Maybe<Bytes<512>>
+}
+```
+
+### `ShieldedMint`
+
+New shielded tokens created.
+
+`token_type` derived by the consumer from `domain_sep` + `ContractLog.address`.
+
+ Serialized size is 81.
+ 
+```compact
+struct ShieldedMint {
+  commitment: Bytes<32>, // indexed
+  domain_sep: Bytes<32>, // indexed
+  amount: Maybe<Uint<128>>
+}
+```
+
+### `ShieldedBurn`
+
+Shielded coin sent to the burn address.
+
+Supply tracking — tokens permanently removed from circulation.
+
+Serialized size is 49.
+ 
+```compact
+struct ShieldedBurn {
+  nullifier: Bytes<32>, // indexed
+  amount: Maybe<Uint<128>>
+}
+```
+
+### `UnshieldedSpend`
+
+Public token sent from a sender.
+
+Serialized size is 113.
+
+```compact
+struct UnshieldedSpend {
+  sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  token_type: Bytes<32>, // indexed
+  amount: Uint<128>
+}
+```
+
+### `UnshieldedReceive`
+
+Public token sent to a recipient.
+
+Serialized size is 113.
+
+```compact
+struct UnshieldedReceive {
+  recipient: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  token_type: Bytes<32>, // indexed
+  amount: Uint<128>
+}
+```
+
+### `UnshieldedMint`
+
+New unshielded tokens created.
+
+Serialized size is 80.
+
+```compact
+struct UnshieldedMint {
+  domain_sep: Bytes<32>, // indexed
+  token_type: Bytes<32>, // indexed
+  amount: Uint<128>
+}
+```
+
+### `UnshieldedBurn`
+
+Unshielded coin sent to the burn address.
+
+Serialized size is 113.
+
+```compact
+struct UnshieldedBurn {
+  sender: Either<ZswapCoinPublicKey, ContractAddress>, // indexed
+  token_type: Bytes<32>, // indexed
+  amount: Uint<128>
+}
+```
+
+### `Paused`
+
+Contract operations suspended.
+
+Serialized size is 0.
+
+```compact
+struct Paused {}
+```
+
+### `Unpaused`
+
+Contract operations resumed.
+
+Serialized size is 0.
+
+```compact
+struct Unpaused {}
+```
+
+### `Misc`
+
+Miscellaneous event type.
+
+Serialized size is 288.
+
+```compact
+struct Misc {
+  name: Bytes<32>,
+  payload: Bytes<256>
+}
+```
+
 ## Circuits
 
 ### `some`
@@ -697,4 +849,24 @@ Returns true if the current block time is less than or equal to the given value.
 
 ```compact
 circuit blockTimeLte(time: Uint<64>): Boolean;
+```
+
+### `serialize<T, #n>`
+
+Returns the canonical byte encoding of for a given value of event type. 
+Note that `serialize` can only be instantiated for an event type and its
+canonical serialized size.
+
+```compact
+circuit serialize<T, #n> (x: T): Bytes<n>;
+```
+
+### `deserialize<T, #n>`
+
+Reconstructs a value of type event from its canonical byte encoding.
+Note that `deserialize` can only be instantiated for an event type and its
+canonical serialized size.
+
+```compact
+circuit deserialize<T, #n> (x: Bytes<n>): T;
 ```

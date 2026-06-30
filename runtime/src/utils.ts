@@ -15,6 +15,7 @@
 
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
 import { EncodedContractAddress } from './zswap.js';
+import { CompactError } from './error.js';
 
 /**
  * Regex matching hex strings of even length.
@@ -33,6 +34,12 @@ export const CONTRACT_ADDRESS_BYTE_LENGTH = 32;
  */
 export function isContractAddress(x: unknown): x is ContractAddress {
   return typeof x === 'string' && x.length === CONTRACT_ADDRESS_BYTE_LENGTH * 2 && HEX_REGEX_NO_PREFIX.test(x);
+}
+
+export function assertIsContractAddress(x: unknown): asserts x is ContractAddress {
+  if (!isContractAddress(x)) {
+    throw new CompactError(`Value ${x} is not a contract address`);
+  }
 }
 
 export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {

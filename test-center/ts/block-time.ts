@@ -13,27 +13,26 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-test('Check block time functions', () => {
-  const [c, context] = startContract(contractCode, {}, 0);
-  context.currentQueryContext.block = {
-    ...context.currentQueryContext.block,
+test('Check block time functions', async () => {
+  const [c, context] = await startContract(contractCode, {}, 0);
+  context.callContext.currentQueryContext.block = {
+    ...context.callContext.currentQueryContext.block,
     secondsSinceEpoch: 1n,
     secondsSinceEpochErr: 0,
   };
-  expect(c.circuits.testBlockTimeGt(context, 5n).result).toEqual(false);
-  expect(c.circuits.testBlockTimeGt(context, 0n).result).toEqual(true);
-  expect(c.circuits.testBlockTimeGt(context, 1n).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeGt(context, 5n)).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeGt(context, 0n)).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeGt(context, 1n)).result).toEqual(false);
 
-  expect(c.circuits.testBlockTimeGte(context, 5n).result).toEqual(false);
-  expect(c.circuits.testBlockTimeGte(context, 0n).result).toEqual(true);
-  expect(c.circuits.testBlockTimeGte(context, 1n).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeGte(context, 5n)).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeGte(context, 0n)).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeGte(context, 1n)).result).toEqual(true);
 
-  expect(c.circuits.testBlockTimeLt(context, 5n).result).toEqual(true);
-  expect(c.circuits.testBlockTimeLt(context, 0n).result).toEqual(false);
-  expect(c.circuits.testBlockTimeLt(context, 1n).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeLt(context, 5n)).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeLt(context, 0n)).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeLt(context, 1n)).result).toEqual(false);
 
-  expect(c.circuits.testBlockTimeLte(context, 5n).result).toEqual(true);
-  expect(c.circuits.testBlockTimeLte(context, 0n).result).toEqual(false);
-  expect(c.circuits.testBlockTimeLte(context, 1n).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeLte(context, 5n)).result).toEqual(true);
+  expect((await c.circuits.testBlockTimeLte(context, 0n)).result).toEqual(false);
+  expect((await c.circuits.testBlockTimeLte(context, 1n)).result).toEqual(true);
 })
-

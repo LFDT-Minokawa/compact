@@ -82,6 +82,9 @@
       [(,src ,kwd-pure? ,kwd ,function-name ,arg-list ,[type])
        (let ([arg* (Argument-List arg-list)])
          `(,src ,(and kwd-pure? #t) ,(token-value function-name) (,arg* ...) ,type))])
+    (Contract-Implements-Declaration : Contract-Implements-Declaration (ir) -> Contract-Implements-Declaration ()
+      [(contract-implements ,src ,kwd ,kwd-implements ,[type] ,semicolon)
+       `(contract-implements ,src ,type)])
     (Structure-Definition : Structure-Definition (ir) -> Structure-Definition ()
       [(struct ,src ,kwd-export? ,kwd ,struct-name ,generic-param-list? ,lbrace (,[arg*] ...) (,sep* ...) ,rbrace ,semicolon?)
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())])
@@ -190,6 +193,7 @@
        `(elt-ref ,(token-src dot) ,expr ,(token-value elt-name))]
       [(elt-call ,src ,[expr] ,dot ,elt-name ,lparen (,[expr*] ...) (,comma* ...) ,rparen)
        `(elt-call ,(token-src dot) ,expr ,(token-value elt-name) ,expr* ...)]
+      [(emit ,src ,kwd ,lparen ,[expr] ,rparen) `(emit ,src ,expr)]
       [(= ,src ,[expr1] ,op ,[expr2])
        `(= ,(token-src op) ,expr1 ,expr2)]
       [(+= ,src ,[expr1] ,op ,[expr2])
