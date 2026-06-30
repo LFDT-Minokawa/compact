@@ -334,20 +334,20 @@
   ;; Lowercase 64-character hex SHA-256 of a file's raw bytes. This is the same definition the
   ;; midnight-js stack uses for verifier-key fingerprints (`hashVerifierKey` == sha256 of the bytes,
   ;; hex), so a hash produced here over a `.verifier` file matches the runtime's hash of the deployed
-  ;; verifier key byte-for-byte. Shells out to `sha256sum` (already relied on by the manifest pass).
+  ;; verifier key byte-for-byte. Shells out to `shasum`.
   (define (sha256-file pathname)
     (define (hex-digit? c)
       (or (char<=? #\0 c #\9)
           (char<=? #\a c #\f)
           (char<=? #\A c #\F)))
-    (let-values ([(stdout stderr) (shell (format "exec sha256sum -b '~a'" pathname))])
+    (let-values ([(stdout stderr) (shell (format "exec shasum -a 256 -b '~a'" pathname))])
       (unless (string=? stderr "")
-        (external-errorf "attempt to invoke sha256sum failed with message ~a" stderr))
+        (external-errorf "attempt to invoke shasum failed with message ~a" stderr))
       (unless (>= (string-length stdout) 64)
-        (external-errorf "unexpected output from sha256sum: ~a" stdout))
+        (external-errorf "unexpected output from shasum: ~a" stdout))
       (let ([hash (substring stdout 0 64)])
         (unless (andmap hex-digit? (string->list hash))
-          (external-errorf "unexpected output from sha256sum: ~a" stdout))
+          (external-errorf "unexpected output from shasum: ~a" stdout))
         (string-downcase hash))))
 
   (define (string-prefix? prefix str)
