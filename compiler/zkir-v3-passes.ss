@@ -683,7 +683,13 @@
                               (assemble1 c test-val primitive-type* alignment* var-name*))
                          code)])
             (with-output-language (Lzkir Instruction)
-              (cons `(impact ,test-val ,(apply append op**) ...) (zkir-instr*))))))
+              (fold-left
+                (lambda (acc op*)
+                  (if (null? op*)
+                      acc
+                      (cons `(impact ,test-val ,op* ...) acc)))
+                (zkir-instr*)
+                op**)))))
 
       ;; ==== Per-circuit state ====
       (define default-src)
