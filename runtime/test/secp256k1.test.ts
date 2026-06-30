@@ -21,8 +21,9 @@ import * as runtime from '../src/index.js';
 const G: runtime.Secp256k1Point = {
   x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,
   y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,
+  identity: false,
 };
-const IDENTITY: runtime.Secp256k1Point = { x: 0n, y: 0n };
+const IDENTITY: runtime.Secp256k1Point = { x: 0n, y: 0n, identity: true };
 
 describe('secp256k1 group operations', () => {
   test('mulGenerator matches the generator and the identity', () => {
