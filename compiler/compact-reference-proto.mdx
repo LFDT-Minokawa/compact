@@ -2992,8 +2992,8 @@ export circuit deserializeShieldedSpend(x: Bytes<32>): ShieldedSpend {
 ```
 
 The emitted item is appended, in order of evaluation, to the events list of
-the enclosing exported circuit's return value, where it can be read
-from TypeScript via the `events` field of `CircuitResults` (see
+the enclosing exported circuit's context, where it can be read
+from TypeScript via the `events` field of `CircuitContext` (see
 [Interacting with Compact from TypeScript](#interacting-with-compact-from-typescript)).
 
 ### Explicit disclosure
