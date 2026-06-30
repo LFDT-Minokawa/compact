@@ -577,6 +577,7 @@
               pkgs.yarn
               zkir.packages.${system}.zkir
               packages.zkir-v3-bin
+              pkgs.perl # provides `shasum` for compactc's verifier-key fingerprint (compiler/utils.ss sha256-file)
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
