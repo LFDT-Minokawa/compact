@@ -30,6 +30,20 @@ export struct Secp256k1EcdsaSignatureWithRecovery {
   R: Secp256k1Point,
 }
 
+// Deserialize a 32-byte hash digest into a secp256k1 scalar.
+//
+// By ECDSA convention (https://www.rfc-editor.org/rfc/rfc6979#section-2.3.2) the 
+// digest is the big-endian encoding of an integer, which is then reduced the 
+// scalar field's order.
+circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
+  const beReversed: Bytes<32> = Bytes[
+    digest[31], digest[30], digest[29], digest[28], digest[27], digest[26], digest[25], digest[24],
+    digest[23], digest[22], digest[21], digest[20], digest[19], digest[18], digest[17], digest[16],
+    digest[15], digest[14], digest[13], digest[12], digest[11], digest[10], digest[9],  digest[8],
+    digest[7],  digest[6],  digest[5],  digest[4],  digest[3],  digest[2],  digest[1],  digest[0]];
+  return beReversed as Secp256k1Scalar;
+}
+
 // Verify an ECDSA signature over Secp256k1.
 //
 // msgHash must be the output of an in-circuit hash (keccak256 or persistentHash)
@@ -48,7 +62,7 @@ export circuit secp256k1EcdsaVerify(
                  sig: Secp256k1EcdsaSignature,
                  pk: Secp256k1Point
                  ): Boolean {
-  const z: Secp256k1Scalar = msgHash as Secp256k1Scalar;
+  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
   const u1: Secp256k1Scalar = mul(z, w);
@@ -77,7 +91,7 @@ export circuit secp256k1EcdsaRecover(
                  msgHash: Bytes<32>,
                  sig: Secp256k1EcdsaSignatureWithRecovery
                  ): Secp256k1Point {
-  const z: Secp256k1Scalar = msgHash as Secp256k1Scalar;
+  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s, R} = sig;
   assert((secp256k1PointX(R) as Bytes<32>) == (r as Bytes<32>), "R.x does not match r");
   const r_inv: Secp256k1Scalar = inv(r);
