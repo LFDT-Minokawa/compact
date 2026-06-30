@@ -7,9 +7,140 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Toolchain 0.32.110, language 0.24.103, runtime 0.17.105]
 
+### Added
+
+- New Compact types for Jubjub and secp256k1 curves: builtin field types
+  `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar` (the Jubjub base field
+  is the native BLS12-381 Compact `Field` type), and the point type
+  `Secp256k1Point`.
+- The secp256k1 fields and curve points are **ONLY** supported by using the new
+  ZKIR v3 backend at compile time.  This is enabled by passing the flag
+  `--feature-zkir-v3` to the Compiler.  Using them with the default ZKIR v2
+  backend is a compile-time error.
+- The standard library has new circuits for verifying ECDSA signatures in
+  Compact.
+
+#### `JubjubScalar`
+- There is a cast from `Field` to `JubjubScalar` and from `JubjubScalar` to
+  `Field`.  The cast from `Field` to `JubjubScalar` will reduce the `Field`
+  value modulo the Jubjub scalar modulus.  It will not fail, but do note that
+  round tripping from `Field` to `JubjubScalar` and back will possibly give a
+  different `Field` value.  The cast from `JubjubScalar` to `Field` will always
+  succeed and give the same value (as a `Field`), because the maximum
+  `JubjubScalar` value is less than the maximum `Field` value.
+- There is a cast from all `Uint` types to `JubjubScalar`.  This cast behaves
+  the same as the cast from `Field` to `JubjubScalar`, namely never failing but
+  reducing values larger than the maximum Jubjub scalar by the Jubjub scalar
+  modulus.  There is also a cast from `JubjubScalar` to all `Uint` types.  This
+  cast will fail at runtime if the actual Jubjub scalar value is too large for
+  the target `Uint` type.
+- `default<JubjubScalar>` is zero.
+- Arithmetic is not supported for the `JubjubScalar` type.  Equals and
+  not-equals comparisons are supported, but other relational comparisons are not
+  supported.
+- The Compact runtime exports new `bigint` constants `JUBJUB_SCALAR_MODULUS` and
+  `MAX_JUBJUB_SCALAR`.
+
+#### secp256k1 fields
+- There are casts to and from both `secp256k1` field types and `Bytes<32>`.  The
+  `Bytes<32>` representation is little-endian.  The casts targeting `Bytes<32>`
+  cannot fail (both fields' maximum values fit in 32 bytes).  The casts from
+  `Bytes<32>` will fail if the resulting value would exceed the respective
+  target type's maximum value.  Therefore, round tripping through `Bytes<32>`
+  always succeeds and gives the same value; round-tripping through a secp256k1
+  field type will only work if the original `Bytes<32>` is a valid value for
+  that field.
+- There are **NO** other casts to or from the secp256k1 field type from any
+  other type.  Specifically, because there are no `Uint` casts and literals have
+  `Uint` type, there is no way to use a literal as a secp256k1 field value (you
+  can obtain one from a witness, though).
+- `default<Secp256k1Base>` and `default<Secp256k1Scalar>` are zero.
+- Arithmetic is supported via standard library circuits: `add` takes a pair of
+  secp256k1 field values of the same type and returns a value of that type,
+  `mul` takes a pair of secp256k1 field values of the same type and returns a
+  value of that type, `neg` negates a secp256k1 field value and returns a value
+  of the same type, `inv` returns the multiplicative inverse (for a value `x`,
+  this is the value `y` such that `mul(x, y) == 1`).  All of these operations
+  are performed modulo the respective field's modulus.
+- Equals and not equals comparisons are supported for these same-typed values of
+  these types, but other relational comparisons are not supported.
+- The Compact runtime exports new functions to perform arithmetic operations in
+  the respective field.  It exports constants for the field modulus and the
+  maximum value.
+
+#### secp256k1 points
+- The standard library has circuits `secp256k1PointX1` and `secp256k1PointY` to
+  extract the affine X- and Y-coordinates of a value of type `Secp256k1Point`.
+  These coordinates both have type `Secp256k1Base`.  There is no way in Compact
+  to explicitly construct `Secp256k1Point`s from their coordinates (but note
+  that they can be obtained from witnesses).
+- `default<Secp256k1Point>` is the additive identity point (a point `y` such
+  that `ecAdd(x, y) == x` for any point `x`.
+- The elliptic curve operations `ecAdd`, `ecMul`, and `ecMulGenerator` are
+  overloaded to work for secp256k1 types.  If `ecAdd` is given a pair of
+  `Secp256k1Point`s it will return a `Secp256k1Point`.  If `ecMul` is given a
+  `Secp256k1Point` and a `Secp256k1Scalar` it will return a `Secp256k1Point`.
+  If `ecMulGenerator` is given a `Secp256k1Scalar` it will return a
+  `Secp256k1Point`.
+- Equals and not-equals comparisons between these points do not work reliably.
+- The compact runtime exports new functions to perform these operations.  In the
+  Compact runtime, `Secp256k1Point` is represented as an object with affine X-
+  and Y-coordinates.  The additive identity point (this is the value of
+  `default<Secp256k1Point>` is not representable with `x` and `y` coordinates;
+  there is a property `identity` on the Compact runtime representation.  If
+  `pt.identity` is true then the point is the identity point and the X- and
+  Y-coordinates should be ignored.
+
+#### ECDSA verification in Compact
+
+- The standard library has a new circuit `secp256k1EcdsaVerify` that attempts to
+  verify an ECDSA signature and returns a boolean value telling whether the
+  verification succeeded.  If you want to ensure a signature verifies in
+  Compact, you should `assert` that the value of `secp256k1EcdsaVerify` is true.
+  This circuit takes (1) a message hash as Compact `Bytes<32>`, which must be
+  produced by either `persistentHash` (SHA-256) or `keccak256` **in Compact**,
+  (2) a signature as a value of a new standard library structure type
+  `Secp256k1EcdsaSignature` containing a pair of `Secp256k1Scalar` values, and
+  (3) the public key as a `Secp256k1Point`.
+- The standard library has a new circuit `secp256k1EcdsaRecover` that recovers
+  the public key from an ECDSA signature.  It returns the public key as a
+  `Secp256k1Point`.  This circuit takes (1) a message hash as Compact
+  `Bytes<32>`, which must be produced by either `persistentHash` (SHA-256) or
+  `keccak256` **in Compact**, and (2) a signature value of a new standard
+  library structure type `Secp256k1EcdsaSignatureWithRecovery`.  This has a pair
+  of `Secp256k1Scalar` values (the signature) and the signing nonce point as a
+  `Secp256k1Point` computed outside of Compact (e.g. as a witness return value
+  or a circuit argument).  This is computed outside Compact to avoid an
+  expensive square root computation in the secp256k1 base field,
+  `secp256k1EcdsaRecover` asserts in circuit that the X-coordinate of this point
+  matches the signature's `r` (when cast to Compact `Bytes<32>`, that is as
+  32-byte little-endian representations).
+- **NOTE:** these circuits use the secp256k1 curve and field types, and
+  consequently they are unavailabe with the default ZKIR v2 backend.  Pass the
+  flag `--feature-zkir-v3` at compile time to enable them.
+
 ### Changed
 
-????
+- The standard library circuit `ecMul` now requires the second argument to have
+  type `JubjubScalar` when the first argument has type `JubjubPoint`.
+  Previously this type was `Field`.  The standard library circuit
+  `ecMulGenerator` requires its argument to have type `JubjubScalar`.
+  Previously this type was `Field`.
+- `Field` is no longer a supertype of `Uint` types.  This is a major **BREAKING
+  CHANGE**.  `Uint` values will no longer be implicitly cast to `Field` types in
+  many contexts, and an explicit `as Field` cast will be required.  This
+  **specifically** affects numeric literals.  The literal `n` has exact type
+  `Uint<0..n+1>`, which is no longer implicitly cast to `Field` type.
+  Effectively, there are no longer any `Field` literals in Compact, and you must
+  write, e.g., `7 as Field`.  **NOTE:** we might later change this behavior by
+  allowing `Field` literals in some way.
+- An exception is in arithmetic.  The rules for binary arithmetic operations
+  (addition, subtraction, multiplication) are **unchanged**: if one operand has
+  type `Field` and the other has a `Uint` type, then the `Uint` value is cast to
+  a `Field` value and `Field` arithmetic is used.  Where formerly this inserted
+  cast was an upcast (from a subtype to a supertype), it is no longer an upcast
+  (`Field` and `Uint` types are unrelated by subtyping), but it is still
+  implicit.  **NOTE:** we might later change this behavior.
 
 ## [Toolchain 0.32.109, language 0.24.102, runtime 0.17.104]
 
