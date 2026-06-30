@@ -365,6 +365,7 @@ jobs:
           name: macos-release-x86_64
 
       - name: Patch release notes in zip artifacts
+        if: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
         env:
           VERSION: ${{ inputs.version }}
           CLEAN_TAG: ${{ needs.setup.outputs.clean_tag }}
@@ -413,6 +414,7 @@ jobs:
           done
 
       - name: Patch release notes file for GitHub release body
+        if: ${{ needs.setup.outputs.release_notes_flag == 'true' }}
         env:
           VERSION: ${{ inputs.version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
@@ -421,7 +423,7 @@ jobs:
           sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" "$RELEASE_NOTES_FILE"
 
       - name: Create Release on midnight-ntwrk/artifacts
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
@@ -435,10 +437,11 @@ jobs:
 
       - name: Create Release on LFDT/Minokawa
         id: create_release_lfdt
-        uses: softprops/action-gh-release@153bb8e04406b158c6c84fc1615b65b24149a1fe # v2.6.1
+        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
+          target_commitish: ${{ needs.setup.outputs.branch }}
           name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: true
           prerelease: true

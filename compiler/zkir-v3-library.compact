@@ -1,0 +1,87 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+export new type Secp256k1Point = Opaque<'Secp256k1Point'>;
+
+// ECDSA signature over Secp256k1.
+export struct Secp256k1EcdsaSignature {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+}
+
+// ECDSA signature with recoverable nonce commitment, for use with secp256k1EcdsaRecover.
+// R is the signing nonce commitment supplied by the prover off-circuit, avoiding an
+// expensive in-circuit square root (liftX). The circuit verifies R.x == r as bytes.
+export struct Secp256k1EcdsaSignatureWithRecovery {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+  R: Secp256k1Point,
+}
+
+// Verify an ECDSA signature over Secp256k1.
+//
+// msgHash must be the output of an in-circuit hash (keccak256 or persistentHash)
+// applied to the actual message. Computing the hash outside the circuit and
+// passing it as a witness breaks the binding between the proof and the message:
+// a malicious prover could supply a hash of a different message.
+//
+// Implements the standard ECDSA verification:
+//   w  = s^(-1) mod n
+//   u1 = (msgHash * w) mod n
+//   u2 = (r * w) mod n
+//   P  = u1*G + u2*pk
+//   valid iff P.x == r as 32-byte big-endian integers
+export circuit secp256k1EcdsaVerify(
+                 msgHash: Bytes<32>,
+                 sig: Secp256k1EcdsaSignature,
+                 pk: Secp256k1Point
+                 ): Boolean {
+  const z: Secp256k1Scalar = msgHash as Secp256k1Scalar;
+  const {r, s} = sig;
+  const w: Secp256k1Scalar = inv(s);
+  const u1: Secp256k1Scalar = mul(z, w);
+  const u2: Secp256k1Scalar = mul(r, w);
+  const point: Secp256k1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
+  return (secp256k1PointX(point) as Bytes<32>) == (r as Bytes<32>);
+}
+
+// Recover the Secp256k1 public key from an ECDSA signature.
+//
+// msgHash must be the output of an in-circuit hash (keccak256 or persistentHash)
+// applied to the actual message. Computing the hash outside the circuit and
+// passing it as a witness breaks the binding between the proof and the message:
+// a malicious prover could supply a hash of a different message.
+//
+// R (the signing nonce point) is supplied by the prover off-circuit, which avoids
+// an expensive square root in the base field (liftX). The circuit constrains R by
+// asserting that its x-coordinate matches r as 32-byte big-endian integers.
+//
+// Implements standard ECDSA public key recovery:
+//   assert R.x == r (bytes)
+//   u1 = (neg(msgHash) * r^(-1)) mod n
+//   u2 = (s * r^(-1)) mod n
+//   pk = u1*G + u2*R
+export circuit secp256k1EcdsaRecover(
+                 msgHash: Bytes<32>,
+                 sig: Secp256k1EcdsaSignatureWithRecovery
+                 ): Secp256k1Point {
+  const z: Secp256k1Scalar = msgHash as Secp256k1Scalar;
+  const {r, s, R} = sig;
+  assert((secp256k1PointX(R) as Bytes<32>) == (r as Bytes<32>), "R.x does not match r");
+  const r_inv: Secp256k1Scalar = inv(r);
+  const u1: Secp256k1Scalar = mul(neg(z), r_inv);
+  const u2: Secp256k1Scalar = mul(s, r_inv);
+  return ecAdd(ecMulGenerator(u1), ecMul(R, u2));
+}

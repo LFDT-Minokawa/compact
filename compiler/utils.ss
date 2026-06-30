@@ -25,12 +25,12 @@
           errorf internal-errorf external-errorf error-accessing-file pending-errorf source-errorf source-warningf
           assertf
           format-condition
-          maplr maplr2 compose shell string-prefix? rm-rf mkdir-p
+          maplr maplr2 compose shell sha256-file string-prefix? rm-rf mkdir-p
           to-camel-case
           source-error-condition?
           make-halt-condition halt-condition?
           pending-conditions
-          stdlib-sfd stdlib-src?
+          register-stdlib-sfd! get-stdlib-sfd stdlib-src?
           renaming-table record-alias!
           pretty-print/formats
           split-search-path)
@@ -48,8 +48,11 @@
                        "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a"
                        old-name new-name)]))
 
-  (define stdlib-sfd (make-parameter #f))
-  (define (stdlib-src? src) (eq? (source-object-sfd src) (stdlib-sfd)))
+  (module (register-stdlib-sfd! get-stdlib-sfd stdlib-src?)
+    (define stdlib-sfd* '())
+    (define (register-stdlib-sfd! sfd) (set! stdlib-sfd* (cons sfd stdlib-sfd*)))
+    (define (get-stdlib-sfd) (assert (not (null? stdlib-sfd*))) (car stdlib-sfd*))
+    (define (stdlib-src? src) (and (memq (source-object-sfd src) stdlib-sfd*) #t)))
 
   (define pending-conditions (make-parameter '()))
 
@@ -327,6 +330,25 @@
         (values
           (if (eof-object? stdout-stuff) "" stdout-stuff)
           (if (eof-object? stderr-stuff) "" stderr-stuff)))))
+
+  ;; Lowercase 64-character hex SHA-256 of a file's raw bytes. This is the same definition the
+  ;; midnight-js stack uses for verifier-key fingerprints (`hashVerifierKey` == sha256 of the bytes,
+  ;; hex), so a hash produced here over a `.verifier` file matches the runtime's hash of the deployed
+  ;; verifier key byte-for-byte. Shells out to `shasum`.
+  (define (sha256-file pathname)
+    (define (hex-digit? c)
+      (or (char<=? #\0 c #\9)
+          (char<=? #\a c #\f)
+          (char<=? #\A c #\F)))
+    (let-values ([(stdout stderr) (shell (format "exec shasum -a 256 -b '~a'" pathname))])
+      (unless (string=? stderr "")
+        (external-errorf "attempt to invoke shasum failed with message ~a" stderr))
+      (unless (>= (string-length stdout) 64)
+        (external-errorf "unexpected output from shasum: ~a" stdout))
+      (let ([hash (substring stdout 0 64)])
+        (unless (andmap hex-digit? (string->list hash))
+          (external-errorf "unexpected output from shasum: ~a" stdout))
+        (string-downcase hash))))
 
   (define (string-prefix? prefix str)
     (let ([n (string-length prefix)])

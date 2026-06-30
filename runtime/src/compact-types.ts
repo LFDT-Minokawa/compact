@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CompactError } from './error.js';
+import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR } from './constants.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -46,6 +47,16 @@ export interface CompactType<A> {
 export interface JubjubPoint {
   readonly x: bigint;
   readonly y: bigint;
+}
+
+/**
+ * A point in the foreign secp256k1 elliptic curve. TypeScript representation of the
+ * Compact type of the same name.  When identity = true, x and y should be 0.
+ */
+export interface Secp256k1Point {
+  readonly x: bigint;
+  readonly y: bigint;
+  readonly identity: boolean;
 }
 
 /**
@@ -120,6 +131,36 @@ export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
 };
 
 /**
+ * Runtime type of {@link Secp256k1Point}
+ */
+export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
+  // One base containing the x cordinate
+  // One base containing the y cordinate
+  // One native field containing the identity flag
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256k1Base.alignment()
+      .concat(CompactTypeSecp256k1Base.alignment())
+      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
+  },
+  fromValue(value: ocrt.Value): Secp256k1Point {
+    if (value.length != 5 || value[4] == undefined) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    // This might throw CompactError('expected Secp256k1Base').
+    return {
+      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
+      y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
+      identity: ocrt.valueToBigInt(value.slice(4)) === 1n,
+    };
+  },
+  toValue(value: Secp256k1Point): ocrt.Value {
+    return CompactTypeSecp256k1Base.toValue(value.x)
+      .concat(CompactTypeSecp256k1Base.toValue(value.y))
+      .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
+  },
+};
+
+/**
  * Runtime type of {@link MerkleTreeDigest}
  */
 export const CompactTypeMerkleTreeDigest: CompactType<MerkleTreeDigest> = {
@@ -190,6 +231,39 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
 }
 
 /**
+ * A Schnorr signature over the JubJub curve. TypeScript representation of the
+ * Compact type of the same name.
+ */
+export interface JubjubSchnorrSignature {
+  readonly announcement: JubjubPoint;
+  readonly response: bigint;
+}
+
+/**
+ * Runtime type of {@link JubjubSchnorrSignature}
+ */
+export const CompactTypeJubjubSchnorrSignature: CompactType<JubjubSchnorrSignature> = {
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+    ];
+  },
+  fromValue(value: ocrt.Value): JubjubSchnorrSignature {
+    const announcement = CompactTypeJubjubPoint.fromValue(value);
+    const responseVal = value.shift();
+    if (responseVal == undefined) {
+      throw new CompactError('expected JubjubSchnorrSignature');
+    }
+    return { announcement, response: ocrt.valueToBigInt([responseVal]) };
+  },
+  toValue(value: JubjubSchnorrSignature): ocrt.Value {
+    return CompactTypeJubjubPoint.toValue(value.announcement).concat(ocrt.bigIntToValue(value.response));
+  },
+};
+
+/**
  * Runtime type of the builtin `Field` type
  */
 export const CompactTypeField: CompactType<bigint> = {
@@ -206,6 +280,92 @@ export const CompactTypeField: CompactType<bigint> = {
   },
   toValue(value: bigint): ocrt.Value {
     return ocrt.bigIntToValue(value);
+  },
+};
+
+/**
+ * Runtime type of the builtin `Secp256k1Base` type
+ */
+export const CompactTypeSecp256k1Base: CompactType<bigint> = {
+  // One native field containing the low-order 192 bits
+  // One native field containing the high-order 64 bits
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'bytes', length: 24 } },
+      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
+    ];
+  },
+
+  fromValue(value: ocrt.Value): bigint {
+    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+      throw new CompactError('expected Secp256k1Base');
+    }
+    const low192 = ocrt.valueToBigInt([value[0]]);
+    const high64 = ocrt.valueToBigInt([value[1]]);
+    if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
+      throw new CompactError('expected Secp256k1Base');
+    }
+    let res = high64 << 192n | low192;
+    // The ZKIR representation subtracts 1 from the value.
+    res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
+    if (res > MAX_SECP256K1_BASE) {
+      throw new CompactError('expected Secp256k1Base');
+    }
+    return res;
+  },
+
+  toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > MAX_SECP256K1_BASE) {
+      throw new CompactError('expected Secp256k1Base');
+    }
+    // The ZKIR representation subtracts 1 from the value.
+    value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
+    const mask = (1n << 192n) - 1n;
+    return ocrt.bigIntToValue(value & ((1n << 192n) -1n))
+      .concat(ocrt.bigIntToValue(value >> 192n));
+  },
+};
+
+/**
+ * Runtime type of the builtin `Secp256k1Scalar` type
+ */
+export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
+  // One native field containing the low-order 192 bits
+  // One native field containing the high-order 64 bits
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'bytes', length: 24 } },
+      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
+    ];
+  },
+
+  fromValue(value: ocrt.Value): bigint {
+    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+      throw new CompactError('expected Secp256k1Scalar');
+    }
+    const low192 = ocrt.valueToBigInt([value[0]]);
+    const high64 = ocrt.valueToBigInt([value[1]]);
+    if (low192 > (1n << 192n) - 1n) {
+      throw new CompactError('expected Secp256k1Scalar');
+    }
+    let res = high64 << 192n | low192;
+    // The ZKIR representation subtracts 1 from the value.
+    res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
+    if (res > MAX_SECP256K1_SCALAR) {
+      throw new CompactError('expected Secp256k1Scalar');
+    }
+    return res;
+  },
+
+  toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > MAX_SECP256K1_SCALAR) {
+      throw new CompactError('expected Secp256k1Scalar');
+    }
+    // The ZKIR representation subtracts 1 from the value.
+    value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
+    const mask = (1n << 192n) - 1n;
+    return ocrt.bigIntToValue(value & mask)
+      .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
 

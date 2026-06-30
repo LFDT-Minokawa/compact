@@ -120,15 +120,15 @@ export circuit is_blue(sk: Bytes<32>, pk: Bytes<32>): Boolean {
 }
 
 circuit is_valid_pos(pos: Field): Boolean {
-  return pos == 1 ||
-         pos == 2 ||
-         pos == 3 ||
-         pos == 4 ||
-         pos == 5 ||
-         pos == 6 ||
-         pos == 7 ||
-         pos == 8 ||
-         pos == 9;
+  return pos == 1 as Field ||
+         pos == 2 as Field ||
+         pos == 3 as Field ||
+         pos == 4 as Field ||
+         pos == 5 as Field ||
+         pos == 6 as Field ||
+         pos == 7 as Field ||
+         pos == 8 as Field ||
+         pos == 9 as Field;
 }
 
 circuit is_valid_board(board: Board): Boolean {

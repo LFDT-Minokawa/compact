@@ -25,7 +25,6 @@ struct mariusz {
 }
 
 export circuit bob(a: Field, x: Field,): [Uint<32>, Uint<32>,] {
-
   for (const i of [1, 1, 1,]) { }
   adam.insert(1,);
   const z = [1, 2, 3 as Field, [1, 2, 3,], 1,];
@@ -41,11 +40,10 @@ circuit dom(x: Field, y: Field, ): Field {
 }
 
 constructor() {
-
-  const n = dom(1, 2,) + dom(3, 4,) + dom(1, 64 as Field,);
+  const n = dom(1 as Field, 2 as Field,) + dom(3 as Field, 4 as Field,) + dom(1 as Field, 64 as Field,);
   const p = [1, 1, 1, 1, 1, 1, 1, 1, 1,];
-  const f = mariusz { x: 1, y: 2, z: [1], };
-  const c = mariusz { 1, 2, [1], };
-  const g = [bob(1, 2,), bob(1, 2,), bob(1, 2,),];
+  const f = mariusz { x: 1 as Field, y: 2, z: [1 as Field], };
+  const c = mariusz { 1 as Field, 2, [1 as Field], };
+  const g = [bob(1 as Field, 2 as Field,), bob(1 as Field, 2 as Field,), bob(1 as Field, 2 as Field,),];
   const phil = [1, 2, 3, [1, 2, 3,],];
 }

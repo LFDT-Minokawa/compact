@@ -142,14 +142,26 @@
            (return-token 'punctuation c)]
           [else (unexpected c)])
         (module (identifier-initial? lex-identifier)
+          ; follows https://tc39.es/ecma262/#sec-names-and-keywords
+          ; and https://www.unicode.org/reports/tr31/#Table_Lexical_Classes_for_Identifiers
           (define identifier-initial?
             (lambda (c)
-              (or (char-alphabetic? c)
+              ; Lu: Letter, uppercase
+              ; Ll: Letter, lowercase
+              ; Lt: Letter, titlecase
+              ; Lm: Letter, modifier
+              ; Lo: Letter, other
+              ; Nl: Number, letter
+              (or (memq (char-general-category c) '(Lu Ll Lt Lm Lo Nl))
                   (memv c '(#\_ #\$)))))
           (define identifier-subsequent?
             (lambda (c)
               (or (identifier-initial? c)
-                  (char<=? #\0 c #\9))))
+                  ; Mn: Mark, onspacing
+                  ; Mc: Mark, spacing combining
+                  ; Nd: Number, decimal digit
+                  ; Pc: Punctuation, connector
+                  (memq (char-general-category c) '(Mn Mc Nd Pc)))))
           (define (id)
             (return-token 'id (string->symbol (get-buf))))
           (define-state-case next c

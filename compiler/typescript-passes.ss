@@ -19,6 +19,8 @@
   (export typescript-passes)
   (import (except (chezscheme) errorf)
           (utils)
+          (config-params)
+          (field)
           (datatype)
           (nanopass)
           (langs)
@@ -29,7 +31,7 @@
           (vm)
           (sourcemaps))
 
-  (define-pass prepare-for-typescript : Lnodisclose (ir) -> Ltypescript ()
+  (define-pass prepare-for-typescript : Lloweredemit (ir) -> Ltypescript ()
     (definitions
       (define program-src)
       (define local-local*)
@@ -63,7 +65,12 @@
             (if (fixnum? nat) nat (modulo nat (most-positive-fixnum))))
           (nanopass-case (Ltypescript Type) (de-alias type)
             [(tboolean ,src) 523634023]
-            [(tfield ,src) 22268065]
+            [(tfield ,src ,ftype)
+             (nanopass-case (Ltypescript Field-Type) ftype
+               [(field-native) 22268065]
+               [(field-scalar (curve-jubjub)) 474914719]
+               [(field-base (curve-secp256k1)) 952780025]
+               [(field-scalar (curve-secp256k1)) 817054627])]
             [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
             [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
             [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
@@ -94,12 +101,37 @@
                (cons elt-name elt-name*))]
             [(tunknown) 241715055]
             [else (assert cannot-happen)]))
+        (define (curve-type=? ctype1 ctype2)
+          (nanopass-case (Ltypescript Curve-Type) ctype1
+            [(curve-jubjub)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-jubjub) #t]
+               [else #f])]
+            [(curve-secp256k1)
+             (nanopass-case (Ltypescript Curve-Type) ctype2
+               [(curve-secp256k1) #t]
+               [else #f])]))
+        (define (field-type=? ftype1 ftype2)
+          (nanopass-case (Ltypescript Field-Type) ftype1
+            [(field-native)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-native) #t]
+               [else #f])]
+            [(field-base ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-base ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]
+            [(field-scalar ,ctype1)
+             (nanopass-case (Ltypescript Field-Type) ftype2
+               [(field-scalar ,ctype2) (curve-type=? ctype1 ctype2)]
+               [else #f])]))
         (define (type=? type1 type2)
           (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
             (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
               (T type1
                  [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                 [(tfield ,src1) (T type2 [(tfield ,src2) #t])]
+                 [(tfield ,src1 ,ftype1)
+                  (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
                  [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
                  [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                  [(topaque ,src1 ,opaque-type1)
@@ -173,7 +205,7 @@
           (let ([ldescriptor* (reverse rdescriptor*)])
             (values (map car ldescriptor*) (map cdr ldescriptor*))))))
     (Program : Program (ir) -> Program ()
-      [(program ,src (,contract-name* ...) ((,export-name* ,name*) ...) ,pelt* ...)
+      [(program ,src (,[contract-type*] ...) ((,export-name* ,name*) ...) ,pelt* ...)
        (fluid-let ([program-src src])
          (let ([pelt* (map Program-Element pelt*)])
            ; FIXME: assuming we get only (align <value> 1) or (align <value> 8).
@@ -184,6 +216,9 @@
            (register-descriptor! ; for align with bytes = 1
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 8) 1))))
+           (register-descriptor! ; for align with bytes = 4
+             (with-output-language (Ltypescript Type)
+               `(tunsigned ,src ,(- (expt 2 32) 1))))
            (register-descriptor! ; for align with bytes = 8
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 64) 1))))
@@ -191,7 +226,7 @@
              (with-output-language (Ltypescript Type)
                `(tunsigned ,src ,(- (expt 2 128) 1))))
            (let-values ([(descriptor-id* type*) (get-descriptors)])
-             `(program ,src ((,export-name* ,name*) ...)
+             `(program ,src (,contract-type* ...) ((,export-name* ,name*) ...)
                 (type-descriptors ,descriptor-table (,descriptor-id* ,type*) ...)
                 ,pelt* ...))))])
     (Program-Element : Program-Element (ir) -> Program-Element ()
@@ -301,7 +336,11 @@
           (for-each register-descriptor! type*)
           (maybe-register-descriptor! type)
           `(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,expr* ...)])]
-      [(return ,src ,expr) (Expr expr)])
+      [(return ,src ,expr) (Expr expr)]
+      [(emit ,src ,event-version ,event-tag ,len ,[expr] ,vm-code)
+       (let ([type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))])
+         (register-descriptor! type)
+         `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code))])
     (Path-Element : Path-Element (ir) -> Path-Element ()
       [,path-index path-index]
       [(,src ,[type] ,[expr])
@@ -316,12 +355,14 @@
            "CompactError"
            "typeError"
            "assert"
-           "convertFieldToBytes"
-           "convertBytesToField"
-           "convertBytesToUint"
+           "convertNumericToJubjubScalar"
+           "convertBigintToBytes"
+           "convertBytesToBigint"
            "addField"
            "subField"
            "mulField"
+           "crossContractCall"
+           "decodeContractAddress"
            ))
       (define (compact-stdlib name)
         (unless (member name compact-stdlib-entries)
@@ -454,6 +495,16 @@
           [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
           [(XPelt-public-ledger pl-array lconstructor external-names) #f]
           [(XPelt-ledger-kernel) #f]))
+      ;; Tracks which functions have async wrappers in the generated JS.
+      ;; Only impure circuits are async (because their bodies
+      ;; may contain `await __compactRuntime.crossContractCall(...)`). Witnesses,
+      ;; native circuits, and native witnesses all have synchronous wrappers, so
+      ;; their call sites don't need `await`.
+      (define function-async-ht (make-eq-hashtable))
+      (define (mark-function-async! function-name)
+        (eq-hashtable-set! function-async-ht function-name #t))
+      (define (function-async? function-name)
+        (eq-hashtable-ref function-async-ht function-name #f))
 
       (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
         (define descriptor-table #f)
@@ -466,7 +517,15 @@
 
         (define (type->descriptor-name type)
           (assert descriptor-table)
-          (format-id-reference (assert (hashtable-ref descriptor-table type #f)))))
+          (format-id-reference (assertf (hashtable-ref descriptor-table type #f) "unregistered type descriptor for ~s" type))))
+
+      (define (contract-import-binding contract-name)
+        (format "__compactContractsImport_~a" contract-name))
+
+      (define (contract-import-path contract-name)
+        (if (string=? (print-contract-name contract-name) (get-self-contract-name))
+            "."
+            (format "../../~a/contract/index.js" contract-name)))
 
       (define (pl-array->public-bindings pl-array)
         (let f ([pl-array pl-array] [pb* '()])
@@ -493,196 +552,219 @@
            (format "alignment: ~a.alignment()" descriptor-name))
           " }"))
 
-      (module (construct-query)
-        (define (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*)
-          (define-record-type vmref
-            (nongenerative)
-            (fields type q)
-            (protocol
-              (lambda (new)
-                (lambda (type q)
-                  (new type q)))))
-          (define-condition-type &suppressed &condition make-suppressed-condition suppressed-condition?)
-          (define (construct-query-value v top-level?)
-            (cond
-              [(eq? v #f) "false"]
-              [(eq? v #t) "true"]
-              [(and (integer? v) (exact? v)) (format "~d" v)]
-              [(list? v)
-               (make-Qconcat
-                 "["
-                 1 (apply
-                     (make-Qsep ",")
-                     (map
-                       (lambda (v)
-                         (let ([is-stack (and (VMop? v) (VMop-case v
-                                                          [(VMstack) #t]
-                                                          [else #f]))])
-                           (if is-stack
-                               (construct-query-value v #f)
-                               (make-Qconcat
-                                 "{ "
-                                 ((make-Qsep ",")
-                                  "tag: 'value'"
-                                  (make-Qconcat
-                                    "value: "
-                                    (construct-query-value v #f)))
-                                 " }"))))
-                       v))
-                 "]")]
-              [(vmref? v)
-               (let ([v-type (vmref-type v)] [q (vmref-q v)])
-                 (nanopass-case (Ltypescript Type) (de-alias v-type)
-                   [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                    ; FIXME: at present, we can assume that whenever we passs a value of some
-                    ; public-adt as a query argument, it must be the result of default<public-adt>,
-                    ; since that's all that can get past the type checker.  if we generalize to
-                    ; allow first-class public-adt values, this code will no longer be valid.
-                    (construct-query-value
-                      (expand-vm-expr
-                        src
-                        (map cons adt-formal* adt-arg*)
-                        (vm-expr-expr vm-expr))
-                      top-level?)]
-                   [else (construct-typed-value (type->descriptor-name v-type) q)]))]
-              [(VMop? v)
-               (VMop-case v
-                 [(VMstack) "{ tag: 'stack' }"]
-                 [(VMvoid) "undefined"]
-                 [(VMsuppress) (raise (make-suppressed-condition))]
-                 [(VM+ x y)
-                  (make-Qconcat
-                    "("
-                    (construct-query-value x #f)
-                    "+"
-                    (construct-query-value y #f)
-                    ")")]
-                 [(VMvalue->int v)
-                  (make-Qconcat
-                    "parseInt(__compactRuntime.valueToBigInt("
-                    2 (construct-query-value v #f)
-                    4 ".value"
-                    0 "))")]
-                 [(VMalign value bytes)
-                  (assert (or (= bytes 1) (= bytes 8) (= bytes 16)))
-                  (construct-typed-value
-                    (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
-                    (format "~dn" value))]
-                 [(VMnull type)
-                  (nanopass-case (Ltypescript Type) (de-alias type)
-                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                     (construct-query-value
-                       (expand-vm-expr
-                         src
-                         (map cons adt-formal* adt-arg*)
-                         (vm-expr-expr vm-expr))
-                       top-level?)]
-                    [else
-                     (construct-typed-value
-                       (type->descriptor-name type)
-                       (Expr (with-output-language (Ltypescript Expression) `(default ,src ,type))
-                             (precedence add1 comma)
-                             #f))])]
-                 [(VMmax-sizeof type)
-                  (assert (not (public-adt? type)))
-                  (make-Qconcat
-                    "Number(__compactRuntime.maxAlignedSize("
-                    2 (type->descriptor-name type)
-                    2 ".alignment()"
-                    0 "))")]
-                 [(VMstate-value-cell val)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newCell("
-                    (construct-query-value val #f)
-                    (if top-level?
+      (module (construct-query vminstr->q-array make-vmref)
+        (define (vminstr->q-array src vminstr*)
+          (make-Qconcat
+             "["
+             1 (apply (make-Qsep ",")
+                      (fold-right
+                        (lambda (vminstr q*)
+                          (guard (c [(suppressed-condition? c) q*])
+                            (cons (let ([op (vminstr-op vminstr)] [arg* (vminstr-arg* vminstr)])
+                                    (if (null? arg*)
+                                        (format "'~a'" op)
+                                        (make-Qconcat
+                                          "{ " op ": { "
+                                          (apply (make-Qsep ",")
+                                                 (map (lambda (arg)
+                                                        (let ([name (car arg)] [val (cdr arg)])
+                                                          (make-Qconcat name ": " (construct-query-value src val #t))))
+                                                      arg*))
+                                          " } }")))
+                                  q*)))
+                        '()
+                        vminstr*))
+             "]"))
+        (define-record-type vmref
+          (nongenerative)
+          (fields type q)
+          (protocol
+            (lambda (new)
+              (lambda (type q)
+                (new type q)))))
+        (define-condition-type &suppressed &condition make-suppressed-condition suppressed-condition?)
+        (define (construct-query-value src v top-level?)
+          (cond
+            [(eq? v #f) "false"]
+            [(eq? v #t) "true"]
+            [(and (integer? v) (exact? v)) (format "~d" v)]
+            [(list? v)
+             (make-Qconcat
+               "["
+               1 (apply
+                   (make-Qsep ",")
+                   (map
+                     (lambda (v)
+                       (let ([is-stack (and (VMop? v) (VMop-case v
+                                                        [(VMstack) #t]
+                                                        [else #f]))])
+                         (if is-stack
+                             (construct-query-value src v #f)
+                             (make-Qconcat
+                               "{ "
+                               ((make-Qsep ",")
+                                "tag: 'value'"
+                                (make-Qconcat
+                                  "value: "
+                                  (construct-query-value src v #f)))
+                               " }"))))
+                     v))
+               "]")]
+            [(vmref? v)
+             (let ([v-type (vmref-type v)] [q (vmref-q v)])
+               (nanopass-case (Ltypescript Type) (de-alias v-type)
+                 [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                  ; FIXME: at present, we can assume that whenever we passs a value of some
+                  ; public-adt as a query argument, it must be the result of default<public-adt>,
+                  ; since that's all that can get past the type checker.  if we generalize to
+                  ; allow first-class public-adt values, this code will no longer be valid.
+                  (construct-query-value src
+                    (expand-vm-expr
+                      src
+                      (map cons adt-formal* adt-arg*)
+                      (vm-expr-expr vm-expr))
+                    top-level?)]
+                 [else (construct-typed-value (type->descriptor-name v-type) q)]))]
+            [(VMop? v)
+             (VMop-case v
+               [(VMstack) "{ tag: 'stack' }"]
+               [(VMvoid) "undefined"]
+               [(VMsuppress) (raise (make-suppressed-condition))]
+               [(VM+ x y)
+                (make-Qconcat
+                  "("
+                  (construct-query-value src x #f)
+                  "+"
+                  (construct-query-value src y #f)
+                  ")")]
+               [(VMvalue->int v)
+                (make-Qconcat
+                  "parseInt(__compactRuntime.valueToBigInt("
+                  2 (construct-query-value src v #f)
+                  4 ".value"
+                  0 "))")]
+               [(VMalign value bytes)
+                ; emit-version uses u32 in ocrt ==> (= bytes 4)
+                (assert (or (= bytes 1) (= bytes 4) (= bytes 8) (= bytes 16)))
+                (construct-typed-value
+                  (type->descriptor-name (with-output-language (Ltypescript Type) `(tunsigned ,src ,(- (expt 2 (* bytes 8)) 1))))
+                  (format "~dn" value))]
+               [(VMnull type)
+                (nanopass-case (Ltypescript Type) (de-alias type)
+                  [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                   (construct-query-value src
+                     (expand-vm-expr
+                       src
+                       (map cons adt-formal* adt-arg*)
+                       (vm-expr-expr vm-expr))
+                     top-level?)]
+                  [else
+                   (construct-typed-value
+                     (type->descriptor-name type)
+                     (Expr (with-output-language (Ltypescript Expression) `(default ,src ,type))
+                           (precedence add1 comma)
+                           #f))])]
+               [(VMmax-sizeof type)
+                (assert (not (public-adt? type)))
+                (make-Qconcat
+                  "Number(__compactRuntime.maxAlignedSize("
+                  2 (type->descriptor-name type)
+                  2 ".alignment()"
+                  0 "))")]
+               [(VMstate-value-cell val)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newCell("
+                  (construct-query-value src val #f)
+                  (if top-level?
+                      ").encode()"
+                      ")"))]
+               [(VMstate-value-ADT val v-type)
+                (if (public-adt? v-type)
+                    (construct-query-value src val top-level?)
+                    (make-Qconcat
+                      "__compactRuntime.StateValue.newCell("
+                      (construct-query-value src val #f)
+                      (if top-level?
+                          ").encode()"
+                          ")")))]
+               [(VMstate-value-null)
+                (if top-level?
+                    "__compactRuntime.StateValue.newNull().encode()"
+                    "__compactRuntime.StateValue.newNull()")]
+               [(VMstate-value-map key* val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newMap("
+                  2 (apply (make-Qsep ",")
+                      "new __compactRuntime.StateMap()"
+                      (map (lambda (key val)
+                             ; at present, midnight-ledger.ss doesn't create maps with arguments
+                             (make-Qconcat
+                               ".insert("
+                               ((make-Qsep ",")
+                                (construct-query-value src key #f)
+                                (construct-query-value src val #f))
+                               ")"))
+                           key*
+                           val*))
+                  0 (if top-level?
                         ").encode()"
                         ")"))]
-                 [(VMstate-value-ADT val v-type)
-                  (if (public-adt? v-type)
-                      (construct-query-value val top-level?)
+               [(VMstate-value-merkle-tree nat key* val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newBoundedMerkleTree("
+                  2 (apply (make-Qsep ",")
                       (make-Qconcat
-                        "__compactRuntime.StateValue.newCell("
-                        (construct-query-value val #f)
-                        (if top-level?
-                            ").encode()"
-                            ")")))]
-                 [(VMstate-value-null)
-                  (if top-level?
-                      "__compactRuntime.StateValue.newNull().encode()"
-                      "__compactRuntime.StateValue.newNull()")]
-                 [(VMstate-value-map key* val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newMap("
-                    2 (apply (make-Qsep ",")
-                        "new __compactRuntime.StateMap()"
-                        (map (lambda (key val)
-                               ; at present, midnight-ledger.ss doesn't create maps with arguments
-                               (make-Qconcat
-                                 ".insert("
-                                 ((make-Qsep ",")
-                                  (construct-query-value key #f)
-                                  (construct-query-value val #f))
-                                 ")"))
-                             key*
-                             val*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMstate-value-merkle-tree nat key* val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newBoundedMerkleTree("
-                    2 (apply (make-Qsep ",")
-                        (make-Qconcat
-                          "new __compactRuntime.StateBoundedMerkleTree("
-                          (construct-query-value nat #f)
-                          ")")
-                        (map (lambda (key val)
-                               ; at present, midnight-ledger.ss doesn't create MerkleTrees with arguments
-                               (make-Qconcat
-                                 ".update("
-                                 ((make-Qsep ",")
-                                  (construct-query-value key #f)
-                                  (construct-query-value val #f))
-                                 ")"))
-                             key*
-                             val*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMstate-value-array val*)
-                  (make-Qconcat
-                    "__compactRuntime.StateValue.newArray()"
-                    2 (apply make-Qconcat
-                             (map (lambda (val)
-                                    (make-Qconcat
-                                      ".arrayPush("
-                                      (construct-query-value val #f)
-                                      ")"))
-                                  val*))
-                    2 (if top-level?
-                          ".encode()"
-                          ""))]
-                 [(VMaligned-concat x*)
-                  (make-Qconcat
-                    "__compactRuntime.alignedConcat("
-                    2 (apply (make-Qsep ",")
-                             (map (lambda (x) (construct-query-value x #f)) x*))
-                    0 (if top-level?
-                          ").encode()"
-                          ")"))]
-                 [(VMcoin-commit coin recipient)
-                  (make-Qconcat
-                    "__compactRuntime.runtimeCoinCommitment("
-                    2 ((make-Qsep ",")
-                        (construct-query-value coin #f)
-                        (construct-query-value recipient #f))
-                    0 ")")]
-                 [(VMleaf-hash x)
-                  (make-Qconcat
-                    "__compactRuntime.leafHash("
-                    2 (construct-query-value x #f)
-                    0 ")")])]
-              [else (internal-errorf 'construct-query-value "unhandled case ~s" v)]))
+                        "new __compactRuntime.StateBoundedMerkleTree("
+                        (construct-query-value src nat #f)
+                        ")")
+                      (map (lambda (key val)
+                             ; at present, midnight-ledger.ss doesn't create MerkleTrees with arguments
+                             (make-Qconcat
+                               ".update("
+                               ((make-Qsep ",")
+                                (construct-query-value src key #f)
+                                (construct-query-value src val #f))
+                               ")"))
+                           key*
+                           val*))
+                  0 (if top-level?
+                        ").encode()"
+                        ")"))]
+               [(VMstate-value-array val*)
+                (make-Qconcat
+                  "__compactRuntime.StateValue.newArray()"
+                  2 (apply make-Qconcat
+                           (map (lambda (val)
+                                  (make-Qconcat
+                                    ".arrayPush("
+                                    (construct-query-value src val #f)
+                                    ")"))
+                                val*))
+                  2 (if top-level?
+                        ".encode()"
+                        ""))]
+               [(VMaligned-concat x*)
+                (make-Qconcat
+                  "__compactRuntime.alignedConcat("
+                  2 (apply (make-Qsep ",")
+                           (map (lambda (x) (construct-query-value src x #f)) x*))
+                  0 (if top-level?
+                        ").encode()"
+                        ")"))]
+               [(VMcoin-commit coin recipient)
+                (make-Qconcat
+                  "__compactRuntime.runtimeCoinCommitment("
+                  2 ((make-Qsep ",")
+                      (construct-query-value src coin #f)
+                      (construct-query-value src recipient #f))
+                  0 ")")]
+               [(VMleaf-hash x)
+                (make-Qconcat
+                  "__compactRuntime.leafHash("
+                  2 (construct-query-value src x #f)
+                  0 ")")])]
+            [else (internal-errorf 'construct-query-value src "unhandled case ~s" v)]))
+        (define (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*)
           (nanopass-case (Ltypescript ADT-Op) adt-op
             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
              (assert (fx= (length expr*) (length var-name*)))
@@ -702,27 +784,7 @@
                                             type*
                                             expr*))
                                (vm-code-code vm-code))])
-               (make-Qconcat
-                 "["
-                 1 (apply (make-Qsep ",")
-                          (fold-right
-                            (lambda (vminstr q*)
-                              (guard (c [(suppressed-condition? c) q*])
-                                (cons (let ([op (vminstr-op vminstr)] [arg* (vminstr-arg* vminstr)])
-                                        (if (null? arg*)
-                                            (format "'~a'" op)
-                                            (make-Qconcat
-                                              "{ " op ": { "
-                                              (apply (make-Qsep ",")
-                                                     (map (lambda (arg)
-                                                            (let ([name (car arg)] [val (cdr arg)])
-                                                              (make-Qconcat name ": " (construct-query-value val #t))))
-                                                          arg*))
-                                              " } }")))
-                                      q*)))
-                            '()
-                            vminstr*))
-                 "]"))]))
+               (vminstr->q-array src vminstr*))]))
 
         (define (coin-recipient-indices adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
@@ -797,43 +859,6 @@
           (if (symbol? contract-name)
               (symbol->string contract-name)
               contract-name))
-      (define (get-contract-dependencies)
-        (define (contract-info-filename contract-name)
-          (format "~a/~a/compiler/contract-info.json"
-            (path-parent (target-directory))
-            contract-name))
-        (define (malformed msg contract-name . args)
-          (external-errorf "malformed contract-info file ~a for ~s: ~a; try recompiling ~a"
-                           (contract-info-filename contract-name)
-                           contract-name
-                           (apply format msg args)
-                           contract-name))
-        (define (get-assoc key contract-name alist)
-          (cond
-            [(and (pair? alist) (assoc key alist)) => cdr]
-            [else (malformed "missing association for ~s" contract-name key)]))
-        (define (get-witness-names contract-name v)
-          (fold-right (lambda (alist name*) (cons (get-assoc "name" contract-name alist) name*))
-                      '()
-                      (vector->list v)))
-        (let* ([contract-has-witness-ht (make-hashtable symbol-hash eq?)]
-               [contract-ht (contract-ht)]
-               [dep-contracts (vector->list (hashtable-keys contract-ht))]
-               [contract-has-witness*
-                 (fold-right (lambda (contract-name contract-name*)
-                               (let ([a (hashtable-cell contract-has-witness-ht contract-name 'unvisited)])
-                                 (when (eq? (cdr a) 'unvisited)
-                                   (let* ([info (hashtable-cell contract-ht contract-name #f)]
-                                          [alist (cdr info)]
-                                          [v (get-assoc "witnesses" contract-name alist)])
-                                     (unless (vector? v) (malformed "\"witnesses\" is not associated with a vector" contract-name))
-                                     (set-cdr! a (get-witness-names contract-name v))))
-                                 (if (eq? (cdr a) '())
-                                     contract-name*
-                                     (cons (car a) contract-name*))))
-                   '()
-                   dep-contracts)])
-          (values contract-has-witness* contract-has-witness-ht)))
 
       (define (subst-tcontract type)
         (nanopass-case (Ltypescript Type) (de-alias type)
@@ -843,6 +868,9 @@
           [else type]))
 
       (define (print-contract.d.ts src xpelt* uname*)
+        ;; Every entry in `Circuits`, `ImpureCircuits`, and `ProvableCircuits` is an async wrapper
+        (define (circuit-result-type type)
+          (make-Qconcat "Promise<__compactRuntime.CircuitResults<PS, " (Type type) ">>"))
         (define (print-exported-impure-circuit-declaration do-me?)
           (lambda (xpelt uname)
             (XPelt-case xpelt
@@ -860,7 +888,7 @@
                              "context: __compactRuntime.CircuitContext<PS>"
                              (map Typed-Argument arg*))
                            "): "
-                           "__compactRuntime.CircuitResults<PS, " (Type type) ">"
+                           (circuit-result-type type)
                            ";")))
                      (newline))
                    external-name*))]
@@ -900,7 +928,7 @@
                              "context: __compactRuntime.CircuitContext<PS>"
                              (map Typed-Argument arg*))
                            "): "
-                           "__compactRuntime.CircuitResults<PS, " (Type type) ">"
+                           (circuit-result-type type)
                            ";")))
                      (newline)))
                  external-name*)]
@@ -1133,7 +1161,8 @@
                                            ": "
                                            (Type type))]))
                                     arg*))
-                        "): __compactRuntime.ConstructorResult<PS>;"))
+                        ;; initialState is async too because it can call impure circuits
+                        "): Promise<__compactRuntime.ConstructorResult<PS>>;"))
                     (newline))])]
               [else (loop (cdr xpelt*))])))
         (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
@@ -1183,11 +1212,57 @@
               (newline)
               (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
               (display-string "export declare const pureCircuits: PureCircuits;\n")
+              (display-string "export declare const expectedVk: Record<string, string>;\n")
               ))))
 
+      (define (format-field-type ftype)
+        (nanopass-case (Ltypescript Field-Type) ftype
+          [(field-native) "Field"]
+          [(field-scalar (curve-jubjub)) "JubjubScalar"]
+          [(field-base (curve-secp256k1)) "Secp256k1Base"]
+          [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+      (define (format-type type)
+        (nanopass-case (Ltypescript Type) (de-alias type)
+          [(tboolean ,src) "Boolean"]
+          [(tfield ,src ,ftype) (format-field-type ftype)]
+          [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+          [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
+          [(tunknown) "Unknown"]
+          [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
+          [(tbytes ,src ,len) (format "Bytes<~s>" len)]
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (format "contract ~a[~{~a~^, ~}]" contract-name
+             (map (lambda (elt-name pure-dcl type* type)
+                    (if pure-dcl
+                        (format "pure ~a(~{~a~^, ~}): ~a" elt-name
+                          (map format-type type*) (format-type type))
+                        (format "~a(~{~a~^, ~}): ~a" elt-name
+                          (map format-type type*) (format-type type))))
+               elt-name* pure-dcl* type** type*))]
+          [(ttuple ,src ,type* ...)
+           (format "[~{~a~^, ~}]" (map format-type type*))]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "struct ~a<~{~a~^, ~}>" struct-name
+             (map (lambda (elt-name type)
+                    (format "~a: ~a" elt-name (format-type type)))
+               elt-name* type*))]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (assert cannot-happen)]))
+
       (module (print-contract.js)
-        (define (print-contract-header)
+        (define (print-contract-header contract-type*)
           (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
+          (for-each
+            (lambda (contract-type)
+              (let ([contract-name (nanopass-case (Ltypescript Contract-Type) contract-type
+                                     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                                      contract-name])])
+                (printf "import * as ~a from '~a';\n"
+                  (contract-import-binding contract-name)
+                  (contract-import-path contract-name))))
+            contract-type*)
           (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
           (display-string "\n"))
 
@@ -1261,17 +1336,24 @@
                 (nanopass-case (Ltypescript Type) (de-alias type)
                   [(tboolean ,src)
                    "__compactRuntime.CompactTypeBoolean"]
-                  [(tfield ,src)
-                   "__compactRuntime.CompactTypeField"]
+                  [(tfield ,src ,ftype)
+                   (nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "__compactRuntime.CompactTypeField"]
+                     [(field-scalar (curve-jubjub)) "__compactRuntime.CompactTypeField"]
+                     [(field-base (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Base"]
+                     [(field-scalar (curve-secp256k1))
+                      "__compactRuntime.CompactTypeSecp256k1Scalar"])]
                   [(tunsigned ,src ,nat)
                    (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
                   [(tbytes ,src ,len)
                    (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
-                     [("string") (format "__compactRuntime.CompactTypeOpaqueString")]
-                     [("Uint8Array") (format "__compactRuntime.CompactTypeOpaqueUint8Array")]
-                     [("JubjubPoint") (format "__compactRuntime.CompactTypeJubjubPoint")]
+                     [("string") "__compactRuntime.CompactTypeOpaqueString"]
+                     [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
+                     [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
+                     [("Secp256k1Point") "__compactRuntime.CompactTypeSecp256k1Point"]
                      ; FIXME: what should happen with other opaque types?
                      [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                   [(tvector ,src ,len ,type)
@@ -1349,7 +1431,15 @@
                 (let ([type (subst-tcontract type)])
                   (nanopass-case (Ltypescript Type) type
                     [(tboolean ,src) (format "typeof(~a) === 'boolean'" var)]
-                    [(tfield ,src) (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_FIELD" var)]
+                    [(tfield ,src ,ftype)
+                     (let ([field-name
+                             (nanopass-case (Ltypescript Field-Type) ftype
+                               [(field-native) "FIELD"]
+                               [(field-scalar (curve-jubjub)) "JUBJUB_SCALAR"]
+                               [(field-base (curve-secp256k1)) "SECP256K1_BASE"]
+                               [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
+                       (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
+                         var field-name))]
                     [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                     [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                     [(topaque ,src ,opaque-type) "true"]
@@ -1373,36 +1463,6 @@
                     [(tunknown) (assert cannot-happen)]
                     [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                      (assert cannot-happen)]))))
-
-            (define (format-type type)
-              (nanopass-case (Ltypescript Type) (de-alias type)
-                [(tboolean ,src) "Boolean"]
-                [(tfield ,src) "Field"]
-                [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
-                [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
-                [(tunknown) "Unknown"]
-                [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
-                [(tbytes ,src ,len) (format "Bytes<~s>" len)]
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (format "contract ~a[~{~a~^, ~}]" contract-name
-                   (map (lambda (elt-name pure-dcl type* type)
-                          (if pure-dcl
-                              (format "pure ~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))
-                              (format "~a(~{~a~^, ~}): ~a" elt-name
-                                (map format-type type*) (format-type type))))
-                     elt-name* pure-dcl* type** type*))]
-                [(ttuple ,src ,type* ...)
-                 (format "[~{~a~^, ~}]" (map format-type type*))]
-                [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-                 (format "struct ~a<~{~a~^, ~}>" struct-name
-                   (map (lambda (elt-name type)
-                          (format "~a: ~a" elt-name (format-type type)))
-                        elt-name* type*))]
-                [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-                 (format "Enum<~a, ~s~{, ~s~}>" enum-name elt-name elt-name*)]
-                [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                 (assert cannot-happen)]))
 
             (define (argument-type-checks src what extra-arguments var-name* type* q*)
               (fold-right
@@ -1441,7 +1501,7 @@
                 2 (make-Qconcat
                     "if (!("
                     ; we don't insist on currentPrivateState being defined
-                    (format "typeof(~a) === 'object' && ~:*~a.currentQueryContext != undefined" var)
+                    (format "typeof(~a) === 'object' && ~:*~a.callContext.currentQueryContext != undefined" var)
                     ")) {"
                     2 (compact-stdlib "typeError")
                     "("
@@ -1575,7 +1635,7 @@
                              (map (lambda (external-name)
                                     (apply make-Qconcat/src src
                                       (make-Qconcat/src (id-src internal-id) external-name)
-                                      (format ": (...~a) => {" args)
+                                      (format ": async (...~a) => {" args)
                                       2 (make-Qconcat
                                           (format "if (~a.length !== ~d) {" args nargs)
                                           2 (format "throw new ~a(`~a: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);"
@@ -1588,8 +1648,7 @@
                                         (context-type-check src external-name contextOrig
                                           (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                             (list
-                                              ; Shallow clone context to ensure no-one else has a reference to it
-                                              2 (format "const context = { ...~a, gasCost: __compactRuntime.emptyRunningCost() };" contextOrig)
+                                              2 (format "const context = __compactRuntime.copyCircuitContext(~a);" contextOrig)
                                               2 "const partialProofData = {"
                                               4 (make-Qconcat
                                                   "input: {"
@@ -1638,7 +1697,7 @@
                                               4 "publicTranscript: [],"
                                               4 "privateTranscriptOutputs: []"
                                               2 "};"
-                                              2 (format "const ~a = this." result)
+                                              2 (format "const ~a = await this." result)
                                                 uname "("
                                                 (apply (make-Qsep ",") "context" "partialProofData" q-formal*)
                                                 ");"
@@ -1651,11 +1710,11 @@
                                                                   (format "~a.alignment()" descriptor-name?)
                                                                   "[]")
                                                 " };"
+                                              2 "__compactRuntime.finalizeCallProofData(context, partialProofData);"
                                               2 "return { "
                                                 "result: " result ", "
                                                 "context: " "context" ", "
-                                                "proofData: " "partialProofData" ", "
-                                                "gasCost: " "context.gasCost"
+                                                "gasCost: " "context.callContext.currentGasCost"
                                                 " };"
                                               0 "}"))))))
                                   external-name*)
@@ -1663,8 +1722,10 @@
                        (with-local-unique-names
                          (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
                            (append
+                             ;; Pure circuit wrappers on `this.circuits` are still declared async
                              (map (lambda (external-name)
                                     (make-Qconcat/src src
+                                      "async "
                                       (make-Qconcat/src (id-src internal-id) external-name)
                                       (format "(context, ...~a) {" args)
                                       2 (format "return { result: pureCircuits.~a(...~a), context };" external-name args)
@@ -1884,7 +1945,7 @@
                         2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
                         2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
                         2 "const context = {"
-                        4 "currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()),"
+                        4 "callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
                         4 "costModel: __compactRuntime.CostModel.initialCostModel()"
                         2 "};"
                         2 "const partialProofData = {"
@@ -1975,7 +2036,7 @@
                                   2 "}"
                                   k)))
                           (apply make-Qconcat/src src
-                                 (format "initialState(...~a) {" args)
+                                 (format "async initialState(...~a) {" args)
                                  2 (format "if (~a.length !== ~d) {" args nargs)
                                  4 (format "throw new __compactRuntime.CompactError(`Contract state constructor: expected ~d argument~:*~p (as invoked from Typescript), received ${~a.length}`);" nargs args)
                                  2 "}"
@@ -1998,7 +2059,7 @@
                                              (ledger-initializers src state pl-array
                                                (set-operations state xpelt0*
                                                  (cons*
-                                                   2 (format "const context = __compactRuntime.createCircuitContext(__compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
+                                                   2 (format "const context = __compactRuntime.createCircuitContext('constructor', __compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
                                                    2 "const partialProofData = {"
                                                    4 "input: { value: [], alignment: [] },"
                                                    4 "output: undefined,"
@@ -2008,11 +2069,11 @@
                                                    (ledger-reset-to-default src pl-array
                                                      (list
                                                        2 (Stmt stmt #f #f)
-                                                       2 (format "~a.data = new __compactRuntime.ChargedState(context.currentQueryContext.state.state);" state)
+                                                       2 (format "~a.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);" state)
                                                        2 "return {"
                                                        4 (format "currentContractState: ~a," state)
-                                                       4 "currentPrivateState: context.currentPrivateState,"
-                                                       4 "currentZswapLocalState: context.currentZswapLocalState"
+                                                       4 "currentPrivateState: context.callContext.currentPrivateState,"
+                                                       4 "currentZswapLocalState: context.callContext.currentZswapLocalState"
                                                        2 "}"
                                                        0 "}")))))))))))))))
                     (newline)])]
@@ -2025,7 +2086,8 @@
                   (let ([q-formal* (map make-Qformal! arg*)])
                     (make-Qconcat/src src
                       (make-Qconcat
-                        (make-Qconcat/src (id-src internal-id) (format "~a" uname))
+                        (make-Qconcat/src (id-src internal-id)
+                          (if pure? (format "~a" uname) (format "async ~a" uname)))
                         "("
                         (make-Qargs pure? q-formal*)
                         ")"
@@ -2122,14 +2184,14 @@
                         (make-Qargs #f q-formal*)
                         ")"
                         0 "{")
-                      2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.currentQueryContext.state), context.currentPrivateState, context.currentQueryContext.address);" witnessContext)
+                      2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);" witnessContext)
                       2 (format "const [~a, ~a] = " nextPrivateState result)
                       "this.witnesses."
                       (make-Qconcat/src (id-src internal-id) external-name)
                       "("
                       (apply (make-Qsep ",") witnessContext q-formal*)
                       ");"
-                      2 (format "context.currentPrivateState = ~a;" nextPrivateState)
+                      2 (format "context.callContext.currentPrivateState = ~a;" nextPrivateState)
                       (result-type-check src external-name type result
                         (list
                           2 "partialProofData.privateTranscriptOutputs.push({"
@@ -2164,7 +2226,7 @@
                   (display-string "}\n")
                   (print-contract-ledger src xpelt* uname*)
                   (display-string "const _emptyContext = {\n")
-                  (display-string "  currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress())\n")
+                  (display-string "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }\n")
                   (display-string "};\n")
                   (print-Q 0
                     (make-Qconcat
@@ -2362,21 +2424,40 @@
                (newline)]
               [else (void)])))
 
+        ;; Emit the per-circuit verifier-key fingerprints computed in passes.ss after key
+        ;; generation. A caller's cross-contract guard reads the callee module's `expectedVk` to
+        ;; detect a contract deployed at the call target that does not match the implementation this
+        ;; module was compiled against. Empty (`{}`) for builds that generate no keys (e.g. --skip-zk).
+        (define (print-expected-vk)
+          (let ([vk* (verifier-key-hashes)])
+            (if (null? vk*)
+                (display-string "export const expectedVk = {};\n")
+                (begin
+                  (display-string "export const expectedVk = {\n")
+                  (for-each
+                    (lambda (pair)
+                      (printf "  ~a: ~a,\n"
+                        (format-javascript-string (car pair))
+                        (format-javascript-string (cdr pair))))
+                    vk*)
+                  (display-string "};\n")))
+            (newline)))
+
         (define (print-contract-footer)
           (display-string "//# sourceMappingURL=index.js.map\n"))
 
-        (define (print-contract.js src descriptor-id* type* xpelt* uname*)
+        (define (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)
           (parameterize ([current-output-port (get-target-port 'contract.js)])
             (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-              (let-values ([(contract-dependency* contract-has-witness-ht) (get-contract-dependencies)])
-                (print-contract-header)
-                (print-exported-types xpelt*)
-                (print-contract-descriptors src descriptor-id* type*)
-                (print-contract-class src xpelt* uname*)
-                (for-each print-contract-reference-locations xpelt*)
-                (print-contract-footer)
-                (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
-                (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map)))))))
+              (print-contract-header contract-type*)
+              (print-exported-types xpelt*)
+              (print-contract-descriptors src descriptor-id* type*)
+              (print-contract-class src xpelt* uname*)
+              (for-each print-contract-reference-locations xpelt*)
+              (print-expected-vk)
+              (print-contract-footer)
+              (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
+              (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))
 
       (define (format-javascript-string s)
         (define quote-seen #f)
@@ -2582,12 +2663,12 @@
           [else #f]))
       )
     (Program : Program (ir) -> Program ()
-      [(program ,src ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
+      [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) (type-descriptors ,descriptor-table^ (,descriptor-id* ,type*) ...) ,pelt* ...)
        (let* ([xpelt* (maplr (lambda (x) (Program-Element x (map cons export-name* name*))) pelt*)]
               [uname* (maplr xpelt->uname xpelt*)])
          (print-contract.d.ts src xpelt* uname*)
          (fluid-let ([descriptor-table descriptor-table^])
-           (print-contract.js src descriptor-id* type* xpelt* uname*)))
+           (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)))
        ir])
     (Program-Element : Program-Element (ir export-alist) -> * (xpelt)
       (definitions
@@ -2600,6 +2681,8 @@
             '()
             export-alist)))
       [(circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+       (unless (id-pure? function-name)
+         (mark-function-async! function-name))
        (if (id-exported? function-name)
            (let ([external-name* (external-names function-name)])
              (XPelt-exported-circuit src function-name arg* type stmt external-name* (id-pure? function-name)))
@@ -2800,12 +2883,10 @@
       [(default ,src ,type)
        (let default-value ([type type])
          (let ([type (de-alias type)])
-           ; even though tstruct is substituted for tcontract, we will never generate a default value
-           ; for a tcontract since that would be caught earlier. so this substitution is safe.
            (let ([type (subst-tcontract type)])
              (nanopass-case (Ltypescript Type) type
                [(tboolean ,src) "false"]
-               [(tfield ,src) "0n"]
+               [(tfield ,src ,ftype) "0n"]
                [(tunsigned ,src ,nat) "0n"]
                [(tbytes ,src ,len)
                 (parenthesize level (precedence new)
@@ -2815,6 +2896,7 @@
                   [("string") "''"]
                   [("Uint8Array") "new Uint8Array(0)"]
                   [("JubjubPoint") "({x: 0n, y: 1n})"]
+                  [("Secp256k1Point") "({x: 0n, y: 0n, identity: true})"]
                   ; FIXME: what should happen with other opaque types?
                   [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                [(tvector ,src ,len ,type)
@@ -2857,6 +2939,20 @@
            expr
            "."
            (format "~s" elt-name)))]
+      [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
+       (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
+              [vminstr*   (expand-vm-code src #f #f
+                            `((emit-version . ,event-version)
+                              (emit-tag     . ,event-tag)
+                              (emit-payload . ,(make-vmref bytes-type expr)))
+                            (vm-code-code vm-code))])
+         (make-Qconcat
+           "__compactRuntime.queryLedgerState("
+           ((make-Qsep ",")
+            "context"
+            "partialProofData"
+            (vminstr->q-array src vminstr*))
+           ")"))]
       [(enum-ref ,src ,type ,elt-name^)
        (parenthesize level (precedence call)
          (nanopass-case (Ltypescript Type) (de-alias type)
@@ -2958,7 +3054,7 @@
       [(== ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
-             [(tfield ,src) #t]
+             [(tfield ,src ,ftype) #t]
              [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
@@ -2981,7 +3077,7 @@
       [(!= ,src ,type ,expr1 ,expr2)
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
-             [(tfield ,src) #t]
+             [(tfield ,src ,ftype) #t]
              [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
@@ -3008,15 +3104,20 @@
        (let ([mapper-name (unique-global-name "mapper")]
              [pure? (nanopass-case (Ltypescript Function) fun0
                       [(fref ,src ,function-name) (id-pure? function-name)]
-                      [else outer-pure?])])
+                      [else outer-pure?])]
+             [async? (nanopass-case (Ltypescript Function) fun0
+                       [(fref ,src ,function-name) (function-async? function-name)]
+                       [else (not outer-pure?)])])
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = f(~@[~*context, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+               (format "  ~a~a(~@[~*context, partialProofData, ~]f, ~{~a~^, ~}) {\n    let a = [];\n    for (let i = 0; i < ~a; i++) { a[i] = ~af(~@[~*context, partialProofData, ~]~{~a~^, ~}); }\n    return a;\n  }\n"
+                 (if async? "async " "")
                  mapper-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
                  len
+                 (if async? "await " "")
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -3024,21 +3125,25 @@
                       i+
                       (cons byte-ref? byte-ref?*))))
              helper*))
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "this."
-             mapper-name
-             "("
-             (make-Qargs pure?
-               (cons*
-                 (nanopass-case (Ltypescript Function) fun0
-                   [(fref ,src ,function-name)
-                    (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                      (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
-                   [else fun])
-                 expr
-                 expr*))
-             ")")))]
+         (let ([call-q
+                (make-Qconcat
+                  "this."
+                  mapper-name
+                  "("
+                  (make-Qargs pure?
+                    (cons*
+                      (nanopass-case (Ltypescript Function) fun0
+                        [(fref ,src ,function-name)
+                         (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
+                           (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                        [else fun])
+                      expr
+                      expr*))
+                  ")")])
+           (if async?
+               (parenthesize level (precedence not)
+                 (make-Qconcat "await " call-q))
+               (parenthesize level (precedence call) call-q))))]
       [(fold ,src ,len ,[Function : fun0 outer-pure? -> * fun]
              (,[Expr : expr0 (precedence add1 comma) outer-pure? -> * expr0] ,type)
              ,[Map-Argument : map-arg (precedence add1 comma) outer-pure? -> * expr byte-ref?]
@@ -3047,15 +3152,20 @@
        (let ([folder-name (unique-global-name "folder")]
              [pure? (nanopass-case (Ltypescript Function) fun0
                       [(fref ,src ,function-name) (id-pure? function-name)]
-                      [else outer-pure?])])
+                      [else outer-pure?])]
+             [async? (nanopass-case (Ltypescript Function) fun0
+                       [(fref ,src ,function-name) (function-async? function-name)]
+                       [else (not outer-pure?)])])
          (set! helper*
            (cons
              (let ([i+ (enumerate (cons expr expr*))])
-               (format "  ~a(~@[~*context, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = f(~@[~*context, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+               (format "  ~a~a(~@[~*context, partialProofData, ~]f, x, ~{~a~^, ~}) {\n    for (let i = 0; i < ~a; i++) { x = ~af(~@[~*context, partialProofData, ~]x, ~{~a~^, ~}); }\n    return x;\n  }\n"
+                 (if async? "async " "")
                  folder-name
                  (not pure?)
                  (map (lambda (i) (format "a~s" i)) i+)
                  len
+                 (if async? "await " "")
                  (not pure?)
                  (map (lambda (i byte-ref?)
                         (let ([ref (format "a~d[i]" i)])
@@ -3063,29 +3173,41 @@
                       i+
                       (cons byte-ref? byte-ref?*))))
              helper*))
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             "this."
-             folder-name
-             "("
-             (make-Qargs pure?
-               (cons*
-                 (nanopass-case (Ltypescript Function) fun0
-                   [(fref ,src ,function-name)
-                    (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                      (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
-                   [else fun])
-                 expr0
-                 expr
-                 expr*))
-             ")")))]
+         (let ([call-q
+                (make-Qconcat
+                  "this."
+                  folder-name
+                  "("
+                  (make-Qargs pure?
+                    (cons*
+                      (nanopass-case (Ltypescript Function) fun0
+                        [(fref ,src ,function-name)
+                         (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
+                           (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                        [else fun])
+                      expr0
+                      expr
+                      expr*))
+                  ")")])
+           (if async?
+               (parenthesize level (precedence not)
+                 (make-Qconcat "await " call-q))
+               (parenthesize level (precedence call) call-q))))]
       [(call ,src ,function-name ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (parenthesize level (precedence call)
-         (make-Qconcat
-           (format-function-reference src function-name)
-           "("
-           (make-Qargs (id-pure? function-name) expr*)
-           ")"))]
+       (if (function-async? function-name)
+           (parenthesize level (precedence not)
+             (make-Qconcat
+               "await "
+               (format-function-reference src function-name)
+               "("
+               (make-Qargs (id-pure? function-name) expr*)
+               ")"))
+           (parenthesize level (precedence call)
+             (make-Qconcat
+               (format-function-reference src function-name)
+               "("
+               (make-Qargs (id-pure? function-name) expr*)
+               ")")))]
       [(new ,src ,type ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
        (nanopass-case (Ltypescript Type) (de-alias type)
          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -3118,29 +3240,29 @@
              expr
              (format-javascript-string mesg))
            ")"))]
-      [(field->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
+      [(field->bytes ,src ,len ,ftype ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
-           (compact-stdlib "convertFieldToBytes")
+           (compact-stdlib "convertBigintToBytes")
            "("
            ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
            ")"))]
       [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (nanopass-case (Ltypescript Type) (de-alias type)
-           [(tfield ,src^)
-            (make-Qconcat
-              (compact-stdlib "convertBytesToField")
-              "("
-              ((make-Qsep ",") (format "~d" len) expr (format "'~a'" (format-source-object src)))
-              ")")]
-           [(tunsigned ,src^ ,nat^)
-            (make-Qconcat
-              (compact-stdlib "convertBytesToUint")
-              "("
-              ((make-Qsep ",") (format "~dn" nat^) (format "~d" len) expr (format "'~a'" (format-source-object src)))
-              ")")]
-           [else (assert cannot-happen)]))]
+         (let ([max (nanopass-case (Ltypescript Type) (de-alias type)
+                      [(tfield ,src^ (field-native)) (max-field)]
+                      [(tfield ,src^ (field-scalar (curve-jubjub))) (max-jubjub-scalar)]
+                      [(tfield ,src^ (field-base (curve-secp256k1))) (max-secp256k1-base)]
+                      [(tfield ,src^ (field-scalar (curve-secp256k1))) (max-secp256k1-scalar)]
+                      [(tunsigned ,src^ ,nat) nat])])
+           (make-Qconcat (compact-stdlib "convertBytesToBigint") "("
+             ((make-Qsep ",")
+              (format "~dn" max)
+              (format "~d" len)
+              expr
+              (format "'~a'" (format-type type))
+              (format "'~a'" (format-source-object src)))
+             ")")))]
       [(vector->bytes ,src ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
          (make-Qconcat
@@ -3162,7 +3284,7 @@
                          [else (assert cannot-happen)])])
            (cond
              [(nanopass-case (Ltypescript Type) (de-alias type)
-                [(tfield ,src) #f]
+                [(tfield ,src ,ftype) #f]
                 [(tunsigned ,src ,nat) (guard (< nat maxval)) nat]
                 [else #f]) =>
               (lambda (nat)
@@ -3205,6 +3327,23 @@
                  0 "})("
                  expr
                  ")"))))]
+      [(cast-to-field ,src (field-native) ,type ,expr)
+       ;; Foreign fields and unsigned integers are the same type as the native field (bigint), and
+       ;; all possible values are smaller than the native field modulus.
+       (Expr expr level outer-pure?)]
+      [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,expr)
+       (if (feature-zkir-v3)
+           (parenthesize level (precedence call)
+             (make-Qconcat
+               (compact-stdlib "convertNumericToJubjubScalar")
+               "("
+               (Expr expr (precedence add1 comma) outer-pure?)
+               ")"))
+           (Expr expr level outer-pure?))]
+      [(cast-to-field ,src ,ftype ,type ,expr)
+       (assert cannot-happen)]
+      [(cast-from-field ,src ,nat ,ftype ,expr)
+       (downcast-unsigned src nat expr)]
       [(downcast-unsigned ,src ,nat? ,nat ,expr)
        (downcast-unsigned src nat expr)]
       [(safe-cast ,src ,type ,type^ ,expr)
@@ -3215,21 +3354,62 @@
          [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
           ; this should be caught by ledger meta-type checks or by propagate-ledger-paths
           (when (public-adt? type) (source-errorf src "incomplete reference to nested ADT"))
-          (let ([descriptor-name? (and (eq? op-class 'read) (type->maybe-descriptor-name type))])
+          ;; For a tcontract result look up the ContractAddress descriptor that
+          ;; subst-tcontract substituted for during register-descriptor!.  For other
+          ;; types keep the existing descriptor lookup.
+          (let ([descriptor-name?
+                  (and (eq? op-class 'read)
+                       (type->maybe-descriptor-name (subst-tcontract type)))])
             (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-              (nanopass-case (Ltypescript Type) (de-alias type)
-                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                 (assert not-implemented)]
-                [else
-                 (if descriptor-name?
-                     (make-Qconcat
-                       descriptor-name?
-                       ".fromValue("
-                       q
-                       ".value)")
-                     q)])))])]
+              (if descriptor-name?
+                  (make-Qconcat
+                    descriptor-name?
+                    ".fromValue("
+                    q
+                    ".value)")
+                  q)))])]
       [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-       (source-errorf src "contract types are not yet implemented")])
+       ;; Lower a cross-contract call to:
+       ;;   await __compactRuntime.crossContractCall(
+       ;;     context,                                     // caller CircuitContext
+       ;;     <import-binding>,                            // callee Module (Contract + pureCircuits)
+       ;;     '<elt-name>',                                // callee CircuitId
+       ;;     <receiver-expr>,                             // callee address from the ledger
+       ;;     <callee-is-pure>,                            // declared purity of the callee circuit
+       ;;     partialProofData,                            // caller PartialProofData
+       ;;     <args>...)
+       (when outer-pure?
+         (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
+       (nanopass-case (Ltypescript Type) (de-alias type)
+         [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+          (let ([callee-is-pure
+                 (let loop ([names elt-name*] [pures pure-dcl*])
+                   (cond
+                     [(null? names)
+                      (internal-errorf 'print-typescript
+                        "contract-call references unknown circuit ~s on contract ~s"
+                        elt-name contract-name)]
+                     [(eq? (car names) elt-name) (car pures)]
+                     [else (loop (cdr names) (cdr pures))]))]
+                [callee-address
+                 (make-Qconcat
+                   (format "~a((" (compact-stdlib "decodeContractAddress"))
+                   expr
+                   ").bytes)")])
+            (parenthesize level (precedence not)
+              (make-Qconcat
+                (format "await ~a(" (compact-stdlib "crossContractCall"))
+                (apply (make-Qsep ",")
+                  (cons* "context"
+                         (format "~a" (contract-import-binding contract-name))
+                         (format "'~a'" elt-name)
+                         callee-address
+                         (if callee-is-pure "true" "false")
+                         "partialProofData"
+                         expr*))
+                ")")))]
+         [else
+          (source-errorf src "internal: contract-call type is not a tcontract")])])
     (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
       [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
        (values
@@ -3244,7 +3424,7 @@
          (make-Qconcat
            "("
            (make-Qconcat
-             "("
+             (if outer-pure? "(" "async (")
              (make-Qargs outer-pure? q-formal*)
              ") =>"
              0 "{"
@@ -3274,8 +3454,14 @@
                           ; can't happen at present, since type2 should not contain tvar refs
                           (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
                       [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
-                      [(tfield ,src) (T type2 [(tfield ,src) #t] [(tunsigned ,src ,nat2) #t])]
-                      [(tunsigned ,src ,nat1) (T type2 [(tunsigned ,src ,nat2) #t] [(tfield ,src) #t])]
+                      [(tfield ,src ,ftype1)
+                       (T type2
+                         [(tfield ,src ,ftype2) #t]
+                         [(tunsigned ,src ,nat) #t])]
+                      [(tunsigned ,src ,nat1)
+                       (T type2
+                         [(tunsigned ,src ,nat2) #t]
+                         [(tfield ,src ,ftype) #t])]
                       [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                       [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                       [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
@@ -3322,13 +3508,14 @@
                  (map cdr subst*)))))
       [,tvar-name (symbol->string tvar-name)]
       [(tboolean ,src) "boolean"]
-      [(tfield ,src) "bigint"]
+      [(tfield ,src ,ftype) "bigint"]
       [(tunsigned ,src ,nat) "bigint"]
       [(tbytes ,src ,len) "Uint8Array"]
       [(topaque ,src ,opaque-type)
        (case opaque-type
          [("string" "Uint8Array") opaque-type]
          [("JubjubPoint") "__compactRuntime.JubjubPoint"]
+         [("Secp256k1Point") "__compactRuntime.Secp256k1Point"]
          ;; FIXME: what should happen with other opaque types?
          [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
       [(tvector ,src ,len ,[Type : type -> * type])

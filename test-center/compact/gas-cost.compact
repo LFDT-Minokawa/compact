@@ -19,10 +19,10 @@ ledger setA: Set<Field>;
 ledger setB: Set<Field>;
 
 constructor() {
-  setA.insert(10);
+  setA.insert(10 as Field);
 }
 
 export circuit testGasCost(): [] {
-  setA.remove(10);
-  setB.insert(10);
+  setA.remove(10 as Field);
+  setB.insert(10 as Field);
 }
