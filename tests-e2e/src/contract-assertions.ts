@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import { expect } from 'vitest';
-import { ContractInfo, ContractInfoCircuit } from './types';
+import { ContractInfo, ContractInfoCircuit, ContractInfoLedger, LedgerAdtType, OrdinaryType } from './types';
 
 export class AssertContract {
     private folderPath: string = '';
@@ -72,6 +72,10 @@ export class AssertContract {
         return this.contractInfo?.circuits.find((c) => c.name === circuitName);
     }
 
+    private getLedgerFieldFromJson(fieldName: string): ContractInfoLedger | undefined {
+        return this.contractInfo?.ledger.find((l) => l.name === fieldName);
+    }
+
     getPureCircuits(): string[] {
         return [...this.pureCircuits];
     }
@@ -90,6 +94,10 @@ export class AssertContract {
 
     getContractInfoCircuits(): ContractInfoCircuit[] | undefined {
         return this.contractInfo?.circuits;
+    }
+
+    getContractInfoLedger(): ContractInfoLedger[] | undefined {
+        return this.contractInfo?.ledger;
     }
 
     thatCompilerVersionIs(expectedVersion: string): AssertContract {
@@ -191,5 +199,90 @@ export class AssertContract {
             .thatCircuitHasNoZkir(circuitName)
             .thatCircuitNoProof(circuitName)
             .thatCircuitIsJsonImpure(circuitName);
+    }
+
+    thatLedgerFieldExists(fieldName: string): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        return this;
+    }
+
+    thatLedgerFieldNotInJson(fieldName: string): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' should NOT be in contract-info.json ledger`).toBeUndefined();
+        return this;
+    }
+
+    thatLedgerFieldStorageIs(fieldName: string, expectedStorage: ContractInfoLedger['storage']): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.storage, `'${fieldName}' storage mismatch in contract-info.json`).toBe(expectedStorage);
+        return this;
+    }
+
+    thatLedgerFieldIsExported(fieldName: string): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.exported, `'${fieldName}' should be exported in contract-info.json`).toBe(true);
+        return this;
+    }
+
+    thatLedgerFieldIsNotExported(fieldName: string): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.exported, `'${fieldName}' should NOT be exported in contract-info.json`).toBe(false);
+        return this;
+    }
+
+    thatLedgerFieldIndexIs(fieldName: string, expectedIndex: number | number[]): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.index, `'${fieldName}' index mismatch in contract-info.json`).toEqual(expectedIndex);
+        return this;
+    }
+
+    /** Asserts the `type` payload for Cell/Set/List/MerkleTree/HistoricMerkleTree. */
+    thatLedgerFieldHasType(fieldName: string, expectedType: OrdinaryType): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        if (field && 'type' in field) {
+            expect(field.type, `'${fieldName}' type mismatch in contract-info.json`).toEqual(expectedType);
+        } else {
+            expect.fail(`'${fieldName}' storage '${field?.storage}' has no 'type' payload in contract-info.json`);
+        }
+        return this;
+    }
+
+    thatLedgerMapKeyIs(fieldName: string, expectedKey: OrdinaryType): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.storage, `'${fieldName}' is not a Map in contract-info.json`).toBe('Map');
+        if (field?.storage === 'Map') {
+            expect(field.key, `'${fieldName}' Map key mismatch in contract-info.json`).toEqual(expectedKey);
+        }
+        return this;
+    }
+
+    thatLedgerMapValueIs(fieldName: string, expectedValue: OrdinaryType | LedgerAdtType): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(field?.storage, `'${fieldName}' is not a Map in contract-info.json`).toBe('Map');
+        if (field?.storage === 'Map') {
+            expect(field.value, `'${fieldName}' Map value mismatch in contract-info.json`).toEqual(expectedValue);
+        }
+        return this;
+    }
+
+    thatLedgerMerkleTreeDepthIs(fieldName: string, expectedDepth: number): AssertContract {
+        const field = this.getLedgerFieldFromJson(fieldName);
+        expect(field, `'${fieldName}' not found in contract-info.json ledger`).toBeDefined();
+        expect(
+            field?.storage === 'MerkleTree' || field?.storage === 'HistoricMerkleTree',
+            `'${fieldName}' is not a MerkleTree/HistoricMerkleTree in contract-info.json (storage='${field?.storage}')`,
+        ).toBe(true);
+        if (field?.storage === 'MerkleTree' || field?.storage === 'HistoricMerkleTree') {
+            expect(field.depth, `'${fieldName}' MerkleTree depth mismatch in contract-info.json`).toBe(expectedDepth);
+        }
+        return this;
     }
 }

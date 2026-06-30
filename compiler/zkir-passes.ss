@@ -20,6 +20,7 @@
   (import (except (chezscheme) errorf)
           (config-params)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs)
@@ -136,8 +137,8 @@
             (map alignment->json-atom align))
           (define (constrain-type type pos)
             (nanopass-case (Lflattened Primitive-Type) type
-              [(tfield) (void)]
-              [(tfield ,nat)
+              [(tfield ,ftype) (void)]
+              [(tunsigned ,nat)
                (cond
                  [(= nat 0) (print-gate "constrain_eq" `[a ,pos] `[b ,(literal 0)])]
                  [(= nat 1) (print-gate "constrain_to_boolean" `[var ,pos])]
@@ -165,52 +166,57 @@
                   (when (cdr a) (internal-errorf 'print-zkir "duplicate circuit name ~s" name))
                   (set-cdr! a handler)))
               (register-handler! 'transientHash
-                (lambda (align res* . xs)
+                (lambda (src align res* . xs)
                   (print-gate "transient_hash" `[inputs ,xs])
                   (new-var! (car res*))))
               (register-handler! 'degradeToTransient
-                (lambda (align res* a1 a2) (bind-var! (car res*) a2)))
+                (lambda (src align res* a1 a2) (bind-var! (car res*) a2)))
               (register-handler! 'upgradeFromTransient
-                (lambda (align res* a1)
+                (lambda (src align res* a1)
                   (bind-var! (car res*) (literal 0))
                   (print-gate "div_mod_power_of_two" `[var ,a1] `[bits 248])
                   (set! ctr (add1 ctr))
                   (new-var! (cadr res*))))
               (register-handler! 'ecAdd
-                (lambda (align res* ax ay bx by)
+                (lambda (src align res* ax ay bx by)
                   (print-gate "ec_add" `[a_x ,ax] `[a_y ,ay] `[b_x ,bx] `[b_y ,by])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
+              (register-handler! 'ecNeg
+                (lambda (src align res* ax ay)
+                  (print-gate "neg" `[a ,ax])
+                  (new-var! (car res*))
+                  (bind-var! (cadr res*) ay)))
               (register-handler! 'ecMul
-                (lambda (align res* ax ay b)
+                (lambda (src align res* ax ay b)
                   (print-gate "ec_mul" `[a_x ,ax] `[a_y ,ay] `[scalar ,b])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'ecMulGenerator
-                (lambda (align res* b)
+                (lambda (src align res* b)
                   (print-gate "ec_mul_generator" `[scalar ,b])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'hashToCurve
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "hash_to_curve" `[inputs ,args*])
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'jubjubPointX
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)))
               (register-handler! 'jubjubPointY
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a2)))
               (register-handler! 'constructJubjubPoint
-                (lambda (align res* a1 a2)
+                (lambda (src align res* a1 a2)
                   (bind-var! (car res*) a1)
                   (bind-var! (cadr res*) a2)))
               (register-handler! 'transientCommit
                 ;; First n-1 args are the object being committed.
                 ;; Final arg is commitment nonce.
                 ;; commit algorithm is: object.fold(nonce, poseidon_compress)
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "transient_hash" `[inputs ,(cons (car (list-tail args* (sub1 (length args*))))
                                                                (list-head args* (sub1 (length args*))))])
                   (new-var! (car res*))))
@@ -218,7 +224,7 @@
                 ;; First n-2 args are the object being committed.
                 ;; Final 2 args are commitment nonce.
                 ;; commit algorithm is: object.fold(nonce, poseidon_compress)
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "persistent_hash"
                               `[alignment ,(alignment->json
                                              (cons (with-output-language (Lflattened Alignment)
@@ -229,7 +235,7 @@
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
               (register-handler! 'persistentHash
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   (print-gate "persistent_hash"
                               `[alignment ,(alignment->json (caar align))]
                               `[inputs ,args*])
@@ -237,16 +243,19 @@
                   ; FIXME: should check for expected number of res*
                   (new-var! (car res*))
                   (new-var! (cadr res*))))
+              (register-handler! 'keccak256
+                (lambda (src align res* . args*)
+                  (source-errorf src "keccak256 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`")))
               (register-handler! 'ownPublicKey
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               (register-handler! 'createZswapInput
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               (register-handler! 'createZswapOutput
-                (lambda (align res* . args*)
+                (lambda (src align res* . args*)
                   ; handled as a witness
                   (assert cannot-happen)))
               ht))
@@ -290,6 +299,267 @@
           (define-record-type vmref
             (nongenerative)
             (fields type q))
+          ;; Walk a vm-code body, producing zkir gates. Used for both the
+          ;; public-ledger and emit clauses. The two callers differ only in
+          ;; what they put in `env`, `path-elt*`, `var-name*`, and `type`:
+          ;;   - public-ledger: full ledger context including adt-formal/ledger-op-formal
+          ;;     bindings, path-elt* for the ledger access path, var-name* for popeq
+          ;;     destinations, and `type` for the result-type alignment used by popeq.
+          ;;   - emit: env binds emit-version/emit-tag/emit-payload, path-elt* is '(),
+          ;;     var-name* is '() (emit has no result), `type` is #f (emit's vm-code
+          ;;     never produces a popeq).
+          (define (assemble-vm-code test src path-elt* env var-name* type vm-code)
+            (for-each
+              (lambda (ins)
+                (letrec* ([type->alignment (lambda (type)
+                                             (nanopass-case (Lflattened Type) type
+                                               [(ty (,alignment* ...) (,primitive-type* ...))
+                                                (map
+                                                  (lambda (alignment)
+                                                    (nanopass-case (Lflattened Alignment) alignment
+                                                     [(acompress) -1]
+                                                     [(abytes ,nat) nat]
+                                                     [(afield) -2]
+                                                     [(aadt) -3]))
+                                                  alignment*)]))]
+                          [null-for-alignment (lambda (alignment)
+                                                (apply append
+                                                       (map (lambda (atom)
+                                                              (let ([n (if (< atom 0) 1 (ceiling (/ atom (field-bytes))))])
+                                                                (map (lambda (_) 0) (iota n))))
+                                                            alignment)))]
+                          [emit (lambda (ref) (make-statement
+                                                (cond
+                                                  [(equal? test (hashtable-ref literal-ht 1 #f)) ref]
+                                                  [(equal? ref (hashtable-ref literal-ht 1 #f)) test]
+                                                  [else
+                                                   (let ([ref (if (id? ref) (var-idx ref) ref)])
+                                                     (print-gate "cond_select" `[bit ,test] `[a ,ref] `[b ,(literal 0)])
+                                                     (set! ctr (add1 ctr))
+                                                     (sub1 ctr))])))]
+                          [vm-eval (lambda (vmop)
+                                     (cond
+                                      [(VMop? vmop)
+                                       (VMop-case vmop
+                                         [(VMsuppress) '()]
+                                         [(VMstack) '(-1)]
+                                         [(VMvoid) '()]
+                                         [(VMstate-value-null) (list 0)]
+                                         [(VMstate-value-cell val) (list* 1 (vm-eval val))]
+                                         [(VMstate-value-ADT val type)
+                                          ; wrap val in a cell, unless it is already an ADT
+                                          (or (nanopass-case (Lflattened Type) type
+                                                [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
+                                                 (vm-eval
+                                                   (expand-vm-expr
+                                                     src
+                                                     (map cons adt-formal* adt-arg*)
+                                                     (vm-expr-expr vm-expr)))]
+                                                [else #f])
+                                              (list* 1 (vm-eval val)))]
+                                         [(VMstate-value-map key* val*)
+                                          (append (list (+ 2 (* (length key*) 16)))
+                                                  (apply append (maplr vm-eval key*))
+                                                  (apply append (maplr vm-eval val*)))]
+                                         [(VMstate-value-array val*)
+                                          (append (list (+ 3 (* (length val*) 16)))
+                                                  (apply append (maplr vm-eval val*)))]
+                                         [(VMstate-value-merkle-tree nat key* val*)
+                                          (append (list (+ 4 (* nat 16) (* (length key*) 4096)))
+                                                  (apply append (maplr vm-eval key*))
+                                                  (apply append (maplr vm-eval val*)))]
+                                         [(VMalign value bytes) (list* 1 bytes (vm-eval value))]
+                                         [(VMaligned-concat x*)
+                                          (let* ([x* (maplr vm-eval x*)]
+                                                 [len* (map car x*)]
+                                                 [alignment* (map (lambda (x len) (list-head (cdr x) len)) x* len*)]
+                                                 [value* (map (lambda (x len) (list-tail (cdr x) len)) x* len*)])
+                                            (append (list (apply + len*))
+                                                    (apply append alignment*)
+                                                    (apply append value*)))]
+                                         [(VMvalue->int x)
+                                          (let ([q (vmref-q x)])
+                                            (unless (= 1 (length q))
+                                              (internal-errorf 'print-zkir (format "expected integer in VMvalue->int, got ~s" q)))
+                                            `((ref . ,(car q))))]
+                                         [(VMnull ty)
+                                          (let* ([alignment (type->alignment ty)])
+                                            (append (list (length alignment))
+                                                    alignment
+                                                    (null-for-alignment alignment)))]
+                                         [(VMleaf-hash x)
+                                          (let-values ([(value ty)
+                                                        (cond
+                                                          [(vmref? x) (values (map (lambda (q) (cons 'ref q)) (vmref-q x)) (vmref-type x))]
+                                                          [(VMop? x)
+                                                           (VMop-case x
+                                                             [(VMnull ty)
+                                                              (values (null-for-alignment (type->alignment ty)) ty)]
+                                                             [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])]
+                                                          [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])])
+                                            (let* ([alignment
+                                                    (nanopass-case (Lflattened Type) ty
+                                                      [(ty (,alignment* ...) (,primitive-type* ...))
+                                                       alignment*])]
+                                                   [value-refs (map (lambda (x) (if (pair? x) (cdr x) (literal x))) value)]
+                                                   [domain-sep-string "mdn:lh"]
+                                                   [domain-sep-bytes (bytevector->u8-list (string->utf8 domain-sep-string))]
+                                                   [domain-sep-align (with-output-language (Lflattened Alignment)
+                                                                                           `(abytes ,(length domain-sep-bytes)))]
+                                                   [domain-sep-field (fold-right (lambda (byte acc) (+ byte (* 256 acc))) 0 domain-sep-bytes)]
+                                                   [leaf1 (make-temp-id src 'leaf1)]
+                                                   [leaf2 (make-temp-id src 'leaf2)])
+                                              (apply (hashtable-ref std-circuits 'persistentHash #f)
+                                                     src
+                                                     (list (list (cons domain-sep-align alignment)))
+                                                     (list leaf1 leaf2)
+                                                     (cons (literal domain-sep-field) value-refs))
+                                              `(1 32 (ref . ,(var-idx leaf1)) (ref . ,(var-idx leaf2)))))]
+                                         [(VMcoin-commit coin recipient)
+                                          (let* ([coin (vmref-q coin)]
+                                                 [recipient (vmref-q recipient)]
+                                                 [abytes (lambda (n)
+                                                           (with-output-language (Lflattened Alignment)
+                                                             `(abytes ,n)))]
+                                                 [domain-sep-string "midnight:zswap-cc[v1]"]
+                                                 [domain-sep-bytes (bytevector->u8-list (string->utf8 domain-sep-string))]
+                                                 [domain-sep-field (fold-right (lambda (byte acc) (+ byte (* 256 acc))) 0 domain-sep-bytes)]
+                                                 [data1 (make-temp-id src 'data1)]
+                                                 [data2 (make-temp-id src 'data2)]
+                                                 [hash1 (make-temp-id src 'hash1)]
+                                                 [hash2 (make-temp-id src 'hash2)])
+                                            (print-gate "cond_select" `[bit ,(car recipient)]
+                                                                      `[a   ,(cadr recipient)]
+                                                                      `[b   ,(cadddr recipient)])
+                                            (new-var! data1)
+                                            (print-gate "cond_select" `[bit ,(car recipient)]
+                                                                      `[a   ,(caddr recipient)]
+                                                                      `[b   ,(car (cddddr recipient))])
+                                            (new-var! data2)
+                                            (apply (hashtable-ref std-circuits 'persistentHash #f)
+                                                   src
+                                                   ;; alignment of `CoinPreimage` in std.compact
+                                                   (list (list (list
+                                                                 (abytes (length domain-sep-bytes))
+                                                                 (abytes 32)
+                                                                 (abytes 32)
+                                                                 (abytes 16)
+                                                                 (abytes 1)
+                                                                 (abytes 32))))
+                                                   (list hash1 hash2)
+                                                   (append
+                                                       (list (literal domain-sep-field))
+                                                       coin
+                                                       (list (car recipient))
+                                                       (list (var-idx data1) (var-idx data2))))
+                                            `(1 32 (ref . ,(var-idx hash1)) (ref . ,(var-idx hash2))))]
+                                         ;; There's room to tighten this in future, we just need to be careful to keep it
+                                         ;; in-sync with the rust version.
+                                         [(VMmax-sizeof ty)
+                                          (let* ([alignment (type->alignment ty)]
+                                                 [isize (lambda (n) (if (zero? n) 1 (ceiling (/ (integer-length n) 8))))]
+                                                 [atom-len (lambda (atom) (if (< atom 0) 34 (+ 2 atom (isize atom))))]
+                                                 [max-size (+ 1 (isize (length alignment)) (apply + (map atom-len alignment)))])
+                                            (list max-size))]
+                                         ;; Only handles literals x y
+                                         [(VM+ x y)
+                                          (let ([x (vm-eval x)]
+                                                [y (vm-eval y)])
+                                            (unless (and (= (length x) 1)
+                                                         (= (length y) 1)
+                                                         (number? (car x))
+                                                         (number? (car y)))
+                                              (internal-errorf 'print-zkir (format "VM+ in unexpected context: VM+ ~s ~s" x y)))
+                                            (list (+ (car x) (car y))))]
+                                         [else (internal-errorf 'print-zkir (format "unhandled vmop ~s" vmop))])]
+                                      [(vmref? vmop)
+                                       ;; // const foo = null[Set[Field]]();
+                                       ;; ledger.bar.insert(/* foo */);
+                                       (let ([q (vmref-q vmop)]
+                                             [alignment (type->alignment (vmref-type vmop))])
+                                         (append (list (length alignment))
+                                                 alignment
+                                                 (maplr (lambda (q) (cons 'ref q)) q)))]
+                                      [else (list vmop)]))]
+                          [attr (lambda (name)
+                                 (cdr (assoc (symbol->string name) (vminstr-arg* ins))))]
+                          [eattr (lambda (name) (maplr (lambda (q) (if (pair? q) (cdr q) (literal q))) (vm-eval (attr name))))]
+                          [emit-all (lambda (public-inputs)
+                                      (unless (null? public-inputs)
+                                        (for-each emit public-inputs)
+                                        (print-gate "pi_skip"
+                                                    `[guard ,test]
+                                                    `[count ,(length public-inputs)])))])
+                  ;; NOTE: This needs to be kept in sync with the FieldRepr
+                  ;; implementation in midnight-onchain-runtime/src/ops.rs
+                  (emit-all (case (vminstr-op ins)
+                    ["noop" (map (lambda (_) (literal 0)) (iota (attr 'n)))]
+                    ["lt" (list (literal 1))]
+                    ["eq" (list (literal 2))]
+                    ["type" (list (literal 3))]
+                    ["size" (list (literal 4))]
+                    ["new" (list (literal 5))]
+                    ["and" (list (literal 6))]
+                    ["or" (list (literal 7))]
+                    ["neg" (list (literal 8))]
+                    ["log" (list (literal 9))]
+                    ["root" (list (literal 10))]
+                    ["pop" (list (literal 11))]
+                    ["popeq"
+                     (let ([alignment (type->alignment type)])
+                       (append
+                         (list (literal (if (attr 'cached) 13 12))
+                               (literal (length alignment)))
+                         (maplr
+                           (lambda (x) (if (pair? x) (cdr x) (literal x)))
+                           alignment)
+                         (maplr
+                           (lambda (var)
+                             (if (equal? test (hashtable-ref literal-ht 1 #f))
+                                 (print-gate "public_input" '[guard null])
+                                 (print-gate "public_input" `[guard ,test]))
+                             (new-var! var)
+                             (var-idx var))
+                           var-name*)))]
+                    ["addi" (list* (literal 14) (eattr 'immediate))]
+                    ["subi" (list* (literal 15) (eattr 'immediate))]
+                    ["push" (list* (literal (if (attr 'storage) 17 16)) (eattr 'value))]
+                    ["branch" (list* (literal 18) (eattr 'skip))]
+                    ["jmp" (list* (literal 19) (eattr 'skip))]
+                    ["add" (list (literal 20))]
+                    ["sub" (list (literal 21))]
+                    ["concat" (list* (literal (if (attr 'cached) 23 22)) (eattr 'n))]
+                    ["member" (list (literal 24))]
+                    ["rem" (list (literal (if (attr 'cached) 26 25)))]
+                    ["dup" (list (literal (+ 48 (attr 'n))))]
+                    ["swap" (list (literal (+ 64 (attr 'n))))]
+                    ["idx"
+                     (let* ([cached (attr 'cached)]
+                            [push-path (attr 'pushPath)]
+                            [raw-path (attr 'path)]
+                            [path (if (and (VMop? raw-path) (VMop-case raw-path [(VMsuppress) #t] [else #f]))
+                                      '()
+                                      raw-path)]
+                            [opcode-upper-nibble (cond
+                                                  [(and (not cached) (not push-path)) 5]
+                                                  [(and cached       (not push-path)) 6]
+                                                  [(and (not cached) push-path)       7]
+                                                  [(and cached       push-path)       8])])
+                       (if (zero? (length path))
+                           '()
+                           (list* (literal (+ (* opcode-upper-nibble 16)
+                                              (sub1 (length path))))
+                                  (maplr
+                                    (lambda (elt)
+                                      (if (pair? elt) (cdr elt) (literal elt)))
+                                    (apply append (maplr vm-eval path))))))]
+                    ["ins" (if (VMop? (attr 'n))
+                               '()
+                               (list (literal (+ (if (attr 'cached) 160 144)
+                                                 (attr 'n)))))]
+                    ["ckpt" (list (literal 255))]
+                    [else (internal-errorf 'print-zkir (format "unknown vm operation ~a" (vminstr-op ins)))]))))
+              (expand-vm-code src path-elt* #f env (vm-code-code vm-code))))
           )
         (Program : Program (ir) -> Program ()
           [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -347,10 +617,20 @@
           ; FIXME: zkir downcast-unsigned needs to respect test
           ; NB: missing-guard-workarounds now implements a workaround that ensures
           ; downcast-unsigned's safe flag is #t whenever the test might be false.
-          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv]))
+          [(= ,[* test] ,var-name (downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[* triv]))
            (unless safe
              (constrain-type (with-output-language (Lflattened Primitive-Type)
-                                                   `(tfield ,nat))
+                                                   `(tunsigned ,nat1))
+                             triv))
+           ; triv is a stack index for a literal or variable
+           (hashtable-set! varid-ht var-name triv)]
+          ; FIXME: zkir cast-from-field needs to respect test
+          ; NB: missing-guard-workarounds now implements a workaround that ensures
+          ; cast-from-field's safe flag is #t whenever the test might be false.
+          [(= ,[* test] ,var-name (cast-from-field ,src ,safe ,nat ,ftype ,[* triv]))
+           (unless safe
+             (constrain-type (with-output-language (Lflattened Primitive-Type)
+                                                   `(tunsigned ,nat))
                              triv))
            ; triv is a stack index for a literal or variable
            (hashtable-set! varid-ht var-name triv)]
@@ -363,7 +643,7 @@
                [(builtin-circuit)
                 (cond
                   [(hashtable-ref std-circuits (cadr pair) #f) =>
-                   (lambda (handler) (apply handler (cddr pair) var-name* triv*))]
+                   (lambda (handler) (apply handler src (cddr pair) var-name* triv*))]
                   [else (source-errorf src "unrecognized native circuit ~a" (cadr pair))])]
                [(witness)
                 (for-each
@@ -380,8 +660,62 @@
                   (assert (hashtable-ref returntype-ht function-name #f))
                   var-name*)]
                [else (assert cannot-happen)]))]
-          [(= ,[* test] (,var-name* ...) (contract-call ,src ,elt-name (,triv ,primitive-type) ,triv* ...))
-           (source-errorf src "cross-contract calls are not yet supported")]
+          [(= ,test (,var-name* ...) (contract-call ,src ,elt-name ((,recv* ...) ,primitive-type) ,triv* ...))
+           ;; The `desugar-contract-calls` circuit pass has already rewritten this
+           ;; cross-contract call into an extended contract-call whose result
+           ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
+           ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
+           ;; `public-ledger`. So all that remains here is to witness the
+           ;; (extended) result vector — the transient hash and the claim are
+           ;; lowered by the generic call / public-ledger handlers.
+           (let ([test-idx (Triv test)])
+             (nanopass-case (Lflattened Primitive-Type) primitive-type
+               [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                (let loop ([elt-name* elt-name*] [type** type**] [type* type*])
+                  (cond
+                    [(null? elt-name*)
+                     (internal-errorf 'print-zkir
+                       "contract-call references unknown circuit ~s on contract ~s"
+                       elt-name contract-name)]
+                    [(eq? (car elt-name*) elt-name)
+                     (let ([prim-type* (type->primitive-types (car type*))])
+                       (unless (fx= (length prim-type*) (length var-name*))
+                         (internal-errorf 'print-zkir
+                           "contract-call result arity mismatch for ~s.~s: ~s expected, ~s var-names"
+                           contract-name elt-name (length prim-type*) (length var-name*)))
+                       (unless (fx= (length (apply append (map type->primitive-types (car type**))))
+                                    (length triv*))
+                         (internal-errorf 'print-zkir
+                           "contract-call argument arity mismatch for ~s.~s: ~s expected, ~s actual"
+                           contract-name elt-name
+                           (length (apply append (map type->primitive-types (car type**))))
+                           (length triv*)))
+                       (for-each
+                         (lambda (type var)
+                           (if (equal? test-idx (hashtable-ref literal-ht 1 #f))
+                               (print-gate "private_input" '[guard null])
+                               (print-gate "private_input" `[guard ,test-idx]))
+                           (let ([index (new-var! var)])
+                             (constrain-type type index)
+                             index))
+                         prim-type*
+                         var-name*))]
+                    [else (loop (cdr elt-name*) (cdr type**) (cdr type*))]))]
+               [else
+                (internal-errorf 'print-zkir
+                  "contract-call primitive-type is not a tcontract")]))]
+          [(= ,[* test] () (emit ,src ,event-version ,event-tag ,len ,[* triv*] ... ,vm-code))
+           (let ([primitive-type* (map (lambda (_)
+                                         (with-output-language (Lflattened Primitive-Type)
+                                           `(tfield (field-native))))
+                                       triv*)])
+             (let ([env (list (cons 'emit-version event-version)
+                              (cons 'emit-tag     event-tag)
+                              (cons 'emit-payload (make-vmref
+                                                    (with-output-language (Lflattened Type)
+                                                      `(ty ((abytes ,len)) (,primitive-type* ...)))
+                                                    triv*)))])
+               (assemble-vm-code test src '() env '() #f vm-code)))]
           [(= ,[* test] (,var-name1 ,var-name2) (default ,opaque-type))
            (guard (string=? opaque-type "JubjubPoint"))
            (bind-var! var-name1 (literal 0))
@@ -398,7 +732,7 @@
                        (set! ctr (add1 ctr))
                        (new-var! var-name)
                        (loop var-name* q))))))]
-          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,[* triv]))
+          [(= ,[* test] (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* triv]))
            ; FIXME: need to respect test: constrain_bits shouldn't happen if test is false
            ; NB: missing-guard-workarounds now implements a workaround that ensures
            ; field->bytes receives a large enough length that it won't produce
@@ -431,282 +765,14 @@
                          [else (assert cannot-happen)])))))
              (nanopass-case (Lflattened ADT-Op) adt-op
                [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
-                (for-each
-                  (lambda (ins)
-                    (letrec* ([type->alignment (lambda (type)
-                                                 (nanopass-case (Lflattened Type) type
-                                                   [(ty (,alignment* ...) (,primitive-type* ...))
-                                                    (map
-                                                      (lambda (alignment)
-                                                        (nanopass-case (Lflattened Alignment) alignment
-                                                         [(acompress) -1]
-                                                         [(abytes ,nat) nat]
-                                                         [(afield) -2]
-                                                         [(aadt) -3]
-                                                         [(acontract) -4]))
-                                                      alignment*)]))]
-                              [null-for-alignment (lambda (alignment)
-                                                    (apply append
-                                                           (map (lambda (atom)
-                                                                  (let ([n (if (< atom 0) 1 (ceiling (/ atom (field-bytes))))])
-                                                                    (map (lambda (_) 0) (iota n))))
-                                                                alignment)))]
-                              [emit (lambda (ref) (make-statement
-                                                    (cond
-                                                      [(equal? test (hashtable-ref literal-ht 1 #f)) ref]
-                                                      [(equal? ref (hashtable-ref literal-ht 1 #f)) test]
-                                                      [else
-                                                       (let ([ref (if (id? ref) (var-idx ref) ref)])
-                                                         (print-gate "cond_select" `[bit ,test] `[a ,ref] `[b ,(literal 0)])
-                                                         (set! ctr (add1 ctr))
-                                                         (sub1 ctr))])))]
-                              [vm-eval (lambda (vmop)
-                                         (cond
-                                          [(VMop? vmop)
-                                           (VMop-case vmop
-                                             [(VMsuppress) '()]
-                                             [(VMstack) '(-1)]
-                                             [(VMvoid) '()]
-                                             [(VMstate-value-null) (list 0)]
-                                             [(VMstate-value-cell val) (list* 1 (vm-eval val))]
-                                             [(VMstate-value-ADT val type)
-                                              ; wrap val in a cell, unless it is already an ADT
-                                              (or (nanopass-case (Lflattened Type) type
-                                                    [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
-                                                     (vm-eval
-                                                       (expand-vm-expr
-                                                         src
-                                                         (map cons adt-formal* adt-arg*)
-                                                         (vm-expr-expr vm-expr)))]
-                                                    [else #f])
-                                                  (list* 1 (vm-eval val)))]
-                                             [(VMstate-value-map key* val*)
-                                              (append (list (+ 2 (* (length key*) 16)))
-                                                      (apply append (maplr vm-eval key*))
-                                                      (apply append (maplr vm-eval val*)))]
-                                             [(VMstate-value-array val*)
-                                              (append (list (+ 3 (* (length val*) 16)))
-                                                      (apply append (maplr vm-eval val*)))]
-                                             [(VMstate-value-merkle-tree nat key* val*)
-                                              (append (list (+ 4 (* nat 16) (* (length key*) 4096)))
-                                                      (apply append (maplr vm-eval key*))
-                                                      (apply append (maplr vm-eval val*)))]
-                                             [(VMalign value bytes) (list* 1 bytes (vm-eval value))]
-                                             [(VMaligned-concat x*)
-                                              (let* ([x* (maplr vm-eval x*)]
-                                                     [len* (map car x*)]
-                                                     [alignment* (map (lambda (x len) (list-head (cdr x) len)) x* len*)]
-                                                     [value* (map (lambda (x len) (list-tail (cdr x) len)) x* len*)])
-                                                (append (list (apply + len*))
-                                                        (apply append alignment*)
-                                                        (apply append value*)))]
-                                             [(VMvalue->int x)
-                                              (let ([q (vmref-q x)])
-                                                (unless (= 1 (length q))
-                                                  (internal-errorf 'print-zkir (format "expected integer in VMvalue->int, got ~s" q)))
-                                                `((ref . ,(car q))))]
-                                             [(VMnull ty)
-                                              (let* ([alignment (type->alignment ty)])
-                                                (append (list (length alignment))
-                                                        alignment
-                                                        (null-for-alignment alignment)))]
-                                             [(VMleaf-hash x)
-                                              (let-values ([(value ty)
-                                                            (cond
-                                                              [(vmref? x) (values (map (lambda (q) (cons 'ref q)) (vmref-q x)) (vmref-type x))]
-                                                              [(VMop? x)
-                                                               (VMop-case x
-                                                                 [(VMnull ty)
-                                                                  (values (null-for-alignment (type->alignment ty)) ty)]
-                                                                 [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])]
-                                                              [else (internal-errorf 'VMleaf-hash "expected vmref or VMnull, got ~s" x)])])
-                                                (let* ([alignment
-                                                        (nanopass-case (Lflattened Type) ty
-                                                          [(ty (,alignment* ...) (,primitive-type* ...))
-                                                           alignment*])]
-                                                       [value-refs (map (lambda (x) (if (pair? x) (cdr x) (literal x))) value)]
-                                                       [domain-sep-string "mdn:lh"]
-                                                       [domain-sep-bytes (bytevector->u8-list (string->utf8 domain-sep-string))]
-                                                       [domain-sep-align (with-output-language (Lflattened Alignment)
-                                                                                               `(abytes ,(length domain-sep-bytes)))]
-                                                       [domain-sep-field (fold-right (lambda (byte acc) (+ byte (* 256 acc))) 0 domain-sep-bytes)]
-                                                       [leaf1 (make-temp-id src 'leaf1)]
-                                                       [leaf2 (make-temp-id src 'leaf2)])
-                                                  (apply (hashtable-ref std-circuits 'persistentHash #f)
-                                                         (list*
-                                                           (list (list (cons domain-sep-align alignment)))
-                                                           (list leaf1 leaf2)
-                                                           (cons (literal domain-sep-field) value-refs)))
-                                                  `(1 32 (ref . ,(var-idx leaf1)) (ref . ,(var-idx leaf2)))))]
-                                             [(VMcoin-commit coin recipient)
-                                              (let* ([coin (vmref-q coin)]
-                                                     [recipient (vmref-q recipient)]
-                                                     [abytes (lambda (n)
-                                                               (with-output-language (Lflattened Alignment)
-                                                                 `(abytes ,n)))]
-                                                     [domain-sep-string "midnight:zswap-cc[v1]"]
-                                                     [domain-sep-bytes (bytevector->u8-list (string->utf8 domain-sep-string))]
-                                                     [domain-sep-field (fold-right (lambda (byte acc) (+ byte (* 256 acc))) 0 domain-sep-bytes)]
-                                                     [data1 (make-temp-id src 'data1)]
-                                                     [data2 (make-temp-id src 'data2)]
-                                                     [hash1 (make-temp-id src 'hash1)]
-                                                     [hash2 (make-temp-id src 'hash2)])
-                                                (print-gate "cond_select" `[bit ,(car recipient)]
-                                                                          `[a   ,(cadr recipient)]
-                                                                          `[b   ,(cadddr recipient)])
-                                                (new-var! data1)
-                                                (print-gate "cond_select" `[bit ,(car recipient)]
-                                                                          `[a   ,(caddr recipient)]
-                                                                          `[b   ,(car (cddddr recipient))])
-                                                (new-var! data2)
-                                                (apply (hashtable-ref std-circuits 'persistentHash #f)
-                                                       (list*
-                                                         ;; alignment of `CoinPreimage` in std.compact
-                                                         (list (list (list
-                                                           (abytes (length domain-sep-bytes))
-                                                           (abytes 32)
-                                                           (abytes 32)
-                                                           (abytes 16)
-                                                           (abytes 1)
-                                                           (abytes 32))))
-                                                         (list hash1 hash2)
-                                                         (append
-                                                           (list (literal domain-sep-field))
-                                                           coin
-                                                           (list (car recipient))
-                                                           (list (var-idx data1) (var-idx data2)))))
-                                                `(1 32 (ref . ,(var-idx hash1)) (ref . ,(var-idx hash2))))]
-                                             ;; There's room to tighten this in future, we just need to be careful to keep it
-                                             ;; in-sync with the rust version.
-                                             [(VMmax-sizeof ty)
-                                              (let* ([alignment (type->alignment ty)]
-                                                     [isize (lambda (n) (if (zero? n) 1 (ceiling (/ (integer-length n) 8))))]
-                                                     [atom-len (lambda (atom) (if (< atom 0) 34 (+ 2 atom (isize atom))))]
-                                                     [max-size (+ 1 (isize (length alignment)) (apply + (map atom-len alignment)))])
-                                                (list max-size))]
-                                             ;; Only handles literals x y
-                                             [(VM+ x y)
-                                              (let ([x (vm-eval x)]
-                                                    [y (vm-eval y)])
-                                                (unless (and (= (length x) 1)
-                                                             (= (length y) 1)
-                                                             (number? (car x))
-                                                             (number? (car y)))
-                                                  (internal-errorf 'print-zkir (format "VM+ in unexpected context: VM+ ~s ~s" x y)))
-                                                (list (+ (car x) (car y))))]
-                                             [else (internal-errorf 'print-zkir (format "unhandled vmop ~s" vmop))])]
-                                          [(vmref? vmop)
-                                           ;; // const foo = null[Set[Field]]();
-                                           ;; ledger.bar.insert(/* foo */);
-                                           (let ([q (vmref-q vmop)]
-                                                 [alignment (type->alignment (vmref-type vmop))])
-                                             (append (list (length alignment))
-                                                     alignment
-                                                     (maplr (lambda (q) (cons 'ref q)) q)))]
-                                          [else (list vmop)]))]
-                              [attr (lambda (name)
-                                     (cdr (assoc (symbol->string name) (vminstr-arg* ins))))]
-                              [eattr (lambda (name) (maplr (lambda (q) (if (pair? q) (cdr q) (literal q))) (vm-eval (attr name))))]
-                              [emit-all (lambda (public-inputs)
-                                          (unless (null? public-inputs)
-                                            (for-each emit public-inputs)
-                                            (print-gate "pi_skip"
-                                                        `[guard ,test]
-                                                        `[count ,(length public-inputs)])))])
-                      ;; NOTE: This needs to be kept in sync with the FieldRepr
-                      ;; implementation in midnight-onchain-runtime/src/ops.rs
-                      (emit-all (case (vminstr-op ins)
-                        ["noop" (map (lambda (_) (literal 0)) (iota (attr 'n)))]
-                        ["lt" (list (literal 1))]
-                        ["eq" (list (literal 2))]
-                        ["type" (list (literal 3))]
-                        ["size" (list (literal 4))]
-                        ["new" (list (literal 5))]
-                        ["and" (list (literal 6))]
-                        ["or" (list (literal 7))]
-                        ["neg" (list (literal 8))]
-                        ["log" (list (literal 9))]
-                        ["root" (list (literal 10))]
-                        ["pop" (list (literal 11))]
-                        ["popeq"
-                         ;; Special case: We just create new variables and make
-                         ;; them statements, without using the 'result value
-                         ;; (because it isn't set). We first emit the alignment
-                         (let ([alignment (type->alignment type)])
-                           (append
-                             (list (literal (if (attr 'cached) 13 12))
-                                   (literal (length alignment)))
-                             (maplr
-                               (lambda (x) (if (pair? x) (cdr x) (literal x)))
-                               alignment)
-                             (maplr
-                               (lambda (var)
-                                 (if (equal? test (hashtable-ref literal-ht 1 #f))
-                                     (print-gate "public_input" '[guard null])
-                                     (print-gate "public_input" `[guard ,test]))
-                                 (new-var! var)
-                                 (var-idx var))
-                               var-name*)))]
-                        ["addi"
-                         (list* (literal 14) (eattr 'immediate))]
-                        ["subi"
-                         (list* (literal 15) (eattr 'immediate))]
-                        ["push"
-                         (list* (literal (if (attr 'storage) 17 16))
-                                (eattr 'value))]
-                        ["branch"
-                         (list* (literal 18) (eattr 'skip))]
-                        ["jmp"
-                         (list* (literal 19) (eattr 'skip))]
-                        ["add" (list (literal 20))]
-                        ["sub" (list (literal 21))]
-                        ["concat"
-                         (list* (literal (if (attr 'cached) 23 22))
-                                (eattr 'n))]
-                        ["member" (list (literal 24))]
-                        ["rem" (list (literal (if (attr 'cached) 26 25)))]
-                        ["dup" (list (literal (+ 48 (attr 'n))))]
-                        ["swap" (list (literal (+ 64 (attr 'n))))]
-                        ["idx"
-                         (let* ([cached (attr 'cached)]
-                                [push-path (attr 'pushPath)]
-                                [raw-path (attr 'path)]
-                                [path (if (and (VMop? raw-path) (VMop-case raw-path [(VMsuppress) #t] [else #f]))
-                                          '()
-                                          raw-path)]
-                                [opcode-upper-nibble (cond
-                                                      [(and (not cached) (not push-path)) 5]
-                                                      [(and cached       (not push-path)) 6]
-                                                      [(and (not cached) push-path)       7]
-                                                      [(and cached       push-path)       8])])
-                           (if (zero? (length path))
-                               '()
-                               (list* (literal (+ (* opcode-upper-nibble 16)
-                                                  (sub1 (length path))))
-                                      (maplr
-                                        (lambda (elt)
-                                          ;; The path element `elt` is either a literal or `(ref . n)` where n is the
-                                          ;; index of a ZKIR instruction.
-                                          (if (pair? elt) (cdr elt) (literal elt)))
-                                        (apply append (maplr vm-eval path))))))]
-                        ["ins" (if (VMop? (attr 'n))
-                                   ; Means we have VMsuppress
-                                   '()
-                                   (list (literal (+ (if (attr 'cached) 160 144)
-                                                     (attr 'n)))))]
-                        ["ckpt" (list (literal 255))]
-                        [else (internal-errorf 'print-zkir (format "unknown vm operation ~a" (vminstr-op ins)))]))))
-                  (expand-vm-code src
-                                  path-elt*
-                                  #f
-                                  (append (map cons adt-formal* adt-arg*)
-                                          (map (lambda (ledger-op-formal type triv*)
-                                                 (cons ledger-op-formal
-                                                       (make-vmref type triv*)))
-                                               ledger-op-formal*
-                                               type*
-                                               (group type* triv*)))
-                                  (vm-code-code vm-code)))]))]
+                (let ([env (append (map cons adt-formal* adt-arg*)
+                                   (map (lambda (ledger-op-formal type triv*)
+                                          (cons ledger-op-formal
+                                                (make-vmref type triv*)))
+                                        ledger-op-formal*
+                                        type*
+                                        (group type* triv*)))])
+                  (assemble-vm-code test src path-elt* env var-name* type vm-code))]))]
           [(assert ,src ,[* test] ,mesg)
            (print-gate "assert" `[cond ,test])]
           [else (internal-errorf 'print-zkir "unreachable")])
@@ -734,13 +800,16 @@
            (let ([q ctr])
              (set! ctr (+ ctr 2))
              ; FIXME: is there a better way to mask the higher bits?
-             (print-gate "div_mod_power_of_two" `[var ,q] `[bits ,8])
+             (print-gate "div_mod_power_of_two" `[var ,q] '[bits 8])
              (set! ctr (add1 ctr)))]
           ; FIXME: zkir bytes->field needs to respect test
           ; NB: missing-guard-workarounds now implements a workaround that ensures
           ; bytes->field receives inputs that can't cause reconstitute_field
           ; to fail when test turns out to be false
-          [(bytes->field ,src ,len ,[* triv1] ,[* triv2])
+          [(bytes->field ,src ,ftype ,len ,[* triv1] ,[* triv2])
+           (assert (nanopass-case (Lflattened Field-Type) ftype
+                     [(field-native) #t]
+                     [else #f]))
            (if (<= len (field-bytes))
                ; flattened-datatype takes care of this case, so this line can't presently be reached
                (print-gate "copy" `[var ,triv2])
@@ -758,8 +827,12 @@
                    ; FIXME: use of reconstitute_field should be conditioned on test
                    ; NB: missing-guard-workarounds now implements a workaround that ensures
                    ; vector->bytes gets valid inputs when test turns out to be false
-                   (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] `[bits 8]))))]
-          [(downcast-unsigned ,src ,safe ,nat? ,nat ,[* triv])
+                   (print-gate "reconstitute_field" `[divisor ,d] `[modulus ,triv] '[bits 8]))))]
+          [(cast-to-field ,ftype ,primitive-type ,[* triv])
+           (print-gate "copy" `[var ,triv])]
+          [(cast-from-field ,src ,safe ,nat ,ftype ,triv)
+           (assertf cannot-happen "handled directly by Statement")]
+          [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)
            (assertf cannot-happen "handled directly by Statement")]
           [(select ,[* triv0] ,[* triv1] ,[* triv2])
            (print-gate "cond_select" `[bit ,triv0] `[a ,triv1] `[b ,triv2])])

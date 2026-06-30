@@ -27,11 +27,7 @@ type PrivateState = {
   maxAttempts: bigint;
 };
 
-function compute(
-  privateState: WitnessContext<Ledger, PrivateState>,
-  fst: boolean,
-  snd: boolean,
-): [PrivateState, boolean] {
+function compute(privateState: WitnessContext<Ledger, PrivateState>, fst: boolean, snd: boolean): [PrivateState, boolean] {
   if (fst) {
     return [privateState.privateState, snd];
   }
@@ -47,12 +43,13 @@ const difficulty = 0n;
 const initPS: PrivateState = {
   maxAttempts: 10n,
 };
-const { currentContractState, currentPrivateState } = sc.initialState(
+const { currentContractState, currentPrivateState } = await sc.initialState(
   createConstructorContext(initPS, '0'.repeat(64)),
   difficulty,
 );
 
-export const execCtx = createCircuitContext(dummyContractAddress(), '0'.repeat(64), currentContractState.data, currentPrivateState);
+export const execCtx = (circuitId: string) =>
+  createCircuitContext(circuitId, dummyContractAddress(), '0'.repeat(64), currentContractState, currentPrivateState);
 
 // helper types
 
@@ -64,11 +61,11 @@ type AllResults = {
 
 // run smart contract from TypeScript
 
-export function runSmartContract(flag: boolean): AllResults {
-  const result1 = sc.circuits.nestedCall(execCtx, flag, false); // transition function (with nested call)
-  const result2 = sc.circuits.privateCall(execCtx, flag, false); // witness (call private function)
-  sc.circuits.ledgerCalls(execCtx, 1n); // access ledger (public state)
-  const result3 = sc.circuits.stdLibCall(execCtx, flag, false); // calls from standard library
+export async function runSmartContract(flag: boolean): Promise<AllResults> {
+  const result1 = await sc.circuits.nestedCall(execCtx('nestedCall'), flag, false); // transition function (with nested call)
+  const result2 = await sc.circuits.privateCall(execCtx('privateCall'), flag, false); // witness (call private function)
+  await sc.circuits.ledgerCalls(execCtx('ledgerCalls'), 1n); // access ledger (public state)
+  const result3 = await sc.circuits.stdLibCall(execCtx('stdLibCall'), flag, false); // calls from standard library
 
   return {
     nested: result1.result,
@@ -78,7 +75,7 @@ export function runSmartContract(flag: boolean): AllResults {
 }
 
 const flag: boolean = true;
-const results = runSmartContract(flag);
+const results = await runSmartContract(flag);
 
 console.log(results.nested);
 console.log(results.priv);

@@ -1,0 +1,38 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// A callee that *declares* a witness. Both circuits are impure (they write the
+// ledger), so each is a valid non-pure cross-contract callee — but only `leak`
+// actually invokes the witness. Witnesses are available only to the entry (root)
+// contract, so `bump` must still run when reached via a cross-contract call while
+// `leak` must be rejected.
+
+import CompactStandardLibrary;
+
+export ledger v: Field;
+
+witness secret(): Field;
+
+// Witness-free: writes the ledger, never touches `secret`.
+export circuit bump(value: Field): Field {
+  v = v + disclose(value);
+  return v;
+}
+
+// Invokes the witness — must be rejected when reached via a cross-contract call.
+export circuit leak(): Field {
+  v = v + disclose(secret());
+  return v;
+}

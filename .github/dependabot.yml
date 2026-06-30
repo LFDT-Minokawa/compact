@@ -11,7 +11,7 @@ updates:
   - package-ecosystem: "cargo"
     directory: "/"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     cooldown:
       default-days: 7
 
@@ -25,9 +25,14 @@ updates:
       - "/debug-test"
       - "/nix/dry-install"
     schedule:
-      interval: "daily"
+      interval: "weekly"
     cooldown:
       default-days: 7
+    groups:
+      npm-all:
+        patterns:
+          - "*"
+        group-by: dependency-name
 
 #  - package-ecosystem: "docker"
 #    directory: "/"

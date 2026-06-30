@@ -24,7 +24,7 @@ import js from '@eslint/js';
 export const tsFiles = [`contract/index.js`, `contract/index.js.map`, `contract/index.d.ts`];
 export const zkirFiles = ['zkir/bar.zkir'];
 export const keysFiles = ['keys/bar.prover', 'keys/bar.verifier', 'zkir/bar.bzkir'];
-export const contractInfoFiles = ['compiler/contract-info.json'];
+export const contractInfoFiles = ['compiler/contract-info.json', 'compiler/contract-manifest.json'];
 export const allExpectedFiles = [...tsFiles, ...zkirFiles, ...keysFiles, ...contractInfoFiles];
 
 export class AssertGeneratedFiles {

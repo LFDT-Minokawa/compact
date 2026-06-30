@@ -4,7 +4,7 @@
   "description": "Check source maps generated for compact smart contracts",
   "license": "Apache-2.0",
   "dependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "^25.6.0",
     "source-map": "^0.7.4",
     "ts-node": "^10.9.2",
     "typescript": "^6.0.2",
