@@ -24,7 +24,7 @@ import { sha256 } from '@noble/hashes/sha2.js';
 type Point = { x: bigint; y: bigint };
 type Signature = { r: bigint; s: bigint };
 // Ethereum-style recoverable signature: r, s, and the recovery id v.
-type RecoverableSignature = Signature & { recovery: number };
+type PkRecoverableSignature = Signature & { recovery: number };
 
 // The exported circuits of examples/ecdsa/example_one.compact, as plain pure functions.
 interface EcdsaPureCircuits {
@@ -52,7 +52,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
     const pk: Point = { x: pubAffine.x, y: pubAffine.y };
 
     // Sign a (already hashed) digest, returning r, s, and the recovery id v.
-    function sign(digest: Uint8Array): RecoverableSignature {
+    function sign(digest: Uint8Array): PkRecoverableSignature {
         const sig = secp256k1.Signature.fromBytes(
             secp256k1.sign(digest, sk, { format: 'recovered', prehash: false }),
             'recovered',
@@ -62,7 +62,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
 
     // Recover the public key off-circuit from the same inputs Ethereum's
     // ecrecover takes: the message hash, r, s, and the recovery id v.
-    function recoverPk(digest: Uint8Array, sig: RecoverableSignature): Point {
+    function recoverPk(digest: Uint8Array, sig: PkRecoverableSignature): Point {
         const p = new secp256k1.Signature(sig.r, sig.s, sig.recovery).recoverPublicKey(digest).toAffine();
         return { x: p.x, y: p.y };
     }
