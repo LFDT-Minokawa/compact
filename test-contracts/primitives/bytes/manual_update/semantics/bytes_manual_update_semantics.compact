@@ -1,0 +1,55 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger manual_update_result: Bytes<4>;
+
+export circuit bytes_manual_update_semantics(): Bytes<4> {
+    const base_data = [1, 4, 64, 100];
+
+    manual_update_result = Bytes[
+        base_data[0] as Uint<8>,
+        base_data[1] as Uint<8>,
+        0,
+        0,
+    ];
+
+    const third_byte =
+        (base_data[2] > 50 ? (base_data[2] - 50) : base_data[2])
+        as Uint<8>;
+    const fourth_byte =
+        (base_data[3] > 50 ? (base_data[3] - 50) : base_data[3])
+        as Uint<8>;
+
+    manual_update_result = Bytes[
+        manual_update_result[0],
+        manual_update_result[1],
+        third_byte,
+        manual_update_result[3],
+    ];
+    manual_update_result = Bytes[
+        manual_update_result[0],
+        manual_update_result[1],
+        manual_update_result[2],
+        fourth_byte,
+    ];
+
+    assert(manual_update_result[0] == 1 as Uint<8>, "First byte should be 1");
+    assert(manual_update_result[2] == 14 as Uint<8>, "Third byte should be 14 (64-50)");
+    assert(manual_update_result[3] == 50 as Uint<8>, "Last byte should be 50 (100-50)");
+
+    return manual_update_result;
+}
