@@ -52,6 +52,7 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@midnight-ntwrk/compact-runtime": "0.18.0-rc.0",
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.0.1",
     "@types/fs-extra": "^11.0.4",
