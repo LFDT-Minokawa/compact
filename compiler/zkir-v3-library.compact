@@ -24,8 +24,8 @@ export struct Secp256k1EcdsaSignature {
 // Deserialize a 32-byte hash digest into a secp256k1 scalar.
 //
 // By ECDSA convention (https://www.rfc-editor.org/rfc/rfc6979#section-2.3.2) the 
-// digest is the big-endian encoding of an integer, which is then reduced the 
-// scalar field's order.
+// digest is the big-endian encoding of an integer, which is then reduced modulo
+// the scalar field's order.
 circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
   const beReversed: Bytes<32> = Bytes[
     digest[31], digest[30], digest[29], digest[28], digest[27], digest[26], digest[25], digest[24],
