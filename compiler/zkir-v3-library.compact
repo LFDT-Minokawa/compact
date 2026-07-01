@@ -23,7 +23,7 @@ export struct Secp256k1EcdsaSignature {
 
 // ECDSA signature with recoverable nonce commitment, for use with secp256k1EcdsaRecover.
 // R is the signing nonce commitment supplied by the prover off-circuit, avoiding an
-// expensive in-circuit square root (liftX). The circuit verifies R.x == r as bytes.
+// expensive in-circuit square root (liftX). The circuit verifies (R.x mod n) == r.
 export struct Secp256k1EcdsaSignatureWithRecovery {
   r: Secp256k1Scalar,
   s: Secp256k1Scalar,
@@ -42,7 +42,7 @@ export struct Secp256k1EcdsaSignatureWithRecovery {
 //   u1 = (msgHash * w) mod n
 //   u2 = (r * w) mod n
 //   P  = u1*G + u2*pk
-//   valid iff P.x == r as 32-byte big-endian integers
+//   valid iff (P.x mod n) == r, where n is the secp256k1 group order
 export circuit secp256k1EcdsaVerify(
                  msgHash: Bytes<32>,
                  sig: Secp256k1EcdsaSignature,
@@ -54,7 +54,9 @@ export circuit secp256k1EcdsaVerify(
   const u1: Secp256k1Scalar = mul(z, w);
   const u2: Secp256k1Scalar = mul(r, w);
   const point: Secp256k1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
-  return (secp256k1PointX(point) as Bytes<32>) == (r as Bytes<32>);
+  // Reduce the point's x-coordinate (a base-field element mod p) modulo the
+  // group order n by casting through bytes into a scalar, then compare with r.
+  return ((secp256k1PointX(point) as Bytes<32>) as Secp256k1Scalar) == r;
 }
 
 // Recover the Secp256k1 public key from an ECDSA signature.
@@ -66,10 +68,10 @@ export circuit secp256k1EcdsaVerify(
 //
 // R (the signing nonce point) is supplied by the prover off-circuit, which avoids
 // an expensive square root in the base field (liftX). The circuit constrains R by
-// asserting that its x-coordinate matches r as 32-byte big-endian integers.
+// asserting that its x-coordinate, reduced modulo the group order n, matches r.
 //
 // Implements standard ECDSA public key recovery:
-//   assert R.x == r (bytes)
+//   assert (R.x mod n) == r
 //   u1 = (neg(msgHash) * r^(-1)) mod n
 //   u2 = (s * r^(-1)) mod n
 //   pk = u1*G + u2*R
@@ -79,7 +81,9 @@ export circuit secp256k1EcdsaRecover(
                  ): Secp256k1Point {
   const z: Secp256k1Scalar = msgHash as Secp256k1Scalar;
   const {r, s, R} = sig;
-  assert((secp256k1PointX(R) as Bytes<32>) == (r as Bytes<32>), "R.x does not match r");
+  // Reduce R's x-coordinate (a base-field element mod p) modulo the group order
+  // n by casting through bytes into a scalar, then check it equals r.
+  assert(((secp256k1PointX(R) as Bytes<32>) as Secp256k1Scalar) == r, "R.x mod n does not match r");
   const r_inv: Secp256k1Scalar = inv(r);
   const u1: Secp256k1Scalar = mul(neg(z), r_inv);
   const u2: Secp256k1Scalar = mul(s, r_inv);
