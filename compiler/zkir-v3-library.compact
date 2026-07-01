@@ -37,9 +37,9 @@ circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
 
 // Verify an ECDSA signature over Secp256k1.
 //
-// `msgHash` must be the hash of the message actually being verified. This
-// circuit does not itself bind `msgHash` to any message; the verifier is
-// responsible for that, whether by hashing in-circuit or checking off-circuit.
+// This circuit takes `msgHash` as given and does not constrain it to any message.
+// The verifier is expected to additionally constrain that value so it is bound to
+// the message actually being verified by hashing the message in-circuit.
 //
 // Implements the standard ECDSA verification:
 //   w  = s^(-1) mod n
