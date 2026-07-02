@@ -11,6 +11,14 @@ This release includes all changes for compiler versions in the range between
 0.32.100 and 0.33.0; language versions in the range between 0.24.100 and 0.25.0;
 and Compact runtime versions in the range between 0.17.100 and 0.18.0.
 
+## [Toolchain 0.32.111, language 0.24.104, runtime 0.17.105]
+
+### Changed
+
+- The standard library ECDSA circuits `secp256k1EcdsaVerify` and
+  `secp256k1EcdsaRecover` deserialize the message hash as a big endian 
+  secp256k1 scalar `z` internally, following the ECDSA convention (RFC 6979).
+
 ## [Toolchain 0.32.111, language 0.24.103, runtime 0.17.106]
 
 ### Changed
