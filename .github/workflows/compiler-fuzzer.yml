@@ -21,7 +21,7 @@ jobs:
     timeout-minutes: 45
     steps:
       - name: Checkout compactc repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
 
       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
@@ -55,7 +55,7 @@ jobs:
           reporter: jest-junit
 
       - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@c950f6fb443cb5af20a377fd0dfaa78838901040 # v2.23.0
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         if: always()
         with:
           check_name: Compactc E2E Tests Results
@@ -64,7 +64,7 @@ jobs:
             !(node_modules)/**/test-report.xml
 
       - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@0f299074936c32ccaab5be5230511f6b2b9080aa # v1.0.28
+        uses: ctrf-io/github-test-reporter@e500b992f936420eb633c91644cf10d4d71df700 # v1.1.0
         with:
           report-path: 'tests-e2e/reports/ctrf-report.json'
           flaky-rate-report: 'true'
