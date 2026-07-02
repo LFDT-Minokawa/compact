@@ -147,7 +147,7 @@ jobs:
     steps:
       - name: Checkout compactc repository
         if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -332,7 +332,7 @@ jobs:
           echo "All required builds and tests passed."
 
       - name: Checkout code
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
         with:
           ref: ${{ needs.setup.outputs.branch }}
 
@@ -423,7 +423,7 @@ jobs:
           sed -i "s/^# Compact toolchain .*/# Compact toolchain ${CLEAN_VERSION}/" "$RELEASE_NOTES_FILE"
 
       - name: Create Release on midnight-ntwrk/artifacts
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
           repository: midnight-ntwrk/artifacts
           tag_name: compactc-${{ inputs.version || github.ref_name }}
@@ -437,7 +437,7 @@ jobs:
 
       - name: Create Release on LFDT/Minokawa
         id: create_release_lfdt
-        uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
+        uses: softprops/action-gh-release@718ea10b132b3b2eba29c1007bb80653f286566b # v3.0.1
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
