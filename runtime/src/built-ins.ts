@@ -28,6 +28,7 @@ import {
   JubjubPoint,
   JubjubSchnorrSignature,
   Secp256k1Point,
+  toBinaryRepr,
 } from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
 import { CompactError } from './error.js';
@@ -182,15 +183,7 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
  * @throws If `rtType` encodes a type containing Compact 'Opaque' types
  */
 export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
-  const chunks = rtType.toValue(value);
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const bytes = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return keccak_256(bytes);
+  return keccak_256(toBinaryRepr(rtType, value));
 }
 
 /**
