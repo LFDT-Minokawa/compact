@@ -135,7 +135,7 @@
               [(keccak256)
                (assert (= (length var-name*) 2))
                (let ([alignment* (arg->alignment arg* 0)])
-                 (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
+                 (cons `(keccak256 ,(cadr var-name*) ,(car var-name*)
                           (,alignment* ...) ,triv* ...)
                    instr*))]
               [(mul)
