@@ -50,12 +50,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output"; # zkir-v3
+      url = "github:golddydev/midnight-ledger/gd/test-hash-output"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output";
+      url = "github:golddydev/midnight-ledger/gd/test-hash-output";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
