@@ -50,18 +50,23 @@ export function convertBigintToBytes(n: number, x: bigint, src: string): Uint8Ar
  * Compiler internal for typecasts
  * @internal
  */
-export function convertBytesToBigint(maxval: bigint,
-                                     n: number,
-                                     a: Uint8Array,
-                                     name: string,
-                                     src: string): bigint {
+export function convertBytesToBigint(maxval: bigint, n: number, a: Uint8Array, name: string, src: string): bigint {
   let x = 0n;
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);
-    if (x > maxval) {
-      const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of ${name} type`;
-      throw new CompactError(msg);
-    }
   }
-  return x;
+
+  // Casts into the secp256k1 scalar field are defined modulo the group order
+  // (like convertNumericToJubjubScalar above), not range-asserted: ECDSA needs
+  // z = e mod n and P.x mod n == r. The type's range is [0, maxval], so the
+  // modulus is maxval + 1.
+  if (name === 'Secp256k1Scalar') {
+    return x % (maxval + 1n);
+  }
+
+  if (x > maxval) {
+    const msg = `range error at ${src}: byte vector [${Array.from(a.slice(0, n)).join(',')}] exceeds maximum value ${maxval} of ${name} type`;
+    throw new CompactError(msg);
+  }
+  return x % (maxval + 1n);
 }
