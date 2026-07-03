@@ -50,12 +50,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/JosephDenman/zkir-v3-rc2-rc3-patch"; # zkir-v3
+      url = "github:golddydev/midnight-ledger/gd/zkir-v3-rc2-rc3-patch"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/JosephDenman/zkir-v3-rc2-rc3-patch";
+      url = "github:golddydev/midnight-ledger/gd/zkir-v3-rc2-rc3-patch";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";

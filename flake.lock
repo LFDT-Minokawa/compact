@@ -944,16 +944,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1782846888,
-        "narHash": "sha256-JrVqbjYOVik2sdRT1M7wWO9zLl8sVZi6d412e7p0aQ4=",
-        "owner": "midnightntwrk",
+        "lastModified": 1783090787,
+        "narHash": "sha256-ju4AMJ+RlM0LAAgRXQCU2UhsjFar0cEalaK8TmVcIgI=",
+        "owner": "golddydev",
         "repo": "midnight-ledger",
-        "rev": "4890f72442f4b6dd7c337dfe1b32398298005d43",
+        "rev": "f40c14649c1ed31dca653cf73ccced37edff8572",
         "type": "github"
       },
       "original": {
-        "owner": "midnightntwrk",
-        "ref": "JosephDenman/zkir-v3-rc2-rc3-patch",
+        "owner": "golddydev",
+        "ref": "gd/zkir-v3-rc2-rc3-patch",
         "repo": "midnight-ledger",
         "type": "github"
       }
@@ -969,16 +969,16 @@
         ]
       },
       "locked": {
-        "lastModified": 1782846888,
-        "narHash": "sha256-JrVqbjYOVik2sdRT1M7wWO9zLl8sVZi6d412e7p0aQ4=",
-        "owner": "midnightntwrk",
+        "lastModified": 1783090787,
+        "narHash": "sha256-ju4AMJ+RlM0LAAgRXQCU2UhsjFar0cEalaK8TmVcIgI=",
+        "owner": "golddydev",
         "repo": "midnight-ledger",
-        "rev": "4890f72442f4b6dd7c337dfe1b32398298005d43",
+        "rev": "f40c14649c1ed31dca653cf73ccced37edff8572",
         "type": "github"
       },
       "original": {
-        "owner": "midnightntwrk",
-        "ref": "JosephDenman/zkir-v3-rc2-rc3-patch",
+        "owner": "golddydev",
+        "ref": "gd/zkir-v3-rc2-rc3-patch",
         "repo": "midnight-ledger",
         "type": "github"
       }
