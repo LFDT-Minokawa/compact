@@ -13,4 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export ledger test: Map<Field, implements>;
+import CompactStandardLibrary;
+
+export ledger v: Field;
+
+export circuit add(value: Field): Field {
+    v = v + disclose(value);
+    return v;
+}

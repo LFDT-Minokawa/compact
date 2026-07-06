@@ -5,22 +5,63 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
-      
-#  - package-ecosystem: "cargo"
-#    directory: "/"
-#    registries: "*"
-#    schedule:
-#      interval: "daily"
-#
-#  - package-ecosystem: "npm"
-#    directory: "/"
-#    schedule:
-#      interval: "daily"
-#
+    cooldown:
+      default-days: 7
+    groups:
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      github-actions-version:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      cargo-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      cargo-version:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
+  - package-ecosystem: "npm"
+    directories:
+      - "/runtime"
+      - "/editor-support/vsc/compact"
+      - "/tests-e2e"
+      - "/test-center"
+      - "/test-src-maps"
+      - "/debug-test"
+      - "/nix/dry-install"
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+    groups:
+      npm-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      npm-version:
+        applies-to: version-updates
+        patterns:
+          - "*"
+
 #  - package-ecosystem: "docker"
 #    directory: "/"
 #    schedule:
 #      interval: "weekly"
+#    cooldown:
+#      default-days: 7
 #
 #registries:
 #   github:

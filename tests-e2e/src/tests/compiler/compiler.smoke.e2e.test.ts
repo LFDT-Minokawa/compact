@@ -141,7 +141,7 @@ describe('[Smoke] Compiler', () => {
 
     test('should transpile with --skip-zk', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
+        const result: Result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(outputDir).thatFilesAreGenerated(tsFiles, zkirFiles, [], contractInfoFiles);
@@ -149,7 +149,7 @@ describe('[Smoke] Compiler', () => {
 
     test('should transpile with --trace-passes', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.TRACE_PASSES, CONTRACT_FILE_PATH, outputDir]);
+        const result: Result = await compile([Arguments.FEATURE_V3, Arguments.TRACE_PASSES, CONTRACT_FILE_PATH, outputDir]);
 
         expectCompilerResult(result, ignoreOutput)
             .stdOutToContain(['MerkleTree', 'HistoricMerkleTree'])
@@ -160,7 +160,7 @@ describe('[Smoke] Compiler', () => {
 
     test('should transpile file with --skip-zk and --trace-passes', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, Arguments.TRACE_PASSES, CONTRACT_FILE_PATH, outputDir]);
+        const result: Result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, Arguments.TRACE_PASSES, CONTRACT_FILE_PATH, outputDir]);
 
         // BUG: https://input-output.atlassian.net/browse/PM-8070
         expectCompilerResult(result, ignoreOutput)
@@ -174,7 +174,7 @@ describe('[Smoke] Compiler', () => {
 
     test('should transpile', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([CONTRACT_FILE_PATH, outputDir]);
+        const result: Result = await compile([Arguments.FEATURE_V3, CONTRACT_FILE_PATH, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
         expectFiles(outputDir).thatFilesAreGenerated(tsFiles, zkirFiles, keysFiles, contractInfoFiles);
@@ -185,7 +185,7 @@ describe('[Smoke] Compiler', () => {
         const contractPath = createTempFolder();
         const crlfFilePath = getCrLfFileCopy(CONTRACT_FILE_PATH, contractPath);
 
-        const result: Result = await compile([crlfFilePath, outputDir]);
+        const result: Result = await compile([Arguments.FEATURE_V3, crlfFilePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
         expectFiles(outputDir).thatFilesAreGenerated(tsFiles, zkirFiles, keysFiles, contractInfoFiles);
@@ -233,14 +233,14 @@ describe('[Smoke] Compiler', () => {
     test.runIf(!isRelease())('should throw error when zkir is not available', async () => {
         const outputDir = createTempFolder();
 
-        const result = await execa(getCompactcBinary(), [CONTRACT_FILE_PATH, outputDir], {
-            env: { COMPACT_HOME: 'non_existing_path' },
-            reject: false,
-            extendEnv: false,
+        const result = await execa(getCompactcBinary(), [Arguments.FEATURE_V3, CONTRACT_FILE_PATH, outputDir], {
+          env: { COMPACT_HOME: 'non_existing_path' },
+          reject: false,
+          extendEnv: false,
         });
         expectCompilerResult(result)
-            .toMatchStdOut(compilerDefaultOutput())
-            .toMatchStdError('Warning: ZKIR not found; skipping final circuit compilation.')
-            .toMatchExitCode(ExitCodes.Success);
+          .toMatchStdOut(compilerDefaultOutput())
+          .toMatchStdError('Warning: ZKIR not found; skipping final circuit compilation.')
+          .toMatchExitCode(ExitCodes.Success);
     });
 });

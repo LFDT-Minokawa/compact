@@ -36,7 +36,7 @@ export circuit test1(t1_f: t1_f): t1_f {
   const a = slice<1>(default<t1_Bytes2>, 0);
 
   assert(default<t1_Bytes2> == default<t1_Bytes2_a> as t1_Bytes2, "Comparison failure");
-  return 1;
+  return 1 as Field;
 }
 
 // Test2: pass the data from circuit to circuit
@@ -214,7 +214,7 @@ new type t12_d = Map<Field, T12>;
 export ledger t12_map: Map<Field, t12_d>;
 
 export circuit test12(vara: Field): [t12_a, t12_b, T12] {
-  t12_map.insert(1, default<t12_d>);
+  t12_map.insert(1 as Field, default<t12_d>);
   const a = t12_map.lookup(disclose(vara)).lookup(disclose(vara));
   const b = a.a[0];
 
@@ -286,7 +286,7 @@ export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
     t16_sum_of_fields.insert(a, sum as Field as t16_not_a_field);
   }
 
-  return t16_sum_of_fields.lookup(0);
+  return t16_sum_of_fields.lookup(0 as Field);
 }
 
 // Test 17: witness with custom param and return type
@@ -544,4 +544,36 @@ export circuit test40(): [] {
   const f: UY<99999999999999999999999999999999999999999999999999999999999999999999999999> = 1;
   const g: SX<248, Field> = default<SX<248, Field>>;
   const h: SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field> = default<SY<99999999999999999999999999999999999999999999999999999999999999999999999999, Field>>;
+}
+
+// Test 41: for loop with end as generic natural-number parameter
+export ledger t41_sum: Uint<16>;
+
+circuit _test41<#N>(v: Vector<N, Uint<8>>): Uint<16> {
+  t41_sum = 0;
+  for (const i of 0..N) {
+      t41_sum = (t41_sum + (v[i] as Uint<16>)) as Uint<16>;
+  }
+  return t41_sum;
+}
+
+export circuit test41_1(): Uint<16> {
+  const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
+  return _test41<4>(v);
+}
+
+// Test 42: for loop with start and end as generic natural-number parameters
+export ledger t42_sum: Uint<16>;
+
+circuit _test42<#N, #S, #E>(v: Vector<N, Uint<8>>): Uint<16> {
+  t42_sum = 0;
+  for (const i of S..E) {
+      t42_sum = (t42_sum + (v[i] as Uint<16>)) as Uint<16>;
+  }
+  return t42_sum;
+}
+
+export circuit test42(): Uint<16> {
+  const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
+  return _test42<4, 1, 2>(v);
 }

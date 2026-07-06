@@ -20,7 +20,7 @@ circuit fred(a: Field, b: Field,): Field {
 }
 
 export circuit jerry(b: Field, c: Field): [] {
-  fold(fred, 0, [1, 2, 3, 4, ]);
+  fold(fred, 0 as Field, [1 as Field, 2 as Field, 3 as Field, 4 as Field, ]);
 }
 
 contract test {
@@ -30,7 +30,7 @@ contract test {
 }
 
 export circuit franz(a: Field, b: Field, c: Field): [] {
-  map(fred, [1, 2, ], [1, 2, ],);
+  map(fred, [1 as Field, 2 as Field, ], [1 as Field, 2 as Field, ],);
 }
 
 circuit boo(b: Boolean, x: Field,): Boolean { return true; }

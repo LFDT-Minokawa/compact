@@ -109,7 +109,7 @@ describe('Semantic highlight definitions should', () => {
   test('have correct definitions for periods', async () => {
     const expected = 6;
     const actual = filterByName(
-      config.repository.numbers.patterns.find((x) => x.captures).captures,
+      config.repository.numbers.patterns.find((x) => x.captures)!.captures!,
       'meta.delimiter.decimal.period.compact'
     );
     expect(actual.length).toBe(expected);
@@ -126,7 +126,7 @@ describe('Semantic highlight definitions should', () => {
       (x) => x.captures && someByName(x.captures, 'constant.numeric.decimal.compact')
     );
     expect(actual.length).toBe(1);
-    const namesOfActual = actual[0].captures;
+    const namesOfActual = actual[0].captures!;
     expect(someByNumber(namesOfActual, '0')).toBeTruthy();
     expect(actual.some((x) => x.match === expected)).toBeTruthy();
   });
@@ -134,21 +134,25 @@ describe('Semantic highlight definitions should', () => {
   test('have correct definitions for empty comment blocks', async () => {
     const expected = '(/\\*)(\\*/)';
     const actual = config.repository.comments.patterns.find((x) => x.name === 'comment.block.empty.compact');
-    expect(actual.match).toBe(expected);
-    expect(Object.keys(actual.captures)).toHaveLength(2);
-    expect(actual.captures['1'].name).toBe('punctuation.definition.comment.begin.compact');
-    expect(actual.captures['2'].name).toBe('punctuation.definition.comment.end.compact');
+    expect(actual).toBeDefined();
+    expect(actual!.captures).toBeDefined();
+    expect(actual!.match).toBe(expected);
+    expect(Object.keys(actual!.captures!)).toHaveLength(2);
+    expect(actual!.captures!['1'].name).toBe('punctuation.definition.comment.begin.compact');
+    expect(actual!.captures!['2'].name).toBe('punctuation.definition.comment.end.compact');
   });
+
 
   test('have correct definitions for comment blocks', async () => {
     const expectedBegin = '/\\*';
     const expectedEnd = '\\*/';
     const actual = config.repository.comments.patterns.find((x) => x.name === 'comment.block.compact');
-    expect(actual.begin).toBe(expectedBegin);
-    expect(actual.end).toBe(expectedEnd);
-    const beginCapture = findByName(actual.beginCaptures, 'punctuation.definition.comment.begin.compact');
+    expect(actual).toBeDefined();
+    expect(actual!.begin).toBe(expectedBegin);
+    expect(actual!.end).toBe(expectedEnd);
+    const beginCapture = findByName(actual!.beginCaptures!, 'punctuation.definition.comment.begin.compact');
     expect(beginCapture).toBeTruthy();
-    const endCapture = someByName(actual.endCaptures, 'punctuation.definition.comment.end.compact');
+    const endCapture = someByName(actual!.endCaptures!, 'punctuation.definition.comment.end.compact');
     expect(endCapture).toBeTruthy();
   });
 
@@ -156,9 +160,10 @@ describe('Semantic highlight definitions should', () => {
     const expectedBegin = '//';
     const expectedEnd = '$';
     const actual = config.repository.comments.patterns.find((x) => x.name === 'comment.line.double-slash.compact');
-    expect(actual.begin).toBe(expectedBegin);
-    expect(actual.end).toBe(expectedEnd);
-    const beginCapture = actual.beginCaptures;
+    expect(actual).toBeDefined();
+    expect(actual!.begin).toBe(expectedBegin);
+    expect(actual!.end).toBe(expectedEnd);
+    const beginCapture = actual!.beginCaptures;
     expect(beginCapture).toBeTruthy();
   });
 

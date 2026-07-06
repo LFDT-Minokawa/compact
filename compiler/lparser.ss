@@ -45,7 +45,7 @@
       (string-token (str mesg opaque-type file))
       (version-token (version))
       (eof-token (eof))
-      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new))
+      (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new kwd-implements))
       (op-token (op langle rangle))
       (punctuation-token (dot dotdot dotdotdot comma semicolon colon hook lparen rparen lbracket rbracket lbrace rbrace arrow sep hashmark bang))
       )
@@ -62,6 +62,7 @@
       lconstructor
       cdefn
       wdecl
+      cidecl
       ecdecl
       structdef
       enumdef
@@ -127,6 +128,10 @@
     (Witness-Declaration (wdecl)
       (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
         (witness kwd-export? function-name generic-param-list? arg-list 4 return-type)
+      )
+    (Contract-Implements-Declaration (cidecl)
+      (contract-implements src kwd kwd-implements type semicolon) =>
+        (contract-implements kwd kwd-implements type semicolon)
       )
     (External-Contract-Declaration (ecdecl)
       (external-contract src (maybe kwd-export?) kwd contract-name lbrace (ecdecl-circuit* ...) (sep* ...) rbrace (maybe semicolon?)) =>
@@ -213,6 +218,7 @@
       (if src expr0 hook expr1 colon expr2) => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr dot elt-name) => (elt-ref expr elt-name)
       (elt-call src expr dot elt-name lparen (expr* ...) (comma* ...) rparen) => (elt-call expr elt-name expr* ...)
+      (emit src kwd lparen expr rparen) => (emit expr)
       (= src expr1 op expr2) => (= expr1 expr2)
       (+= src expr1 op expr2) => (+= expr1 3 expr2)
       (-= src expr1 op expr2) => (-= expr1 3 expr2)
@@ -251,6 +257,9 @@
       tref
       (tboolean src kwd) => (tboolean)
       (tfield src kwd) => (tfield)
+      (tjubjub-scalar src kwd) => (tjubjub-scalar)
+      (tsecp256k1-base src kwd) => (tsecp256k1-base)
+      (tsecp256k1-scalar src kwd) => (tsecp256k1-scalar)
       (tunsigned src kwd langle tsize rangle) => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src kwd langle tsize dotdot tsize^ rangle) => (tunsigned tsize tsize^) ; range from tsize to tsize^
       (tbytes src kwd langle tsize rangle) => (tbytes tsize)

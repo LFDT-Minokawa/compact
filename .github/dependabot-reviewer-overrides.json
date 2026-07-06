@@ -1,0 +1,17 @@
+{
+  "2026-W15": {
+    "primary": "pataei",
+    "backup":  "JosephDenman",
+    "note":    "pataei <-> dybvig, swapped W12 and W15"
+  },
+  "2026-W12": {
+    "primary": "dybvig",
+    "backup":  "kmillikin",
+    "note":    "pataei OOO, dybvig covering"
+  },
+  "2026-W10": {
+    "primary": "kmillikin",
+    "backup":  "dybvig",
+    "note":    "pataei skipped, kmillikin covering"
+  }
+ }

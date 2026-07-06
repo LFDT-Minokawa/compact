@@ -19,6 +19,7 @@ API. Key parts of the API are:
     - {@link degradeToTransient}
   - Elliptic curve
     - {@link ecAdd}
+    - {@link ecNeg}
     - {@link ecMul}
     - {@link ecMulGenerator}
     - {@link hashToCurve}

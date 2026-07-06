@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import * as fs from 'node:fs';
 import {
   CircuitContext,
@@ -28,14 +28,14 @@ import { checkProofData } from './key-provider.js';
 
 export type Witness<PS> = (context: WitnessContext<any, PS>, ...rest: any[]) => [PS, any];
 export type Witnesses<PS> = Record<string, Witness<PS>>;
-export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => CircuitResults<PS, any>;
+export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => Promise<CircuitResults<PS, any>>;
 export type Circuits<PS> = Record<string, Circuit<PS>>;
 
 export type Contract<PS, W extends Witnesses<PS>> = {
   witnesses: W;
   impureCircuits: Circuits<PS>;
   circuits: Circuits<PS>;
-  initialState(ctx: ConstructorContext<PS>, ...args: any[]): ConstructorResult<PS>;
+  initialState(ctx: ConstructorContext<PS>, ...args: any[]): Promise<ConstructorResult<PS>>;
 };
 
 export type InitialStateParams<
@@ -51,13 +51,46 @@ export type Module<C, W> = {
 const pending = new Set<Promise<void>>();
 
 /**
+ * Maximum time a single proof check (e.g. the zkir-v3 `check`/preprocess pass)
+ * may run before it is treated as a failure rather than being allowed to hang
+ * the whole suite. A wasm trap across the async boundary can leave the check's
+ * promise permanently unsettled; without a bound, `flushProofChecks`'
+ * `Promise.allSettled` would wait forever and vitest's timers never fire,
+ * because control has already returned to JS after the trap.
+ *
+ * Must stay below vitest's `hookTimeout` (see vitest.config.ts) so this
+ * check-level bound fires first with a precise message, instead of the hook
+ * timing out generically. A legitimate `check`/preprocess pass is off-circuit
+ * and finishes in well under a second, so this leaves a wide margin.
+ */
+const PROOF_CHECK_TIMEOUT_MS = 10_000;
+
+/**
+ * Race `p` against a timeout so a check that never settles becomes a concrete
+ * rejection instead of an indefinite hang. The timer is always cleared once
+ * the race settles, so it never keeps the Node event loop alive on its own.
+ */
+const withTimeout = (p: Promise<void>, ms: number): Promise<void> => {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<void>((_, reject) => {
+    timer = setTimeout(
+      () => reject(new Error(`proof check timed out after ${ms}ms`)),
+      ms,
+    );
+  });
+  return Promise.race([p, timeout]).finally(() => clearTimeout(timer));
+};
+
+/**
  * Register a proof-check promise so we can fail a test at a controlled boundary.
  * Attaches handlers immediately to avoid unhandled-rejection noise and
- * auto-removes the promise from the queue upon settlement.
+ * auto-removes the promise from the queue upon settlement. The check is bounded
+ * by `PROOF_CHECK_TIMEOUT_MS` so a hung check surfaces as a test failure.
  */
 export const registerProofCheck = (p: Promise<void>): void => {
+  const guarded = withTimeout(p, PROOF_CHECK_TIMEOUT_MS);
   let wrapped: Promise<void>;
-  wrapped = p.then(
+  wrapped = guarded.then(
     () => { pending.delete(wrapped); },
     (e) => { pending.delete(wrapped); throw e; }
   );
@@ -75,7 +108,7 @@ export const flushProofChecks = async (): Promise<void> => {
   if (rejected) throw rejected.reason;
 }
 
-export const startContract = <
+export const startContract = async <
   PS,
   W extends Witnesses<PS>,
   C extends Contract<PS, W>
@@ -84,15 +117,16 @@ export const startContract = <
   witnesses: W,
   privateState: PS,
   ...args: InitialStateParams<C>
-): readonly [C, CircuitContext<PS>] => {
+): Promise<readonly [C, CircuitContext<PS>]> => {
 
   const contract = new module.Contract(witnesses);
 
   const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
-  const constructorResult = contract.initialState(constructorContext, ...args);
+  const constructorResult = await contract.initialState(constructorContext, ...args);
 
   const circuitContext = createCircuitContext(
-    ocrt.dummyContractAddress(),
+    'constructor',
+    ocrt.sampleContractAddress(),
     constructorResult.currentZswapLocalState.coinPublicKey,
     constructorResult.currentContractState,
     constructorResult.currentPrivateState,
@@ -101,15 +135,14 @@ export const startContract = <
   const wrappedImpureCircuits = {} as C['impureCircuits'];
 
   for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
-    (wrappedImpureCircuits as any)[circuitId] = (context: any, ...cArgs: any[]): any => {
-      // Execute the original circuit synchronously.
-      const circuitResult = (circuit as any)(context, ...cArgs);
-
+    (wrappedImpureCircuits as any)[circuitId] = async (context: any, ...cArgs: any[]): Promise<any> => {
+      context.callContext.circuitId = circuitId;
+      const circuitResult = await (circuit as any)(context, ...cArgs);
       // For circuits subject to proving, schedule async proof validation and register it globally.
       const zkirFile = `${module.contractDir}/zkir/${circuitId}.zkir`;
       if (fs.existsSync(zkirFile)) {
         const validation = (async () => {
-          await checkProofData(module.contractDir, circuitId, circuitResult.proofData);
+          await checkProofData(module.contractDir, circuitId, circuitResult.context.callProofDataTrace.at(-1));
         })();
 
         registerProofCheck(validation);

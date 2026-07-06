@@ -22,7 +22,7 @@
 		"support": {
 			"patterns": [
 				{
-					"match": "\\b(Bytes|Boolean|Field|Opaque|Uint|Vector)\\b",
+					"match": "\\b(Bytes|Boolean|Field|JubjubScalar|Opaque|Secp256k1Base|Secp256k1Scalar|Uint|Vector)\\b",
 					"name": "support.class.compact"
 				}
 			]
@@ -31,7 +31,7 @@
 			"patterns": [
 				{
 					"name": "keyword.control.compact",
-					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|enum|fold|for|if|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
+					"match": "\\b(as|assert|circuit|constructor|const|contract|default|disclose|else|emit|enum|fold|for|if|implements|include|ledger|map|new|of|pad|pragma|return|struct|type|witness|pure|sealed|slice)\\b"
 				},
 				{
 					"name": "keyword.control.import.compact",

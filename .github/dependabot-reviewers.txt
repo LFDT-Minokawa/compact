@@ -1,0 +1,6 @@
+# Active reviewers for Dependabot PR rotation.
+# Order defines the default rotation; edit via PR.
+pataei
+dybvig
+kmillikin
+JosephDenman

@@ -16,9 +16,9 @@
 export ledger dummy: Field;
 
 export circuit foo(x: Field): [] {
-dummy = 1;
+dummy = 1 as Field;
 if (false) {
-assert(x != 0, 'oops1');
+assert(x != 0 as Field, 'oops1');
 }
-assert(x != 0, 'oops2');
+assert(x != 0 as Field, 'oops2');
 }
