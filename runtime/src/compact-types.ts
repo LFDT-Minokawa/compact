@@ -663,14 +663,10 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
-      case 'compress': {
-        const hash = ocrt.transientCommit([segment],
-                                          [ocrtValue[i]],
-                                          ocrt.bigIntToValue(BigInt(ocrtValue[i].length)));
-        arrays.push(hash[0]);
-        length += hash[0].length;
-        break;
-      }
+      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+      // the unhashed payload).  There's no correct way to encode them here.
+      case 'compress':
+        throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
       case 'field':
         arrays.push(ocrtValue[i]);
         length += ocrtValue[i].length;

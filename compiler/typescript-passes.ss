@@ -357,7 +357,8 @@
            "assert"
            "convertNumericToJubjubScalar"
            "convertBigintToBytes"
-           "convertBytesToBigint"
+           "convertBytesToField"
+           "convertBytesToUint"
            "addField"
            "subField"
            "mulField"
@@ -3249,13 +3250,21 @@
            ")"))]
       [(cast-from-bytes ,src ,type ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
        (parenthesize level (precedence call)
-         (let ([max (nanopass-case (Ltypescript Type) (de-alias type)
-                      [(tfield ,src^ (field-native)) (max-field)]
-                      [(tfield ,src^ (field-scalar (curve-jubjub))) (max-jubjub-scalar)]
-                      [(tfield ,src^ (field-base (curve-secp256k1))) (max-secp256k1-base)]
-                      [(tfield ,src^ (field-scalar (curve-secp256k1))) (max-secp256k1-scalar)]
-                      [(tunsigned ,src^ ,nat) nat])])
-           (make-Qconcat (compact-stdlib "convertBytesToBigint") "("
+         (let-values ([(convert max)
+                       (nanopass-case (Ltypescript Type) (de-alias type)
+                         [(tfield ,src^ (field-native))
+                          ;; convertBytesToUint is used intentionally in order to fail on values
+                          ;; that are larger than `Field`'s maximum value.
+                          (values "convertBytesToUint" (max-field))]
+                         [(tfield ,src^ (field-scalar (curve-jubjub)))
+                          (values "convertBytesToField" (max-jubjub-scalar))]
+                         [(tfield ,src^ (field-base (curve-secp256k1)))
+                          (values "convertBytesToField" (max-secp256k1-base))]
+                         [(tfield ,src^ (field-scalar (curve-secp256k1)))
+                          (values "convertBytesToField" (max-secp256k1-scalar))]
+                         [(tunsigned ,src^ ,nat)
+                          (values "convertBytesToUint" nat)])])
+           (make-Qconcat (compact-stdlib convert) "("
              ((make-Qsep ",")
               (format "~dn" max)
               (format "~d" len)
