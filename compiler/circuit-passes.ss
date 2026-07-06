@@ -74,16 +74,21 @@
       [(talias ,src ,nominal? ,type-name ,[type]) type]))
 
   (define-pass replace-enums : Lposttypescript (ir) -> Lnoenums ()
+    (definitions
+      ;; The inclusive upper bound of the unsigned type an enum lowers to.
+      ;; The greatest ordinal is (length elt-name*), i.e. variants - 1, but
+      ;; the bound is floored at 1 so that a single-variant enum lowers to
+      ;; the same one-byte type as a two-variant enum instead of a 0-bit
+      ;; type: the FAB width then stays stable when variants are added
+      ;; later, and the discriminant is not cryptographically silent in
+      ;; hashes.
+      (define (enum-upper-bound elt-name*)
+        (max 1 (length elt-name*))))
     (Expression : Expression (ir) -> Expression ()
       [(enum-ref ,src ,type ,elt-name^)
        (nanopass-case (Lposttypescript Type) type
          [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
-          ;; Enums occupy at least one byte: a single-variant enum lowers to
-          ;; Uint<0..1>, not Uint<0..0>, so its FAB width matches every other
-          ;; enum and stays stable when variants are added later. (A 0-bit
-          ;; encoding would also make the field cryptographically silent in
-          ;; hashes.)
-          (let ([maxval (max 1 (length elt-name*))])
+          (let ([maxval (enum-upper-bound elt-name*)])
             (let loop ([elt-name elt-name] [elt-name* elt-name*] [i 0])
               (if (eq? elt-name elt-name^)
                   (if (= i maxval)
@@ -122,8 +127,7 @@
            [else (assert cannot-happen)]))])
     (Type : Type (ir) -> Type ()
       [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-       ;; Same one-byte minimum as the enum-ref lowering above.
-       (let ([maxval (max 1 (length elt-name*))])
+       (let ([maxval (enum-upper-bound elt-name*)])
          `(tunsigned ,src ,maxval))]))
 
   (define-pass unroll-loops : Lnoenums (ir) -> Lunrolled ()
