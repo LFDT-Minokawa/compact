@@ -20,8 +20,8 @@
 (declare-event-type ShieldedReceive 1 578
   "A contract accepts an incoming shielded coin.\n`contractAddress` set when received by a contract, absent for user recipients."
   ([commitment (Bytes 32) (hint "indexed")]
-   [contractAddress (TypeRef Maybe (Bytes 32))]
-   [ciphertext (TypeRef Maybe (Bytes 512))]))
+   [ciphertext (TypeRef Maybe (Bytes 512))]
+   [contractAddress (TypeRef Maybe (Bytes 32))]))
 
 (declare-event-type ShieldedMint 2 81
   "New shielded tokens created.\n`tokenType` derived by the consumer from `domainSep` + `ContractLog.address`."
