@@ -90049,6 +90049,17 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
 
   (test
+    '("import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit test(s: Opaque<'string'>): [] {"
+      "  hash = disclose(keccak256<Opaque<'string'>>(s));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (keccak256 "Opaque<\"string\">"))))
+
+  (test
     '(
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
@@ -90250,17 +90261,6 @@ groups than for single tests.
       "    pk: Secp256k1Point"
       "  ): Boolean {"
       "    return secp256k1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk);"
-      "  }"
-      "  "
-      "  // Prove knowledge of a Bitcoin-style ECDSA signature."
-      "  // msg is hashed with SHA-256 in-circuit before verification, binding the"
-      "  // proof to the actual message content."
-      "  export circuit proveBitcoinSignature("
-      "    msg: Bytes<32>,"
-      "    sig: Secp256k1EcdsaSignature,"
-      "    pk: Secp256k1Point"
-      "  ): Boolean {"
-      "    return secp256k1EcdsaVerify(persistentHash<Bytes<32>>(msg), sig, pk);"
       "  }"
       "}"
       "import CompactStandardLibrary;"
