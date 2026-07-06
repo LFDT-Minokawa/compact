@@ -50,12 +50,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:golddydev/midnight-ledger/0359b1ee2205329cdb5eb7f5d92e5b4015468e6b"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:golddydev/midnight-ledger/0359b1ee2205329cdb5eb7f5d92e5b4015468e6b";
+      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -577,7 +577,6 @@
               pkgs.yarn
               zkir.packages.${system}.zkir
               packages.zkir-v3-bin
-              pkgs.perl # provides `shasum` for compactc's verifier-key fingerprint (compiler/utils.ss sha256-file)
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
