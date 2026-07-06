@@ -34531,12 +34531,12 @@ groups than for single tests.
              (tbytes 578)
           (let* ([[%t.3 (tstruct Maybe
                           (is_some (tboolean))
-                          (value (tbytes 32)))]
-                  (elt-ref %value.2 contractAddress 1)]
+                          (value (tbytes 512)))]
+                  (elt-ref %value.2 ciphertext 1)]
                  [[%t.4 (tstruct Maybe
                           (is_some (tboolean))
-                          (value (tbytes 512)))]
-                  (elt-ref %value.2 ciphertext 2)])
+                          (value (tbytes 32)))]
+                  (elt-ref %value.2 contractAddress 2)])
             (vector->bytes 578
               (vector
                 (spread 32
@@ -34544,11 +34544,11 @@ groups than for single tests.
                 (if (elt-ref %t.3 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 32 (bytes->vector 32 (elt-ref %t.3 value 1)))
+                (spread 512 (bytes->vector 512 (elt-ref %t.3 value 1)))
                 (if (elt-ref %t.4 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 512 (bytes->vector 512 (elt-ref %t.4 value 1)))))))
+                (spread 32 (bytes->vector 32 (elt-ref %t.4 value 1)))))))
         (circuit %deserialize.5 ([%value.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
@@ -34569,16 +34569,16 @@ groups than for single tests.
             (bytes-slice %value.6 0 32)
             (new (tstruct Maybe
                    (is_some (tboolean))
-                   (value (tbytes 32)))
+                   (value (tbytes 512)))
               (== (bytes-ref %value.6 32)
                   (safe-cast (tunsigned 255) (tunsigned 1) 1))
-              (bytes-slice %value.6 33 32))
+              (bytes-slice %value.6 33 512))
             (new (tstruct Maybe
                    (is_some (tboolean))
-                   (value (tbytes 512)))
-              (== (bytes-ref %value.6 65)
+                   (value (tbytes 32)))
+              (== (bytes-ref %value.6 545)
                   (safe-cast (tunsigned 255) (tunsigned 1) 1))
-              (bytes-slice %value.6 66 512))))
+              (bytes-slice %value.6 546 32))))
         (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
              (tstruct ShieldedReceive
