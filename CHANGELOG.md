@@ -18,8 +18,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   silently computed a different hash than the runtime; and the enum's layout
   jumped from 0 bytes to 1 byte the moment a second variant was added, even
   though the width rule is otherwise stable across 2 to 256 variants.
-  Single-variant enums now lower to `Uint<0..1>`, so enum layout is stable
-  across 1 to 256 variants and the discriminant is bound into hashes.
+  Single-variant enums now lower to the same one-byte unsigned type as
+  two-variant enums (an inclusive upper bound of 1 instead of 0), so enum
+  layout is stable across 1 to 256 variants and the discriminant is bound
+  into hashes.
 
   This is a **breaking** change for contracts containing a single-variant
   enum: they hash, serialize, and derive contract addresses differently than
