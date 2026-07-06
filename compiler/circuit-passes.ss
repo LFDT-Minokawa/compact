@@ -67,7 +67,12 @@
       [(enum-ref ,src ,type ,elt-name^)
        (nanopass-case (Lposttypescript Type) type
          [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
-          (let ([maxval (length elt-name*)])
+          ;; Enums occupy at least one byte: a single-variant enum lowers to
+          ;; Uint<0..1>, not Uint<0..0>, so its FAB width matches every other
+          ;; enum and stays stable when variants are added later. (A 0-bit
+          ;; encoding would also make the field cryptographically silent in
+          ;; hashes.)
+          (let ([maxval (max 1 (length elt-name*))])
             (let loop ([elt-name elt-name] [elt-name* elt-name*] [i 0])
               (if (eq? elt-name elt-name^)
                   (if (= i maxval)
@@ -103,7 +108,8 @@
            [else (assert cannot-happen)]))])
     (Type : Type (ir) -> Type ()
       [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-       (let ([maxval (length elt-name*)])
+       ;; Same one-byte minimum as the enum-ref lowering above.
+       (let ([maxval (max 1 (length elt-name*))])
          `(tunsigned ,src ,maxval))]))
 
   (define-pass unroll-loops : Lnoenums (ir) -> Lunrolled ()

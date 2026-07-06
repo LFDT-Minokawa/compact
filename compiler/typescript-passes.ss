@@ -1289,8 +1289,11 @@
                      (print-struct-class class-name elt-name* type*)
                      (format "new ~a()" class-name))]
                   [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+                   ;; The length has a one-byte minimum, mirroring the
+                   ;; replace-enums lowering; maxValue stays the true variant
+                   ;; bound for input validation.
                    (let ([n (length elt-name*)])
-                     (format "new __compactRuntime.CompactTypeEnum(~d, ~d)" n (byte-length n)))]
+                     (format "new __compactRuntime.CompactTypeEnum(~d, ~d)" n (max 1 (byte-length n))))]
                   [(tunknown) (assert cannot-happen)]
                   [else (assert cannot-happen)]))))
           (for-each print-descriptor descriptor-id* type*))

@@ -46856,6 +46856,113 @@ groups than for single tests.
                  "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir")
   )
 
+  ;; A bare single-variant enum as the entire hash argument: the type is
+  ;; one byte wide, so the gate binds its single element and the
+  ;; alignment accounts for it.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "enum Kind { mint }"
+      ""
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7; }"
+      ""
+      "export circuit direct(): Bytes<32> {"
+      "  forceProof();"
+      "  return disclose(persistentHash<Kind>(Kind.mint));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/direct.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 0,"
+        "  \"instructions\": ["
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }], \"inputs\": [3] },"
+        "    { \"op\": \"output\", \"var\": 7 },"
+        "    { \"op\": \"output\", \"var\": 8 }"
+        "  ]"
+        "}"))
+    )
+
+  ;; A 0-bit struct field (single-variant enum, which lowers to a 0-bit
+  ;; Uint) occupies zero field elements per its Bytes<0> alignment atom,
+  ;; so it must not contribute an input element to persistent_hash: the
+  ;; prover rejects any instruction whose inputs disagree with the
+  ;; declared alignment, and the runtime hash ignores the field entirely.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "enum Kind { mint }"
+      ""
+      "struct Attestation {"
+      "  kind: Kind,"
+      "  amount: Uint<64>,"
+      "}"
+      ""
+      "export ledger digest: Bytes<32>;"
+      ""
+      "export circuit attest(amount: Uint<64>): [] {"
+      "  digest = disclose(persistentHash<Attestation>(Attestation { kind: Kind.mint, amount: amount }));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/attest.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 64 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [2, 0] },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 6 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
+        "  ]"
+        "}"))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -58104,6 +58211,77 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/zerocash_mint.zkir"
                  "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir3")
   )
+
+
+  ;; A bare single-variant enum as the entire hash argument: the type is
+  ;; one byte wide, so the gate binds its single element and the
+  ;; alignment accounts for it.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "enum Kind { mint }"
+      ""
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7; }"
+      ""
+      "export circuit direct(): Bytes<32> {"
+      "  forceProof();"
+      "  return disclose(persistentHash<Kind>(Kind.mint));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/direct.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\", \"0x91\"] },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%t.0\", \"%t.1\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }], \"inputs\": [\"0x00\"] },"
+        "    { \"op\": \"output\", \"val\": \"%t.0\" },"
+        "    { \"op\": \"output\", \"val\": \"%t.1\" }"
+        "  ]"
+        "}"))
+    )
+
+  ;; A 0-bit struct field (single-variant enum, which lowers to a 0-bit
+  ;; Uint) occupies zero field elements per its Bytes<0> alignment atom,
+  ;; so it must not contribute an input element to persistent_hash: the
+  ;; prover rejects any instruction whose inputs disagree with the
+  ;; declared alignment, and the runtime hash ignores the field entirely.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "enum Kind { mint }"
+      ""
+      "struct Attestation {"
+      "  kind: Kind,"
+      "  amount: Uint<64>,"
+      "}"
+      ""
+      "export ledger digest: Bytes<32>;"
+      ""
+      "export circuit attest(amount: Uint<64>): [] {"
+      "  digest = disclose(persistentHash<Attestation>(Attestation { kind: Kind.mint, amount: amount }));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/attest.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%amount.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%amount.0\", \"bits\": 64 },"
+        "    { \"op\": \"persistent_hash\", \"outputs\": [\"%tmp.1\", \"%tmp.2\"], \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"0x00\", \"%amount.0\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\", \"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.1\", \"%tmp.2\", \"0x91\"] }"
+        "  ]"
+        "}"))
+    )
 
   (test
     '(

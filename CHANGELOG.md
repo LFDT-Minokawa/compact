@@ -5,6 +5,28 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased toolchain 0.30.103, language 0.22.101, runtime 0.15.101]
+
+### Changed
+
+- Enums now occupy at least one byte in the field-aligned binary encoding.
+  A single-variant enum previously lowered to `Uint<0..0>`, a zero-bit type
+  encoded as `Bytes<0>`, with two consequences: hashing a struct containing
+  one emitted a `persistent_hash` instruction whose inputs disagree with its
+  declared alignment, which every conformant prover rejects (`midnight_zkir:
+  "Inputs did not match alignment"`), while `transientHash` and `hashToCurve`
+  silently computed a different hash than the runtime; and the enum's layout
+  jumped from 0 bytes to 1 byte the moment a second variant was added, even
+  though the width rule is otherwise stable across 2 to 256 variants.
+  Single-variant enums now lower to `Uint<0..1>`, so enum layout is stable
+  across 1 to 256 variants and the discriminant is bound into hashes.
+
+  This is a **breaking** change for contracts containing a single-variant
+  enum: they hash, serialize, and derive contract addresses differently than
+  under previous compiler versions. Hashing such an enum was unprovable
+  before, so no working circuit changes behavior there; ledger state that
+  merely stores one changes layout.
+
 ## [Toolchain 0.30.102, language 0.22.101, runtime 0.15.101]
 
 ### Changed
