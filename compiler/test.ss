@@ -15040,12 +15040,12 @@ groups than for single tests.
         (export-typedef ShieldedReceive ()
           (tstruct ShieldedReceive
             (commitment (tbytes 32))
-            (contractAddress (tstruct Maybe
-                                (is_some (tboolean))
-                                (value (tbytes 32))))
             (ciphertext (tstruct Maybe
                           (is_some (tboolean))
-                          (value (tbytes 512))))))
+                          (value (tbytes 512))))
+            (contractAddress (tstruct Maybe
+                                (is_some (tboolean))
+                                (value (tbytes 32))))))
         (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
@@ -34520,23 +34520,23 @@ groups than for single tests.
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %serialize.1 ([%value.2 (tstruct ShieldedReceive
                                            (commitment (tbytes 32))
-                                           (contractAddress (tstruct Maybe
-                                                               (is_some (tboolean))
-                                                               (value (tbytes
-                                                                        32))))
                                            (ciphertext (tstruct Maybe
                                                          (is_some (tboolean))
                                                          (value (tbytes
-                                                                  512)))))])
+                                                                  512))))
+                                           (contractAddress (tstruct Maybe
+                                                               (is_some (tboolean))
+                                                               (value (tbytes
+                                                                        32)))))])
              (tbytes 578)
           (let* ([[%t.3 (tstruct Maybe
                           (is_some (tboolean))
-                          (value (tbytes 32)))]
-                  (elt-ref %value.2 contractAddress 1)]
+                          (value (tbytes 512)))]
+                  (elt-ref %value.2 ciphertext 1)]
                  [[%t.4 (tstruct Maybe
                           (is_some (tboolean))
-                          (value (tbytes 512)))]
-                  (elt-ref %value.2 ciphertext 2)])
+                          (value (tbytes 32)))]
+                  (elt-ref %value.2 contractAddress 2)])
             (vector->bytes 578
               (vector
                 (spread 32
@@ -34544,63 +34544,63 @@ groups than for single tests.
                 (if (elt-ref %t.3 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 32 (bytes->vector 32 (elt-ref %t.3 value 1)))
+                (spread 512 (bytes->vector 512 (elt-ref %t.3 value 1)))
                 (if (elt-ref %t.4 is_some 0)
                     (safe-cast (tunsigned 255) (tunsigned 1) 1)
                     (safe-cast (tunsigned 255) (tunsigned 0) 0))
-                (spread 512 (bytes->vector 512 (elt-ref %t.4 value 1)))))))
+                (spread 32 (bytes->vector 32 (elt-ref %t.4 value 1)))))))
         (circuit %deserialize.5 ([%value.6 (tbytes 578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contractAddress (tstruct Maybe
-                                   (is_some (tboolean))
-                                   (value (tbytes 32))))
                (ciphertext (tstruct Maybe
                              (is_some (tboolean))
-                             (value (tbytes 512)))))
+                             (value (tbytes 512))))
+               (contractAddress (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32)))))
           (new (tstruct ShieldedReceive
                  (commitment (tbytes 32))
-                 (contractAddress (tstruct Maybe
-                                     (is_some (tboolean))
-                                     (value (tbytes 32))))
                  (ciphertext (tstruct Maybe
                                (is_some (tboolean))
-                               (value (tbytes 512)))))
+                               (value (tbytes 512))))
+                 (contractAddress (tstruct Maybe
+                                     (is_some (tboolean))
+                                     (value (tbytes 32)))))
             (bytes-slice %value.6 0 32)
             (new (tstruct Maybe
                    (is_some (tboolean))
-                   (value (tbytes 32)))
+                   (value (tbytes 512)))
               (== (bytes-ref %value.6 32)
                   (safe-cast (tunsigned 255) (tunsigned 1) 1))
-              (bytes-slice %value.6 33 32))
+              (bytes-slice %value.6 33 512))
             (new (tstruct Maybe
                    (is_some (tboolean))
-                   (value (tbytes 512)))
-              (== (bytes-ref %value.6 65)
+                   (value (tbytes 32)))
+              (== (bytes-ref %value.6 545)
                   (safe-cast (tunsigned 255) (tunsigned 1) 1))
-              (bytes-slice %value.6 66 512))))
+              (bytes-slice %value.6 546 32))))
         (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
              (tstruct ShieldedReceive
                (commitment (tbytes 32))
-               (contractAddress (tstruct Maybe
-                                   (is_some (tboolean))
-                                   (value (tbytes 32))))
                (ciphertext (tstruct Maybe
                              (is_some (tboolean))
-                             (value (tbytes 512)))))
+                             (value (tbytes 512))))
+               (contractAddress (tstruct Maybe
+                                   (is_some (tboolean))
+                                   (value (tbytes 32)))))
           (call %deserialize.5 %x.8))
         (circuit %serialize_ShieldedReceive.9 ([%x.10 (tstruct ShieldedReceive
                                                         (commitment (tbytes
                                                                       32))
-                                                        (contractAddress (tstruct Maybe
-                                                                            (is_some (tboolean))
-                                                                            (value (tbytes
-                                                                                     32))))
                                                         (ciphertext (tstruct Maybe
                                                                       (is_some (tboolean))
                                                                       (value (tbytes
-                                                                               512)))))])
+                                                                               512))))
+                                                        (contractAddress (tstruct Maybe
+                                                                            (is_some (tboolean))
+                                                                            (value (tbytes
+                                                                                     32)))))])
              (tbytes 578)
           (call %serialize.1 %x.10))))
     )
@@ -88827,21 +88827,21 @@ groups than for single tests.
       "export circuit emit_one(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
       "  });"
       "  return n;"
       "}"
       "export circuit emit_two(n: Bytes<32>, c: Bytes<512>): Bytes<32> {"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
       "  });"
       "  emit(ShieldedReceive {"
       "    commitment: disclose(n),"
-      "    contractAddress: Maybe<Bytes<32>> { is_some: false, value: disclose(n) },"
-      "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) }"
+      "    ciphertext: Maybe<Bytes<512>> { is_some: false, value: disclose(c) },"
+      "    contractAddress: Maybe<Bytes<32>> { is_some: false, value: disclose(n) }"
       "  });"
       "  return n;"
       "}"
@@ -88849,8 +88849,8 @@ groups than for single tests.
       "  if (disclose(b)) {"
       "    emit(ShieldedReceive {"
       "      commitment: disclose(n),"
-      "      contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) },"
-      "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) }"
+      "      ciphertext: Maybe<Bytes<512>> { is_some: true, value: disclose(c) },"
+      "      contractAddress: Maybe<Bytes<32>> { is_some: true, value: disclose(n) }"
       "    });"
       "  }"
       "  return n;"
