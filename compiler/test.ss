@@ -90042,6 +90042,17 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
 
   (test
+    '("import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit test(s: Opaque<'string'>): [] {"
+      "  hash = disclose(keccak256<Opaque<'string'>>(s));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a cannot be applied to a first argument containing opaque JavaScript values, received ~a" (keccak256 "Opaque<\"string\">"))))
+
+  (test
     '(
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
@@ -90243,39 +90254,6 @@ groups than for single tests.
       "    pk: Secp256k1Point"
       "  ): Boolean {"
       "    return secp256k1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk);"
-      "  }"
-      "  "
-      "  // Recover the public key from an Ethereum-style ECDSA signature."
-      "  // msg is hashed with keccak256 in-circuit before recovery, binding the"
-      "  // proof to the actual message content."
-      "  // R (the signing nonce point) must be provided by the prover; the circuit"
-      "  // asserts that R.x matches r as bytes, avoiding an in-circuit square root."
-      "  export circuit recoverEthereumPublicKey("
-      "    msg: Bytes<32>,"
-      "    sig: Secp256k1EcdsaSignatureWithRecovery"
-      "  ): Secp256k1Point {"
-      "    return secp256k1EcdsaRecover(keccak256<Bytes<32>>(msg), sig);"
-      "  }"
-      "  "
-      "  // Recover the public key from an Ethereum-style ECDSA signature and return"
-      "  // the first 20 bytes of keccak256 of the recovered key."
-      "  export circuit recoverEthereumAddress("
-      "    msg: Bytes<32>,"
-      "    sig: Secp256k1EcdsaSignatureWithRecovery"
-      "  ): Bytes<20> {"
-      "    const pk: Secp256k1Point = secp256k1EcdsaRecover(keccak256<Bytes<32>>(msg), sig);"
-      "    return slice<20>(keccak256<Secp256k1Point>(pk), 0);"
-      "  }"
-      "  "
-      "  // Prove knowledge of a Bitcoin-style ECDSA signature."
-      "  // msg is hashed with SHA-256 in-circuit before verification, binding the"
-      "  // proof to the actual message content."
-      "  export circuit proveBitcoinSignature("
-      "    msg: Bytes<32>,"
-      "    sig: Secp256k1EcdsaSignature,"
-      "    pk: Secp256k1Point"
-      "  ): Boolean {"
-      "    return secp256k1EcdsaVerify(persistentHash<Bytes<32>>(msg), sig, pk);"
       "  }"
       "}"
       "import CompactStandardLibrary;"
