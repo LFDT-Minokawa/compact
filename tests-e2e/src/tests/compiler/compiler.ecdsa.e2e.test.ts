@@ -23,14 +23,14 @@ import { sha256 } from '@noble/hashes/sha2.js';
 // A Secp256k1Point is an affine point; a Secp256k1Scalar is a bare bigint.
 type Point = { x: bigint; y: bigint };
 type Signature = { r: bigint; s: bigint };
-type SignatureWithRecovery = Signature & { R: Point };
+// Ethereum-style recoverable signature: r, s, and the recovery id v.
+type PkRecoverableSignature = Signature & { recovery: number };
 
 // The exported circuits of examples/ecdsa/example_one.compact, as plain pure functions.
 interface EcdsaPureCircuits {
     proveEthereumSignature(msg: Uint8Array, sig: Signature, pk: Point): boolean;
     proveBitcoinSignature(msg: Uint8Array, sig: Signature, pk: Point): boolean;
-    recoverEthereumPublicKey(msg: Uint8Array, sig: SignatureWithRecovery): Point;
-    recoverEthereumAddress(msg: Uint8Array, sig: SignatureWithRecovery): Uint8Array;
+    ethereumAddress(pk: Point): Uint8Array;
     // A Secp256k1Scalar is a bare bigint at runtime.
     scalarMul(x: bigint, y: bigint): bigint;
 }
@@ -51,16 +51,20 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
     const pubAffine = secp256k1.Point.fromBytes(secp256k1.getPublicKey(sk)).toAffine();
     const pk: Point = { x: pubAffine.x, y: pubAffine.y };
 
-    // Sign a (already hashed) digest and lift the nonce commitment R off-circuit
-    // from r + the recovery bit, mirroring examples/ecdsa/example.compact's expectation.
-    function sign(digest: Uint8Array): SignatureWithRecovery {
+    // Sign a (already hashed) digest, returning r, s, and the recovery id v.
+    function sign(digest: Uint8Array): PkRecoverableSignature {
         const sig = secp256k1.Signature.fromBytes(
             secp256k1.sign(digest, sk, { format: 'recovered', prehash: false }),
             'recovered',
         );
-        const prefix = sig.recovery === 0 ? '02' : '03';
-        const R = secp256k1.Point.fromHex(prefix + sig.r.toString(16).padStart(64, '0')).toAffine();
-        return { r: sig.r, s: sig.s, R: { x: R.x, y: R.y } };
+        return { r: sig.r, s: sig.s, recovery: sig.recovery! };
+    }
+
+    // Recover the public key off-circuit from the same inputs Ethereum's
+    // ecrecover takes: the message hash, r, s, and the recovery id v.
+    function recoverPk(digest: Uint8Array, sig: PkRecoverableSignature): Point {
+        const p = new secp256k1.Signature(sig.r, sig.s, sig.recovery).recoverPublicKey(digest).toAffine();
+        return { x: p.x, y: p.y };
     }
 
     // Ethereum signs keccak256(msg); Bitcoin signs sha256(msg).
@@ -95,14 +99,15 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         expect(pureCircuits.proveBitcoinSignature(btcMsg, tamper(btcSig), pk)).toBe(false);
     });
 
-    test('recoverEthereumPublicKey recovers the signing public key [WIP gates]', () => {
-        const recovered = pureCircuits.recoverEthereumPublicKey(ethMsg, ethSig);
+    test('off-circuit recovery yields the signing public key', () => {
+        const recovered = recoverPk(keccak_256(ethMsg), ethSig);
         expect(recovered.x).toBe(pk.x);
         expect(recovered.y).toBe(pk.y);
     });
 
-    test('recoverEthereumAddress returns the first 20 bytes of keccak256(pk)', () => {
-        const address = pureCircuits.recoverEthereumAddress(ethMsg, ethSig);
+    test('ethereumAddress hashes a recovered public key to 20 bytes [WIP gates]', () => {
+        const recovered = recoverPk(keccak_256(ethMsg), ethSig);
+        const address = pureCircuits.ethereumAddress(recovered);
         expect(address).toBeInstanceOf(Uint8Array);
         expect(address.length).toBe(20);
     });
