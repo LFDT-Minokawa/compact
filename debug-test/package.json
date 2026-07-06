@@ -23,7 +23,7 @@
     "typescript": "~6.0.2"
   },
   "resolutions": {
-    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.2",
+    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.2"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.3.0",
