@@ -12,10 +12,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Add a `toBinaryRepr` to the Compact runtime that replicates the effect of the
   on-chain Rust `binary_repr`.  Use it in the runtime for the argument to the
   Noble hashes `keccak_256` function, to correctly replicate the in-circuit
-  implementation.  The ensures that trailing zero bytes from byte vectors are
+  implementation.  This ensures that trailing zero bytes from byte vectors are
   preserved and hashed in JS as well as in circuit.
 
-- Change casting of byte vectors to foreign fields so that the perform modular
+- Change casting of byte vectors to foreign fields so that they perform modular
   reduction by the field modulus rather than failing for byte vectors encoding
   values out of range.  The failure is kept for native fields to avoid a
   breaking change at this time.

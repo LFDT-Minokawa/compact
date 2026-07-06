@@ -658,8 +658,7 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
   for (let i = 0; i < alignment.length; ++i) {
     let segment = alignment[i];
     if (segment.tag != 'atom') {
-      // We are decoding our own FAB representation and we don't use 'option' so we shouldn't see it
-      // here.
+      // We are decoding our own FAB representation and we only use 'atom'.
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
@@ -667,10 +666,15 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       // the unhashed payload).  There's no correct way to encode them here.
       case 'compress':
         throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
-      case 'field':
+      case 'field': {
         arrays.push(ocrtValue[i]);
-        length += ocrtValue[i].length;
+        const extra = 32 - ocrtValue[i].length;
+        if (extra > 0) {
+          arrays.push(new Uint8Array(extra));
+        }
+        length += 32;
         break;
+      }
       case 'bytes': {
         if (ocrtValue[i].length > 0) {
           arrays.push(ocrtValue[i]);
