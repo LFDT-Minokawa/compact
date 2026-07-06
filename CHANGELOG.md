@@ -7,6 +7,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Toolchain 0.33.100, language 0.25.100, runtime 0.18.0]
 
+### Fixed
+
+- The `ShieldedReceive` standard event now serializes its fields in the order
+  specified by CoIP-442 and MIP-0002: `commitment`, `ciphertext`,
+  `contractAddress` (previously `contractAddress` preceded `ciphertext`).
+  Serialized size is unchanged (578). Fixes #590.
+
 ### Changed
 
 - The standard library ECDSA circuits `secp256k1EcdsaVerify` and

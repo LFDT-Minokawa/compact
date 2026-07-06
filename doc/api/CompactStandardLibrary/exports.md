@@ -209,8 +209,8 @@ A contract accepts an incoming shielded coin.
 ```compact
 struct ShieldedReceive {
   commitment: Bytes<32>, // indexed
-  contractAddress: Maybe<Bytes<32>>,
-  ciphertext: Maybe<Bytes<512>>
+  ciphertext: Maybe<Bytes<512>>,
+  contractAddress: Maybe<Bytes<32>>
 }
 ```
 
