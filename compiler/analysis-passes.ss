@@ -1665,7 +1665,7 @@
                (id-src (blob-name blob2))))
            (define (opaque-hashing-error? symbolic-name blob)
              (and (blob-is-native blob)
-                  (memq symbolic-name '(persistentHash persistentCommit))
+                  (memq symbolic-name '(persistentHash persistentCommit keccak256))
                   (> (length (blob-arg-type* blob)) 0)
                   (contains-js-opaque? (car (blob-arg-type* blob)))))
            (let outer ([function-name** function-name**] [arg-incompatible-blob** '()] [fold-incompatible-blob** '()])
