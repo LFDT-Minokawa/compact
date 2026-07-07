@@ -37,9 +37,9 @@
     onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      # NOTE: ledger-9.1.0.0-rc.3 is the first tag packaging the wasm under the
+      # NOTE: ledger-9.1.0.0-rc.2 is the first tag packaging the wasm under the
       # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
-      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.3.
+      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
       inputs.zkir.follows = "zkir";
     };
@@ -50,12 +50,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/ambrona@hash-output";
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
