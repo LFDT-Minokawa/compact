@@ -31,21 +31,21 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      # NOTE: ledger-9.1.0.0-rc.2 is the first tag packaging the wasm under the
+      # NOTE: ledger-9.1.0.0-rc.3 is the first tag packaging the wasm under the
       # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
-      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2";
+      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.3.
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
