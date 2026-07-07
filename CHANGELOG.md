@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.101, language 0.25.101, runtime 0.18.100]
+## [Toolchain 0.33.102, language 0.25.101, runtime 0.18.100]
 
 ## Fixed
 
@@ -26,7 +26,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   0.33 release, there should be another Compact runtime release candidate
   release.
 
+## [Toolchain 0.33.101, language 0.25.100, runtime 0.18.0]
+
+### Changed
+
+- The compiler now tries sha256sum first, then shasum -a 256 when looking
+  for a program to compute a sha256 hash.
+
 ## [Toolchain 0.33.100, language 0.25.100, runtime 0.18.0]
+
+### Fixed
+
+- The `ShieldedReceive` standard event now serializes its fields in the order
+  specified by CoIP-442 and MIP-0002: `commitment`, `ciphertext`,
+  `contractAddress` (previously `contractAddress` preceded `ciphertext`).
+  Serialized size is unchanged (578). Fixes #590.
 
 ### Changed
 
