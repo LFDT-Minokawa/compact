@@ -617,10 +617,145 @@ names (in the same order) and distinct otherwise.
 
 #### Contract types
 
-@(anchor-here contract-declaration circuit-declaration contract-implements-declaration)
-Compact 1.0 does not fully implement declarations of contracts and the
-cross-contract calls they support, but the keyword `contract` used to declare
-contracts is reserved for this use.
+@(anchor-here contract-type-definition circuit-declaration contract-implements-declaration)
+
+Defining a contract type enables a Compact program to specify a
+collection of circuit signatures (that is, their names, parameter
+types, and return types) that describe another contract on which the
+program depends.  Contract types are defined using the `contract`
+form, which has the following syntax:
+
+@(request-snippet contract-declaration)
+@(request-snippet circuit-declaration)
+
+A contract type definition specifies a set of circuit declarations,
+separated either by commas or by semicolons.  Comma and semicolon
+separators cannot be mixed within a single contract type definition.
+A trailing comma or semicolon is allowed, but not required.
+
+Each circuit declaration must be "simple"; that is, it must not make
+use of generic parameters.  The declaration may require the circuit to
+be pure.
+
+Here is an example of a contract type definition:
+
+```compact
+contract Adder {
+  circuit setAddAmount(n: Uint<64>): [];
+  circuit addTo(n: Uint<64>): Uint<64>;
+}
+```
+
+A `contract` declaration introduces a new contract type into its
+scope.  A contract type is a regular program-defined Compact type,
+just like a structure type or enumeration type.  For example, it can
+be used as the type of a circuit parameter or witness function
+parameter, the type of a structure element, or the specializing
+argument of a ledger-state type such as `List` or `Map`.  Here is an
+example of a ledger declaration using the `Adder` type and a
+constructor that initializes it.
+
+```compact
+export ledger adders: List<Adder>;
+
+constructor(a: Adder) {
+  adders.pushFront(disclose(a));
+}
+```
+
+(See later sections of this Compact reference for more information
+about ledger-state types and constructors.)
+
+When some subset of a contract's circuits matches the set of those
+declared in a contract type, the contract is said to **satisfy** (or
+**have**) that type.
+
+More precisely, define the **signature** of a circuit to be the types
+of its parameters, plus its return type, as well as whether it is
+declared to be `pure`.  Changing the parameter names or using
+destructuring patterns in a circuit definition does not change its
+signature, because the signature is defined only by the parameter and
+return *types*.
+
+The circuit declarations in a contract type declaration also have
+signatures defined by their types and whether they are declared to be
+pure.  For example, the signature of `addTo` in the `Adder` interface
+above is
+
+> `Uint<64>` &rarr; `Uint<64>`
+
+A contract **satisfies** an contract type when, for every circuit
+declared in the `contract` form, the contract exports a circuit with
+the same name and with a signature whose types are identical to the
+one in the declaration.  Furthermore, every circuit declared `pure` in
+the contract type declaration must also be declared `pure` (explicitly)
+in the satisfying contract implementation.  If the circuit in the
+contract type declaration is *not* declared `pure`, the type can be
+satisfied by any circuit with the same name and a matching signature,
+regardless of whether the implementation is declared `pure`.
+
+For example, any contract that exports `setAddAmount` and `addTo`
+circuits with signatures identical to those in the `Adder` declaration
+above satisfies the `Adder` contract type.  A contract whose
+definition of `addTo` is declared to be `pure` would also satisfy the
+`Adder` type.
+
+This is true regardless of whether the contract declares any intention
+to satisfy the type.  In other words, contract typing is structural,
+not nominal.
+
+On the other hand, when a contract type used to describe the required
+interface for a set of contracts, and a contract is intended to
+implement that interface, it is useful to assert that intention.  This
+is accomplished with the `contract implements` program element, which
+asserts that the current contract has a specific type.
+
+@(request-snippet implements-declaration)
+
+Here is an example.
+
+```
+contract implements Adder;
+```
+
+The contract type named in the `contract implements` form must be in
+scope, using Compact's existing rules for the scope of program-defined
+types.  The `contract implements` declaration applies to the contract
+being defined at the point where it appears.  A contract may be
+declared to satisfy several different contract types by including
+multiple `contract implements` declarations.
+
+A contract type represents the set of deployed contracts that satisfy
+the corresponding contract type definition.  A contract value (i.e., a
+value with a contract type) might be represented by the address of the
+deployed contract.
+
+No mechanism is provided within the Compact language to *create*
+values with contract types.  Instead, the surrounding context (that
+is, the application code) introduces a contract value into the Compact
+program by calling a circuit or constructor with the address of a
+deployed contract or by returning the address of a deployed contract
+from a witness function.
+
+To reiterate what was previously stated, a contract satisfies a
+contract type by exporting definitions with matching types and purity
+declarations for all the type's declared circuits, no matter whether a
+`contract implements` declaration appears in the code.  If such a
+declaration _is_ present, though, then the compiler will verify it and
+reject the program with a compile-time error if the contract fails to
+export the circuits required by the contract type.  The contract can
+export additional circuits, as needed, as long as some subset of the
+exported circuits satifies the requirements of the contract type.
+
+:::note
+
+The current Compact compiler imposes limitations on the circuits that
+can satisfy a contract type, disqualifying any that call witnesses.
+It also imposes limitations on how the implementing code artifacts are
+found and loaded.
+See [Implementation-specific limits](#implementation-specific-limits) for details.
+
+:::
 
 #### Type aliases
 
@@ -702,6 +837,10 @@ Subtyping is exclusively defined by the following rules:
   tuple type `[`*S<sub>1</sub>*, ⋯, *S<sub>n</sub>*`]`
   if they have the same length and each type *T<sub>i</sub>* is a subtype of the
   corresponding type *S<sub>i</sub>*.
+- If the circuits declared in contract type `B` are a superset of
+  those declared in contract type `A`, then `B` is a subtype of `A`.
+  A contract type can therefore be a subtype of many disjoint
+  supertypes.
 
 The *least upper bound* (with respect to subtyping) of a non-empty set of types
 \{*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*} is a type *S* such that:
@@ -745,6 +884,21 @@ type, but it might not be the same as the vector type.
 For example, `[Uint<16>, Uint<16>]` has the vector type `Vector<2, Uint<16>>`,
 and the two types are the same, whereas `[Uint<8>, Uint<16>]` also has the
 vector type `Vector<2, Uint<16>>`, but the types are not the same.
+
+**Contract types:**
+The least upper bound of a pair of contract types is the intersection
+of their declared circuits, which may be empty.  (The empty contract
+type is useless, but valid.)  Also, any pair of contract types has a
+greatest lower bound: the union of their declared circuits.
+
+The subtyping rule for contract types creates another way to define
+what it means for a contract to satisfy or implement a contract type.
+First, recognize that the entire set of circuits exported by a Compact
+program forms a "natural" contract type.  In other words, every
+Compact program induces a contract type that could be written as a
+`contract` declaration.  Then, if that "natural" contract type is a
+subtype of some other contract type `A`, then the contract
+implementation satisfies `A`.
 
 ## Patterns and destructuring
 
@@ -903,8 +1057,9 @@ Briefly:
 - An [import form](#imports) imports bindings from a Compact module.
 - An [include form](#include-files) allows program elements to be included from other files.
 - A [structure definition](#structure-types) defines a structure type.
-- An [enumeration definition](#enumeration-types) define an enumeration type.
-- A [contract declaration](#contract-types) declares a contract type.
+- An [enumeration definition](#enumeration-types) defines an enumeration type.
+- A [contract definition](#contract-type-definition) defines a contract type.
+- An [implements declaration](#contract-implements-declaration) declares that a contract satisfies a contract type.
 - A [type-alias definition](#type-aliases) defines a type alias, possibly creating a distinct type.
 - A [witness declaration](#declaring-witnesses-for-private-state-management) declares a witness, which is a callback function whose definition must be provided by any application using the contract.
 - A [ledger declaration](#declaring-and-maintaining-public-state) declares one field of the contract's public state.
@@ -2586,6 +2741,11 @@ named circuit.
 When *id* refers to a generic witness or circuit, it must be fully specialized via
 generic parameters.
 
+To make a cross-contract call to a circuit in another contract, *fun*
+can be of the form *e*`.`*id*, where *e* is an expression with a
+contract type and *id* is the name of one of the circuits declared in
+that type.
+
 *fun* can also be an *anonymous circuit*, also known as an *arrow circuit*.
 This form consists of a parameter list
 `(`*optionally-typed-pattern*, ⋯, *optionally-typed-pattern*`)` followed
@@ -2603,6 +2763,9 @@ Anonymous circuits cannot have generic parameters.
 Since they appear only in contexts where they are directly called, the circuit
 would have to be immediately specialized, in which case only one specialization
 can exist and the non-generic version would be clearer.
+
+Cross-contract calls also cannot have generic parameters, because the
+declarations of circuits in contract types cannot be generic.
 
 The *underlying function* of a function expression is a non-parenthesized
 function expression.  For a function name it is the function name, for an
@@ -2630,6 +2793,13 @@ Type checking a function call depends on the form of the underlying function.
 
   The static type of a call to a named function is the declared return type of
   the called function.
+
+* **For a cross-contract call:** The type of the expression before the
+  dot (i.e., period or full stop) must be a contract type *T*.  The
+  identifier following the dot must be the name of one of the circuits
+  declared in *T*.  Type checking the call then proceeds as in the
+  preceding **named function** case, but without the possibility of
+  generic parameter values.
 
 * **For an anonymous circuit:** Parameters are type-checked or inferred as follows:
 
@@ -2666,6 +2836,14 @@ argument values.  The value of a circuit call is the value returned from the
 execution of the body.  If a witness is being called, the contract invokes
 the externally provided witness function with the argument values.  The
 value of a witness call is the value returned by the witness function.
+
+:::note
+
+If any cycles are present in the call graph of cross-contract calls,
+the behavior is undefined.
+See [Implementation-specific limits](#implementation-specific-limits) for details.
+
+:::
 
 ### Map and fold expressions
 
@@ -3076,6 +3254,12 @@ scope of this document, but a few things are worth noting:
   place the disclosure somewhere on the path between input and disclosure
   *after* the obfuscation to help prevent disclosure of the unobfuscated
   input.
+- When calling a circuit in another contract (i.e., making a
+  cross-contract call using a reference to a value with a contract
+  type), if the called circuit is not declared to be `pure` in the
+  contract type, the call's arguments must be explicitly disclosed
+  somewhere along the path to the call, because the called circuit
+  might make its arguments publicly visible.
 
 More details are given in
 [Explicit Disclosure in Compact: The Midnight "Witness Protection Program"](explicit-disclosure).
@@ -3305,6 +3489,38 @@ This value is chosen as a reasonable upper bound that helps prevent the compiler
 from looping indefinitely on programs that operate on excessively large vector
 and byte-vector types. Consequently, this value dictates the possible range for
 a `for` loop.
+
+**Limitations on contract types and cross-contract calls:**
+When computing the set of exported circuits for the purpose of
+determining whether a contract satisfies a contract type, the current
+compiler eliminates from consideration any circuits that call
+witnesses.  A called contract may define witness functions, but
+those functions cannot be called directly or indirectly by the
+exported circuits that satisfy a contract type.  This implies that
+every cross-contract call is to a circuit whose only access to private
+state is through its arguments, and its only means of affecting
+private state is through the values it returns.
+
+Furthermore, In order to satisfy a contract type `T`, a contract must
+be defined in the file `T.compact`, and its compilation artifacts must
+be present alongside those of any callers of `T`'s circuits.  More
+precisely, if the Compact implementation defines a search path for
+finding compiler outputs in the code it generates, then the outputs of
+compiling `T.compact` must be able to be found on that search path
+when executing any circuits that make cross-contract calls using
+references of type `T`.  This effectively limits any DApp to a single
+implementation of each contract type.
+
+If any cycles are present in the call graph of cross-contract calls,
+the behavior is undefined.  This implies that contracts cannot
+implement either direct or indirect recursion using calls through
+references to contract values.  This is a restriction on the
+*implementation* of contracts.  For example, suppose a circuit in
+`S.compact` makes a cross-contract call to a circuit defined in a
+contract type `T`.  If the application uses an implementation of `T`
+in which the called circuit itself makes another call to a circuit
+defined in a contract type `S`, the compiler may reject the program,
+or the call may fail at execution time in the deployed application.
 
 These limits may change in future versions of the compiler.
 
