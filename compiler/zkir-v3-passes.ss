@@ -134,9 +134,11 @@
                  (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
               [(keccak256)
                (assert (= (length var-name*) 2))
-               (let ([alignment* (arg->alignment arg* 0)])
-                 (cons `(keccak256 ,(car var-name*) ,(cadr var-name*)
-                          (,alignment* ...) ,triv* ...)
+               (let ([alignment* (arg->alignment arg* 0)]
+                     [bytes (make-temp-id src 'bytes)])
+                 (cons*
+                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
                    instr*))]
               [(mul)
                (assert (= (length var-name*) 1))
@@ -151,15 +153,19 @@
                ;; know its alignment is `(abytes 32)`.
                (let ([var* (syntax-case triv* ()
                              [(a ... b c) #'(b c a ...)])]
-                     [alignment* (append (arg->alignment arg* 1) (arg->alignment arg* 0))])
-                 (cons `(persistent_hash ,(car var-name*) ,(cadr var-name*)
-                          (,alignment* ...) ,var* ...)
+                     [alignment* (append (arg->alignment arg* 1) (arg->alignment arg* 0))]
+                     [bytes (make-temp-id src 'bytes)])
+                 (cons*
+                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
                    instr*))]
               [(persistentHash)
                (assert (= (length var-name*) 2))
-               (let ([alignment* (arg->alignment arg* 0)])
-                 (cons `(persistent_hash ,(car var-name*) ,(cadr var-name*)
-                          (,alignment* ...) ,triv* ...)
+               (let ([alignment* (arg->alignment arg* 0)]
+                     [bytes (make-temp-id src 'bytes)])
+                 (cons*
+                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*))]
               [(secp256k1PointX)
                (assert (= (length var-name*) 1))
@@ -238,10 +244,13 @@
         ;; Emit a ZKIR persistent_hash gate and accumulate the result operand encoding.
         (define (persistent-hash alignment* var* code*)
           (with-output-language (Lzkir Instruction)
-            (let ([hash0 (make-temp-id default-src 'hash)]
-                  [hash1 (make-temp-id default-src 'hash)])
+            (let* ([bytes (make-temp-id default-src 'bytes)]
+                   [hash0 (make-temp-id default-src 'hash)]
+                   [hash1 (make-temp-id default-src 'hash)])
               (zkir-instr*
-                (cons `(persistent_hash ,hash0 ,hash1 (,alignment* ...) ,var* ...)
+                (cons*
+                  `(bytes32_into_low_high ,hash1 ,hash0 ,bytes)
+                  `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
                   (zkir-instr*)))
               ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
               (cons* hash1 hash0 32 1 code*))))
@@ -1178,10 +1187,9 @@
        `((op . "inv") (output . ,outp) (a . ,inp))]
       [(jubjub_scalar_from_native ,[* outp] ,[* inp])
        `((op . "jubjub_scalar_from_native") (output . ,outp) (native . ,inp))]
-      [(keccak256 ,outp0 ,outp1 (,alignment* ...) ,[* inp*] ...)
-       (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-         `((op . "keccak256") (outputs . ,(vector outp0 outp1))
-           (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*))))]
+      [(keccak256 ,[* outp] (,alignment* ...) ,[* inp*] ...)
+       `((op . "keccak256") (output . ,outp)
+         (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
       [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
       [(mul ,[* outp] ,[* inp0] ,[* inp1])
@@ -1194,8 +1202,8 @@
        `((op . "not") (output . ,outp) (a . ,inp))]
       [(output ,[* inp*] ...)
        `((op . "output") (vals . ,(list->vector inp*)))]
-      [(persistent_hash ,[* outp0] ,[* outp1] (,alignment* ...) ,[* inp*] ...)
-       `((op . "persistent_hash") (outputs . ,(vector outp0 outp1))
+      [(persistent_hash ,[* outp] (,alignment* ...) ,[* inp*] ...)
+       `((op . "persistent_hash") (output . ,outp)
          (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
       [(private_input ,zkir-type ,[* outp])
        ;; Kind of warty: rather than a literal true guard or making it truly optional by leaving it
@@ -1212,6 +1220,8 @@
       [(reconstitute_field ,[* outp] ,[* inp0] ,[* inp1] ,imm)
        `((op . "reconstitute_field") (output . ,outp) (divisor . ,inp0) (modulus . ,inp1)
          (bits . ,imm))]
+      [(reverse_bytes ,[* outp] ,[* inp])
+       `((op . "reverse_bytes") (output . ,outp) (bytes . ,inp))]
       [(test_eq ,[* outp] ,[* inp0] ,[* inp1])
        `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
       [(transient_hash ,[* outp] ,[* inp*] ...)

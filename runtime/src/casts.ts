@@ -50,11 +50,27 @@ export function convertBigintToBytes(n: number, x: bigint, src: string): Uint8Ar
  * Compiler internal for typecasts
  * @internal
  */
-export function convertBytesToBigint(maxval: bigint,
-                                     n: number,
-                                     a: Uint8Array,
-                                     name: string,
-                                     src: string): bigint {
+export function convertBytesToField(maxval: bigint,
+                                    n: number,
+                                    a: Uint8Array,
+                                    name: string,
+                                    src: string): bigint {
+  let x = 0n;
+  for (let i = n - 1; i >= 0; i -= 1) {
+    x = x * 0x100n + BigInt(a[i]);
+  }
+  return x % (maxval + 1n);
+}
+
+/**
+ * Compiler internal for typecasts
+ * @internal
+ */
+export function convertBytesToUint(maxval: bigint,
+                                   n: number,
+                                   a: Uint8Array,
+                                   name: string,
+                                   src: string): bigint {
   let x = 0n;
   for (let i = n - 1; i >= 0; i -= 1) {
     x = x * 0x100n + BigInt(a[i]);

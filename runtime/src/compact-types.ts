@@ -647,3 +647,54 @@ export const ShieldedCoinRecipientDescriptor = {
     );
   },
 };
+
+export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
+  const ocrtValue = rtType.toValue(value);
+  const alignment = rtType.alignment();
+
+  // 1. Accumulate Uint8Array pieces.
+  const arrays = [];
+  let length = 0;
+  for (let i = 0; i < alignment.length; ++i) {
+    let segment = alignment[i];
+    if (segment.tag != 'atom') {
+      // We are decoding our own FAB representation and we only use 'atom'.
+      throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
+    }
+    switch (segment.value.tag) {
+      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+      // the unhashed payload).  There's no correct way to encode them here.
+      case 'compress':
+        throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
+      case 'field': {
+        arrays.push(ocrtValue[i]);
+        const extra = 32 - ocrtValue[i].length;
+        if (extra > 0) {
+          arrays.push(new Uint8Array(extra));
+        }
+        length += 32;
+        break;
+      }
+      case 'bytes': {
+        if (ocrtValue[i].length > 0) {
+          arrays.push(ocrtValue[i]);
+        }
+        const extra = segment.value.length - ocrtValue[i].length;
+        if (extra > 0) {
+          arrays.push(new Uint8Array(extra));
+        }
+        length += segment.value.length;
+        break;
+      }
+    }
+  }
+
+  // 2. Concatenate them into a result.
+  const result = new Uint8Array(length);
+  let index = 0;
+  for (const a of arrays) {
+    result.set(a, index);
+    index += a.length;
+  }
+  return result;
+}
