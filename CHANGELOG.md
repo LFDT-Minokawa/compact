@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.102, language 0.25.101, runtime 0.18.100]
+
+## Fixed
+
+- Add a `toBinaryRepr` to the Compact runtime that replicates the effect of the
+  on-chain Rust `binary_repr`.  Use it in the runtime for the argument to the
+  Noble hashes `keccak_256` function, to correctly replicate the in-circuit
+  implementation.  This ensures that trailing zero bytes from byte vectors are
+  preserved and hashed in JS as well as in circuit.
+
+- Change casting of byte vectors to foreign fields so that they perform modular
+  reduction by the field modulus rather than failing for byte vectors encoding
+  values out of range.  The failure is kept for native fields to avoid a
+  breaking change at this time.
+
+### Internal notes
+
+- There is a Compact runtime change, so when this change is cherry-picked to the
+  0.33 release, there should be another Compact runtime release candidate
+  release.
+
 ## [Toolchain 0.33.101, language 0.25.100, runtime 0.18.0]
 
 ### Changed
@@ -26,6 +47,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The standard library ECDSA circuits `secp256k1EcdsaVerify` and
   `secp256k1EcdsaRecover` deserialize the message hash as a big endian
   secp256k1 scalar `z` internally, following the ECDSA convention (RFC 6979).
+
+- The circuit `secp256k1EcdsaRecover` and struct
+  `Secp256k1EcdsaSignatureWithRecovery` have been removed from the standard
+  library.
 
 ## [Toolchain 0.33.0, language 0.25.0, runtime 0.18.0]
 
