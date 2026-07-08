@@ -545,7 +545,9 @@
                                                (attr 'n)))))]
                   ["ckpt" (list (literal 255))]
                   [else (internal-errorf 'print-zkir (format "unknown vm operation ~a" (vminstr-op ins)))]))))
-            (expand-vm-code src path-elt* #f type env (vm-code-code vm-code))))
+            (expand-vm-code src path-elt* #f
+              (cons (cons 'result_type type) env)
+              (vm-code-code vm-code))))
         )
       (Program : Program (ir) -> Program ()
         [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -701,9 +703,7 @@
                                                   (with-output-language (Lflattened Type)
                                                     `(ty ((abytes ,len)) (,primitive-type* ...)))
                                                   triv*)))])
-             (assemble-vm-code test src '() env '()
-               (with-output-language (Lflattened Type) `(ty () ()))
-               vm-code)))]
+             (assemble-vm-code test src '() env '() #f vm-code)))]
         [(= ,[* test] (,var-name1 ,var-name2) (default ,opaque-type))
          (guard (string=? opaque-type "JubjubPoint"))
          (bind-var! var-name1 (literal 0))

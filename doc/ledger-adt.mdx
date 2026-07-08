@@ -60,7 +60,7 @@ Checks whether the current block time (measured in seconds since the Unix epoch)
 caller(): Maybe<Either<ContractAddress, UserAddress>>
 ```
 
-Returns the caller of this circuit invocation, if known. `left(addr)` when called by contract `addr`; `right(addr)` when this is the top-level call for user `addr` (uniquely identified by the transaction's unshielded inputs). None when no caller can be determined (e.g. a purely shielded top-level transaction, or one with unshielded inputs from multiple distinct owners). Maybe, Either, ContractAddress, and UserAddress are defined in CompactStandardLibrary.
+Returns the caller of this circuit invocation, if known. `left(addr)` when called by contract `addr`; `right(addr)` when this is the top-level call for user `addr` (uniquely identified by the transaction's unshielded inputs). None when no caller can be determined (e.g. a purely shielded top-level transaction, or one with unshielded inputs from multiple distinct owners). Maybe, Either, ContractAddress, UserAddress, and the PublicAddress alias for Either<ContractAddress, UserAddress> are defined in CompactStandardLibrary.
 
 ### checkpoint
 

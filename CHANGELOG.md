@@ -10,10 +10,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `kernel.caller()` ledger operation returns the caller of a circuit invocation
-  as `Maybe<Either<ContractAddress, UserAddress>>`:
+  as `Maybe<PublicAddress>`:
   - `left(addr)` when called by contract `addr`;
   - `right(addr)` when this is the top-level call for user `addr`;
   - `None` when no caller can be determined.
+- `PublicAddress` standard library type alias for
+  `Either<ContractAddress, UserAddress>`.
 
 ## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
 
