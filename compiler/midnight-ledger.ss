@@ -137,8 +137,9 @@
 ;;
 ;; The following variables should be instantiated at compile time to the context
 ;; where the form is being used:
-;; - f, the path to the field being operated on, and
-;; - f-cached, a boolean indicating if f is guaranteed to be in cache.
+;; - f, the path to the field being operated on,
+;; - f-cached, a boolean indicating if f is guaranteed to be in cache, and
+;; - result_type, the declared result type of the operation.
 ;;
 ;; A path is a list of either aligned value instances, or the symbol 'stack.
 ;; Aligned value literals are created with the (align value bytes) literal, which
@@ -271,10 +272,16 @@
      unshielded inputs). None when no caller can be determined (e.g. a purely \
      shielded top-level transaction, or one with unshielded inputs from \
      multiple distinct owners). \
-     Maybe, Either, ContractAddress, and UserAddress are defined in CompactStandardLibrary."
+     Maybe, Either, ContractAddress, UserAddress, and the PublicAddress alias \
+     for Either<ContractAddress, UserAddress> are defined in CompactStandardLibrary."
     ;; [context, effects, state]
     ((dup [n 2])
      ;; [context, effects, state, context]
+     ;; The context array is built by `From<&QueryContext> for VmValue` in the
+     ;; ledger's onchain-runtime/src/context.rs: [own_address, com_indices,
+     ;; tblock, tblock_err, parent_block_hash, balance, caller,
+     ;; last_block_time], so caller is at index 6 (cf. self at 0, block time
+     ;; at 2, balance at 5 elsewhere in this file).
      (idx [cached #t] [pushPath #f] [path (list (align 6 1))])
      ;; [context, effects, state, caller_slot]
      ;;   caller_slot is Cell(PublicAddress) or Null

@@ -723,9 +723,13 @@
            (zkir-field-rep? (car code*))
            (<= #xc (car code*) #xd)))
 
-    (define (assemble test-val primitive-type* alignment* var-name* src path result-type env vm-code instr*)
+    (define (assemble test-val primitive-type* alignment* var-name* src path env vm-code instr*)
       (parameterize ([zkir-instr* instr*])
-        (let* ([code (expand-vm-code src path #f result-type env (vm-code-code vm-code))]
+        (let* ([result-type (with-output-language (Lflattened Type)
+                              `(ty (,alignment* ...) (,primitive-type* ...)))]
+               [code (expand-vm-code src path #f
+                       (cons (cons 'result_type result-type) env)
+                       (vm-code-code vm-code))]
                [op** (map (lambda (c)
                             (assemble1 c test-val primitive-type* alignment* var-name*))
                        code)])
@@ -910,9 +914,7 @@
             [env (list (cons 'emit-version event-version)
                        (cons 'emit-tag     event-tag)
                        (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
-       (assemble test '() '() '() src '()
-         (with-output-language (Lflattened Type) `(ty () ()))
-         env vm-code instr*))]
+       (assemble test '() '() '() src '() env vm-code instr*))]
     [(= ,test (,var-name) (default ,opaque-type))
      (with-output-language (Lzkir Instruction)
        (case opaque-type
@@ -967,7 +969,7 @@
                            ,src^ ,adt-op ,triv* ...))
      (nanopass-case (Lflattened ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...)
-          (,type* ...) ,type ,vm-code)
+          (,type* ...) (ty (,alignment* ...) (,primitive-type* ...)) ,vm-code)
         (let (;; Expansion of the Impact code needs an environment mapping the formals to their
               ;; values.  The arguments triv* are flat but they need to be nested according to the
               ;; structure of type*.
@@ -995,13 +997,10 @@
                              (cons (cons (car formal*)
                                      (make-zkir-val primitive-type* alignment* var*))
                                env)))])))])
-          (nanopass-case (Lflattened Type) type
-            [(ty (,alignment* ...) (,primitive-type* ...))
-             (assemble test primitive-type* alignment* var-name* src (map Path-Element path-elt*)
-               type
-               env
-               vm-code
-               instr*)]))])]
+          (assemble test primitive-type* alignment* var-name* src (map Path-Element path-elt*)
+            env
+            vm-code
+            instr*))])]
     [(= ,test ,var-name ,single)
      (Single single var-name instr*)]
     [(assert ,src ,test ,mesg)

@@ -74876,7 +74876,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit testCaller(): Maybe<Either<ContractAddress, UserAddress>> {"
+      "export circuit testCaller(): Maybe<PublicAddress> {"
       "  return kernel.caller();"
       "}"
       )
