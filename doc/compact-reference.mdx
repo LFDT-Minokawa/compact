@@ -715,21 +715,21 @@ When some subset of a contract's circuits matches the set of those
 declared in a contract type, the contract is said to **satisfy** (or
 **have**) that type.
 
-More precisely, define the **signature** of a circuit to be the types
+More precisely, the **signature** of a circuit consists of the types
 of its parameters, plus its return type, as well as whether it is
 declared to be `pure`.  Changing the parameter names or using
 destructuring patterns in a circuit definition does not change its
-signature, because the signature is defined only by the parameter and
+signature, because the signature is determined only by the parameter and
 return *types*.
 
 The circuit declarations in a contract type declaration also have
-signatures defined by their types and whether they are declared to be
+signatures, consisting of their types and whether they are declared to be
 pure.  For example, the signature of `addTo` in the `Adder` interface
 above is
 
 > `Uint<64>` &rarr; `Uint<64>`
 
-A contract **satisfies** an contract type when, for every circuit
+A contract **satisfies** a contract type when, for every circuit
 declared in the `contract` form, the contract exports a circuit with
 the same name and with a signature whose types are identical to the
 one in the declaration.  Furthermore, every circuit declared `pure` in
@@ -749,7 +749,7 @@ This is true regardless of whether the contract declares any intention
 to satisfy the type.  In other words, contract typing is structural,
 not nominal.
 
-On the other hand, when a contract type used to describe the required
+On the other hand, when a contract type is used to describe the required
 interface for a set of contracts, and a contract is intended to
 implement that interface, it is useful to assert that intention.  This
 is accomplished with the `contract implements` program element, which
@@ -776,21 +776,21 @@ multiple `contract implements` declarations.
 
 A contract type represents the set of deployed contracts that satisfy
 the corresponding contract type definition.  A contract value (i.e., a
-value with a contract type) might be represented by the address of the
+value with a contract type) might be represented by the address of a
 deployed contract.
 
 No mechanism is provided within the Compact language to *create*
 values with contract types.  Instead, the surrounding context (that
 is, the application code) introduces a contract value into the Compact
-program by calling a circuit or constructor with the address of a
-deployed contract or by returning the address of a deployed contract
-from a witness function.
+program by calling a circuit or constructor with a value representing
+a deployed contract or by returning a contract value from a witness
+function.
 
 To reiterate what was previously stated, a contract satisfies a
 contract type by exporting definitions with matching types and purity
 declarations for all the type's declared circuits, no matter whether a
 `contract implements` declaration appears in the code.  If such a
-declaration _is_ present, though, then the compiler will verify it and
+declaration _is_ present, though, the compiler will verify it and
 reject the program with a compile-time error if the contract fails to
 export the circuits required by the contract type.  The contract can
 export additional circuits, as needed, as long as some subset of the
@@ -2971,11 +2971,6 @@ named circuit.
 When *id* refers to a generic witness or circuit, it must be fully specialized via
 generic parameters.
 
-To make a cross-contract call to a circuit in another contract, *fun*
-can be of the form *e*`.`*id*, where *e* is an expression with a
-contract type and *id* is the name of one of the circuits declared in
-that type.
-
 *fun* can also be an *anonymous circuit*, also known as an *arrow circuit*.
 This form consists of a parameter list
 `(`*optionally-typed-pattern*, ⋯, *optionally-typed-pattern*`)` followed
@@ -2989,6 +2984,17 @@ Finally, *fun* can be a parenthesized function `(`*fun*`)`.
 Because circuits and witnesses are not first class, *fun* cannot be a variable
 name or arbitrary expression.
 
+**Cross-contract calls:** Circuits named in contract types are called
+through references to contract values, using the form
+
+<div className="lang-ref-table">
+| [*expr<sub>8</sub>*](#expression8) `.` [*id*](#identifier) `(` [*expr*](#expression) `,` ⋯ `,` [*expr*](#expression) `,`<sup>opt</sup> `)` |
+</div>
+
+where *expr<sub>8</sub>* is an expression with a contract type and
+*id* is the name of one of the circuits declared in that type.
+
+**No generic parameters for anonymous circuits and cross-contract calls:**
 Anonymous circuits cannot have generic parameters.
 Since they appear only in contexts where they are directly called, the circuit
 would have to be immediately specialized, in which case only one specialization
@@ -2997,6 +3003,7 @@ can exist and the non-generic version would be clearer.
 Cross-contract calls also cannot have generic parameters, because the
 declarations of circuits in contract types cannot be generic.
 
+**Type checking:**
 The *underlying function* of a function expression is a non-parenthesized
 function expression.  For a function name it is the function name, for an
 anonymous circuit it is the anonymous circuit, and for a parenthesized function
@@ -3028,8 +3035,8 @@ Type checking a function call depends on the form of the underlying function.
   dot (i.e., period or full stop) must be a contract type *T*.  The
   identifier following the dot must be the name of one of the circuits
   declared in *T*.  Type checking the call then proceeds as in the
-  preceding **named function** case, but without the possibility of
-  generic parameter values.
+  preceding **named function** case, using the signature(s) associated
+  with the identifier in *T*.
 
 * **For an anonymous circuit:** Parameters are type-checked or inferred as follows:
 
@@ -3724,22 +3731,27 @@ a `for` loop.
 When computing the set of exported circuits for the purpose of
 determining whether a contract satisfies a contract type, the current
 compiler eliminates from consideration any circuits that call
-witnesses.  A called contract may define witness functions, but
-those functions cannot be called directly or indirectly by the
-exported circuits that satisfy a contract type.  This implies that
-every cross-contract call is to a circuit whose only access to private
-state is through its arguments, and its only means of affecting
-private state is through the values it returns.
+witnesses.  A called contract may define witness functions, and they
+may be called by other circuits, but they cannot be called directly or
+indirectly by the exported circuits that satisfy a contract type.
+This implies that every cross-contract call is to a circuit whose only
+access to private state is through its arguments, and its only means
+of affecting private state is through the values it returns.
 
-Furthermore, In order to satisfy a contract type `T`, a contract must
-be defined in the file `T.compact`, and its compilation artifacts must
-be present alongside those of any callers of `T`'s circuits.  More
-precisely, if the Compact implementation defines a search path for
-finding compiler outputs in the code it generates, then the outputs of
-compiling `T.compact` must be able to be found on that search path
-when executing any circuits that make cross-contract calls using
-references of type `T`.  This effectively limits any DApp to a single
-implementation of each contract type.
+Furthermore, the current implementation of cross-contract calls
+provides no means of discovering any code for called circuits, other
+than the code provided by the calling application.  What this
+generally means is that an application satisfies a contract type `T`
+by compiling a contract defined in `T.compact`, and the resulting
+compilation artifacts are made available alongside those of any
+callers of `T`'s circuits.
+
+The real dependency, however, is not on the source file, but instead
+on the generated JavaScript file.  The code that is generated at the
+site of a call to one of `T`'s circuits expects to find the
+implementation of those circuits in the JavaScript file
+`../T/contract/index.js`.  This effectively limits any DApp to a
+single implementation of each contract type.
 
 If any cycles are present in the call graph of cross-contract calls,
 the behavior is undefined.  This implies that contracts cannot
