@@ -777,6 +777,7 @@
                                         [(,src ,type ,expr) (make-vmref type (Expr expr (precedence add1 comma) #f))]))
                                     path-elt*)
                                #f
+                               type
                                (append (map cons adt-formal* adt-arg*)
                                        (map (lambda (var-name type expr)
                                               (let ([sym (id-sym var-name)])
@@ -2946,7 +2947,7 @@
            (format "~s" elt-name)))]
       [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
        (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
-              [vminstr*   (expand-vm-code src #f #f
+              [vminstr*   (expand-vm-code src #f #f #f
                             `((emit-version . ,event-version)
                               (emit-tag     . ,event-tag)
                               (emit-payload . ,(make-vmref bytes-type expr)))

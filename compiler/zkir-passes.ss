@@ -559,7 +559,7 @@
                                                  (attr 'n)))))]
                     ["ckpt" (list (literal 255))]
                     [else (internal-errorf 'print-zkir (format "unknown vm operation ~a" (vminstr-op ins)))]))))
-              (expand-vm-code src path-elt* #f env (vm-code-code vm-code))))
+              (expand-vm-code src path-elt* #f type env (vm-code-code vm-code))))
           )
         (Program : Program (ir) -> Program ()
           [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
