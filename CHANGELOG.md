@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.112, language 0.25.104, runtime 0.18.102]
+
+### Added
+
+- `kernel.caller()` ledger operation returns the caller of a circuit invocation
+  as `Maybe<Either<ContractAddress, UserAddress>>`:
+  - `left(addr)` when called by contract `addr`;
+  - `right(addr)` when this is the top-level call for user `addr`;
+  - `None` when no caller can be determined.
+
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
 ### Changed
@@ -13,7 +23,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   equivalent to `Uint<0..1>` by the rule and the fact that 2^0 equals 1.
   `Uint<0..1>` is allowed so there is no reason to prohibit `Uint<0>` even
   though it's not super useful.
-
 ## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
 
 ### Added
