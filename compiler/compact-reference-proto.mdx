@@ -633,9 +633,10 @@ separated either by commas or by semicolons.  Comma and semicolon
 separators cannot be mixed within a single contract type definition.
 A trailing comma or semicolon is allowed, but not required.
 
-Each circuit declaration must be "simple"; that is, it must not make
-use of generic parameters.  The declaration may require the circuit to
-be pure.
+The set of circuit names in the contract type definition must be a
+proper set, without duplicates.  Each circuit declaration must be
+"simple"; that is, it must not make use of generic parameters.  The
+declaration may require the circuit to be pure.
 
 Here is an example of a contract type definition:
 
@@ -2805,8 +2806,18 @@ Type checking a function call depends on the form of the underlying function.
   dot (i.e., period or full stop) must be a contract type *T*.  The
   identifier following the dot must be the name of one of the circuits
   declared in *T*.  Type checking the call then proceeds as in the
-  preceding **named function** case, using the signature(s) associated
+  preceding **named function** case, using the signature associated
   with the identifier in *T*.
+  
+  Because overloading and generic parameters are not present in
+  contract types, type checking the cross-contract call reduces to
+  verifying that the circuit named in the call is one of the circuits
+  named in *T* and verifying that the named circuit is compatible with
+  number and types of the argument expressions.  It is a static error
+  if they are not compatible.
+  
+  The static type of a cross-contract call is the declared return type
+  of the called circuit in the contract type.
 
 * **For an anonymous circuit:** Parameters are type-checked or inferred as follows:
 
@@ -2836,6 +2847,7 @@ Type checking a function call depends on the form of the underlying function.
   The static type of a call to an anonymous circuit is the declared or inferred
   return type.
 
+**Evaluation rules:**
 Calls are evaluated by evaluating the argument expressions in order from left to
 right.  Then, if a circuit is being called, the statements in the body of the
 circuit are executed with the parameter names bound to the corresponding
