@@ -75306,7 +75306,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "export circuit testCaller(): Maybe<Either<ContractAddress, UserAddress>> {"
+      "export circuit testCaller(): Maybe<PublicAddress> {"
       "  return kernel.caller();"
       "}"
       )
@@ -91459,8 +91459,22 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.11 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tunsigned 255))
-          (%descriptor.13 (tunsigned 4294967295)))
+          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.13 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.14 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.15 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base

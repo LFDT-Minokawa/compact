@@ -109,6 +109,8 @@
       (syntax-error x complaint)))
 
   (define (make-check-vm-expr arg-name*)
+    ;; names the checker accepts in VM expressions; each is bound at
+    ;; expansion time by the code-generation passes
     (let ([free-name* (cons* 'f 'f-cached 'result_type arg-name*)])
       (define (free-name? x) (memq x free-name*))
       (rec check-vm-expr
@@ -157,13 +159,8 @@
       (define expand-vm-expr (make-expand-vm-expr arg-alist))
       (fluid-let ([query-src src])
         (expand-vm-expr e)))
-    (define (expand-vm-code src f f-cached result-type arg-alist code)
-      (define expand-vm-expr
-        (make-expand-vm-expr
-          (cons* (cons 'f f)
-                 (cons 'f-cached f-cached)
-                 (cons 'result_type result-type)
-                 arg-alist)))
+    (define (expand-vm-code src f f-cached arg-alist code)
+      (define expand-vm-expr (make-expand-vm-expr (cons* (cons 'f f) (cons 'f-cached f-cached) arg-alist)))
       (define (expand-vm-instruction i)
         (syntax-case i ()
           [(op [x e] ...)
