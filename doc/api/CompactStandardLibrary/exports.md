@@ -13,6 +13,14 @@ representation of the underlying type, which might change.
 extracted from a `JubjubPoint` using respectively
 [`jubjubPointX`](#jubjubpointx) and [`jubjubPointY`](#jubjubpointy).
 
+### `Secp256k1Point`
+
+The type of points on the secp256k1 elliptic curve.
+
+The affine X and Y coordinates (of type `Secp256k1Base`) can be extracted from a
+`Secp256k1Point` using respectively [`secp256k1PointX`](#secp256k1pointx) and
+[`secp256k1PointY`](#secp256k1pointy).
+
 ## Structs
 
 ### `Maybe`
@@ -61,6 +69,19 @@ point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrver
 struct JubjubSchnorrSignature {
   announcement: JubjubPoint;
   response: Field;
+}
+```
+
+### `Secp256k1EcdsaSignature`
+
+An ECDSA signature over the secp256k1 curve, used with
+[`secp256k1EcdsaVerify`](#secp256k1ecdsaverify). The `r` and `s` components are
+`Secp256k1Scalar`s.
+
+```compact
+struct Secp256k1EcdsaSignature {
+  r: Secp256k1Scalar;
+  s: Secp256k1Scalar;
 }
 ```
 
@@ -503,10 +524,14 @@ circuit jubjubPointY(pt: JubjubPoint): Field;
 
 ### `ecAdd`
 
-This function adds two elliptic [`JubjubPoint`](#jubjubpoint)s.
+This function adds two elliptic curve points. It is polymorphic for the
+following types:
+* [`JubjubPoint`](#jubjubpoint)s
+* [`Secp256k1Point`](#secp256k1point)s.
 
 ```compact
 circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
+circuit ecAdd(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point;
 ```
 
 ### `ecNeg`
@@ -520,22 +545,94 @@ circuit ecNeg(a: JubjubPoint): JubjubPoint;
 
 ### `ecMul`
 
-This function multiplies an elliptic [`JubjubPoint`](#jubjubpoint) by a Jubjub
-scalar.  The scalar should be in the range of the Jubjub scalar field (see
-[`jubjubScalarFromNative`](#jubjubscalarfromnative)).
+This function multiplies an elliptic curve point by a scalar. It is polymorphic for the
+following types:
+* [`JubjubPoint`](#jubjubpoint)s
+* [`Secp256k1Point`](#secp256k1point)s.
 
 ```compact
-circuit ecMul(a: JubjubPoint, b: Field): JubjubPoint;
+circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint;
+circuit ecMul(a: Secp256k1Point, b: Secp256k1Scalar): Secp256k1Point;
 ```
 
 ### `ecMulGenerator`
 
-This function multiplies the primary group generator of the embedded curve by a
-Jubjub scalar.  The scalar should be in the range of the Jubjub scalar field
-(see [`jubjubScalarFromNative`](#jubjubscalarfromnative)).
+This function multiplies the primary group generator of a curve by a
+scalar. It is polymorphic for the following types:
+* [`JubjubPoint`](#jubjubpoint)s
+* [`Secp256k1Point`](#secp256k1point)s.
 
 ```compact
-circuit ecMulGenerator(b: Field): JubjubPoint;
+circuit ecMulGenerator(b: JubjubScalar): JubjubPoint;
+circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
+```
+
+### `secp256k1PointX`
+
+This function extracts the affine X coordinate from a
+[`Secp256k1Point`](#secp256k1point).
+
+```compact
+circuit secp256k1PointX(pt: Secp256k1Point): Secp256k1Base;
+```
+
+### `secp256k1PointY`
+
+This function extracts the affine Y coordinate from a
+[`Secp256k1Point`](#secp256k1point).
+
+```compact
+circuit secp256k1PointY(pt: Secp256k1Point): Secp256k1Base;
+```
+
+### `add`
+
+Adds two field elements, modulo the field's modulus. Polymorphic function
+that works over types: 
+* `Secp256k1Scalar`
+* `Secp256k1Base`
+
+```compact
+circuit add(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar;
+circuit add(x: Secp256k1Base, y: Secp256k1Base): Secp256k1Base;
+```
+
+### `neg`
+
+Negates a field element, i.e. returns the value `y` such that
+`add(x, y)` is `0` in the field. Polymorphic function
+that works over types: 
+* `Secp256k1Scalar`
+* `Secp256k1Base`
+
+```compact
+circuit neg(x: Secp256k1Scalar): Secp256k1Scalar;
+circuit neg(x: Secp256k1Base): Secp256k1Base;
+```
+
+### `mul`
+
+Multiplies two field elements, modulo the field's modulus. Polymorphic function
+that works over types: 
+* `Secp256k1Scalar`
+* `Secp256k1Base`
+
+```compact
+circuit mul(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar;
+circuit mul(x: Secp256k1Base, y: Secp256k1Base): Secp256k1Base;
+```
+
+### `inv`
+
+Returns the multiplicative inverse of a field element, i.e. the value
+`y` such that `mul(x, y)` is `1` in the field. Polymorphic function
+that works over types: 
+* `Secp256k1Scalar`
+* `Secp256k1Base`
+
+```compact
+circuit inv(x: Secp256k1Scalar): Secp256k1Scalar;
+circuit inv(x: Secp256k1Base): Secp256k1Base;
 ```
 
 ### `hashToCurve`
@@ -580,6 +677,34 @@ Asserts that the signature is valid; fails if the signature does not verify.
 
 ```compact
 circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, vk: JubjubPoint): [];
+```
+
+### `secp256k1EcdsaVerify`
+
+Verifies an ECDSA signature over the secp256k1 curve. Takes a 32-byte message
+hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a public key
+(a [`Secp256k1Point`](#secp256k1point)). Returns true if the signature is valid;
+false otherwise.
+
+The circuit takes `msgHash` as given and does not constrain it to any message.
+The caller is expected to bind it to the actual message by hashing that message
+in-circuit (e.g. with [`keccak256`](#keccak256) for Ethereum-style signatures or
+[`persistentHash`](#persistenthash) for Bitcoin-style ones).
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit secp256k1EcdsaVerify(msgHash: Bytes<32>, sig: Secp256k1EcdsaSignature, pk: Secp256k1Point): Boolean;
+```
+
+### `secp256k1EthereumAddress`
+
+Derives the 20-byte Ethereum-style address of a secp256k1 public key, i.e. the
+low 20 bytes of the Keccak-256 hash of the [`Secp256k1Point`](#secp256k1point).
+
+```compact
+circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20>;
 ```
 
 ### `merkleTreePathRoot`

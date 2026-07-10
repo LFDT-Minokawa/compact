@@ -473,6 +473,24 @@ The following are the primitive types of Compact:
   The current maximum field value is given in
   [Implementation-specific limits](#implementation-specific-limits).
 
+- `JubjubScalar` represents the set of unsigned integers with values up to the
+  order of the prime-order subgroup of the JubJub embedded elliptic curve.
+  It is the type of the scalars used to multiply JubJub curve points.
+  The current maximum value is given in
+  [Implementation-specific limits](#implementation-specific-limits).
+
+- `Secp256k1Base` represents the set of unsigned integers with values up to the
+  order of the base field of the secp256k1 elliptic curve.
+  It is the type of the affine coordinates of a point on that curve.
+  The current maximum value is given in
+  [Implementation-specific limits](#implementation-specific-limits).
+
+- `Secp256k1Scalar` represents the set of unsigned integers with values up to
+  the order of the secp256k1 group.
+  It is the type of the scalars used to multiply secp256k1 curve points.
+  The current maximum value is given in
+  [Implementation-specific limits](#implementation-specific-limits).
+
 - `[`*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*`]`, where *T<sub>1</sub>*, ⋯,
   *T<sub>n</sub>* are zero or more comma-separated types, is the type of *tuple*
   values with element types *T<sub>1</sub>*, ⋯, *T<sub>n</sub>*.
@@ -3514,6 +3532,12 @@ Compact compiler version 1.0 limits certain datatype values and sizes:
 - The maximum value of a `Field` value is
 52435875175126190479447740508185965837690552500527637822603658699938581184512.
 This value is dictated by the scalar field size of the ZK proving system.
+- The maximum value of a `JubjubScalar` value is
+6554484396890773809930967563523245729705921265872317281365359162392183254198.
+- The maximum value of a `Secp256k1Base` value is
+115792089237316195423570985008687907853269984665640564039457584007908834671662.
+- The maximum value of a `Secp256k1Scalar` value is
+115792089237316195423570985008687907852837564279074904382605163141518161494336.
 - The maximum value of a `Uint` value is
 452312848583266388373324160190187140051835877600158453279131187530910662655.
 This value is 256<sup>k</sup>-1 where *k* is the number of bytes (31) that fits in
