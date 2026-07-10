@@ -72336,11 +72336,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
       "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a == b;"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a != b;"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       )
     (stage-javascript
@@ -90287,6 +90293,46 @@ groups than for single tests.
         "  };"
         "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
         "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Secp256k1Point {"
+      "  return default<Secp256k1Point>;"
+      "}"
+      "export circuit pointsEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.secp256k1MulGenerator(5n);"
+        "  const p2 = runtime.secp256k1MulGenerator(5n);"
+        "  const p3 = runtime.secp256k1MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.secp256k1MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
         ))
     )
   )
