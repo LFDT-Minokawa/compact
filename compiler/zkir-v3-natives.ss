@@ -68,6 +68,11 @@
   ([pt (TypeRef Secp256k1Point) (discloses "the Y coordinate of")])
   Secp256k1Base)
 
+(declare-native-entry circuit secp256k1PointIsIdentity
+  "__compactRuntime.secp256k1PointIsIdentity"
+  ([pt (TypeRef Secp256k1Point) (discloses "whether it is the point at infinity")])
+  Boolean)
+
 (declare-native-entry circuit ecAdd
   "__compactRuntime.secp256k1Add"
   ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]

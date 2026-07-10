@@ -381,6 +381,16 @@ export function secp256k1PointY(pt: Secp256k1Point): bigint {
 }
 
 /**
+ * The Compact builtin `secp256k1PointIsIdentity` function
+ *
+ * This function returns whether a Compact `Secp256k1Point` is the identity (the
+ * point at infinity).
+ */
+export function secp256k1PointIsIdentity(pt: Secp256k1Point): boolean {
+  return pt.identity;
+}
+
+/**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
  * projective point. Identity maps to `Point.ZERO`; every other input is validated
  * to lie on the curve by `fromAffine`.

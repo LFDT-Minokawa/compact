@@ -112,6 +112,13 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         expect(address.length).toBe(20);
     });
 
+    test('ethereumAddress rejects the point at infinity', () => {
+        // The identity has no Ethereum address, and its coordinates are
+        // unconstrained, so the circuit must reject it via its identity flag.
+        const identity = { x: 0n, y: 0n, identity: true } as unknown as Point;
+        expect(() => pureCircuits.ethereumAddress(identity)).toThrow();
+    });
+
     test('scalarMul reduces modulo the secp256k1 group order n, not the BLS field modulus', () => {
         // Two large scalars whose product wraps differently under n vs. the BLS
         // field modulus, so the test distinguishes the correct reduction.
