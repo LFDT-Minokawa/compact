@@ -3278,7 +3278,10 @@ scope of this document, but a few things are worth noting:
   type), if the called circuit is not declared to be `pure` in the
   contract type, the call's arguments must be explicitly disclosed
   somewhere along the path to the call, because the called circuit
-  might make its arguments publicly visible.
+  might make its arguments publicly visible. The contract reference
+  itself must also be explicitly disclosed at the call site, because
+  a cross-contract call reveals the address of the called contract
+  on the blockchain.
 
 More details are given in
 [Explicit Disclosure in Compact: The Midnight "Witness Protection Program"](explicit-disclosure).
