@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.18.100",
+  "version": "0.18.101",
   "description": "Compact Runtime",
   "type": "module",
   "exports": {
@@ -33,7 +33,7 @@
     "@midnightntwrk/onchain-runtime-v4"
   ],
   "dependencies": {
-    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.2",
+    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.3",
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",
