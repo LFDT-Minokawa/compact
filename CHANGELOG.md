@@ -5,9 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.103, language 0.25.101, runtime 0.18.101]
+
+### Changed
+
+- Pulls in ledger-9.1.0.0-rc.3
+
 ## [Toolchain 0.33.102, language 0.25.101, runtime 0.18.100]
 
-## Fixed
+### Fixed
 
 - Add a `toBinaryRepr` to the Compact runtime that replicates the effect of the
   on-chain Rust `binary_repr`.  Use it in the runtime for the argument to the
