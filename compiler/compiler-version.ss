@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -15,12 +13,14 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+#!chezscheme
+
 (library (compiler-version)
   (export compiler-version-string check-compiler-version)
   (import (chezscheme) (version))
 
   ; NB: also update compactc version in ../flake.nix
-  (define compiler-version (make-version 'compiler 0 33 103))
+  (define compiler-version (make-version 'compiler 0 33 104))
 
   (define compiler-version-string (make-version-string compiler-version))
 
