@@ -797,13 +797,14 @@ export the circuits required by the contract type.  The contract can
 export additional circuits, as needed, as long as some subset of the
 exported circuits satifies the requirements of the contract type.
 
-:::note
+:::info[Current limitations on contract types]
 
 The current Compact compiler imposes limitations on the circuits that
-can satisfy a contract type, disqualifying any that call witnesses.
+can satisfy a contract type, disqualifying any circuits that call witnesses.
 It also imposes limitations on how the implementing code artifacts are
 found and loaded.
-See [Implementation-specific limits](#implementation-specific-limits) for details.
+See [the section describing cross-contract call expressions](#cross-contract-calls)
+for full details.
 
 :::
 
@@ -2985,26 +2986,11 @@ Finally, *fun* can be a parenthesized function `(`*fun*`)`.
 Because circuits and witnesses are not first class, *fun* cannot be a variable
 name or arbitrary expression.
 
-**Cross-contract calls:** Circuits named in contract types are called
-through references to contract values, using the form
-
-<div className="lang-ref-table">
-| [*expr<sub>8</sub>*](#expression8) `.` [*id*](#identifier) `(` [*expr*](#expression) `,` ⋯ `,` [*expr*](#expression) `,`<sup>opt</sup> `)` |
-</div>
-
-where *expr<sub>8</sub>* is an expression with a contract type and
-*id* is the name of one of the circuits declared in that type.
-
-**No generic parameters for anonymous circuits and cross-contract calls:**
 Anonymous circuits cannot have generic parameters.
 Since they appear only in contexts where they are directly called, the circuit
 would have to be immediately specialized, in which case only one specialization
 can exist and the non-generic version would be clearer.
 
-Cross-contract calls also cannot have generic parameters, because the
-declarations of circuits in contract types cannot be generic.
-
-**Type checking:**
 The *underlying function* of a function expression is a non-parenthesized
 function expression.  For a function name it is the function name, for an
 anonymous circuit it is the anonymous circuit, and for a parenthesized function
@@ -3031,23 +3017,6 @@ Type checking a function call depends on the form of the underlying function.
 
   The static type of a call to a named function is the declared return type of
   the called function.
-
-* **For a cross-contract call:** The type of the expression before the
-  dot (i.e., period or full stop) must be a contract type *T*.  The
-  identifier following the dot must be the name of one of the circuits
-  declared in *T*.  Type checking the call then proceeds as in the
-  preceding **named function** case, using the signature associated
-  with the identifier in *T*.
-  
-  Because overloading and generic parameters are not present in
-  contract types, type checking the cross-contract call reduces to
-  verifying that the circuit named in the call is one of the circuits
-  named in *T* and verifying that the named circuit is compatible with
-  number and types of the argument expressions.  It is a static error
-  if they are not compatible.
-  
-  The static type of a cross-contract call is the declared return type
-  of the called circuit in the contract type.
 
 * **For an anonymous circuit:** Parameters are type-checked or inferred as follows:
 
@@ -3077,7 +3046,6 @@ Type checking a function call depends on the form of the underlying function.
   The static type of a call to an anonymous circuit is the declared or inferred
   return type.
 
-**Evaluation rules:**
 Calls are evaluated by evaluating the argument expressions in order from left to
 right.  Then, if a circuit is being called, the statements in the body of the
 circuit are executed with the parameter names bound to the corresponding
@@ -3086,13 +3054,82 @@ execution of the body.  If a witness is being called, the contract invokes
 the externally provided witness function with the argument values.  The
 value of a witness call is the value returned by the witness function.
 
-:::note
+### Cross-contract calls
+
+The circuits named in contract types can be called through references
+to contract values, in expressions of the form
+*E*`.`*id*`(`*e*, ⋯, *e*`)`,
+where
+* *E* is an expression whose value has a contract type *T*,
+* *id* is one of the circuit names declared in *T*, and
+* *e*, ⋯, *e* is a comma-separated sequence of zero or more argument expressions.
+
+For example, using the `Adder` type defined in
+[the section describing contract types](#contract-types),
+a cross-contract call to the `setAddAmount` circuit could look like
+this:
+
+```compact
+export circuit setUpDoubleAdd(a: Adder, n: Uint<64>): [] {
+  a.setAddAmount(n + n);
+}
+```
+
+Cross-contract calls cannot have generic parameters, because the
+declarations of circuits in contract types cannot be generic.
+
+Type checking a cross-contract call involves verifying that the
+circuit named in the call is one of the circuits named in *T* and
+verifying that the named circuit is compatible with number and types
+of the argument expressions.  The number of argument expressions must
+be the same as the number of declared parameters for *id*, and the
+type of each argument must be a subtype of the declared type of the
+corresponding parameter.  It is a static error if if *id* is not the
+name of a circuit in *T* or if the sequence of argument eqpressions is
+not compactible with the declaration of *id* in *T*.
+
+The static type of a cross-contract call is the declared return type
+of *id* in *T*.
+
+:::info[Current limitations on cross-contract calls]
+
+When computing the set of exported circuits for the purpose of
+determining whether a contract satisfies a contract type, the current
+compiler eliminates from consideration any circuits that call
+witnesses.  A called contract may define witness functions, and they
+may be called by other circuits, but they cannot be called directly or
+indirectly by the exported circuits that satisfy a contract type.
+This implies that every cross-contract call is to a circuit whose only
+access to private state is through its arguments.
+
+Furthermore, the current implementation of cross-contract calls
+provides no means of discovering any code for called circuits, other
+than the code provided by the calling application.  The code that is
+generated at the site of a call to one of `T`'s circuits expects to
+find the implementation of those circuits in the JavaScript file
+`../T/contract/index.js`.  This effectively limits any DApp to a
+single implementation of each contract type.
+
+What this generally means is that an application provides circuits
+that satisfy a contract type `T` by compiling a contract defined in
+`T.compact`, and the resulting compilation artifacts are made
+available alongside those of any callers of `T`'s circuits.  The real
+dependency, however, is not on the source file, but instead on the
+generated JavaScript file.
 
 If any cycles are present in the call graph of cross-contract calls,
-the behavior is undefined.
-See [Implementation-specific limits](#implementation-specific-limits) for details.
+the behavior is undefined.  This implies that contracts cannot
+implement either direct or indirect recursion using calls through
+references to contract values.  This is a restriction on the
+*implementation* of contracts.  For example, suppose a circuit in
+`S.compact` makes a cross-contract call to a circuit defined in a
+contract type `T`.  If the application uses an implementation of `T`
+in which the called circuit itself makes another call to a circuit
+defined in a contract type `S`, the compiler may reject the program,
+or the call may fail at execution time in the deployed application.
 
 :::
+
 
 ### Map and fold expressions
 
@@ -3738,43 +3775,6 @@ This value is chosen as a reasonable upper bound that helps prevent the compiler
 from looping indefinitely on programs that operate on excessively large vector
 and byte-vector types. Consequently, this value dictates the possible range for
 a `for` loop.
-
-**Limitations on contract types and cross-contract calls:**
-When computing the set of exported circuits for the purpose of
-determining whether a contract satisfies a contract type, the current
-compiler eliminates from consideration any circuits that call
-witnesses.  A called contract may define witness functions, and they
-may be called by other circuits, but they cannot be called directly or
-indirectly by the exported circuits that satisfy a contract type.
-This implies that every cross-contract call is to a circuit whose only
-access to private state is through its arguments, and its only means
-of affecting private state is through the values it returns.
-
-Furthermore, the current implementation of cross-contract calls
-provides no means of discovering any code for called circuits, other
-than the code provided by the calling application.  What this
-generally means is that an application satisfies a contract type `T`
-by compiling a contract defined in `T.compact`, and the resulting
-compilation artifacts are made available alongside those of any
-callers of `T`'s circuits.
-
-The real dependency, however, is not on the source file, but instead
-on the generated JavaScript file.  The code that is generated at the
-site of a call to one of `T`'s circuits expects to find the
-implementation of those circuits in the JavaScript file
-`../T/contract/index.js`.  This effectively limits any DApp to a
-single implementation of each contract type.
-
-If any cycles are present in the call graph of cross-contract calls,
-the behavior is undefined.  This implies that contracts cannot
-implement either direct or indirect recursion using calls through
-references to contract values.  This is a restriction on the
-*implementation* of contracts.  For example, suppose a circuit in
-`S.compact` makes a cross-contract call to a circuit defined in a
-contract type `T`.  If the application uses an implementation of `T`
-in which the called circuit itself makes another call to a circuit
-defined in a contract type `S`, the compiler may reject the program,
-or the call may fail at execution time in the deployed application.
 
 These limits may change in future versions of the compiler.
 
