@@ -3071,7 +3071,7 @@
                0 (Expr expr2 (precedence add1 ==) outer-pure?)))
            (parenthesize level (precedence call)
              (let ([equal-name (unique-global-name "equal")])
-               (build-equal-helper! (de-alias type) equal-name)
+               (build-equal-helper! type equal-name)
                (make-Qconcat
                  "this."
                  equal-name
@@ -3097,7 +3097,7 @@
                0 (Expr expr2 (precedence add1 ==) outer-pure?)))
            (parenthesize level (precedence not)
              (let ([equal-name (unique-global-name "equal")])
-               (build-equal-helper! (de-alias type) equal-name)
+               (build-equal-helper! type equal-name)
                (make-Qconcat
                  "!this."
                  equal-name
