@@ -90395,6 +90395,32 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger address: Bytes<20>;"
+      "ledger hash: Bytes<32>;"
+      "// This was the reported issue."
+      "export circuit test0(pt: Secp256k1Point): [] {"
+      "  address = disclose(secp256k1EthereumAddress(pt));"
+      "}"
+      "// This is the underlying issue, also testing nested points."
+      "export circuit test1(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(keccak256<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Issue 608', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256k1MulGenerator(5n);"
+        "  const p1 = runtime.secp256k1MulGenerator(7n);"
+        "  await contract.circuits.test0(context, p0);"
+        "  await contract.circuits.test1(context, p0, p1);"
+        "});"
+        ))
+    )
   )
 
 (run-javascript)

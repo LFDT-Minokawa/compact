@@ -61,6 +61,48 @@
       ;; for witness-like callables and natives.
       (define callable-ht (make-eq-hashtable))
 
+      ;; The `anative` alignment atom is a "pseudo-alignment" that the ledger does no know about.
+      ;; We translate each occurrence into a sequence of real ledger alignment atoms.  This
+      ;; translation mirrors the alignment defined in `runtime/src/compact-types.ts`.
+      ;;
+      ;; TODO (kmillikin): there is duplicated, but lower-level, handling of these types for the
+      ;; Impact `push` and `popeq` instructions.  Try to find a way to share this code.
+      (define (circuit-alignment-for src alignment* triv* instr*)
+        (let loop ([alignment* alignment*] [triv* triv*] [instr* instr*]
+                   [new-alignment* '()] [new-triv* '()])
+          (if (null? alignment*)
+              (begin
+                (assert (null? triv*))
+                (values (reverse new-alignment*) (reverse new-triv*) instr*))
+              (let ([atom (car alignment*)])
+                (nanopass-case (Lflattened Alignment) atom
+                  [(anative ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                   (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
+                     (loop (cdr alignment*) (cdr triv*)
+                       (with-output-language (Lzkir Instruction)
+                         (cons `(encode (,pt0 ,pt1) ,(car triv*)) instr*))
+                       (with-output-language (Lflattened Alignment)
+                         (cons* `(afield) `(afield) new-alignment*))
+                       (cons* pt1 pt0 new-triv*)))]
+                  [(anative ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                   (let ([fld* (maplr (lambda (ignore) (make-temp-id src 'fld)) (make-list 5))])
+                     (loop (cdr alignment*) (cdr triv*)
+                       (with-output-language (Lzkir Instruction)
+                         (cons `(encode (,fld* ...) ,(car triv*)) instr*))
+                       (with-output-language (Lflattened Alignment)
+                         ;; Reversed:
+                         (cons* `(afield) `(abytes 8) `(abytes 24) `(abytes 8) `(abytes 24)
+                           new-alignment*))
+                       (append (reverse fld*) new-triv*)))]
+                  [(abytes ,nat)
+                   (let ([n (ceiling (/ nat (field-bytes)))])
+                     (loop (cdr alignment*) (list-tail triv* n) instr*
+                       (cons atom new-alignment*)
+                       (append (reverse (list-head triv* n)) new-triv*)))]
+                  [else (loop (cdr alignment*) (cdr triv*) instr*
+                          (cons atom new-alignment*)
+                          (cons (car triv*) new-triv*))])))))
+
       (define (make-private-input test var-name primitive-type)
         ;; The ZKIR v2 backend has this special case for literal true guards.
         (with-output-language (Lzkir Instruction)
@@ -136,10 +178,12 @@
                (assert (= (length var-name*) 2))
                (let ([alignment* (arg->alignment arg* 0)]
                      [bytes (make-temp-id src 'bytes)])
-                 (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
-                   `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
-                   instr*))]
+                 (let-values ([(alignment* triv* instr*)
+                               (circuit-alignment-for src alignment* triv* instr*)])
+                   (cons*
+                     `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                     `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
+                     instr*)))]
               [(mul)
                (assert (= (length var-name*) 1))
                (cons `(mul, (car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
@@ -155,18 +199,22 @@
                              [(a ... b c) #'(b c a ...)])]
                      [alignment* (append (arg->alignment arg* 1) (arg->alignment arg* 0))]
                      [bytes (make-temp-id src 'bytes)])
-                 (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
-                   `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
-                   instr*))]
+                 (let-values ([(alignment* triv* instr*)
+                               (circuit-alignment-for src alignment* triv* instr*)])
+                   (cons*
+                     `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                     `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
+                     instr*)))]
               [(persistentHash)
                (assert (= (length var-name*) 2))
                (let ([alignment* (arg->alignment arg* 0)]
                      [bytes (make-temp-id src 'bytes)])
-                 (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
-                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
-                   instr*))]
+                 (let-values ([(alignment* triv* instr*)
+                               (circuit-alignment-for src alignment* triv* instr*)])
+                   (cons*
+                     `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                     `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
+                     instr*)))]
               [(secp256k1PointX)
                (assert (= (length var-name*) 1))
                (let ([y (make-temp-id src 'ignore)])
