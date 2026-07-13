@@ -2875,6 +2875,14 @@
             [(field-scalar (curve-jubjub))
              (nanopass-case (Lflattened Field-Type) ftype^
                [(field-scalar (curve-jubjub)) #t]
+               [else #f])]
+            [(field-base (curve-secp256k1))
+             (nanopass-case (Lflattened Field-Type) ftype^
+               [(field-base (curve-secp256k1)) #t]
+               [else #f])]
+            [(field-scalar (curve-secp256k1))
+             (nanopass-case (Lflattened Field-Type) ftype^
+               [(field-scalar (curve-secp256k1)) #t]
                [else #f])]))
         (define (primitive-type-equal? primitive-type primitive-type^)
           (nanopass-case (Lflattened Primitive-Type) primitive-type
