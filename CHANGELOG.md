@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#609](https://github.com/LFDT-Minokawa/compact/issues/609).
+  Successive calls to `secp256k1EcdsaVerify` triggered a failure in the circuit
+  optimizer where the secp256k1 base and scalar fields were not handled in a
+  comparison predicate.
+
 ## [Toolchain 0.33.104, language 0.25.102, runtime 0.18.101]
 
 ### Fixed
