@@ -72336,11 +72336,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
       "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a == b;"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a != b;"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       )
     (stage-javascript
@@ -89694,6 +89700,66 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "type U = Uint<32>;"
+      "new type B = Boolean;"
+      "new type BV8 = Bytes<8>;"
+      "new type T = [ U, BV8 ];"
+      "struct S { x: T, y: B }"
+      "new type V = Vector<2, S>;"
+      "ledger Vfield: V;"
+      "constructor() {"
+      "  const s0 = S { y: false as B, x: [ 37, Bytes [ 13, 8, 5, 3, 2, 1, 1, 0 ] as BV8] as T};"
+      "  const s1 = S { x: [ 91, Bytes [1, 2, 3, 5, 7, 11, 13, 17] as BV8] as T, y: true as B};"
+      "  Vfield = [ s0, s1 ] as V;"
+      "}"
+      "export circuit isEqual1(v: V): Boolean {"
+      "  return disclose(v) == Vfield;"
+      "}"
+      "export circuit isNotEqual1(v: V): Boolean {"
+      "  return disclose(v) != Vfield;"
+      "}"
+      "export circuit isEqual2(v: V): Boolean {"
+      "  return Vfield == disclose(v);"
+      "}"
+      "export circuit isNotEqual2(v: V): Boolean {"
+      "  return Vfield != disclose(v);"
+      "}"
+      ""
+      "ledger Result: Vector<4, Boolean>;"
+      "export circuit go(v: V): Vector<4, Boolean> {"
+      "  Result = [ isEqual1(v), isNotEqual1(v), isEqual2(v), isNotEqual2(v) ];"
+      "  return Result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested equality through aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0d = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 7, 3, 2, 1, 1, 0 ])] };" 
+        ""
+        "  const s1a = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1b = { x: [ 97n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1c = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 19])], y: true };"
+        "  const s1d = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: false };"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1b])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1c])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1d])).result).toEqual([false, true, false, true]);"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0b, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0c, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0d, s1a])).result).toEqual([false, true, false, true]);"
+        "  });"
+        ))
+    )
   )
 
 (run-javascript)
@@ -90287,6 +90353,46 @@ groups than for single tests.
         "  };"
         "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
         "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Secp256k1Point {"
+      "  return default<Secp256k1Point>;"
+      "}"
+      "export circuit pointsEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.secp256k1MulGenerator(5n);"
+        "  const p2 = runtime.secp256k1MulGenerator(5n);"
+        "  const p3 = runtime.secp256k1MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.secp256k1MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
         ))
     )
   )

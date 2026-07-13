@@ -2845,20 +2845,22 @@
                        type*)]
                     [(topaque ,src ,opaque-type)
                      (guard (string=? opaque-type "JubjubPoint"))
-                     (for-each
-                       (lambda (elt-name)
-                         (print-indent indent)
-                         (printf "{\n")
-                         (let ([next-i (fx+ i 1)] [next-indent (fx+ indent 2)])
-                           (print-indent next-indent)
-                           (printf "let x~s = x~s.~s;\n" next-i i elt-name)
-                           (print-indent next-indent)
-                           (printf "let y~s = y~s.~s;\n" next-i i elt-name)
-                           (print-indent next-indent)
-                           (printf "if (x~s !== y~:*~s) { return false; }\n" next-i))
-                         (print-indent indent)
-                         (printf "}\n"))
-                       '(x y))]
+                     (print-indent indent)
+                     (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
+                     (print-indent (fx+ indent 2))
+                     (printf "return false;\n")
+                     (print-indent indent)
+                     (printf "}\n")]
+                    [(topaque ,src ,opaque-type)
+                     (guard (string=? opaque-type "Secp256k1Point"))
+                     (print-indent indent)
+                     (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
+                     (print-indent indent)
+                     (printf "if (y~s.identity || x~:*~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
+                     (print-indent (fx+ indent 2))
+                     (printf "return false;\n")
+                     (print-indent indent)
+                     (printf "}\n")]
                     [else
                      (print-indent indent)
                      (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
@@ -3056,7 +3058,10 @@
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src ,ftype) #t]
-             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
+             [(tunsigned ,src ,nat) #t]
+             [(topaque ,src ,opaque-type)
+              (and (not (string=? opaque-type "JubjubPoint"))
+                   (not (string=? opaque-type "Secp256k1Point")))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
@@ -3079,7 +3084,10 @@
        (if (nanopass-case (Ltypescript Type) (de-alias type)
              [(tboolean ,src) #t]
              [(tfield ,src ,ftype) #t]
-             [(topaque ,src ,opaque-type) (not (string=? opaque-type "JubjubPoint"))]
+             [(tunsigned ,src ,nat) #t]
+             [(topaque ,src ,opaque-type)
+              (and (not (string=? opaque-type "JubjubPoint"))
+                   (not (string=? opaque-type "Secp256k1Point")))]
              [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
              [else #f])
            (parenthesize level (precedence ==)
