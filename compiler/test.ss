@@ -50170,110 +50170,110 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.12 (Kernel)))
         (public-ledger-declaration
-          (%x0.13 (__compact_Cell (tfield (field-native))))
-          (%x1.14 (Set (tfield (field-native))))
-          (%x2.15 (Counter))
-          (%x3.16 (List (tfield (field-native))))
-          (%x4.17 (Map (tfield (field-native)) (tboolean)))
-          (%x5.18 (MerkleTree 32 (tfield (field-native))))
-          (%x6.19 (HistoricMerkleTree 10 (tfield (field-native))))
-          (%x7.20
+          (%x0.28 (__compact_Cell (tfield (field-native))))
+          (%x1.32 (Set (tfield (field-native))))
+          (%x2.33 (Counter))
+          (%x3.34 (List (tfield (field-native))))
+          (%x4.35 (Map (tfield (field-native)) (tboolean)))
+          (%x5.36 (MerkleTree 32 (tfield (field-native))))
+          (%x6.37 (HistoricMerkleTree 10 (tfield (field-native))))
+          (%x7.38
             (__compact_Cell
               (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned
                          340282366920938463463374607431768211455)))))
-          (%x10.21
+          (%x10.39
             (__compact_Cell
               (tstruct MerkleTreeDigest (field (tfield (field-native))))))
-          (%x11.22
+          (%x11.40
             (__compact_Cell
               (tstruct QualifiedShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned 340282366920938463463374607431768211455))
                 (mt_index (tunsigned 18446744073709551615)))))
-          (%x13.23
+          (%x13.41
             (__compact_Cell
               (tstruct ContractAddress (bytes (tbytes 32)))))
-          (%x14.24
+          (%x14.42
             (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-          (%x15.25
+          (%x15.43
             (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-          (%x16.26
+          (%x16.44
             (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-          (%authority.27 (__compact_Cell (tbytes 32)))
-          (%state.28
+          (%authority.45 (__compact_Cell (tbytes 32)))
+          (%state.46
             (__compact_Cell
               (tenum PublicState setup commit reveal final)))
-          (%topic.29
+          (%topic.47
             (__compact_Cell
               (tstruct Maybe
                 (is_some (tboolean))
                 (value (topaque "string")))))
-          (%tally_yes.30 (Counter))
-          (%committed_votes.31 (MerkleTree 10 (tbytes 32)))
-          (%committed.32 (Set (tbytes 32)))
-          (%ciphertexts.33 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.34 (tfield (field-native))])
+          (%tally_yes.48 (Counter))
+          (%committed_votes.49 (MerkleTree 10 (tbytes 32)))
+          (%committed.50 (Set (tbytes 32)))
+          (%ciphertexts.51 (__compact_Cell (topaque "Uint8Array")))
+          (constructor ([%state.52 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.35 (ttuple)] [%i.36 (tunknown)])
+                (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ #f
-                         %state.34
+                         %state.52
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.35))
+                    %t.53))
                 (tuple)
                 (tuple))
               (tuple))))
-        (circuit %foo.37 ([%a.38 (tboolean)]
-                          [%b.39 (tfield (field-native))])
+        (circuit %foo.13 ([%a.14 (tboolean)]
+                          [%b.15 (tfield (field-native))])
              (tboolean)
           #f)
-        (circuit %bar.40 ([%a.41 (tboolean)] [%b.42 (tboolean)])
+        (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (let* ([[%x.43 (tboolean)]
-                  (call %foo.37
+          (let* ([[%x.19 (tboolean)]
+                  (call %foo.13
                     #t
                     (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%y.44 (tunsigned 3)]
-                    (if %a.41
-                        (if %b.42 3 (safe-cast (tunsigned 3) (tunsigned 2) 2))
+            (let* ([[%y.20 (tunsigned 3)]
+                    (if %a.17
+                        (if %b.18 3 (safe-cast (tunsigned 3) (tunsigned 2) 2))
                         (safe-cast (tunsigned 3)
                                    (tunsigned 1)
-                          (if %b.42
+                          (if %b.18
                               1
                               (safe-cast (tunsigned 1) (tunsigned 0) 0))))])
-              (let* ([[%w.45 (tboolean)] (if %a.41 #t #f)])
-                (let* ([[%v.46 (tboolean)]
-                        (if %a.41
+              (let* ([[%w.21 (tboolean)] (if %a.17 #t #f)])
+                (let* ([[%v.22 (tboolean)]
+                        (if %a.17
                             #f
-                            (fold %foo.37 #t (tuple-ref (tuple (tuple)) 0)))])
+                            (fold %foo.13 #t (tuple-ref (tuple (tuple)) 0)))])
                   (seq
-                    (if %a.41
-                        (if %b.42
-                            (assert %a.41 "a should be true")
-                            (if %b.42
-                                (assert %a.41 "a should be true")
+                    (if %a.17
+                        (if %b.18
+                            (assert %a.17 "a should be true")
+                            (if %b.18
+                                (assert %a.17 "a should be true")
                                 (tuple)))
                         (tuple))
-                    (if %a.41
-                        (if %b.42 (assert %a.41 "a should be true") (tuple))
-                        (let* ([[%v.47 (tboolean)] %a.41])
-                          (if %b.42
-                              (assert %v.47 "a should be false")
+                    (if %a.17
+                        (if %b.18 (assert %a.17 "a should be true") (tuple))
+                        (let* ([[%v.23 (tboolean)] %a.17])
+                          (if %b.18
+                              (assert %v.23 "a should be false")
                               (tuple))))
                     (fold
-                      (circuit ([%b.48 (tboolean)]
-                                [%c.49 (tboolean)]
-                                [%d.50 (tfield (field-native))])
+                      (circuit ([%b.24 (tboolean)]
+                                [%c.25 (tboolean)]
+                                [%d.26 (tfield (field-native))])
                            (tboolean)
-                        (if (if %a.41 %b.48 #f) %c.49 #f))
+                        (if (if %a.17 %b.24 #f) %c.25 #f))
                       #t
                       (tuple #f #t #t #f)
                       (tuple
@@ -50283,7 +50283,7 @@ groups than for single tests.
                         (safe-cast (tfield (field-native)) (tunsigned 3) 3)))
                     (tuple-ref (tuple 1 2 3 4) 2)
                     (map
-                      %foo.37
+                      %foo.13
                       (tuple #f #f #t #f)
                       (tuple
                         (safe-cast (tfield (field-native)) (tunsigned 1) 1)
@@ -50295,27 +50295,27 @@ groups than for single tests.
                           (public-ledger %kernel.12 (self)))
                       "oops")
                     (new (tstruct frob (q (tfield (field-native))))
-                      (public-ledger %x0.13 (read)))))))))
-        (circuit %baz.51 ([%b.52 (tboolean)])
+                      (public-ledger %x0.28 (read)))))))))
+        (circuit %baz.29 ([%b.30 (tboolean)])
              (tunsigned 1023)
           (disclose
-            (if %b.52
+            (if %b.30
                 (safe-cast (tunsigned 1023) (tunsigned 1) 1)
                 (safe-cast (tunsigned 1023) (tunsigned 0) 0))))
-        (circuit %nullX.53 () (tboolean) (default (tboolean)))))
+        (circuit %nullX.31 () (tboolean) (default (tboolean)))))
     (pass-returns reduce-to-circuit
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.13 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.14 (0 1) (Set (tfield (field-native))))
-             (%x2.15 (0 2) (Counter))
-             (%x3.16 (0 3) (List (tfield (field-native))))
-             (%x4.17 (0 4) (Map (tfield (field-native)) (tboolean)))
-             (%x5.18 (0 5) (MerkleTree 32 (tfield (field-native)))))
-           ((%x6.19
+          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.32 (0 1) (Set (tfield (field-native))))
+             (%x2.33 (0 2) (Counter))
+             (%x3.34 (0 3) (List (tfield (field-native))))
+             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean)))
+             (%x5.36 (0 5) (MerkleTree 32 (tfield (field-native)))))
+           ((%x6.37
               (1 0)
               (HistoricMerkleTree 10 (tfield (field-native))))
-             (%x7.20
+             (%x7.38
                (1 1)
                (__compact_Cell
                  (tstruct ShieldedCoinInfo
@@ -50323,11 +50323,11 @@ groups than for single tests.
                    (color (tbytes 32))
                    (value (tunsigned
                             340282366920938463463374607431768211455)))))
-             (%x10.21
+             (%x10.39
                (1 2)
                (__compact_Cell
                  (tstruct MerkleTreeDigest (field (tfield (field-native))))))
-             (%x11.22
+             (%x11.40
                (1 3)
                (__compact_Cell
                  (tstruct QualifiedShieldedCoinInfo
@@ -50335,81 +50335,81 @@ groups than for single tests.
                    (color (tbytes 32))
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
-             (%x13.23
+             (%x13.41
                (1 4)
                (__compact_Cell
                  (tstruct ContractAddress (bytes (tbytes 32)))))
-             (%x14.24
+             (%x14.42
                (1 5)
                (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-             (%x15.25
+             (%x15.43
                (1 6)
                (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-             (%x16.26
+             (%x16.44
                (1 7)
                (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-             (%authority.27 (1 8) (__compact_Cell (tbytes 32)))
-             (%state.28 (1 9) (__compact_Cell (tunsigned 3)))
-             (%topic.29
+             (%authority.45 (1 8) (__compact_Cell (tbytes 32)))
+             (%state.46 (1 9) (__compact_Cell (tunsigned 3)))
+             (%topic.47
                (1 10)
                (__compact_Cell
                  (tstruct Maybe
                    (is_some (tboolean))
                    (value (topaque "string")))))
-             (%tally_yes.30 (1 11) (Counter))
-             (%committed_votes.31 (1 12) (MerkleTree 10 (tbytes 32)))
-             (%committed.32 (1 13) (Set (tbytes 32)))
-             (%ciphertexts.33
+             (%tally_yes.48 (1 11) (Counter))
+             (%committed_votes.49 (1 12) (MerkleTree 10 (tbytes 32)))
+             (%committed.50 (1 13) (Set (tbytes 32)))
+             (%ciphertexts.51
                (1 14)
                (__compact_Cell (topaque "Uint8Array"))))))
-        (circuit %bar.34 ([%a.35 (tboolean)] [%b.36 (tboolean)])
+        (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (= #t %t.37 (select %a.35 #t #f))
-          (= #t %t.38 (select %a.35 #f #t))
-          (= %t.37 %t.39 (tuple))
-          (= #t %t.40 (select %b.36 %t.38 #f))
-          (= #t %t.41 (select %b.36 #f %t.38))
-          (= #t %t.42 (select %t.40 #f #t))
-          (assert %t.42 "a should be false")
-          (= %t.40 %t.43 (tuple))
-          (= %t.41 %t.44 (tuple))
-          (= #t %t.45 (public-ledger %kernel.12 () self))
-          (= #t %t.46 (public-ledger %kernel.12 () self))
-          (= #t %t.47 (== %t.45 %t.46))
-          (= #t %t.48 (select #t %t.47 #t))
-          (assert %t.48 "oops")
-          (= #t %t.49 (tuple))
-          (= #t %t.50 (public-ledger %x0.13 (0 0) read))
-          (= #t %t.51
-             (new (tstruct frob (q (tfield (field-native)))) %t.50))
-          %t.51)))
+          (= #t %t.55 (select %a.17 #t #f))
+          (= #t %t.56 (select %a.17 #f #t))
+          (= %t.55 %t.57 (tuple))
+          (= #t %t.58 (select %b.18 %t.56 #f))
+          (= #t %t.59 (select %b.18 #f %t.56))
+          (= #t %t.60 (select %t.58 #f #t))
+          (assert %t.60 "a should be false")
+          (= %t.58 %t.61 (tuple))
+          (= %t.59 %t.62 (tuple))
+          (= #t %t.63 (public-ledger %kernel.12 () self))
+          (= #t %t.64 (public-ledger %kernel.12 () self))
+          (= #t %t.65 (== %t.63 %t.64))
+          (= #t %t.66 (select #t %t.65 #t))
+          (assert %t.66 "oops")
+          (= #t %t.67 (tuple))
+          (= #t %t.68 (public-ledger %x0.28 (0 0) read))
+          (= #t %t.69
+             (new (tstruct frob (q (tfield (field-native)))) %t.68))
+          %t.69)))
     (returns
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.13
+          (((%x0.28
               (0 0)
               (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
-             (%x1.14
+             (%x1.32
                (0 1)
                (Set (ty ((afield)) ((tfield (field-native))))))
-             (%x2.15 (0 2) (Counter))
-             (%x3.16
+             (%x2.33 (0 2) (Counter))
+             (%x3.34
                (0 3)
                (List (ty ((afield)) ((tfield (field-native))))))
-             (%x4.17
+             (%x4.35
                (0 4)
                (Map (ty ((afield)) ((tfield (field-native))))
                     (ty ((abytes 1)) ((tunsigned 1)))))
-             (%x5.18
+             (%x5.36
                (0 5)
                (MerkleTree 32 (ty ((afield)) ((tfield (field-native)))))))
-           ((%x6.19
+           ((%x6.37
               (1 0)
               (HistoricMerkleTree
                 10
                 (ty ((afield)) ((tfield (field-native))))))
-             (%x7.20
+             (%x7.38
                (1 1)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16))
@@ -50420,10 +50420,10 @@ groups than for single tests.
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 340282366920938463463374607431768211455)))))
-             (%x10.21
+             (%x10.39
                (1 2)
                (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
-             (%x11.22
+             (%x11.40
                (1 3)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
@@ -50435,43 +50435,45 @@ groups than for single tests.
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 340282366920938463463374607431768211455)
                        (tunsigned 18446744073709551615)))))
-             (%x13.23
+             (%x13.41
                (1 4)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%x14.24
+             (%x14.42
                (1 5)
                (__compact_Cell
-                 (ty ((afield)) ((tfield (field-scalar (curve-jubjub)))))))
-             (%x15.25
+                 (ty ((anative "JubjubScalar"))
+                     ((tfield (field-scalar (curve-jubjub)))))))
+             (%x15.43
                (1 6)
                (__compact_Cell
-                 (ty ((afield)) ((tfield (field-base (curve-secp256k1)))))))
-             (%x16.26
+                 (ty ((anative "Secp256k1Base"))
+                     ((tfield (field-base (curve-secp256k1)))))))
+             (%x16.44
                (1 7)
                (__compact_Cell
-                 (ty ((afield))
+                 (ty ((anative "Secp256k1Scalar"))
                      ((tfield (field-scalar (curve-secp256k1)))))))
-             (%authority.27
+             (%authority.45
                (1 8)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%state.28
+             (%state.46
                (1 9)
                (__compact_Cell (ty ((abytes 1)) ((tunsigned 3)))))
-             (%topic.29
+             (%topic.47
                (1 10)
                (__compact_Cell
                  (ty ((abytes 1) (acompress))
                      ((tunsigned 1) (topaque "string")))))
-             (%tally_yes.30 (1 11) (Counter))
-             (%committed_votes.31
+             (%tally_yes.48 (1 11) (Counter))
+             (%committed_votes.49
                (1 12)
                (MerkleTree
                  10
@@ -50479,17 +50481,17 @@ groups than for single tests.
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%committed.32
+             (%committed.50
                (1 13)
                (Set (ty ((abytes 32))
                         ((tunsigned 255)
                           (tunsigned
                             452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%ciphertexts.33
+             (%ciphertexts.51
                (1 14)
                (__compact_Cell
                  (ty ((acompress)) ((topaque "Uint8Array"))))))))
-        (circuit %bar.34 ((argument
+        (circuit %bar.16 ((argument
                             (%a.0)
                             (ty ((abytes 1)) ((tunsigned 1))))
                           (argument (%b.2) (ty ((abytes 1)) ((tunsigned 1)))))
@@ -50504,8 +50506,9 @@ groups than for single tests.
           (= 1 %t.9 (== %t.8 %t.7))
           (= 1 %t.11 (select %t.10 %t.9 0))
           (assert %t.11 "oops")
-          (= 1 (%t.35) (public-ledger %x0.13 (0 0) read))
-          (%t.35)))))
+          (= 1 (%t.70) (public-ledger %x0.28 (0 0) read))
+          (%t.70))))
+    )
 )
 )
 
@@ -90407,11 +90410,11 @@ groups than for single tests.
                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
         (circuit %test.5 ((argument
                             (%b.0)
-                            (ty ((afield))
+                            (ty ((anative "Secp256k1Base"))
                                 ((tfield (field-base (curve-secp256k1))))))
                           (argument
                             (%s.1)
-                            (ty ((afield))
+                            (ty ((anative "Secp256k1Scalar"))
                                 ((tfield (field-scalar (curve-secp256k1)))))))
              (ty () ())
           (= 1 (%tmp.6 %tmp.7)

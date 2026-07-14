@@ -100,7 +100,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         // The identity has no Ethereum address, and its coordinates are
         // unconstrained, so the circuit must reject it via its identity flag.
         const identity: runtime.Secp256k1Point = { x: 0n, y: 0n, identity: true };
-        expect(pureCircuits.secp256k1EthereumAddress(identity)).toEqual(new Uint8Array());
+        expect(() => pureCircuits.secp256k1EthereumAddress(identity)).toThrow();
     });
 
     test('mul reduces modulo the secp256k1 group order n, not the BLS field modulus', () => {
