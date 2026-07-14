@@ -2615,7 +2615,8 @@
          (format "~s" elt-name)))]
     [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
      (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
-            [vminstr*   (expand-vm-code src #f #f #f
+            [vminstr*   (expand-vm-code src #f #f
+                          (with-output-language (Ltypescript Type) `(ttuple ,src))
                           `((emit-version . ,event-version)
                             (emit-tag     . ,event-tag)
                             (emit-payload . ,(make-vmref bytes-type expr)))
