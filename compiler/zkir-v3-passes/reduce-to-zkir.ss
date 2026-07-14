@@ -803,7 +803,9 @@
             [env (list (cons 'emit-version event-version)
                        (cons 'emit-tag     event-tag)
                        (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
-       (assemble test '() '() '() src '() #f env vm-code instr*))]
+       (assemble test '() '() '() src '()
+         (with-output-language (Lflattened Type) `(ty () ()))
+         env vm-code instr*))]
     [(= ,test (,var-name) (default ,zkir-type))
      (with-output-language (Lzkir Instruction)
        (case zkir-type

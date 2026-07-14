@@ -294,14 +294,14 @@
      ;; [context, effects, state, caller_slot, is_some=1]
      (swap [n 0])
      ;; [context, effects, state, is_some=1, caller_slot]
-     (concat [cached #f] [n (rt-max-sizeof return_type)])
+     (concat [cached #f] [n (rt-max-sizeof result_type)])
      ;; [context, effects, state, (1, public_address)]
      (jmp [skip 2])
      ;; none-branch:
      ;; [context, effects, state, caller_slot]
      (pop)
      ;; [context, effects, state]
-     (push [storage #f] [value (state-value 'cell (rt-null return_type))])
+     (push [storage #f] [value (state-value 'cell (rt-null result_type))])
      ;; merge:
      ;; [context, effects, state, (0|1, addr_or_default)]
      (popeq [cached #t] [result (void)])

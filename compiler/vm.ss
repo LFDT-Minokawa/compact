@@ -109,7 +109,7 @@
       (syntax-error x complaint)))
 
   (define (make-check-vm-expr arg-name*)
-    (let ([free-name* (cons* 'f 'f-cached 'return_type arg-name*)])
+    (let ([free-name* (cons* 'f 'f-cached 'result_type arg-name*)])
       (define (free-name? x) (memq x free-name*))
       (rec check-vm-expr
         (lambda (e)
@@ -162,7 +162,7 @@
         (make-expand-vm-expr
           (cons* (cons 'f f)
                  (cons 'f-cached f-cached)
-                 (cons 'return_type result-type)
+                 (cons 'result_type result-type)
                  arg-alist)))
       (define (expand-vm-instruction i)
         (syntax-case i ()
