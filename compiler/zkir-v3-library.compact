@@ -28,12 +28,39 @@ export struct Secp256k1EcdsaSignature {
 // the scalar field's order.
 circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
   const v = digest as Vector<32, Uint<8>>;
-  const beReversed = Bytes[
-    v[31], v[30], v[29], v[28], v[27], v[26], v[25], v[24],
-    v[23], v[22], v[21], v[20], v[19], v[18], v[17], v[16],
-    v[15], v[14], v[13], v[12], v[11], v[10], v[9],  v[8],
-    v[7],  v[6],  v[5],  v[4],  v[3],  v[2],  v[1],  v[0]
-  ];
+  const beReversed =
+          Bytes[v[31],
+                v[30],
+                v[29],
+                v[28],
+                v[27],
+                v[26],
+                v[25],
+                v[24],
+                v[23],
+                v[22],
+                v[21],
+                v[20],
+                v[19],
+                v[18],
+                v[17],
+                v[16],
+                v[15],
+                v[14],
+                v[13],
+                v[12],
+                v[11],
+                v[10],
+                v[9],
+                v[8],
+                v[7],
+                v[6],
+                v[5],
+                v[4],
+                v[3],
+                v[2],
+                v[1],
+                v[0]];
   return beReversed as Secp256k1Scalar;
 }
 
@@ -69,10 +96,51 @@ export circuit secp256k1EcdsaVerify(
   return (secp256k1PointX(point) as Bytes<32>) as Secp256k1Scalar == r;
 }
 
+// Reverse the byte order of a Secp256k1Base.  Casting to Bytes<32> gives a little-endian
+// representation, Ethereum addresses has a big-endian representation.
+circuit secp256k1BaseBigEndian(b: Secp256k1Base): Vector<32, Uint<8>> {
+  const vec = b as Bytes<32> as Vector<32, Uint<8>>;
+  return [vec[31],
+          vec[30],
+          vec[29],
+          vec[28],
+          vec[27],
+          vec[26],
+          vec[25],
+          vec[24],
+          vec[23],
+          vec[22],
+          vec[21],
+          vec[20],
+          vec[19],
+          vec[18],
+          vec[17],
+          vec[16],
+          vec[15],
+          vec[14],
+          vec[13],
+          vec[12],
+          vec[11],
+          vec[10],
+          vec[9],
+          vec[8],
+          vec[7],
+          vec[6],
+          vec[5],
+          vec[4],
+          vec[3],
+          vec[2],
+          vec[1],
+          vec[0],];
+}
+
 // Derive an Ethereum-style address from a secp256k1 public key.
 // The point at infinity is rejected as it has no Ethereum address.
 export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
   assert(pk != default<Secp256k1Point>, "Cannot compute the address for the point at infinity");
-  const coordinates = [secp256k1PointX(pk), secp256k1PointY(pk)];
-  return slice<20>(keccak256<[Secp256k1Base, Secp256k1Base]>(coordinates), 0);
+  const hash = keccak256<[Vector<32, Uint<8>>, Vector<32, Uint<8>>]>(
+                 [secp256k1BaseBigEndian(secp256k1PointX(pk)),
+                  secp256k1BaseBigEndian(secp256k1PointY(pk))]
+                 );
+  return slice<20>(hash, 12);
 }
