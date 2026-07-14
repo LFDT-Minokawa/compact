@@ -70201,6 +70201,178 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  ;; LFDT-Minokawa/compact issue #609.  Two calls to secp256k1EcdsaVerify
+  ;; triggered a failure in the circuit optimizer.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger n: Uint<64>;"
+      "witness pk0(): Secp256k1Point;"
+      "witness sig0(): Secp256k1EcdsaSignature;"
+      "witness pk1(): Secp256k1Point;"
+      "witness sig1(): Secp256k1EcdsaSignature;"
+      ""
+      "export circuit bump(d: Bytes<32>): [] {"
+      "  assert(secp256k1EcdsaVerify(d, sig0(), pk0()), 'b0');"
+      "  assert(secp256k1EcdsaVerify(d, sig1(), pk1()), 'b1');"
+      "  n = (n + 1) as Uint<64>;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (bump) ((%d.0 "Scalar<BLS12-381>")
+                         (%d.1 "Scalar<BLS12-381>"))
+          ()
+          (constrain_bits %d.0 8)
+          (constrain_bits %d.1 248)
+          (private_input "Scalar<Secp256k1>" %sig.39)
+          (private_input "Scalar<Secp256k1>" %sig.52)
+          (private_input "Point<Secp256k1>" %pk.53)
+          (copy %v.3 %d.0)
+          (div_mod_power_of_two %quo.54 %v.2 %d.1 8)
+          (div_mod_power_of_two %quo.55 %v.33 %quo.54 8)
+          (div_mod_power_of_two %quo.56 %v.32 %quo.55 8)
+          (div_mod_power_of_two %quo.57 %v.31 %quo.56 8)
+          (div_mod_power_of_two %quo.58 %v.30 %quo.57 8)
+          (div_mod_power_of_two %quo.59 %v.29 %quo.58 8)
+          (div_mod_power_of_two %quo.60 %v.28 %quo.59 8)
+          (div_mod_power_of_two %quo.61 %v.27 %quo.60 8)
+          (div_mod_power_of_two %quo.62 %v.26 %quo.61 8)
+          (div_mod_power_of_two %quo.63 %v.25 %quo.62 8)
+          (div_mod_power_of_two %quo.64 %v.24 %quo.63 8)
+          (div_mod_power_of_two %quo.65 %v.23 %quo.64 8)
+          (div_mod_power_of_two %quo.66 %v.22 %quo.65 8)
+          (div_mod_power_of_two %quo.67 %v.21 %quo.66 8)
+          (div_mod_power_of_two %quo.68 %v.20 %quo.67 8)
+          (div_mod_power_of_two %quo.69 %v.19 %quo.68 8)
+          (div_mod_power_of_two %quo.70 %v.18 %quo.69 8)
+          (div_mod_power_of_two %quo.71 %v.17 %quo.70 8)
+          (div_mod_power_of_two %quo.72 %v.16 %quo.71 8)
+          (div_mod_power_of_two %quo.73 %v.15 %quo.72 8)
+          (div_mod_power_of_two %quo.74 %v.14 %quo.73 8)
+          (div_mod_power_of_two %quo.75 %v.13 %quo.74 8)
+          (div_mod_power_of_two %quo.76 %v.12 %quo.75 8)
+          (div_mod_power_of_two %quo.77 %v.11 %quo.76 8)
+          (div_mod_power_of_two %quo.78 %v.10 %quo.77 8)
+          (div_mod_power_of_two %quo.79 %v.9 %quo.78 8)
+          (div_mod_power_of_two %quo.80 %v.8 %quo.79 8)
+          (div_mod_power_of_two %quo.81 %v.7 %quo.80 8)
+          (div_mod_power_of_two %quo.82 %v.6 %quo.81 8)
+          (div_mod_power_of_two %quo.83 %v.5 %quo.82 8)
+          (copy %v.4 %quo.83)
+          (copy %beReversed.35 %v.2)
+          (reconstitute_field %div.84 %v.33 %v.32 8)
+          (reconstitute_field %div.85 %div.84 %v.31 8)
+          (reconstitute_field %div.86 %div.85 %v.30 8)
+          (reconstitute_field %div.87 %div.86 %v.29 8)
+          (reconstitute_field %div.88 %div.87 %v.28 8)
+          (reconstitute_field %div.89 %div.88 %v.27 8)
+          (reconstitute_field %div.90 %div.89 %v.26 8)
+          (reconstitute_field %div.91 %div.90 %v.25 8)
+          (reconstitute_field %div.92 %div.91 %v.24 8)
+          (reconstitute_field %div.93 %div.92 %v.23 8)
+          (reconstitute_field %div.94 %div.93 %v.22 8)
+          (reconstitute_field %div.95 %div.94 %v.21 8)
+          (reconstitute_field %div.96 %div.95 %v.20 8)
+          (reconstitute_field %div.97 %div.96 %v.19 8)
+          (reconstitute_field %div.98 %div.97 %v.18 8)
+          (reconstitute_field %div.99 %div.98 %v.17 8)
+          (reconstitute_field %div.100 %div.99 %v.16 8)
+          (reconstitute_field %div.101 %div.100 %v.15 8)
+          (reconstitute_field %div.102 %div.101 %v.14 8)
+          (reconstitute_field %div.103 %div.102 %v.13 8)
+          (reconstitute_field %div.104 %div.103 %v.12 8)
+          (reconstitute_field %div.105 %div.104 %v.11 8)
+          (reconstitute_field %div.106 %div.105 %v.10 8)
+          (reconstitute_field %div.107 %div.106 %v.9 8)
+          (reconstitute_field %div.108 %div.107 %v.8 8)
+          (reconstitute_field %div.109 %div.108 %v.7 8)
+          (reconstitute_field %div.110 %div.109 %v.6 8)
+          (reconstitute_field %div.111 %div.110 %v.5 8)
+          (reconstitute_field %div.112 %div.111 %v.4 8)
+          (reconstitute_field %beReversed.34 %div.112 %v.3 8)
+          (bytes32_from_low_high
+            %tmp.113
+            %beReversed.34
+            %beReversed.35)
+          (from_bytes32 "Scalar<Secp256k1>" %z.114 %tmp.113)
+          (inv %w.115 %sig.52)
+          (mul %u1.116 %z.114 %w.115)
+          (mul %u2.117 %sig.39 %w.115)
+          (ec_mul_generator %t.118 %u1.116)
+          (ec_mul %t.119 %pk.53 %u2.117)
+          (add %point.120 %t.118 %t.119)
+          (into_coordinates %t.36 %ignore.121 %point.120)
+          (into_bytes32 %tmp.122 %t.36)
+          (bytes32_into_low_high %t.37 %t.38 %tmp.122)
+          (bytes32_from_low_high %tmp.123 %t.37 %t.38)
+          (from_bytes32 "Scalar<Secp256k1>" %t.40 %tmp.123)
+          (test_eq %t.41 %t.40 %sig.39)
+          (assert %t.41)
+          (private_input "Scalar<Secp256k1>" %sig.47)
+          (private_input "Scalar<Secp256k1>" %sig.124)
+          (private_input "Point<Secp256k1>" %pk.125)
+          (copy %beReversed.43 %v.2)
+          (reconstitute_field %div.126 %v.33 %v.32 8)
+          (reconstitute_field %div.127 %div.126 %v.31 8)
+          (reconstitute_field %div.128 %div.127 %v.30 8)
+          (reconstitute_field %div.129 %div.128 %v.29 8)
+          (reconstitute_field %div.130 %div.129 %v.28 8)
+          (reconstitute_field %div.131 %div.130 %v.27 8)
+          (reconstitute_field %div.132 %div.131 %v.26 8)
+          (reconstitute_field %div.133 %div.132 %v.25 8)
+          (reconstitute_field %div.134 %div.133 %v.24 8)
+          (reconstitute_field %div.135 %div.134 %v.23 8)
+          (reconstitute_field %div.136 %div.135 %v.22 8)
+          (reconstitute_field %div.137 %div.136 %v.21 8)
+          (reconstitute_field %div.138 %div.137 %v.20 8)
+          (reconstitute_field %div.139 %div.138 %v.19 8)
+          (reconstitute_field %div.140 %div.139 %v.18 8)
+          (reconstitute_field %div.141 %div.140 %v.17 8)
+          (reconstitute_field %div.142 %div.141 %v.16 8)
+          (reconstitute_field %div.143 %div.142 %v.15 8)
+          (reconstitute_field %div.144 %div.143 %v.14 8)
+          (reconstitute_field %div.145 %div.144 %v.13 8)
+          (reconstitute_field %div.146 %div.145 %v.12 8)
+          (reconstitute_field %div.147 %div.146 %v.11 8)
+          (reconstitute_field %div.148 %div.147 %v.10 8)
+          (reconstitute_field %div.149 %div.148 %v.9 8)
+          (reconstitute_field %div.150 %div.149 %v.8 8)
+          (reconstitute_field %div.151 %div.150 %v.7 8)
+          (reconstitute_field %div.152 %div.151 %v.6 8)
+          (reconstitute_field %div.153 %div.152 %v.5 8)
+          (reconstitute_field %div.154 %div.153 %v.4 8)
+          (reconstitute_field %beReversed.42 %div.154 %v.3 8)
+          (bytes32_from_low_high
+            %tmp.155
+            %beReversed.42
+            %beReversed.43)
+          (from_bytes32 "Scalar<Secp256k1>" %z.156 %tmp.155)
+          (inv %w.157 %sig.124)
+          (mul %u1.158 %z.156 %w.157)
+          (mul %u2.159 %sig.47 %w.157)
+          (ec_mul_generator %t.160 %u1.158)
+          (ec_mul %t.161 %pk.125 %u2.159)
+          (add %point.162 %t.160 %t.161)
+          (into_coordinates %t.44 %ignore.163 %point.162)
+          (into_bytes32 %tmp.164 %t.44)
+          (bytes32_into_low_high %t.45 %t.46 %tmp.164)
+          (bytes32_from_low_high %tmp.165 %t.45 %t.46)
+          (from_bytes32 "Scalar<Secp256k1>" %t.48 %tmp.165)
+          (test_eq %t.49 %t.48 %sig.47)
+          (assert %t.49)
+          (public_input "Scalar<BLS12-381>" %t.50)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 1 8 %t.50)
+          (add %t.51 %t.50 1)
+          (constrain_bits %t.51 64)
+          (copy %tmp.166 %t.51)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 8 %tmp.166)
+          (impact 1 145)))))
 )
 )
 
@@ -72336,11 +72508,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
       "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a == b;"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a != b;"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       )
     (stage-javascript
@@ -89694,6 +89872,66 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "type U = Uint<32>;"
+      "new type B = Boolean;"
+      "new type BV8 = Bytes<8>;"
+      "new type T = [ U, BV8 ];"
+      "struct S { x: T, y: B }"
+      "new type V = Vector<2, S>;"
+      "ledger Vfield: V;"
+      "constructor() {"
+      "  const s0 = S { y: false as B, x: [ 37, Bytes [ 13, 8, 5, 3, 2, 1, 1, 0 ] as BV8] as T};"
+      "  const s1 = S { x: [ 91, Bytes [1, 2, 3, 5, 7, 11, 13, 17] as BV8] as T, y: true as B};"
+      "  Vfield = [ s0, s1 ] as V;"
+      "}"
+      "export circuit isEqual1(v: V): Boolean {"
+      "  return disclose(v) == Vfield;"
+      "}"
+      "export circuit isNotEqual1(v: V): Boolean {"
+      "  return disclose(v) != Vfield;"
+      "}"
+      "export circuit isEqual2(v: V): Boolean {"
+      "  return Vfield == disclose(v);"
+      "}"
+      "export circuit isNotEqual2(v: V): Boolean {"
+      "  return Vfield != disclose(v);"
+      "}"
+      ""
+      "ledger Result: Vector<4, Boolean>;"
+      "export circuit go(v: V): Vector<4, Boolean> {"
+      "  Result = [ isEqual1(v), isNotEqual1(v), isEqual2(v), isNotEqual2(v) ];"
+      "  return Result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested equality through aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0d = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 7, 3, 2, 1, 1, 0 ])] };" 
+        ""
+        "  const s1a = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1b = { x: [ 97n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1c = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 19])], y: true };"
+        "  const s1d = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: false };"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1b])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1c])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1d])).result).toEqual([false, true, false, true]);"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0b, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0c, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0d, s1a])).result).toEqual([false, true, false, true]);"
+        "  });"
+        ))
+    )
   )
 
 (run-javascript)
@@ -90286,6 +90524,72 @@ groups than for single tests.
         "    identity: false,"
         "  };"
         "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Secp256k1Point {"
+      "  return default<Secp256k1Point>;"
+      "}"
+      "export circuit pointsEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.secp256k1MulGenerator(5n);"
+        "  const p2 = runtime.secp256k1MulGenerator(5n);"
+        "  const p3 = runtime.secp256k1MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.secp256k1MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger address: Bytes<20>;"
+      "ledger hash: Bytes<32>;"
+      "// This was the reported issue."
+      "export circuit test0(pt: Secp256k1Point): [] {"
+      "  address = disclose(secp256k1EthereumAddress(pt));"
+      "}"
+      "// This is the underlying issue, also testing nested points."
+      "export circuit test1(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(keccak256<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Issue 608', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256k1MulGenerator(5n);"
+        "  const p1 = runtime.secp256k1MulGenerator(7n);"
+        "  await contract.circuits.test0(context, p0);"
+        "  await contract.circuits.test1(context, p0, p1);"
         "});"
         ))
     )

@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -15,11 +13,13 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+#!chezscheme
+
 (library (language-version)
   (export language-version-string check-language-version)
   (import (chezscheme) (version))
 
-  (define language-version (make-version 'language 0 25 101))
+  (define language-version (make-version 'language 0 25 102))
 
   (define language-version-string (make-version-string language-version))
 
