@@ -5,6 +5,38 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#609](https://github.com/LFDT-Minokawa/compact/issues/609).
+  Successive calls to `secp256k1EcdsaVerify` triggered a failure in the circuit
+  optimizer where the secp256k1 base and scalar fields were not handled in a
+  comparison predicate.
+
+## [Toolchain 0.33.105, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#608](https://github.com/LFDT-Minokawa/compact/issues/608).  The
+  ZKIR v3 backend did not properly handle alignment for JubjubPoint and
+  Secp256k1Point when passed to the hashing function `persistentHash`,
+  `persistentCommit`, or `keccak256`.
+
+## [Toolchain 0.33.104, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Implement proper equality comparison for `Secp256k1Point`.  Identity points
+  are equal to identity points, and non-identity points are equal if they have
+  the same affine X- and Y- coordinates.
+
+### Internal notes
+
+- JS code for `JubjubPoint` equality is simplified, and `Uint` types now use
+  direct `===` comparisons, rather than a helper that performs only `===`
+  comparison.
+
 ## [Toolchain 0.33.103, language 0.25.101, runtime 0.18.101]
 
 ### Changed
