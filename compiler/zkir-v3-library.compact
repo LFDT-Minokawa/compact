@@ -72,7 +72,7 @@ export circuit secp256k1EcdsaVerify(
 // Derive an Ethereum-style address from a secp256k1 public key.
 // The point at infinity is rejected as it has no Ethereum address.
 export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
-  assert(!secp256k1PointIsIdentity(pk), "Cannot compute the address for the point at infinity");
+  assert(pk != default<Secp256k1Point>, "Cannot compute the address for the point at infinity");
   const coordinates = [secp256k1PointX(pk), secp256k1PointY(pk)];
-  return slice<20>(keccak256<Vector<2, Secp256k1Base>>(coordinates), 0);
+  return slice<20>(keccak256<[Secp256k1Base, Secp256k1Base]>(coordinates), 0);
 }

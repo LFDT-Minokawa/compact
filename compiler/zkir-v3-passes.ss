@@ -223,19 +223,6 @@
                (assert (= (length var-name*) 1))
                (let ([x (make-temp-id src 'ignore)])
                  (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
-              [(secp256k1PointIsIdentity)
-               (assert (= (length var-name*) 1))
-               ;; `encode` decomposes the point into its serialized fields, whose
-               ;; alignment is (24 8 24 8 -2): x low/high, y low/high, and the
-               ;; identity flag last (see CompactTypeSecp256k1Point).  Unlike the
-               ;; affine coordinates, the identity field is constrained even for
-               ;; the point at infinity, so it is the only reliable identity test.
-               (let ([x-lo (make-temp-id src 'ignore)]
-                     [x-hi (make-temp-id src 'ignore)]
-                     [y-lo (make-temp-id src 'ignore)]
-                     [y-hi (make-temp-id src 'ignore)])
-                 (cons `(encode (,x-lo ,x-hi ,y-lo ,y-hi ,(car var-name*)) ,(car triv*))
-                       instr*))]
               [(transientCommit)
                (assert (= (length var-name*) 1))
                ;; The last input needs to be moved first.
