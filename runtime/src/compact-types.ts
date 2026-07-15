@@ -402,7 +402,7 @@ export class CompactTypeEnum implements CompactType<number> {
   }
 
   toValue(value: number): ocrt.Value {
-    return CompactTypeField.toValue(BigInt(value));
+    return (this.length == 0) ? [new Uint8Array()] : CompactTypeField.toValue(BigInt(value));
   }
 }
 
@@ -439,7 +439,7 @@ export class CompactTypeUnsignedInteger implements CompactType<bigint> {
   }
 
   toValue(value: bigint): ocrt.Value {
-    return CompactTypeField.toValue(value);
+    return (this.length == 0) ? [new Uint8Array()] : CompactTypeField.toValue(value);
   }
 }
 

@@ -2351,11 +2351,15 @@
                  accum))])))
       (define (Single-Triv triv)
         (let ([triv* (wump->elts (Triv triv))])
-          (unless (fx= (length triv*) 1)
-            (internal-errorf 'Single-Triv "expected ~s to produce one triv, got ~s"
-                             (unparse-Lcircuit triv)
-                             (map unparse-Lflattened triv*)))
-          (car triv*)))
+          (cond
+            [(null? triv*)
+             ;; This is something with alignment `(abytes 0)`, like `Uint<0..1>` (including enums
+             ;; with a single variant).
+             0]
+            [(null? (cdr triv*)) (car triv*)]
+            [else (internal-errorf 'Single-Triv "expected ~s to produce at most one triv, got ~s"
+                    (unparse-Lcircuit triv)
+                    (map unparse-Lflattened triv*))])))
       (define (build-type original-type pt*)
         (define (type->alignments type)
           (let f ([type type] [a* '()])
@@ -2506,6 +2510,9 @@
        (Wump-bytes
          (with-output-language (Lflattened Primitive-Type)
            (list `(tfield (field-native)) `(tfield (field-native)))))]
+      [(tunsigned ,src ,nat) (guard (zero? nat))
+       ;; Uint<0..1> (and single-variant enums) have alignment `(abytes 0)`, so no values.
+       (Wump-bytes '())]
       [else (Wump-single (Single-Type ir))])
     (Type : Type (ir) -> Type ()
       [else (build-type ir (wump->elts (Type->Wump ir)))])
@@ -2599,17 +2606,24 @@
          (list `(= ,test ,var-name (< ,bits ,triv1 ,triv2))))]
       [(== ,[* wump1] ,[* wump2])
        (let ([triv1* (wump->elts wump1)] [triv2* (wump->elts wump2)])
-         (assert (fx= (length triv1*) (length triv2*)))
-         (let f ([triv1* triv1*] [triv2* triv2*] [triv-accum 1])
-           (with-output-language (Lflattened Statement)
-             (if (null? triv1*)
-                 (begin
-                   (hashtable-set! var-ht var-name (Wump-single triv-accum))
-                   (list `(= ,test ,var-name ,triv-accum)))
-                 (let ([t1 (make-new-id var-name)] [t2 (make-new-id var-name)])
-                   (cons* `(= ,test ,t1 (== ,(car triv1*) ,(car triv2*)))
-                          `(= ,test ,t2 (select ,triv-accum ,t1 0))
-                          (f (cdr triv1*) (cdr triv2*) t2)))))))]
+         (let-values ([(triv1* triv2*) (if (null? triv1*)
+                                           (if (null? triv2*)
+                                               (values triv1* triv2*)
+                                               (values '(0) triv2*))
+                                           (if (null? triv2*)
+                                               (values triv1* '(0))
+                                               (values triv1* triv2*)))])
+           (assert (fx= (length triv1*) (length triv2*)))
+           (let f ([triv1* triv1*] [triv2* triv2*] [triv-accum 1])
+             (with-output-language (Lflattened Statement)
+               (if (null? triv1*)
+                   (begin
+                     (hashtable-set! var-ht var-name (Wump-single triv-accum))
+                     (list `(= ,test ,var-name ,triv-accum)))
+                   (let ([t1 (make-new-id var-name)] [t2 (make-new-id var-name)])
+                     (cons* `(= ,test ,t1 (== ,(car triv1*) ,(car triv2*)))
+                       `(= ,test ,t2 (select ,triv-accum ,t1 0))
+                       (f (cdr triv1*) (cdr triv2*) t2))))))))]
       [(select ,[Single-Triv : triv0] ,[* wump1] ,[* wump2])
        (let-values ([(wump var-name*)
                      (wump-fold-right

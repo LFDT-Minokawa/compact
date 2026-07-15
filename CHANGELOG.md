@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.108, language 0.25.102, runtime 0.18.102]
+
+### Fixed
+
+- Fix issue [#588](https://github.com/LFDT-Minokawa/compact/issues/588).  For
+  the type `Uint<0..1>` (and enums with a single variant, which get lowered to
+  `Uint<0..1>`), we used an alignment if `bytes:0`.  The ledger and ZKIR expects
+  **no** values for such an alignment, but we provided a (zero) value both in
+  the JS code and in ZKIR.
+  
+### Internal notes
+
+- The fix is to provide no values for `bytes:0` alignments, treating them
+  exactly as the Compact type `Bytes<0>` in `flatten-datatypes`.  However, we do
+  have to materialize a literal 0 when we need a value, like in arithmetic and
+  relational expressions.  This turns out to be a nice optimization (for
+  programs that use `Uint<0..1>` in arithmetic and comparisons).
+  
+- The runtime version is bumped because the bug fix includes the JS descriptors
+  for `CompactTypeEnum` and `CompactTypeUnsignedInteger`.
+
 ## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
 
 ### Fixed

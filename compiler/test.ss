@@ -50577,32 +50577,30 @@ groups than for single tests.
         "{"
         "  \"version\": { \"major\": 2, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
+        "  \"num_inputs\": 0,"
         "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
     )
@@ -50620,33 +50618,30 @@ groups than for single tests.
         "{"
         "  \"version\": { \"major\": 2, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
+        "  \"num_inputs\": 0,"
         "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"output\", \"var\": 3 }"
         "  ]"
         "}"))
     )
@@ -50753,33 +50748,30 @@ groups than for single tests.
         "{"
         "  \"version\": { \"major\": 2, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
+        "  \"num_inputs\": 0,"
         "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
         "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
         "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
         "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
         "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
         "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"less_than\", \"a\": 1, \"b\": 0, \"bits\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
+        "    { \"op\": \"output\", \"var\": 0 }"
         "  ]"
         "}"))
     )
@@ -62229,18 +62221,15 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
-        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"outputs\": ["
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.1\"] }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     )
@@ -62259,19 +62248,15 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
-        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"outputs\": ["
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"test_eq\", \"output\": \"%t.1\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\"] }"
         "  ]"
         "}"))
     )
@@ -62351,19 +62336,15 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 0 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
-        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"outputs\": ["
         "    \"Scalar<BLS12-381>\""
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"constrain_eq\", \"a\": \"%a.0\", \"b\": \"0x00\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"less_than\", \"output\": \"%t.1\", \"a\": \"0x00\", \"b\": \"%a.0\", \"bits\": 1 },"
-        "    { \"op\": \"cond_select\", \"output\": \"%t.2\", \"bit\": \"%t.1\", \"a\": \"0x00\", \"b\": \"0x01\" },"
-        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "    { \"op\": \"output\", \"vals\": [\"0x01\"] }"
         "  ]"
         "}"))
     )
@@ -70376,6 +70357,57 @@ groups than for single tests.
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 8 %tmp.166)
           (impact 1 145)))))
+
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.0\", \"bits\": 64 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.1\", \"bits\": 64 },"
+        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.2\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 0, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\"] },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.3\", \"%tmp.4\"], \"bytes\": \"%bytes.2\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.4\", \"%tmp.3\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x0c\", \"0x08\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x08\", \"%e.0\", \"%e.1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.5\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.6\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x0c\", \"0x08\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x00\", \"0x08\", \"%t.5\", \"%t.6\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\", \"%t.6\"] }"
+        "  ]"
+        "}"))
+    )
 )
 )
 
@@ -89935,6 +89967,160 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  ;; Tests for Github issue #588.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger tuple: [];"
+      "export circuit test(t: []): [] {"
+      "  hash = disclose(persistentHash<[]>(t));"
+      "  tuple = disclose(t);"
+      "  return tuple;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty tuple', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger vector: Vector<0, Field>;"
+      "export circuit test(v: Vector<0, Field>): Vector<0, Field> {"
+      "  hash = disclose(persistentHash<Vector<0, Field>>(v));"
+      "  vector = disclose(v);"
+      "  return vector;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger bytes: Bytes<0>;"
+      "export circuit test(b: Bytes<0>): Bytes<0> {"
+      "  hash = disclose(persistentHash<Bytes<0>>(b));"
+      "  bytes = disclose(b);"
+      "  return bytes;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty byte vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, new Uint8Array())).result)"
+        "      .toEqual(new Uint8Array());"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Empty {}"
+      "ledger hash: Bytes<32>;"
+      "ledger empty: Empty;"
+      "export circuit test(e: Empty): Empty {"
+      "  hash = disclose(persistentHash<Empty>(e));"
+      "  empty = disclose(e);"
+      "  return empty;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('struct with no fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, {})).result).toEqual({});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Color { GREEN }"
+      "ledger hash: Bytes<32>;"
+      "ledger color: Color;"
+      "export circuit test(c: Color): Color {"
+      "  hash = disclose(persistentHash<Color>(c));"
+      "  color = disclose(c);"
+      "  return color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('enum with one variant', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0)).result).toEqual(0);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger uint: Uint<0..1>;"
+      "export circuit test(u: Uint<0..1>): Uint<0..1> {"
+      "  hash = disclose(persistentHash<Uint<0..1>>(u));"
+      "  uint = disclose(u);"
+      "  return uint;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Embedded vector of Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const embedded = {"
+        "    x: 100n,"
+        "    y: Array(10).fill(0n),"
+        "    z: 200n,"
+        "  };"
+        "  expect((await contract.circuits.test(context, embedded)).result).toEqual(embedded);"
+        "});"
+        ))
+    )  
   )
 
 (run-javascript)
