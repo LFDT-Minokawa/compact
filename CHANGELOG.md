@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
+
+### Changed
+
+- Removes `mbits` and `bits` from pretty printing of all IRs.
+
 ## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
 
 ### Fixed
