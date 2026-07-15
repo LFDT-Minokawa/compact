@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Modify the standard library's `secp256k1EthereumAddress` circuit to `assert`
+  that the input is not the secp256k1 identity point, because it does not have a
+  corresponding Ethereum address.  This required two other fixes:
+  - ZKIR code generation for `default<Secp256k1Point>` was not yet implemented
+    and is needed, and
+  - `persistentHash` and `keccak256` hashing functions need to properly handle
+    alignment for `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar` in the
+    ZKIR v3 backend.
+
+### Internal notes
+
+- The standard library behavior is changed (to reject the secp256k1 identity
+  point) but this is deemed a bug fix and not a language version change.
+
 ## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
 
 ### Fixed

@@ -76,6 +76,26 @@
                 (values (reverse new-alignment*) (reverse new-triv*) instr*))
               (let ([atom (car alignment*)])
                 (nanopass-case (Lflattened Alignment) atom
+                  [(anative ,opaque-type) (guard (string=? opaque-type "JubjubScalar"))
+                   ;; This doesn't have its own descriptor in `runtime/src/compact-types.ts.  It's
+                   ;; just a native field but it needs a ZKIR conversion instruction.
+                   (let ([fld (make-temp-id src 'fld)])
+                     (loop (cdr alignment*) (cdr triv*)
+                       (with-output-language (Lzkir Instruction)
+                         (cons `(encode (,fld) ,(car triv*)) instr*))
+                       (with-output-language (Lflattened Alignment)
+                         (cons `(afield) new-alignment*))
+                       (cons fld new-triv*)))]
+                  [(anative ,opaque-type) (guard (or (string=? opaque-type "Secp256k1Base")
+                                                     (string=? opaque-type "Secp256k1Scalar")))
+                   (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
+                     (loop (cdr alignment*) (cdr triv*)
+                       (with-output-language (Lzkir Instruction)
+                         (cons `(encode (,fld0 ,fld1) ,(car triv*)) instr*))
+                       (with-output-language (Lflattened Alignment)
+                         ;; Reversed:
+                         (cons* `(abytes 8) `(abytes 24) new-alignment*))
+                       (cons* fld1 fld0 new-triv*)))]
                   [(anative ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
                    (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
                      (loop (cdr alignment*) (cdr triv*)
@@ -922,9 +942,18 @@
                          (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
          (assemble test '() '() '() src '() env vm-code instr*))]
       [(= ,test (,var-name) (default ,opaque-type))
-       (assert (string=? opaque-type "JubjubPoint"))
        (with-output-language (Lzkir Instruction)
-         (cons `(from_coordinates ,var-name 0 1) instr*))]
+         (case opaque-type
+           [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
+           [("Secp256k1Point")
+            (let* ([tmp0 (make-temp-id default-src 'tmp)]
+                   [tmp1 (make-temp-id default-src 'tmp)])
+              (cons*
+                `(ec_mul_generator ,var-name ,tmp1)
+                `(from_bytes32 "Scalar<Secp256k1>" ,tmp1 ,tmp0)
+                `(into_bytes32 ,tmp0 0)
+                instr*))]
+           [else (assert cannot-happen)]))]
       [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
        ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
        ;; NB: missing-guard-workarounds now implements a workaround that ensures
