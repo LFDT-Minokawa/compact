@@ -2362,7 +2362,18 @@
             (with-output-language (Lflattened Alignment)
               (nanopass-case (Lcircuit Type) type
                 [(tboolean ,src) (cons `(abytes 1) a*)]
-                [(tfield ,src ,ftype) (cons `(afield) a*)]
+                [(tfield ,src ,ftype)
+                 (nanopass-case (Lcircuit Field-Type) ftype
+                   [(field-native)
+                    (cons `(afield) a*)]
+                   [(field-scalar (curve-jubjub))
+                    (if (feature-zkir-v3)
+                        (cons `(anative "JubjubScalar") a*)
+                        (cons `(afield) a*))]
+                   [(field-base (curve-secp256k1))
+                    (cons `(anative "Secp256k1Base") a*)]
+                   [(field-scalar (curve-secp256k1))
+                    (cons `(anative "Secp256k1Scalar") a*)])]
                 [(tunsigned ,src ,nat) (cons `(abytes ,(ceiling (/ (bitwise-length nat) 8))) a*)]
                 [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
                 [(topaque ,src ,opaque-type)

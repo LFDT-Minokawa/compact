@@ -15,6 +15,8 @@
 
 import CompactStandardLibrary;
 
+export { secp256k1EthereumAddress }
+
 // Prove knowledge of an Ethereum-style ECDSA signature.
 // msg is hashed with keccak256 in-circuit before verification, binding the
 // proof to the actual message content.
@@ -24,11 +26,6 @@ export circuit proveEthereumSignature(
   pk: Secp256k1Point
 ): Boolean {
   return secp256k1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk);
-}
-
-// Derive an Ethereum-style address from a public key.
-export circuit ethereumAddress(pk: Secp256k1Point): Bytes<20> {
-  return secp256k1EthereumAddress(pk);
 }
 
 // Prove knowledge of a Bitcoin-style ECDSA signature.
@@ -43,11 +40,7 @@ export circuit proveBitcoinSignature(
 }
 
 // Multiply two secp256k1 scalars.
-// The native `mul` is the special case that reduces the product modulo the
-// secp256k1 group order n (SECP256K1_SCALAR_MODULUS), which is the correct
-// modulus for the scalar field. The bare `*` operator would instead lower to
-// the runtime's `mulField`, reducing modulo the proof system's BLS12-381 field
-// modulus -- the wrong modulus for a Secp256k1Scalar.
+// export { mul } doesn't work because it's implemented as a native.
 export circuit scalarMul(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar {
   return mul(x, y);
 }
