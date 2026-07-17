@@ -1,5 +1,3 @@
-#!chezscheme
-
 ;;; This file is part of Compact.
 ;;; Copyright (C) 2025 Midnight Foundation
 ;;; SPDX-License-Identifier: Apache-2.0
@@ -14,6 +12,8 @@
 ;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
+
+#!chezscheme
 
 (library (typescript-passes)
   (export typescript-passes)
@@ -1346,7 +1346,8 @@
                      [(field-scalar (curve-secp256k1))
                       "__compactRuntime.CompactTypeSecp256k1Scalar"])]
                   [(tunsigned ,src ,nat)
-                   (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)" nat (byte-length nat))]
+                   (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
+                     nat (max 1 (byte-length nat)))]
                   [(tbytes ,src ,len)
                    (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                   [(topaque ,src ,opaque-type)
@@ -1373,7 +1374,8 @@
                      (format "new ~a()" class-name))]
                   [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
                    (let ([n (length elt-name*)])
-                     (format "new __compactRuntime.CompactTypeEnum(~d, ~d)" n (byte-length n)))]
+                     (format "new __compactRuntime.CompactTypeEnum(~d, ~d)"
+                       n (max 1 (byte-length n))))]
                   [(tunknown) (assert cannot-happen)]
                   [else (assert cannot-happen)]))))
           (for-each print-descriptor descriptor-id* type*))
