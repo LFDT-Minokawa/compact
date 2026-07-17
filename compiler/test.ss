@@ -90342,8 +90342,6 @@ groups than for single tests.
 (run-javascript)
 )
 
-#!eof
-
 ;;; Tests that are only run in ZKIR-v3 mode:
 (parameterize ([feature-zkir-v3 #t])
 (run-tests save-manifest
