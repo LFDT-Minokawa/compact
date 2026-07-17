@@ -2374,7 +2374,9 @@
                     (cons `(anative "Secp256k1Base") a*)]
                    [(field-scalar (curve-secp256k1))
                     (cons `(anative "Secp256k1Scalar") a*)])]
-                [(tunsigned ,src ,nat) (cons `(abytes ,(ceiling (/ (bitwise-length nat) 8))) a*)]
+                [(tunsigned ,src ,nat)
+                 (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
+                   (cons `(abytes ,len) a*))]
                 [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
                 [(topaque ,src ,opaque-type)
                  (case opaque-type

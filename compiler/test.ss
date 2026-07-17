@@ -62160,6 +62160,164 @@ groups than for single tests.
         "}"))
     )
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 12,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 64 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": 1, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 2, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 3, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 4, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 5, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 6, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 7, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 8, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 9, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 10, \"b\": 12 },"
+        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 64 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 6 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 27 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 26 },"
+        "    { \"op\": \"output\", \"var\": 24 },"
+        "    { \"op\": \"output\", \"var\": 25 },"
+        "    { \"op\": \"output\", \"var\": 26 },"
+        "    { \"op\": \"output\", \"var\": 27 },"
+        "    { \"op\": \"output\", \"var\": 28 },"
+        "    { \"op\": \"output\", \"var\": 29 },"
+        "    { \"op\": \"output\", \"var\": 30 },"
+        "    { \"op\": \"output\", \"var\": 31 },"
+        "    { \"op\": \"output\", \"var\": 32 },"
+        "    { \"op\": \"output\", \"var\": 33 },"
+        "    { \"op\": \"output\", \"var\": 34 },"
+        "    { \"op\": \"output\", \"var\": 35 }"
+        "  ]"
+        "}"))
+    )  
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -70376,6 +70534,96 @@ groups than for single tests.
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 8 %tmp.166)
           (impact 1 145)))))
+
+    (test
+      '(
+        "import CompactStandardLibrary;"
+        "struct Embedded {"
+        "  x: Uint<64>;"
+        "  y: Vector<10, Uint<0..1>>;"
+        "  z: Uint<64>;"
+        "}"
+        "ledger hash: Bytes<32>;"
+        "ledger embedded: Embedded;"
+        "export circuit test(e: Embedded): Embedded {"
+        "  hash = disclose(persistentHash<Embedded>(e));"
+        "  embedded = disclose(e);"
+        "  return embedded;"
+        "}"
+        )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.11\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.0\", \"bits\": 64 },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.4\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.5\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.6\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.8\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.9\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.10\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.11\", \"bits\": 64 },"
+        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.14\", \"%tmp.13\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x0c\", \"0x08\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.15\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.18\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.20\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.21\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.22\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.23\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.24\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.25\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.26\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x0c\", \"0x08\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"%t.15\", \"%t.16\", \"%t.17\", \"%t.18\", \"%t.19\", \"%t.20\", \"%t.21\", \"%t.22\", \"%t.23\", \"%t.24\", \"%t.25\", \"%t.26\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.15\", \"%t.16\", \"%t.17\", \"%t.18\", \"%t.19\", \"%t.20\", \"%t.21\", \"%t.22\", \"%t.23\", \"%t.24\", \"%t.25\", \"%t.26\"] }"
+        "  ]"
+        "}"))
+      )
 )
 )
 
@@ -89935,10 +90183,166 @@ groups than for single tests.
         "  });"
         ))
     )
+
+  ;; Tests for Github issue #588.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger tuple: [];"
+      "export circuit test(t: []): [] {"
+      "  hash = disclose(persistentHash<[]>(t));"
+      "  tuple = disclose(t);"
+      "  return tuple;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty tuple', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger vector: Vector<0, Field>;"
+      "export circuit test(v: Vector<0, Field>): Vector<0, Field> {"
+      "  hash = disclose(persistentHash<Vector<0, Field>>(v));"
+      "  vector = disclose(v);"
+      "  return vector;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger bytes: Bytes<0>;"
+      "export circuit test(b: Bytes<0>): Bytes<0> {"
+      "  hash = disclose(persistentHash<Bytes<0>>(b));"
+      "  bytes = disclose(b);"
+      "  return bytes;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty byte vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, new Uint8Array())).result)"
+        "      .toEqual(new Uint8Array());"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Empty {}"
+      "ledger hash: Bytes<32>;"
+      "ledger empty: Empty;"
+      "export circuit test(e: Empty): Empty {"
+      "  hash = disclose(persistentHash<Empty>(e));"
+      "  empty = disclose(e);"
+      "  return empty;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('struct with no fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, {})).result).toEqual({});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Color { GREEN }"
+      "ledger hash: Bytes<32>;"
+      "ledger color: Color;"
+      "export circuit test(c: Color): Color {"
+      "  hash = disclose(persistentHash<Color>(c));"
+      "  color = disclose(c);"
+      "  return color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('enum with one variant', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0)).result).toEqual(0);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger uint: Uint<0..1>;"
+      "export circuit test(u: Uint<0..1>): Uint<0..1> {"
+      "  hash = disclose(persistentHash<Uint<0..1>>(u));"
+      "  uint = disclose(u);"
+      "  return uint;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Embedded vector of Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const embedded = {"
+        "    x: 100n,"
+        "    y: Array(10).fill(0n),"
+        "    z: 200n,"
+        "  };"
+        "  expect((await contract.circuits.test(context, embedded)).result).toEqual(embedded);"
+        "});"
+        ))
+    )
   )
 
 (run-javascript)
 )
+
+#!eof
 
 ;;; Tests that are only run in ZKIR-v3 mode:
 (parameterize ([feature-zkir-v3 #t])
