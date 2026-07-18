@@ -46,7 +46,7 @@ export circuit test(): [] {
 
   // Test: insert_index adds a value at a specific index
   const index = 1;
-  merkleTree.insertIndex(7, index);
+  merkleTree.insertIndex(7 as Field, index);
 
   // Test: insert_index_default inserts default value at a specific index
   const defaultIndex = 3;
@@ -54,7 +54,7 @@ export circuit test(): [] {
 
   // Test: is_full returns true when the tree is full
   for (const i of 0..4) {
-    merkleTreeSmall.insert(i);
+    merkleTreeSmall.insert(i as Field);
   }
   assert(merkleTreeSmall.isFull() == true, "tree is full");
 
@@ -62,12 +62,12 @@ export circuit test(): [] {
   assert(partialTree.isFull() == false, "tree is not full");
 
   // Test: reset_to_default resets the tree to its empty state
-  partialTree.insert(42);
+  partialTree.insert(42 as Field);
   partialTree.resetToDefault();
   assert(partialTree.isFull() == false, "tree is not full");
 
   // Test: insert after reset_to_default allows adding values again
-  partialTree.insert(100);
+  partialTree.insert(100 as Field);
 
   return;
 }

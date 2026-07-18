@@ -25,9 +25,9 @@ export circuit test(): [] {
   const a : JubjubPoint = default<JubjubPoint>;
   const b : JubjubPoint = ecAdd(a, a);
   const c : JubjubPoint = ecNeg(a);
-  const d : JubjubPoint = ecMul(a, 1);
-  const e : JubjubPoint = ecMulGenerator(1);
-  const f : JubjubPoint = hashToCurve<Field>(1);
+  const d : JubjubPoint = ecMul(a, 1 as JubjubScalar);
+  const e : JubjubPoint = ecMulGenerator(1 as JubjubScalar);
+  const f : JubjubPoint = hashToCurve<Field>(1 as Field);
 }
 
 // Test2: use getters
@@ -52,7 +52,7 @@ export circuit test3(): Field {
 
 // use of constructor
 export circuit test4(): JubjubPoint {
-  const a = constructJubjubPoint(1, 1);
+  const a = constructJubjubPoint(1 as Field, 1 as Field);
   const b: JubjubPoint = constructJubjubPoint(default<Field>, default<Field>);
 
   return a;

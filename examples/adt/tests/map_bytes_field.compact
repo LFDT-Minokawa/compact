@@ -24,13 +24,13 @@ export circuit test(): [] {
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.size() == 0, "Size should be 0");
 
-  c.insert(zero, 7);
+  c.insert(zero, 7 as Field);
   assert(c.size() == 1, "Size should be 1");
-  assert(c.lookup(zero) == 7, "Key 0 should have value 7");
+  assert(c.lookup(zero) == 7 as Field, "Key 0 should have value 7");
 
   c.insertDefault(one);
   assert(c.size() == 2, "Size should be 2");
-  assert(c.lookup(one) == 0, "Key 1 should have value 0");
+  assert(c.lookup(one) == 0 as Field, "Key 1 should have value 0");
   assert(c.member(one) == true, "Key 1 should be member");
 
   c.remove(zero);

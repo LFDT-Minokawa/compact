@@ -380,9 +380,9 @@ export circuit jubjubSchnorrVerify<#N>(
                                                 pkY: jubjubPointY(pk),
                                                 msg: msg }
                     );
-  const c = jubjubScalarFromNative(cNative);
+  const c = cNative as JubjubScalar;
 
-  const lhs = ecMulGenerator(jubjubScalarFromNative(response));
+  const lhs = ecMulGenerator(response as JubjubScalar);
   const rhs = ecAdd(announcement, ecMul(pk, c));
 
   return lhs == rhs;

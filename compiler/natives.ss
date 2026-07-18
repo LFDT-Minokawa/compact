@@ -19,13 +19,14 @@
   (export native-declarations)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs))
 
   (define (native-declarations)
-    (define ndecl* '())
-    (define native-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define ndecl*)
+    (define native-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (define-syntax declare-native-entry
       (lambda (q)
@@ -34,11 +35,14 @@
             (define (convert-native-type type)
               (define (convert-native-targ targ)
                 #`(targ-type ,native-src #,(convert-native-type targ)))
-              (syntax-case type (TypeRef Boolean Field Bytes Void)
+              (syntax-case type (TypeRef Boolean Bytes Field JubjubScalar Secp256k1Base Secp256k1Scalar Void)
                 [(TypeRef id targ ...) #`(type-ref ,native-src id #,@(map convert-native-targ #'(targ ...)))]
                 [Boolean #'(tboolean ,native-src)]
-                [Field #'(tfield ,native-src)]
                 [(Bytes nat) (field? (datum nat)) #`(tbytes ,native-src (type-size ,native-src ,nat))]
+                [Field #'(tfield ,native-src (field-native))]
+                [JubjubScalar #'(tfield ,native-src (field-scalar (curve-jubjub)))]
+                [Secp256k1Base #'(tfield ,native-src (field-base (curve-secp256k1)))]
+                [Secp256k1Scalar #'(tfield ,native-src (field-scalar (curve-secp256k1)))]
                 [Void #`(ttuple ,native-src)]
                 [other (syntax-error #'other "unrecognized native type")]))
             (syntax-case type ()
@@ -84,6 +88,11 @@
            (f #'class #'name #'(type-param ...) #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)]
           [(_ class name function ([argument-name argument-type disclosure] ...) result-type)
            (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
-    (include "midnight-natives.ss")
-    (reverse ndecl*))
+    (values
+      (fluid-let ([ndecl* '()])
+        (include "midnight-natives.ss")
+        (reverse ndecl*))
+      (fluid-let ([ndecl* '()])
+        (include "zkir-v3-natives.ss")
+        (reverse ndecl*))))
 )
