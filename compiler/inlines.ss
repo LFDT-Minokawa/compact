@@ -25,7 +25,7 @@
 
   (define (inline-declarations)
     (define inline-decl* '())
-    (define inline-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define inline-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (define-syntax declare-inline-entry
       (lambda (q)

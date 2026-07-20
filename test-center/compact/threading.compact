@@ -35,14 +35,14 @@ witness num(n: Field): Field;
 
 export circuit fib(c0: Field): Field{
   const c = disclose(c0);
-  if (c == 1 && counter != 0 ) {
+  if (c == 1 as Field && counter != 0 ) {
     counter.resetToDefault();
     counter.increment(1);
   } else {
-    assert(c == counter + 1, "invalid fib num requested");
+    assert(c == (counter + 1) as Field, "invalid fib num requested");
     counter.increment(1);
   }
-  return disclose(num(c) + num(counter - 1));
+  return disclose(num(c) + num((counter as Field) - 1));
 }
 
 export circuit fib2(reset: Boolean) : Field {
@@ -50,5 +50,5 @@ export circuit fib2(reset: Boolean) : Field {
     counter.resetToDefault();
   else 
     counter.increment(1);
-  return disclose(num(counter));
+  return disclose(num(counter as Field));
 }

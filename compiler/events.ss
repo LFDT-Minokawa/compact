@@ -19,6 +19,7 @@
   (export event-declarations event-tag-of event-version max-emit-size)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs))
@@ -45,7 +46,7 @@
 
   (define (event-declarations)
     (define edecl* '())
-    (define event-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define event-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     ; Runtime collision check, called by the macro expansion before each insert.
     ; Ensures a 1-to-1 relationship between event names and tags.

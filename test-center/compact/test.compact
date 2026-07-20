@@ -47,7 +47,7 @@ export pure circuit foo (a: Boolean, b: Field): Boolean { return false; }
 
 export circuit bar (a: Boolean, b: Boolean): M$frob
 {
-  const x = foo(true, 17);
+  const x = foo(true, 17 as Field);
   const y = a ? (b ? 3 : 2) : b ? 1 : 0;
   const w : Boolean = a ? true : false;
   const v = a ? false : fold(foo, true, [[]][0]);
@@ -69,9 +69,9 @@ export circuit bar (a: Boolean, b: Boolean): M$frob
     },
     true,
     [false, true, true, false],
-    [0, 1, 2, 3]);
+    [0 as Field, 1 as Field, 2 as Field, 3 as Field]);
   [1,2,3,4][2];
-  map(foo, [false, false, true, false], [1, 2, 3, 4]);
+  map(foo, [false, false, true, false], [1 as Field, 2 as Field, 3 as Field, 4 as Field]);
   assert(kernel.self() == kernel2.self(), 'oops');
   return M$frob{ x0.read() };
 }
@@ -100,6 +100,9 @@ ledger x7: ShieldedCoinInfo;
 ledger x10: MerkleTreeDigest;
 ledger x11: QualifiedShieldedCoinInfo;
 ledger x13: ContractAddress;
+ledger x14: JubjubScalar;
+ledger x15: Secp256k1Base;
+ledger x16: Secp256k1Scalar;
 ledger authority: Bytes<32>;
 ledger state: PublicState;
 ledger topic: Maybe<Opaque<"string">>;

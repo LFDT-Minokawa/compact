@@ -257,6 +257,9 @@
       tref
       (tboolean src kwd) => (tboolean)
       (tfield src kwd) => (tfield)
+      (tjubjub-scalar src kwd) => (tjubjub-scalar)
+      (tsecp256k1-base src kwd) => (tsecp256k1-base)
+      (tsecp256k1-scalar src kwd) => (tsecp256k1-scalar)
       (tunsigned src kwd langle tsize rangle) => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src kwd langle tsize dotdot tsize^ rangle) => (tunsigned tsize tsize^) ; range from tsize to tsize^
       (tbytes src kwd langle tsize rangle) => (tbytes tsize)

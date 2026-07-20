@@ -22,18 +22,18 @@ export circuit test(): [] {
   assert(c.length() == 0, "Size should be 0");
   assert(c.head().is_some == false, "Head should not exist");
 
-  c.pushFront(0);
+  c.pushFront(0 as Field);
   assert(c.length() == 1, "Size should be 1");
   assert(c.head().is_some == true, "Head should exist");
-  assert(c.head().value == 0, "Head should have value 0");
+  assert(c.head().value == 0 as Field, "Head should have value 0");
 
-  c.pushFront(1);
+  c.pushFront(1 as Field);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().value == 1, "Head should have value 1");
+  assert(c.head().value == 1 as Field, "Head should have value 1");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == 0, "Head should have value 0");
+  assert(c.head().value == 0 as Field, "Head should have value 0");
 
   c.popFront();
   assert(c.head().is_some == false, "Head should not exist");

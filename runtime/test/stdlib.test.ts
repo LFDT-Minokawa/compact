@@ -92,16 +92,16 @@ describe('__compact.typeError', () => {
   });
 });
 
-describe('__compact.convertFieldToBytes', () => {
+describe('__compact.convertBigintToBytes', () => {
   const x = 256n;
 
   test('Check for success', () => {
-    const a = compactRuntime.convertFieldToBytes(2, x, 'source');
+    const a = compactRuntime.convertBigintToBytes(2, x, 'source');
     expect(a).toEqual(new Uint8Array([0, 1]));
   });
 
   const f = () => {
-    compactRuntime.convertFieldToBytes(1, x, 'source');
+    compactRuntime.convertBigintToBytes(1, x, 'source');
   };
 
   test('Check for error type', () => {
@@ -113,17 +113,18 @@ describe('__compact.convertFieldToBytes', () => {
   });
 });
 
-describe('__compact.convertBytesToField', () => {
+describe('__compact.convertBytesToUint for Field', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0, 1]);
-    const x = compactRuntime.convertBytesToField(a.length, a, 'source');
+    const x = compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, a.length, a, 'Field',
+                                                'source');
     expect(x).toBe(256n);
   });
 
   const f = () => {
     const a = new Uint8Array(57);
     a[56] = 1;
-    compactRuntime.convertBytesToField(57, a, 'source');
+    compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, 57, a, 'Field', 'source');
   };
 
   test('check for error type', () => {
@@ -135,16 +136,16 @@ describe('__compact.convertBytesToField', () => {
   });
 });
 
-describe('__compact.convertBytesToUint', () => {
+describe('__compact.convertBytesToUint for Uint<0..256>', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0xff, 0]);
-    const x = compactRuntime.convertBytesToUint(255, a.length, a, 'source');
+    const x = compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
     expect(x).toBe(255n);
   });
 
   const f = () => {
     const a = new Uint8Array([0, 1]);
-    compactRuntime.convertBytesToUint(255, a.length, a, 'source');
+    compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
   };
 
   test('check for error type', () => {

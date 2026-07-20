@@ -2,5 +2,5 @@
   "keywordBoolean": "false|true",
   "keywordImport": "export|from|import|module|prefix",
   "keywordControl": "as|assert|circuit|const|constructor|contract|default|disclose|else|emit|enum|fold|for|if|implements|include|ledger|map|new|of|pad|pragma|pure|return|sealed|slice|struct|type|witness",
-  "keywordDataTypes": "Boolean|Bytes|Field|Opaque|Uint|Vector"
+  "keywordDataTypes": "Boolean|Bytes|Field|JubjubScalar|Opaque|Secp256k1Base|Secp256k1Scalar|Uint|Vector"
 }

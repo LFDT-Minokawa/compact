@@ -31,7 +31,7 @@ struct bobson {
 }
 
 constructor(b : Boolean) {
-  maps.insert(1, 1);
+  maps.insert(1 as Field, 1 as Field);
 
   adam();
   assert (1 > 2, "bob 1");
@@ -44,12 +44,12 @@ constructor(b : Boolean) {
   assert (round.lessThan(5) == true, "counter");
   (() => assert( 1 > 2, ""))();
   
-  const c = bobson{[1], 1, true };
+  const c = bobson{[1 as Field], 1 as Field, true };
   ellen(c);
   abel();
   mandolin(false);
-  maria(1,2);
-  const f = myswitch(5, 4, true);
+  maria(1 as Field, 2 as Field);
+  const f = myswitch(5 as Field, 4 as Field, true);
   
   assert(pad(50, 'a') == pad(50, 'b'), 'greg 1');
   assert([1] == [1], 'greg 2');
@@ -97,9 +97,9 @@ export circuit fred(): [] {
 }
 
 export circuit ellen(x: bobson): [] {
-  stan.insert(1, disclose(x));
-  kris.insert(1, disclose(x));
-  assert(kris.lookup(1).a[0] as Boolean == stan.lookup(1).a[0] as Boolean, "stan and kris");
+  stan.insert(1 as Field, disclose(x));
+  kris.insert(1 as Field, disclose(x));
+  assert(kris.lookup(1 as Field).a[0] as Boolean == stan.lookup(1 as Field).a[0] as Boolean, "stan and kris");
 }
 
 export circuit myswitch(x: Field, y: Field, b: Boolean): Field {
@@ -121,24 +121,24 @@ export circuit maria(x: Field, y: Field): Field {
     }
   })();
 
-  return 1;
+  return 1 as Field;
 }
 
 export circuit abel(): [] {
-  mapsy.insert(1, default<Counter>);
+  mapsy.insert(1 as Field, default<Counter>);
 
-  assert(mapsy.lookup(1).read() != 2, "equal 1");
-  assert(mapsy.lookup(1).increment(1) == [], "equal 2");
-  assert((mapsy.lookup(1) += 2) == [], "equal 3");
+  assert(mapsy.lookup(1 as Field).read() != 2, "equal 1");
+  assert(mapsy.lookup(1 as Field).increment(1) == [], "equal 2");
+  assert((mapsy.lookup(1 as Field) += 2) == [], "equal 3");
 }
 
 export circuit mandolin(b: Boolean): [] {
   const f = disclose(b);
-  const p = f ? maps3.insert(1, assert(f == true || 1 <= 2, "true")) : maps3.insert(2, assert(f == false || round.read() > 3, "false"));
+  const p = f ? maps3.insert(1 as Field, assert(f == true || 1 <= 2, "true")) : maps3.insert(2 as Field, assert(f == false || round.read() > 3, "false"));
 
   if(f) {
-    maps3.lookup(1);
+    maps3.lookup(1 as Field);
   } else {
-    maps3.lookup(2);
+    maps3.lookup(2 as Field);
   }
 }

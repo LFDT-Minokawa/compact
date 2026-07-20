@@ -112,7 +112,10 @@
     (Boolean
      Bytes
      Field
+     JubjubScalar
      Opaque
+     Secp256k1Base
+     Secp256k1Scalar
      Uint
      Vector))
 
@@ -630,6 +633,18 @@
        (lambda (src kwd)
          (with-output-language (Lparser Type)
            `(tfield ,src ,kwd)))]
+      [type-jubjub-scalar :: src (KEYWORD JubjubScalar) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tjubjub-scalar ,src ,kwd)))]
+      [type-secp256k1-base :: src (KEYWORD Secp256k1Base) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tsecp256k1-base ,src ,kwd)))]
+      [type-secp256k1-scalar :: src (KEYWORD Secp256k1Scalar) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tsecp256k1-scalar ,src ,kwd)))]
       [type-unsigned-integer-bits :: src (KEYWORD Uint) #\< tsize #\> =>
        (lambda (src kwd langle tsize rangle)
          (with-output-language (Lparser Type)

@@ -50,12 +50,12 @@
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -218,7 +218,7 @@
             NODE_PATH = "";
             buildInputs = [
               pkgs.nodejs
-              pkgs.nodePackages.typescript
+              pkgs.typescript
               chez
             ];
             checkPhase = "";
@@ -226,7 +226,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.32.105"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.33.108"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
