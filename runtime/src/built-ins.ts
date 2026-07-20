@@ -16,17 +16,13 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
-import {
-  FIELD_MODULUS,
-  JUBJUB_SCALAR_MODULUS,
-  SECP256K1_BASE_MODULUS,
-  SECP256K1_SCALAR_MODULUS,
-} from './constants.js';
+import { FIELD_MODULUS, SECP256K1_BASE_MODULUS, SECP256K1_SCALAR_MODULUS } from './constants.js';
 import {
   CompactType,
   CompactTypeJubjubPoint,
   JubjubPoint,
   JubjubSchnorrSignature,
+  Secp256k1EcdsaSignature,
   Secp256k1Point,
   toBinaryRepr,
 } from './compact-types.js';
@@ -307,7 +303,7 @@ export function secp256k1ScalarMul(x: bigint, y: bigint): bigint {
  *
  * This function returns the multiplicative inverse of x in the secp256k1 scalar
  * field.  That is, a value y such that x * y = 1 (modulo
- * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range 
+ * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range
  * (0, SECP256K1_SCALAR_MODULUS).
  */
 export function secp256k1ScalarInv(x: bigint): bigint {
@@ -321,7 +317,7 @@ export function secp256k1ScalarInv(x: bigint): bigint {
  * Secp256k1 base field addition
  *
  * This function returns x + y in the secp256k1 base field (modulo
- * SECP256K1_BASE_MODULUS). 
+ * SECP256K1_BASE_MODULUS).
  */
 export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
   return (x + y) % SECP256K1_BASE_MODULUS;
@@ -435,6 +431,31 @@ export function secp256k1Mul(a: Secp256k1Point, b: bigint): Secp256k1Point {
  */
 export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
   return secp256k1FromProjective(secp256k1.Point.BASE.multiplyUnsafe(b));
+}
+
+/**
+ * Recover the secp256k1 public key from an ECDSA signature and a message
+ * hash, following Ethereum `ecrecover` semantics.
+ *
+ * The intended pattern is to recover the public key here,
+ * pass it to a circuit as an ordinary (private) argument or
+ * witness, and constrain it in-circuit with `secp256k1EcdsaVerify(msgHash, sig, pk)`.
+ * The recovery itself is untrusted hint computation: only a public key that
+ * actually verifies against (msgHash, sig) will satisfy the in-circuit check.
+ *
+ * `recoveryId` is in the range [0, 3] (for an Ethereum signature r ‖ s ‖ v,
+ * it is v - 27).  Note that up to four public keys can verify against a given
+ * (msgHash, sig) pair — the recovery id selects one of them.
+ */
+export function secp256k1EcdsaRecover(msgHash: Uint8Array, sig: Secp256k1EcdsaSignature, recoveryId: number): Secp256k1Point {
+  if (msgHash.length !== 32) {
+    throw new CompactError('expected a 32-byte message hash');
+  }
+  if (!Number.isInteger(recoveryId) || recoveryId < 0 || recoveryId > 3) {
+    throw new CompactError('expected a recovery id in the range [0, 3]');
+  }
+  const nobleSig = new secp256k1.Signature(sig.r, sig.s, recoveryId);
+  return secp256k1FromProjective(nobleSig.recoverPublicKey(msgHash));
 }
 
 /**
