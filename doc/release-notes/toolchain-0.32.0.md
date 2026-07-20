@@ -1,13 +1,13 @@
 # Compact toolchain 0.32.0 (unreleased)
 
-- **Date**: 2026-06-30
+- **Date**: 2026-07-21
 - **Language version:** 0.24.0
 - **Compact runtime version:** 0.17.0
 - **Environment**: _[TODO]_ For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
 
 ## High-level summary
 
-Version 0.32.0 of the Compact toolchain is unreleased.  The version number was incremented in the Compact repository in preparation for switching from Midnight ledger version 8 to Midnight ledger version 9.  Ledger 9 releases of the Compact toolchain will be version 0.33 or later, so the version number 0.32.0 is being "reserved" (and skipped for now) to be used if it becomes necessary to make another ledger 8 release.
+Version 0.32.0 of the Compact toolchain is an unreleased version .  The version number was incremented in the Compact repository in preparation for switching from Midnight ledger version 8 to Midnight ledger version 9.  Ledger 9 releases of the Compact toolchain will be version 0.33 or later, so the version number 0.32.0 is being "reserved" (and skipped for now) to be used if it becomes necessary to make another ledger 8 release.
 
 Features described in these release notes will also be part of the first ledger 9 release, which is likely toolchain version 0.33.0.
 
