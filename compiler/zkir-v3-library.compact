@@ -77,6 +77,12 @@ circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
 //   P  = u1*G + u2*pk
 //   valid iff P.x == r as 32-byte big-endian integers
 //
+// `s` is accepted anywhere in [1, n), both low-s and high-s, as in textbook ECDSA.
+// No EIP-2 low-s normalisation is imposed.  Verification compares only P.x against
+// r, and negating s negates P, so `(r, s)` and `(r, n - s)` both verify against the
+// same public key.  A caller that uses a signature as a unique identifier
+// MUST therefore constrain `s <= n / 2` itself.
+//
 // Note: To recover the address behind a signature (as recoverSigner / ecrecover do
 // in [EIP-1271](https://eips.ethereum.org/EIPS/eip-1271)) first recover the public
 // key off-circuit (e.g. with noble's Signature.recoverPublicKey), verify the 

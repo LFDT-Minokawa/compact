@@ -125,6 +125,25 @@ describe('secp256k1 ECDSA public key recovery', () => {
     expect(other).not.toEqual(pk);
   });
 
+  // Both low-s and high-s signatures are accepted, as in textbook ECDSA and
+  // Ethereum's `ecrecover`.  `secp256k1.sign` normalises to low-s, so negating
+  // s gives the high-s twin of the same signature.
+  const N = runtime.SECP256K1_SCALAR_MODULUS;
+  const highS: runtime.Secp256k1EcdsaSignature = { r: sig.r, s: N - sig.s };
+
+  test('the signature under test is the low-s representative', () => {
+    expect(sig.s <= N / 2n).toBe(true);
+    expect(highS.s > N / 2n).toBe(true);
+  });
+
+  test('accepts high-s and recovers the same key when the id is flipped', () => {
+    expect(runtime.secp256k1EcdsaRecover(digest, highS, recoveryId ^ 1)).toEqual(pk);
+  });
+
+  test('negating s without flipping the id recovers a different key', () => {
+    expect(runtime.secp256k1EcdsaRecover(digest, highS, recoveryId)).not.toEqual(pk);
+  });
+
   test('rejects a message hash that is not 32 bytes', () => {
     expect(() => runtime.secp256k1EcdsaRecover(digest.slice(0, 31), sig, recoveryId)).toThrow(runtime.CompactError);
     expect(() => runtime.secp256k1EcdsaRecover(new Uint8Array(33), sig, recoveryId)).toThrow(runtime.CompactError);

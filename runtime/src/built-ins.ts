@@ -454,10 +454,24 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
  * - 2: `R = (r + n, y)` with `y` even.
  * - 3: `R = (r + n, y)` with `y` odd.
  *
- * ## NOTE:
- * Ids 2 and 3 are a theoretical possibility only: Ethereum's `ecrecover` rejects them
- * outright, accepting only v = 27 (id 0) and v = 28 (id 1), and libraries that
- * sign will not emit them. They are accepted here for completeness.
+ * ## Signature malleability:
+ * Both low-s and high-s signatures are accepted, as in textbook ECDSA and
+ * Ethereum's `ecrecover`: `s` is only required to lie in [1, n).  No EIP-2 low-s
+ * normalisation is applied here, and `secp256k1EcdsaVerify` does not constrain
+ * `s` in-circuit either.
+ *
+ * Negating `s` negates the nonce point `R`, and the recovery id carries `R`'s
+ * parity, so `(r, s, id)` and `(r, n - s, id ^ 1)` recover the *same* public
+ * key.  Every signature therefore has a twin that anyone can compute WITHOUT
+ * the signing key.  (Flipping only one of the two — `s` without the id, or the
+ * id without `s` — recovers a different key, which still verifies.)
+ *
+ * This does not weaken authorisation: the twin recovers the same key, so a
+ * check binding the recovered key to an address the contract already trusts
+ * still holds.  It does matter when a signature is treated as a *unique
+ * identifier*.  Such callers must reject or normalise high-s themselves
+ * (require `s <= n / 2`), or the identifier can be mutated into a second value
+ * that passes every check.
  */
 export function secp256k1EcdsaRecover(msgHash: Uint8Array, sig: Secp256k1EcdsaSignature, recoveryId: number): Secp256k1Point {
   if (msgHash.length !== 32) {
