@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
 
-### Changed
+### Internal notes
 
 - Removes `mbits` and `bits` from pretty printing of all IRs.
 

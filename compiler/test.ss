@@ -50044,6 +50044,169 @@ groups than for single tests.
 (run-tests optimize-circuit2
   (test ;; FIXME uncomment the composable contract
     "test-center/compact/test.compact"
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.12 (Kernel))
+        (circuit %foo.13 ([%a.14 (tboolean)]
+                          [%b.15 (tfield (field-native))])
+             (tboolean)
+          #f)
+        (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
+             (tstruct frob (q (tfield (field-native))))
+          (let* ([[%x.19 (tboolean)]
+                  (call %foo.13
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%y.20 (tunsigned 3)]
+                    (if %a.17
+                        (if %b.18 3 (safe-cast (tunsigned 3) (tunsigned 2) 2))
+                        (safe-cast (tunsigned 3)
+                                   (tunsigned 1)
+                          (if %b.18
+                              1
+                              (safe-cast (tunsigned 1) (tunsigned 0) 0))))])
+              (let* ([[%w.21 (tboolean)] (if %a.17 #t #f)])
+                (let* ([[%v.22 (tboolean)]
+                        (if %a.17
+                            #f
+                            (fold %foo.13 #t (tuple-ref (tuple (tuple)) 0)))])
+                  (seq
+                    (if %a.17
+                        (if %b.18
+                            (assert %a.17 "a should be true")
+                            (if %b.18
+                                (assert %a.17 "a should be true")
+                                (tuple)))
+                        (tuple))
+                    (if %a.17
+                        (if %b.18 (assert %a.17 "a should be true") (tuple))
+                        (let* ([[%v.23 (tboolean)] %a.17])
+                          (if %b.18
+                              (assert %v.23 "a should be false")
+                              (tuple))))
+                    (fold
+                      (circuit ([%b.24 (tboolean)]
+                                [%c.25 (tboolean)]
+                                [%d.26 (tfield (field-native))])
+                           (tboolean)
+                        (if (if %a.17 %b.24 #f) %c.25 #f))
+                      #t
+                      (tuple #f #t #t #f)
+                      (tuple
+                        (safe-cast (tfield (field-native)) (tunsigned 0) 0)
+                        (safe-cast (tfield (field-native)) (tunsigned 1) 1)
+                        (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                        (safe-cast (tfield (field-native)) (tunsigned 3) 3)))
+                    (tuple-ref (tuple 1 2 3 4) 2)
+                    (map
+                      %foo.13
+                      (tuple #f #f #t #f)
+                      (tuple
+                        (safe-cast (tfield (field-native)) (tunsigned 1) 1)
+                        (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                        (safe-cast (tfield (field-native)) (tunsigned 3) 3)
+                        (safe-cast (tfield (field-native)) (tunsigned 4) 4)))
+                    (assert
+                      (== (ledger-call self %kernel.12)
+                          (ledger-call self %kernel2.27))
+                      "oops")
+                    (new (tstruct frob (q (tfield (field-native))))
+                      (ledger-call read %x0.28))))))))
+        (circuit %baz.29 ([%b.30 (tboolean)])
+             (tunsigned 1023)
+          (disclose
+            (if %b.30
+                (safe-cast (tunsigned 1023) (tunsigned 1) 1)
+                (safe-cast (tunsigned 1023) (tunsigned 0) 0))))
+        (circuit %nullX.31 () (tboolean) (default (tboolean)))
+        (public-ledger-declaration %kernel2.27 (Kernel))
+        (public-ledger-declaration
+          %x0.28
+          (__compact_Cell (tfield (field-native))))
+        (public-ledger-declaration
+          %x1.32
+          (Set (tfield (field-native))))
+        (public-ledger-declaration %x2.33 (Counter))
+        (public-ledger-declaration
+          %x3.34
+          (List (tfield (field-native))))
+        (public-ledger-declaration
+          %x4.35
+          (Map (tfield (field-native)) (tboolean)))
+        (public-ledger-declaration
+          %x5.36
+          (MerkleTree 32 (tfield (field-native))))
+        (public-ledger-declaration
+          %x6.37
+          (HistoricMerkleTree 10 (tfield (field-native))))
+        (public-ledger-declaration
+          %x7.38
+          (__compact_Cell
+            (tstruct ShieldedCoinInfo
+              (nonce (tbytes 32))
+              (color (tbytes 32))
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
+        (public-ledger-declaration
+          %x10.39
+          (__compact_Cell
+            (tstruct MerkleTreeDigest (field (tfield (field-native))))))
+        (public-ledger-declaration
+          %x11.40
+          (__compact_Cell
+            (tstruct QualifiedShieldedCoinInfo
+              (nonce (tbytes 32))
+              (color (tbytes 32))
+              (value (tunsigned 340282366920938463463374607431768211455))
+              (mt_index (tunsigned 18446744073709551615)))))
+        (public-ledger-declaration
+          %x13.41
+          (__compact_Cell
+            (tstruct ContractAddress (bytes (tbytes 32)))))
+        (public-ledger-declaration
+          %x14.42
+          (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
+        (public-ledger-declaration
+          %x15.43
+          (__compact_Cell (tfield (field-base (curve-secp256k1)))))
+        (public-ledger-declaration
+          %x16.44
+          (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
+        (public-ledger-declaration
+          %authority.45
+          (__compact_Cell (tbytes 32)))
+        (public-ledger-declaration
+          %state.46
+          (__compact_Cell
+            (tenum PublicState setup commit reveal final)))
+        (public-ledger-declaration
+          %topic.47
+          (__compact_Cell
+            (tstruct Maybe
+              (is_some (tboolean))
+              (value (topaque "string")))))
+        (public-ledger-declaration %tally_yes.48 (Counter))
+        (public-ledger-declaration
+          %committed_votes.49
+          (MerkleTree 10 (tbytes 32)))
+        (public-ledger-declaration %committed.50 (Set (tbytes 32)))
+        (public-ledger-declaration
+          %ciphertexts.51
+          (__compact_Cell (topaque "Uint8Array")))
+        (constructor ([%state.52 (tfield (field-native))])
+          (seq
+            (fold
+              (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
+                   (ttuple)
+                (seq
+                  (seq
+                    (+ %state.52
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                    (tuple))
+                  %t.53))
+              (tuple)
+              (tuple))
+            (tuple)))))
     (pass-returns reject-recursive-circuits
       (program
         (kernel-declaration (%kernel.12 (Kernel)))
