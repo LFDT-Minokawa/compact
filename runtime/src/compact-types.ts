@@ -331,7 +331,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
     const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 192n) -1n))
+    return ocrt.bigIntToValue(value & mask)
       .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
@@ -666,7 +666,7 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
   const arrays = [];
   let length = 0;
   for (let i = 0; i < alignment.length; ++i) {
-    let segment = alignment[i];
+    const segment = alignment[i];
     if (segment.tag != 'atom') {
       // We are decoding our own FAB representation and we only use 'atom'.
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
