@@ -5,9 +5,78 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.108, language 0.25.102, runtime 0.18.101]
+
+- Fix issue [#588](https://github.com/LFDT-Minokawa/compact/issues/588).  For
+  the type `Uint<0..1>` (and enums with a single variant, which get lowered to
+  `Uint<0..1>`), we used an alignment of `bytes:0`.  The ledger and ZKIR expects
+  **no** values for such an alignment, but we provided one (always zero) value
+  in the transcripts.
+  
+### Internal notes
+
+- The fix is to use an alignment of `bytes:1` for the type `Uint<0..1>`, so that
+  the ZKIR code will expect the value provided by JS.
+
+## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Modify the standard library's `secp256k1EthereumAddress` circuit to `assert`
+  that the input is not the secp256k1 identity point, because it does not have a
+  corresponding Ethereum address.  This required two other fixes:
+  - ZKIR code generation for `default<Secp256k1Point>` was not yet implemented
+    and is needed, and
+  - `persistentHash` and `keccak256` hashing functions need to properly handle
+    alignment for `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar` in the
+    ZKIR v3 backend.
+
+### Internal notes
+
+- The standard library behavior is changed (to reject the secp256k1 identity
+  point) but this is deemed a bug fix and not a language version change.
+
+## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#609](https://github.com/LFDT-Minokawa/compact/issues/609).
+  Successive calls to `secp256k1EcdsaVerify` triggered a failure in the circuit
+  optimizer where the secp256k1 base and scalar fields were not handled in a
+  comparison predicate.
+
+## [Toolchain 0.33.105, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#608](https://github.com/LFDT-Minokawa/compact/issues/608).  The
+  ZKIR v3 backend did not properly handle alignment for JubjubPoint and
+  Secp256k1Point when passed to the hashing function `persistentHash`,
+  `persistentCommit`, or `keccak256`.
+
+## [Toolchain 0.33.104, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Implement proper equality comparison for `Secp256k1Point`.  Identity points
+  are equal to identity points, and non-identity points are equal if they have
+  the same affine X- and Y- coordinates.
+
+### Internal notes
+
+- JS code for `JubjubPoint` equality is simplified, and `Uint` types now use
+  direct `===` comparisons, rather than a helper that performs only `===`
+  comparison.
+
+## [Toolchain 0.33.103, language 0.25.101, runtime 0.18.101]
+
+### Changed
+
+- Pulls in ledger-9.1.0.0-rc.3
+
 ## [Toolchain 0.33.102, language 0.25.101, runtime 0.18.100]
 
-## Fixed
+### Fixed
 
 - Add a `toBinaryRepr` to the Compact runtime that replicates the effect of the
   on-chain Rust `binary_repr`.  Use it in the runtime for the argument to the

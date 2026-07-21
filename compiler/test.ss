@@ -50170,110 +50170,110 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.12 (Kernel)))
         (public-ledger-declaration
-          (%x0.13 (__compact_Cell (tfield (field-native))))
-          (%x1.14 (Set (tfield (field-native))))
-          (%x2.15 (Counter))
-          (%x3.16 (List (tfield (field-native))))
-          (%x4.17 (Map (tfield (field-native)) (tboolean)))
-          (%x5.18 (MerkleTree 32 (tfield (field-native))))
-          (%x6.19 (HistoricMerkleTree 10 (tfield (field-native))))
-          (%x7.20
+          (%x0.28 (__compact_Cell (tfield (field-native))))
+          (%x1.32 (Set (tfield (field-native))))
+          (%x2.33 (Counter))
+          (%x3.34 (List (tfield (field-native))))
+          (%x4.35 (Map (tfield (field-native)) (tboolean)))
+          (%x5.36 (MerkleTree 32 (tfield (field-native))))
+          (%x6.37 (HistoricMerkleTree 10 (tfield (field-native))))
+          (%x7.38
             (__compact_Cell
               (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned
                          340282366920938463463374607431768211455)))))
-          (%x10.21
+          (%x10.39
             (__compact_Cell
               (tstruct MerkleTreeDigest (field (tfield (field-native))))))
-          (%x11.22
+          (%x11.40
             (__compact_Cell
               (tstruct QualifiedShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
                 (value (tunsigned 340282366920938463463374607431768211455))
                 (mt_index (tunsigned 18446744073709551615)))))
-          (%x13.23
+          (%x13.41
             (__compact_Cell
               (tstruct ContractAddress (bytes (tbytes 32)))))
-          (%x14.24
+          (%x14.42
             (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-          (%x15.25
+          (%x15.43
             (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-          (%x16.26
+          (%x16.44
             (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-          (%authority.27 (__compact_Cell (tbytes 32)))
-          (%state.28
+          (%authority.45 (__compact_Cell (tbytes 32)))
+          (%state.46
             (__compact_Cell
               (tenum PublicState setup commit reveal final)))
-          (%topic.29
+          (%topic.47
             (__compact_Cell
               (tstruct Maybe
                 (is_some (tboolean))
                 (value (topaque "string")))))
-          (%tally_yes.30 (Counter))
-          (%committed_votes.31 (MerkleTree 10 (tbytes 32)))
-          (%committed.32 (Set (tbytes 32)))
-          (%ciphertexts.33 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.34 (tfield (field-native))])
+          (%tally_yes.48 (Counter))
+          (%committed_votes.49 (MerkleTree 10 (tbytes 32)))
+          (%committed.50 (Set (tbytes 32)))
+          (%ciphertexts.51 (__compact_Cell (topaque "Uint8Array")))
+          (constructor ([%state.52 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.35 (ttuple)] [%i.36 (tunknown)])
+                (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ #f
-                         %state.34
+                         %state.52
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.35))
+                    %t.53))
                 (tuple)
                 (tuple))
               (tuple))))
-        (circuit %foo.37 ([%a.38 (tboolean)]
-                          [%b.39 (tfield (field-native))])
+        (circuit %foo.13 ([%a.14 (tboolean)]
+                          [%b.15 (tfield (field-native))])
              (tboolean)
           #f)
-        (circuit %bar.40 ([%a.41 (tboolean)] [%b.42 (tboolean)])
+        (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (let* ([[%x.43 (tboolean)]
-                  (call %foo.37
+          (let* ([[%x.19 (tboolean)]
+                  (call %foo.13
                     #t
                     (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%y.44 (tunsigned 3)]
-                    (if %a.41
-                        (if %b.42 3 (safe-cast (tunsigned 3) (tunsigned 2) 2))
+            (let* ([[%y.20 (tunsigned 3)]
+                    (if %a.17
+                        (if %b.18 3 (safe-cast (tunsigned 3) (tunsigned 2) 2))
                         (safe-cast (tunsigned 3)
                                    (tunsigned 1)
-                          (if %b.42
+                          (if %b.18
                               1
                               (safe-cast (tunsigned 1) (tunsigned 0) 0))))])
-              (let* ([[%w.45 (tboolean)] (if %a.41 #t #f)])
-                (let* ([[%v.46 (tboolean)]
-                        (if %a.41
+              (let* ([[%w.21 (tboolean)] (if %a.17 #t #f)])
+                (let* ([[%v.22 (tboolean)]
+                        (if %a.17
                             #f
-                            (fold %foo.37 #t (tuple-ref (tuple (tuple)) 0)))])
+                            (fold %foo.13 #t (tuple-ref (tuple (tuple)) 0)))])
                   (seq
-                    (if %a.41
-                        (if %b.42
-                            (assert %a.41 "a should be true")
-                            (if %b.42
-                                (assert %a.41 "a should be true")
+                    (if %a.17
+                        (if %b.18
+                            (assert %a.17 "a should be true")
+                            (if %b.18
+                                (assert %a.17 "a should be true")
                                 (tuple)))
                         (tuple))
-                    (if %a.41
-                        (if %b.42 (assert %a.41 "a should be true") (tuple))
-                        (let* ([[%v.47 (tboolean)] %a.41])
-                          (if %b.42
-                              (assert %v.47 "a should be false")
+                    (if %a.17
+                        (if %b.18 (assert %a.17 "a should be true") (tuple))
+                        (let* ([[%v.23 (tboolean)] %a.17])
+                          (if %b.18
+                              (assert %v.23 "a should be false")
                               (tuple))))
                     (fold
-                      (circuit ([%b.48 (tboolean)]
-                                [%c.49 (tboolean)]
-                                [%d.50 (tfield (field-native))])
+                      (circuit ([%b.24 (tboolean)]
+                                [%c.25 (tboolean)]
+                                [%d.26 (tfield (field-native))])
                            (tboolean)
-                        (if (if %a.41 %b.48 #f) %c.49 #f))
+                        (if (if %a.17 %b.24 #f) %c.25 #f))
                       #t
                       (tuple #f #t #t #f)
                       (tuple
@@ -50283,7 +50283,7 @@ groups than for single tests.
                         (safe-cast (tfield (field-native)) (tunsigned 3) 3)))
                     (tuple-ref (tuple 1 2 3 4) 2)
                     (map
-                      %foo.37
+                      %foo.13
                       (tuple #f #f #t #f)
                       (tuple
                         (safe-cast (tfield (field-native)) (tunsigned 1) 1)
@@ -50295,27 +50295,27 @@ groups than for single tests.
                           (public-ledger %kernel.12 (self)))
                       "oops")
                     (new (tstruct frob (q (tfield (field-native))))
-                      (public-ledger %x0.13 (read)))))))))
-        (circuit %baz.51 ([%b.52 (tboolean)])
+                      (public-ledger %x0.28 (read)))))))))
+        (circuit %baz.29 ([%b.30 (tboolean)])
              (tunsigned 1023)
           (disclose
-            (if %b.52
+            (if %b.30
                 (safe-cast (tunsigned 1023) (tunsigned 1) 1)
                 (safe-cast (tunsigned 1023) (tunsigned 0) 0))))
-        (circuit %nullX.53 () (tboolean) (default (tboolean)))))
+        (circuit %nullX.31 () (tboolean) (default (tboolean)))))
     (pass-returns reduce-to-circuit
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.13 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.14 (0 1) (Set (tfield (field-native))))
-             (%x2.15 (0 2) (Counter))
-             (%x3.16 (0 3) (List (tfield (field-native))))
-             (%x4.17 (0 4) (Map (tfield (field-native)) (tboolean)))
-             (%x5.18 (0 5) (MerkleTree 32 (tfield (field-native)))))
-           ((%x6.19
+          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.32 (0 1) (Set (tfield (field-native))))
+             (%x2.33 (0 2) (Counter))
+             (%x3.34 (0 3) (List (tfield (field-native))))
+             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean)))
+             (%x5.36 (0 5) (MerkleTree 32 (tfield (field-native)))))
+           ((%x6.37
               (1 0)
               (HistoricMerkleTree 10 (tfield (field-native))))
-             (%x7.20
+             (%x7.38
                (1 1)
                (__compact_Cell
                  (tstruct ShieldedCoinInfo
@@ -50323,11 +50323,11 @@ groups than for single tests.
                    (color (tbytes 32))
                    (value (tunsigned
                             340282366920938463463374607431768211455)))))
-             (%x10.21
+             (%x10.39
                (1 2)
                (__compact_Cell
                  (tstruct MerkleTreeDigest (field (tfield (field-native))))))
-             (%x11.22
+             (%x11.40
                (1 3)
                (__compact_Cell
                  (tstruct QualifiedShieldedCoinInfo
@@ -50335,81 +50335,81 @@ groups than for single tests.
                    (color (tbytes 32))
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
-             (%x13.23
+             (%x13.41
                (1 4)
                (__compact_Cell
                  (tstruct ContractAddress (bytes (tbytes 32)))))
-             (%x14.24
+             (%x14.42
                (1 5)
                (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-             (%x15.25
+             (%x15.43
                (1 6)
                (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-             (%x16.26
+             (%x16.44
                (1 7)
                (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-             (%authority.27 (1 8) (__compact_Cell (tbytes 32)))
-             (%state.28 (1 9) (__compact_Cell (tunsigned 3)))
-             (%topic.29
+             (%authority.45 (1 8) (__compact_Cell (tbytes 32)))
+             (%state.46 (1 9) (__compact_Cell (tunsigned 3)))
+             (%topic.47
                (1 10)
                (__compact_Cell
                  (tstruct Maybe
                    (is_some (tboolean))
                    (value (topaque "string")))))
-             (%tally_yes.30 (1 11) (Counter))
-             (%committed_votes.31 (1 12) (MerkleTree 10 (tbytes 32)))
-             (%committed.32 (1 13) (Set (tbytes 32)))
-             (%ciphertexts.33
+             (%tally_yes.48 (1 11) (Counter))
+             (%committed_votes.49 (1 12) (MerkleTree 10 (tbytes 32)))
+             (%committed.50 (1 13) (Set (tbytes 32)))
+             (%ciphertexts.51
                (1 14)
                (__compact_Cell (topaque "Uint8Array"))))))
-        (circuit %bar.34 ([%a.35 (tboolean)] [%b.36 (tboolean)])
+        (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (= #t %t.37 (select %a.35 #t #f))
-          (= #t %t.38 (select %a.35 #f #t))
-          (= %t.37 %t.39 (tuple))
-          (= #t %t.40 (select %b.36 %t.38 #f))
-          (= #t %t.41 (select %b.36 #f %t.38))
-          (= #t %t.42 (select %t.40 #f #t))
-          (assert %t.42 "a should be false")
-          (= %t.40 %t.43 (tuple))
-          (= %t.41 %t.44 (tuple))
-          (= #t %t.45 (public-ledger %kernel.12 () self))
-          (= #t %t.46 (public-ledger %kernel.12 () self))
-          (= #t %t.47 (== %t.45 %t.46))
-          (= #t %t.48 (select #t %t.47 #t))
-          (assert %t.48 "oops")
-          (= #t %t.49 (tuple))
-          (= #t %t.50 (public-ledger %x0.13 (0 0) read))
-          (= #t %t.51
-             (new (tstruct frob (q (tfield (field-native)))) %t.50))
-          %t.51)))
+          (= #t %t.55 (select %a.17 #t #f))
+          (= #t %t.56 (select %a.17 #f #t))
+          (= %t.55 %t.57 (tuple))
+          (= #t %t.58 (select %b.18 %t.56 #f))
+          (= #t %t.59 (select %b.18 #f %t.56))
+          (= #t %t.60 (select %t.58 #f #t))
+          (assert %t.60 "a should be false")
+          (= %t.58 %t.61 (tuple))
+          (= %t.59 %t.62 (tuple))
+          (= #t %t.63 (public-ledger %kernel.12 () self))
+          (= #t %t.64 (public-ledger %kernel.12 () self))
+          (= #t %t.65 (== %t.63 %t.64))
+          (= #t %t.66 (select #t %t.65 #t))
+          (assert %t.66 "oops")
+          (= #t %t.67 (tuple))
+          (= #t %t.68 (public-ledger %x0.28 (0 0) read))
+          (= #t %t.69
+             (new (tstruct frob (q (tfield (field-native)))) %t.68))
+          %t.69)))
     (returns
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.13
+          (((%x0.28
               (0 0)
               (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
-             (%x1.14
+             (%x1.32
                (0 1)
                (Set (ty ((afield)) ((tfield (field-native))))))
-             (%x2.15 (0 2) (Counter))
-             (%x3.16
+             (%x2.33 (0 2) (Counter))
+             (%x3.34
                (0 3)
                (List (ty ((afield)) ((tfield (field-native))))))
-             (%x4.17
+             (%x4.35
                (0 4)
                (Map (ty ((afield)) ((tfield (field-native))))
                     (ty ((abytes 1)) ((tunsigned 1)))))
-             (%x5.18
+             (%x5.36
                (0 5)
                (MerkleTree 32 (ty ((afield)) ((tfield (field-native)))))))
-           ((%x6.19
+           ((%x6.37
               (1 0)
               (HistoricMerkleTree
                 10
                 (ty ((afield)) ((tfield (field-native))))))
-             (%x7.20
+             (%x7.38
                (1 1)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16))
@@ -50420,10 +50420,10 @@ groups than for single tests.
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 340282366920938463463374607431768211455)))))
-             (%x10.21
+             (%x10.39
                (1 2)
                (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
-             (%x11.22
+             (%x11.40
                (1 3)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
@@ -50435,43 +50435,45 @@ groups than for single tests.
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 340282366920938463463374607431768211455)
                        (tunsigned 18446744073709551615)))))
-             (%x13.23
+             (%x13.41
                (1 4)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%x14.24
+             (%x14.42
                (1 5)
                (__compact_Cell
-                 (ty ((afield)) ((tfield (field-scalar (curve-jubjub)))))))
-             (%x15.25
+                 (ty ((anative "JubjubScalar"))
+                     ((tfield (field-scalar (curve-jubjub)))))))
+             (%x15.43
                (1 6)
                (__compact_Cell
-                 (ty ((afield)) ((tfield (field-base (curve-secp256k1)))))))
-             (%x16.26
+                 (ty ((anative "Secp256k1Base"))
+                     ((tfield (field-base (curve-secp256k1)))))))
+             (%x16.44
                (1 7)
                (__compact_Cell
-                 (ty ((afield))
+                 (ty ((anative "Secp256k1Scalar"))
                      ((tfield (field-scalar (curve-secp256k1)))))))
-             (%authority.27
+             (%authority.45
                (1 8)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%state.28
+             (%state.46
                (1 9)
                (__compact_Cell (ty ((abytes 1)) ((tunsigned 3)))))
-             (%topic.29
+             (%topic.47
                (1 10)
                (__compact_Cell
                  (ty ((abytes 1) (acompress))
                      ((tunsigned 1) (topaque "string")))))
-             (%tally_yes.30 (1 11) (Counter))
-             (%committed_votes.31
+             (%tally_yes.48 (1 11) (Counter))
+             (%committed_votes.49
                (1 12)
                (MerkleTree
                  10
@@ -50479,17 +50481,17 @@ groups than for single tests.
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%committed.32
+             (%committed.50
                (1 13)
                (Set (ty ((abytes 32))
                         ((tunsigned 255)
                           (tunsigned
                             452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%ciphertexts.33
+             (%ciphertexts.51
                (1 14)
                (__compact_Cell
                  (ty ((acompress)) ((topaque "Uint8Array"))))))))
-        (circuit %bar.34 ((argument
+        (circuit %bar.16 ((argument
                             (%a.0)
                             (ty ((abytes 1)) ((tunsigned 1))))
                           (argument (%b.2) (ty ((abytes 1)) ((tunsigned 1)))))
@@ -50504,8 +50506,9 @@ groups than for single tests.
           (= 1 %t.9 (== %t.8 %t.7))
           (= 1 %t.11 (select %t.10 %t.9 0))
           (assert %t.11 "oops")
-          (= 1 (%t.35) (public-ledger %x0.13 (0 0) read))
-          (%t.35)))))
+          (= 1 (%t.70) (public-ledger %x0.28 (0 0) read))
+          (%t.70))))
+    )
 )
 )
 
@@ -62157,6 +62160,164 @@ groups than for single tests.
         "}"))
     )
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 12,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 64 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": 1, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 2, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 3, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 4, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 5, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 6, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 7, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 8, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 9, \"b\": 12 },"
+        "    { \"op\": \"constrain_eq\", \"a\": 10, \"b\": 12 },"
+        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 64 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },"
+        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 6 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 27 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 4 },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"guard\": null },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 26 },"
+        "    { \"op\": \"output\", \"var\": 24 },"
+        "    { \"op\": \"output\", \"var\": 25 },"
+        "    { \"op\": \"output\", \"var\": 26 },"
+        "    { \"op\": \"output\", \"var\": 27 },"
+        "    { \"op\": \"output\", \"var\": 28 },"
+        "    { \"op\": \"output\", \"var\": 29 },"
+        "    { \"op\": \"output\", \"var\": 30 },"
+        "    { \"op\": \"output\", \"var\": 31 },"
+        "    { \"op\": \"output\", \"var\": 32 },"
+        "    { \"op\": \"output\", \"var\": 33 },"
+        "    { \"op\": \"output\", \"var\": 34 },"
+        "    { \"op\": \"output\", \"var\": 35 }"
+        "  ]"
+        "}"))
+    )  
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -70201,6 +70362,268 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  ;; LFDT-Minokawa/compact issue #609.  Two calls to secp256k1EcdsaVerify
+  ;; triggered a failure in the circuit optimizer.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger n: Uint<64>;"
+      "witness pk0(): Secp256k1Point;"
+      "witness sig0(): Secp256k1EcdsaSignature;"
+      "witness pk1(): Secp256k1Point;"
+      "witness sig1(): Secp256k1EcdsaSignature;"
+      ""
+      "export circuit bump(d: Bytes<32>): [] {"
+      "  assert(secp256k1EcdsaVerify(d, sig0(), pk0()), 'b0');"
+      "  assert(secp256k1EcdsaVerify(d, sig1(), pk1()), 'b1');"
+      "  n = (n + 1) as Uint<64>;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (bump) ((%d.0 "Scalar<BLS12-381>")
+                         (%d.1 "Scalar<BLS12-381>"))
+          ()
+          (constrain_bits %d.0 8)
+          (constrain_bits %d.1 248)
+          (private_input "Scalar<Secp256k1>" %sig.39)
+          (private_input "Scalar<Secp256k1>" %sig.52)
+          (private_input "Point<Secp256k1>" %pk.53)
+          (copy %v.3 %d.0)
+          (div_mod_power_of_two %quo.54 %v.2 %d.1 8)
+          (div_mod_power_of_two %quo.55 %v.33 %quo.54 8)
+          (div_mod_power_of_two %quo.56 %v.32 %quo.55 8)
+          (div_mod_power_of_two %quo.57 %v.31 %quo.56 8)
+          (div_mod_power_of_two %quo.58 %v.30 %quo.57 8)
+          (div_mod_power_of_two %quo.59 %v.29 %quo.58 8)
+          (div_mod_power_of_two %quo.60 %v.28 %quo.59 8)
+          (div_mod_power_of_two %quo.61 %v.27 %quo.60 8)
+          (div_mod_power_of_two %quo.62 %v.26 %quo.61 8)
+          (div_mod_power_of_two %quo.63 %v.25 %quo.62 8)
+          (div_mod_power_of_two %quo.64 %v.24 %quo.63 8)
+          (div_mod_power_of_two %quo.65 %v.23 %quo.64 8)
+          (div_mod_power_of_two %quo.66 %v.22 %quo.65 8)
+          (div_mod_power_of_two %quo.67 %v.21 %quo.66 8)
+          (div_mod_power_of_two %quo.68 %v.20 %quo.67 8)
+          (div_mod_power_of_two %quo.69 %v.19 %quo.68 8)
+          (div_mod_power_of_two %quo.70 %v.18 %quo.69 8)
+          (div_mod_power_of_two %quo.71 %v.17 %quo.70 8)
+          (div_mod_power_of_two %quo.72 %v.16 %quo.71 8)
+          (div_mod_power_of_two %quo.73 %v.15 %quo.72 8)
+          (div_mod_power_of_two %quo.74 %v.14 %quo.73 8)
+          (div_mod_power_of_two %quo.75 %v.13 %quo.74 8)
+          (div_mod_power_of_two %quo.76 %v.12 %quo.75 8)
+          (div_mod_power_of_two %quo.77 %v.11 %quo.76 8)
+          (div_mod_power_of_two %quo.78 %v.10 %quo.77 8)
+          (div_mod_power_of_two %quo.79 %v.9 %quo.78 8)
+          (div_mod_power_of_two %quo.80 %v.8 %quo.79 8)
+          (div_mod_power_of_two %quo.81 %v.7 %quo.80 8)
+          (div_mod_power_of_two %quo.82 %v.6 %quo.81 8)
+          (div_mod_power_of_two %quo.83 %v.5 %quo.82 8)
+          (copy %v.4 %quo.83)
+          (copy %beReversed.35 %v.2)
+          (reconstitute_field %div.84 %v.33 %v.32 8)
+          (reconstitute_field %div.85 %div.84 %v.31 8)
+          (reconstitute_field %div.86 %div.85 %v.30 8)
+          (reconstitute_field %div.87 %div.86 %v.29 8)
+          (reconstitute_field %div.88 %div.87 %v.28 8)
+          (reconstitute_field %div.89 %div.88 %v.27 8)
+          (reconstitute_field %div.90 %div.89 %v.26 8)
+          (reconstitute_field %div.91 %div.90 %v.25 8)
+          (reconstitute_field %div.92 %div.91 %v.24 8)
+          (reconstitute_field %div.93 %div.92 %v.23 8)
+          (reconstitute_field %div.94 %div.93 %v.22 8)
+          (reconstitute_field %div.95 %div.94 %v.21 8)
+          (reconstitute_field %div.96 %div.95 %v.20 8)
+          (reconstitute_field %div.97 %div.96 %v.19 8)
+          (reconstitute_field %div.98 %div.97 %v.18 8)
+          (reconstitute_field %div.99 %div.98 %v.17 8)
+          (reconstitute_field %div.100 %div.99 %v.16 8)
+          (reconstitute_field %div.101 %div.100 %v.15 8)
+          (reconstitute_field %div.102 %div.101 %v.14 8)
+          (reconstitute_field %div.103 %div.102 %v.13 8)
+          (reconstitute_field %div.104 %div.103 %v.12 8)
+          (reconstitute_field %div.105 %div.104 %v.11 8)
+          (reconstitute_field %div.106 %div.105 %v.10 8)
+          (reconstitute_field %div.107 %div.106 %v.9 8)
+          (reconstitute_field %div.108 %div.107 %v.8 8)
+          (reconstitute_field %div.109 %div.108 %v.7 8)
+          (reconstitute_field %div.110 %div.109 %v.6 8)
+          (reconstitute_field %div.111 %div.110 %v.5 8)
+          (reconstitute_field %div.112 %div.111 %v.4 8)
+          (reconstitute_field %beReversed.34 %div.112 %v.3 8)
+          (bytes32_from_low_high
+            %tmp.113
+            %beReversed.34
+            %beReversed.35)
+          (from_bytes32 "Scalar<Secp256k1>" %z.114 %tmp.113)
+          (inv %w.115 %sig.52)
+          (mul %u1.116 %z.114 %w.115)
+          (mul %u2.117 %sig.39 %w.115)
+          (ec_mul_generator %t.118 %u1.116)
+          (ec_mul %t.119 %pk.53 %u2.117)
+          (add %point.120 %t.118 %t.119)
+          (into_coordinates %t.36 %ignore.121 %point.120)
+          (into_bytes32 %tmp.122 %t.36)
+          (bytes32_into_low_high %t.37 %t.38 %tmp.122)
+          (bytes32_from_low_high %tmp.123 %t.37 %t.38)
+          (from_bytes32 "Scalar<Secp256k1>" %t.40 %tmp.123)
+          (test_eq %t.41 %t.40 %sig.39)
+          (assert %t.41)
+          (private_input "Scalar<Secp256k1>" %sig.47)
+          (private_input "Scalar<Secp256k1>" %sig.124)
+          (private_input "Point<Secp256k1>" %pk.125)
+          (copy %beReversed.43 %v.2)
+          (reconstitute_field %div.126 %v.33 %v.32 8)
+          (reconstitute_field %div.127 %div.126 %v.31 8)
+          (reconstitute_field %div.128 %div.127 %v.30 8)
+          (reconstitute_field %div.129 %div.128 %v.29 8)
+          (reconstitute_field %div.130 %div.129 %v.28 8)
+          (reconstitute_field %div.131 %div.130 %v.27 8)
+          (reconstitute_field %div.132 %div.131 %v.26 8)
+          (reconstitute_field %div.133 %div.132 %v.25 8)
+          (reconstitute_field %div.134 %div.133 %v.24 8)
+          (reconstitute_field %div.135 %div.134 %v.23 8)
+          (reconstitute_field %div.136 %div.135 %v.22 8)
+          (reconstitute_field %div.137 %div.136 %v.21 8)
+          (reconstitute_field %div.138 %div.137 %v.20 8)
+          (reconstitute_field %div.139 %div.138 %v.19 8)
+          (reconstitute_field %div.140 %div.139 %v.18 8)
+          (reconstitute_field %div.141 %div.140 %v.17 8)
+          (reconstitute_field %div.142 %div.141 %v.16 8)
+          (reconstitute_field %div.143 %div.142 %v.15 8)
+          (reconstitute_field %div.144 %div.143 %v.14 8)
+          (reconstitute_field %div.145 %div.144 %v.13 8)
+          (reconstitute_field %div.146 %div.145 %v.12 8)
+          (reconstitute_field %div.147 %div.146 %v.11 8)
+          (reconstitute_field %div.148 %div.147 %v.10 8)
+          (reconstitute_field %div.149 %div.148 %v.9 8)
+          (reconstitute_field %div.150 %div.149 %v.8 8)
+          (reconstitute_field %div.151 %div.150 %v.7 8)
+          (reconstitute_field %div.152 %div.151 %v.6 8)
+          (reconstitute_field %div.153 %div.152 %v.5 8)
+          (reconstitute_field %div.154 %div.153 %v.4 8)
+          (reconstitute_field %beReversed.42 %div.154 %v.3 8)
+          (bytes32_from_low_high
+            %tmp.155
+            %beReversed.42
+            %beReversed.43)
+          (from_bytes32 "Scalar<Secp256k1>" %z.156 %tmp.155)
+          (inv %w.157 %sig.124)
+          (mul %u1.158 %z.156 %w.157)
+          (mul %u2.159 %sig.47 %w.157)
+          (ec_mul_generator %t.160 %u1.158)
+          (ec_mul %t.161 %pk.125 %u2.159)
+          (add %point.162 %t.160 %t.161)
+          (into_coordinates %t.44 %ignore.163 %point.162)
+          (into_bytes32 %tmp.164 %t.44)
+          (bytes32_into_low_high %t.45 %t.46 %tmp.164)
+          (bytes32_from_low_high %tmp.165 %t.45 %t.46)
+          (from_bytes32 "Scalar<Secp256k1>" %t.48 %tmp.165)
+          (test_eq %t.49 %t.48 %sig.47)
+          (assert %t.49)
+          (public_input "Scalar<BLS12-381>" %t.50)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 1 8 %t.50)
+          (add %t.51 %t.50 1)
+          (constrain_bits %t.51 64)
+          (copy %tmp.166 %t.51)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 8 %tmp.166)
+          (impact 1 145)))))
+
+    (test
+      '(
+        "import CompactStandardLibrary;"
+        "struct Embedded {"
+        "  x: Uint<64>;"
+        "  y: Vector<10, Uint<0..1>>;"
+        "  z: Uint<64>;"
+        "}"
+        "ledger hash: Bytes<32>;"
+        "ledger embedded: Embedded;"
+        "export circuit test(e: Embedded): Embedded {"
+        "  hash = disclose(persistentHash<Embedded>(e));"
+        "  embedded = disclose(e);"
+        "  return embedded;"
+        "}"
+        )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.6\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.7\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.8\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.9\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.10\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%e.11\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.0\", \"bits\": 64 },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.1\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.2\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.3\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.4\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.5\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.6\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.7\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.8\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.9\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_eq\", \"a\": \"%e.10\", \"b\": \"0x00\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%e.11\", \"bits\": 64 },"
+        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.14\", \"%tmp.13\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x0c\", \"0x08\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.15\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.16\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.17\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.18\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.19\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.20\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.21\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.22\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.23\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.24\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.25\", \"guard\": null },"
+        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.26\", \"guard\": null },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0c\", \"0x0c\", \"0x08\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x01\", \"0x08\", \"%t.15\", \"%t.16\", \"%t.17\", \"%t.18\", \"%t.19\", \"%t.20\", \"%t.21\", \"%t.22\", \"%t.23\", \"%t.24\", \"%t.25\", \"%t.26\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.15\", \"%t.16\", \"%t.17\", \"%t.18\", \"%t.19\", \"%t.20\", \"%t.21\", \"%t.22\", \"%t.23\", \"%t.24\", \"%t.25\", \"%t.26\"] }"
+        "  ]"
+        "}"))
+      )
 )
 )
 
@@ -72336,11 +72759,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
       "export circuit pointsEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a == b;"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       "export circuit pointsNotEqual(a: JubjubPoint, b: JubjubPoint): Boolean {"
-      "  return a != b;"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
       "}"
       )
     (stage-javascript
@@ -89694,6 +90123,220 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "type U = Uint<32>;"
+      "new type B = Boolean;"
+      "new type BV8 = Bytes<8>;"
+      "new type T = [ U, BV8 ];"
+      "struct S { x: T, y: B }"
+      "new type V = Vector<2, S>;"
+      "ledger Vfield: V;"
+      "constructor() {"
+      "  const s0 = S { y: false as B, x: [ 37, Bytes [ 13, 8, 5, 3, 2, 1, 1, 0 ] as BV8] as T};"
+      "  const s1 = S { x: [ 91, Bytes [1, 2, 3, 5, 7, 11, 13, 17] as BV8] as T, y: true as B};"
+      "  Vfield = [ s0, s1 ] as V;"
+      "}"
+      "export circuit isEqual1(v: V): Boolean {"
+      "  return disclose(v) == Vfield;"
+      "}"
+      "export circuit isNotEqual1(v: V): Boolean {"
+      "  return disclose(v) != Vfield;"
+      "}"
+      "export circuit isEqual2(v: V): Boolean {"
+      "  return Vfield == disclose(v);"
+      "}"
+      "export circuit isNotEqual2(v: V): Boolean {"
+      "  return Vfield != disclose(v);"
+      "}"
+      ""
+      "ledger Result: Vector<4, Boolean>;"
+      "export circuit go(v: V): Vector<4, Boolean> {"
+      "  Result = [ isEqual1(v), isNotEqual1(v), isEqual2(v), isNotEqual2(v) ];"
+      "  return Result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested equality through aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0d = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 7, 3, 2, 1, 1, 0 ])] };" 
+        ""
+        "  const s1a = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1b = { x: [ 97n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
+        "  const s1c = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 19])], y: true };"
+        "  const s1d = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: false };"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1b])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1c])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1d])).result).toEqual([false, true, false, true]);"
+        ""
+        "  expect((await C.circuits.go(Ctxt, [s0a, s1a])).result).toEqual([true, false, true, false]);"
+        "  expect((await C.circuits.go(Ctxt, [s0b, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0c, s1a])).result).toEqual([false, true, false, true]);"
+        "  expect((await C.circuits.go(Ctxt, [s0d, s1a])).result).toEqual([false, true, false, true]);"
+        "  });"
+        ))
+    )
+
+  ;; Tests for Github issue #588.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger tuple: [];"
+      "export circuit test(t: []): [] {"
+      "  hash = disclose(persistentHash<[]>(t));"
+      "  tuple = disclose(t);"
+      "  return tuple;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty tuple', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger vector: Vector<0, Field>;"
+      "export circuit test(v: Vector<0, Field>): Vector<0, Field> {"
+      "  hash = disclose(persistentHash<Vector<0, Field>>(v));"
+      "  vector = disclose(v);"
+      "  return vector;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger bytes: Bytes<0>;"
+      "export circuit test(b: Bytes<0>): Bytes<0> {"
+      "  hash = disclose(persistentHash<Bytes<0>>(b));"
+      "  bytes = disclose(b);"
+      "  return bytes;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('empty byte vector', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, new Uint8Array())).result)"
+        "      .toEqual(new Uint8Array());"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Empty {}"
+      "ledger hash: Bytes<32>;"
+      "ledger empty: Empty;"
+      "export circuit test(e: Empty): Empty {"
+      "  hash = disclose(persistentHash<Empty>(e));"
+      "  empty = disclose(e);"
+      "  return empty;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('struct with no fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, {})).result).toEqual({});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Color { GREEN }"
+      "ledger hash: Bytes<32>;"
+      "ledger color: Color;"
+      "export circuit test(c: Color): Color {"
+      "  hash = disclose(persistentHash<Color>(c));"
+      "  color = disclose(c);"
+      "  return color;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('enum with one variant', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0)).result).toEqual(0);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "ledger uint: Uint<0..1>;"
+      "export circuit test(u: Uint<0..1>): Uint<0..1> {"
+      "  hash = disclose(persistentHash<Uint<0..1>>(u));"
+      "  uint = disclose(u);"
+      "  return uint;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test(context, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Embedded {"
+      "  x: Uint<64>;"
+      "  y: Vector<10, Uint<0..1>>;"
+      "  z: Uint<64>;"
+      "}"
+      "ledger hash: Bytes<32>;"
+      "ledger embedded: Embedded;"
+      "export circuit test(e: Embedded): Embedded {"
+      "  hash = disclose(persistentHash<Embedded>(e));"
+      "  embedded = disclose(e);"
+      "  return embedded;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Embedded vector of Uint<0..1>', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const embedded = {"
+        "    x: 100n,"
+        "    y: Array(10).fill(0n),"
+        "    z: 200n,"
+        "  };"
+        "  expect((await contract.circuits.test(context, embedded)).result).toEqual(embedded);"
+        "});"
+        ))
+    )
   )
 
 (run-javascript)
@@ -90169,11 +90812,11 @@ groups than for single tests.
                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
         (circuit %test.5 ((argument
                             (%b.0)
-                            (ty ((afield))
+                            (ty ((anative "Secp256k1Base"))
                                 ((tfield (field-base (curve-secp256k1))))))
                           (argument
                             (%s.1)
-                            (ty ((afield))
+                            (ty ((anative "Secp256k1Scalar"))
                                 ((tfield (field-scalar (curve-secp256k1)))))))
              (ty () ())
           (= 1 (%tmp.6 %tmp.7)
@@ -90286,6 +90929,103 @@ groups than for single tests.
         "    identity: false,"
         "  };"
         "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Secp256k1Point {"
+      "  return default<Secp256k1Point>;"
+      "}"
+      "export circuit pointsEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Secp256k1Point, b: Secp256k1Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.secp256k1MulGenerator(5n);"
+        "  const p2 = runtime.secp256k1MulGenerator(5n);"
+        "  const p3 = runtime.secp256k1MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.secp256k1MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger address: Bytes<20>;"
+      "ledger hash: Bytes<32>;"
+      "// This was the reported issue."
+      "export circuit test0(pt: Secp256k1Point): [] {"
+      "  address = disclose(secp256k1EthereumAddress(pt));"
+      "}"
+      "// This is the underlying issue, also testing nested points."
+      "export circuit test1(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(keccak256<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Issue 608', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256k1MulGenerator(5n);"
+        "  const p1 = runtime.secp256k1MulGenerator(7n);"
+        "  await contract.circuits.test0(context, p0);"
+        "  await contract.circuits.test1(context, p0, p1);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Bytes<20>;"
+      "export circuit test(pk: Secp256k1Point): Bytes<20> {"
+      "  const address = secp256k1EthereumAddress(pk);"
+      "  checkResult = disclose(address);"
+      "  return address;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Ethereum address byte order', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A public key and (case insensitive) address from a random private key"
+        "  // (secp256k1 scalar), generated by"
+        "  // https://www.rfctools.com/ethereum-address-test-tool/."
+        "  const pt = {"
+        "    x: 0xd06cae31b20a8c528186917358a5eceac665029d8afc30eee8e3abaa5a24e9ean,"
+        "    y: 0x9cd8a23f97228ae2f1cb89cc93530783ac6970f2af443e5a87da50c835984f06n,"
+        "    identity: false,"
+        "  };"
+        "  const expected = new Uint8Array(["
+        "    0x3d, 0x81, 0xac, 0x81, 0x76, 0x4e, 0xb1, 0xa4, 0x4a, 0xfb,"
+        "    0xc2, 0x45, 0xfc, 0x1d, 0x92, 0x54, 0xc0, 0xd0, 0x77, 0x2a,"
+        "  ]);"
+        "  expect((await contract.circuits.test(context, pt)).result).toEqual(expected);"
         "});"
         ))
     )

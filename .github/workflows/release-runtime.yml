@@ -1,0 +1,133 @@
+# Release publish of @midnight-ntwrk/compact-runtime.
+#
+# Purpose
+#   Publish a RELEASE-versioned compact-runtime npm package to GitHub Packages,
+#   using the version already committed in runtime/package.json (e.g. 0.18.0-rc.1)
+#   -- NOT a dev-<sha> coordinate. This is the "right names, right place" analogue
+#   of dev-publish.yml's publish-runtime job:
+#
+#     dev-publish.yml  -> WIP builds from any branch: version <base>-dev.<sha>,
+#                         dist-tag `dev`. For downstream folks who want to test a
+#                         work-in-progress. NOT a release.
+#     release-runtime  -> this workflow: the clean committed version, dist-tag
+#                         derived from the prerelease suffix (rc/beta/alpha).
+#
+#   GitHub Packages is the source of truth. Promotion to public npmjs.org is a
+#   separate, manual step run from midnight-ntwrk/artifacts:
+#     gh workflow run push-npm-package.yml --repo midnight-ntwrk/artifacts \
+#       -f library=compact-runtime -f version=<version> -f use_legacy_behavior=false
+#   (that workflow `npm pack`s this package from GitHub Packages and republishes
+#   it to npmjs.org, deriving the same dist-tag and leaving `latest` on the last
+#   stable release).
+name: Release publish of compact-runtime
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch or tag to build and publish from (must carry the release version in runtime/package.json)'
+        required: true
+        type: string
+        default: 'release/midnight'
+
+permissions: {}
+
+concurrency:
+  # Do not cancel an in-flight publish.
+  group: release-runtime-${{ github.workflow }}-${{ inputs.branch }}
+  cancel-in-progress: false
+
+jobs:
+  publish-runtime:
+    name: Publish compact-runtime to GitHub Packages
+    runs-on: ubuntu-latest
+    # npm publish authenticates with the MIDNIGHTCI_PACKAGES_WRITE PAT against the
+    # @midnight-ntwrk scope on GitHub Packages, so contents:read (for checkout) is
+    # sufficient -- GITHUB_TOKEN's packages scope is not used.
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout target ref
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          ref: ${{ inputs.branch }}
+
+      - name: Setup Nix with cache
+        uses: ./.github/actions/setup-nix-cache
+        with:
+          attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
+
+      - name: Set up Node.js
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          always-auth: true
+          registry-url: https://npm.pkg.github.com/
+          scope: '@midnight-ntwrk'
+          node-version-file: '.nvmrc'
+
+      - name: Build publishable runtime
+        run: nix build .#runtime.forPublish -L
+
+      - name: Publish release version to GitHub Packages
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+        run: |
+          set -euo pipefail
+          # `forPublish` emits a publish-ready package *directory* (with the
+          # publish package.json), not a tarball:
+          #   result/lib/node_modules/<scope>/<name>/   (see nix/pretzel/js.nix).
+          PKG_DIR="result/lib/node_modules/@midnight-ntwrk/compact-runtime"
+          if [ ! -d "$PKG_DIR" ]; then
+            echo "::error::runtime package not found at $PKG_DIR; tree was:"
+            find result/lib -maxdepth 4 -name package.json -print || true
+            exit 1
+          fi
+
+          # Copy out of the read-only nix store so we can edit package.json.
+          rm -rf stage && cp -rL "$PKG_DIR" stage && chmod -R u+w stage
+          cd stage
+
+          VERSION="$(node -p "require('./package.json').version")"
+          echo "compact-runtime version: ${VERSION}"
+
+          # This is a RELEASE action. Refuse dev/dirty coordinates -- those belong
+          # to dev-publish.yml. Fail loudly rather than silently mis-publishing.
+          case "$VERSION" in
+            "" )
+              echo "::error::runtime/package.json has no version"; exit 1 ;;
+            *-dev.* | *+* )
+              echo "::error::refusing to release a dev/build-metadata version '${VERSION}'; use dev-publish.yml for WIP builds"; exit 1 ;;
+          esac
+
+          # Derive the npm dist-tag from the prerelease suffix. Matches how
+          # midnight-ntwrk/artifacts' uploadToNpm.js tags the public republish, so
+          # GitHub Packages and npmjs stay consistent. Stable -> latest.
+          case "$VERSION" in
+            *-rc.*)    TAG=rc ;;
+            *-beta.*)  TAG=beta ;;
+            *-alpha.*) TAG=alpha ;;
+            *-*)       TAG=prerelease ;;
+            *)         TAG=latest ;;
+          esac
+          echo "dist-tag: ${TAG}"
+
+          # forPublish already built dist/, but the publish package.json keeps a
+          # prepare->build lifecycle that recompiles via the Scheme/tsc toolchain
+          # (absent here). Strip the build scripts outright; a registry tarball
+          # needs none of them. `npm pkg` edits package.json without running them.
+          npm pkg delete scripts.prepare scripts.prepack scripts.prepublishOnly scripts.build scripts.clean
+
+          REGISTRY="https://npm.pkg.github.com/"
+          # Registry versions are immutable, so a re-run on the same version would
+          # 409. Skip if this exact version is already published (idempotent).
+          if npm view "@midnight-ntwrk/compact-runtime@${VERSION}" version --registry "$REGISTRY" >/dev/null 2>&1; then
+            echo "::notice::@midnight-ntwrk/compact-runtime@${VERSION} already published to GitHub Packages; skipping."
+          else
+            npm publish --ignore-scripts --tag "$TAG" --registry "$REGISTRY"
+            echo "Published @midnight-ntwrk/compact-runtime@${VERSION} (dist-tag ${TAG}) to GitHub Packages"
+          fi
+
+          echo ""
+          echo "Next step -- promote to public npmjs.org from midnight-ntwrk/artifacts:"
+          echo "  gh workflow run push-npm-package.yml --repo midnight-ntwrk/artifacts \\"
+          echo "    -f library=compact-runtime -f version=${VERSION} -f use_legacy_behavior=false"
