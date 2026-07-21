@@ -636,6 +636,10 @@ message hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a
 public key (a [`Secp256k1Point`](#secp256k1point)). Returns true if the
 signature is valid; false if the signature does not verify.
 
+This circuit takes `msgHash` as given and does not constrain it to any message.
+The verifier is expected to additionally constrain that value so it is bound to
+the message actually being verified (e.g. by hashing the message in-circuit).
+
 A valid signature does not by itself identify the signer: more than one public
 key verifies against the same message hash and signature. A circuit that needs
 the signer's identity must additionally bind the key to one it already trusts,
@@ -645,9 +649,7 @@ address.
 Both low-s and high-s signatures are accepted, as in
 [FIPS 186-5](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf) section
 6.4.2, which constrains `s` only to the interval `[1, n - 1]`. Consequently
-`(r, s)` and `(r, n - s)` both verify against the same public key. A circuit
-that treats a signature as a unique identifier, such as a replay guard, must
-constrain `s <= n / 2` itself.
+`(r, s)` and `(r, n - s)` both verify against the same public key.
 
 To obtain `pk` from a signature, recover it off-circuit with the Compact
 JavaScript runtime's `secp256k1EcdsaRecover`, then pass it in as a witness or
