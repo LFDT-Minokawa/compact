@@ -72116,19 +72116,32 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255))
-           (%descriptor.7 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.8 () (Kernel)))
+           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.7 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.8 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+           (%descriptor.9 (tunsigned 255))
+           (%descriptor.10 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.11 () (Kernel)))
          (public-ledger-declaration
-           ((%calc.9
+           ((%calc.12
               (0)
               (__compact_Cell
                 (tcontract Calculator
                   (get_square #f ((tunsigned 100)) (tunsigned 10000))))))
-           (constructor ([%c.9 (tcontract Calculator
-                                 (get_square #f ((tunsigned 100))
-                                   (tunsigned 10000)))])
-             (seq (public-ledger %calc.9 (0) write %c.9) (tuple))))))
+           (constructor ([%c.13 (tcontract Calculator
+                                  (get_square #f ((tunsigned 100))
+                                    (tunsigned 10000)))])
+             (seq (public-ledger %calc.12 (0) write %c.13) (tuple))))))
       ))
 
   (test
@@ -74031,17 +74044,30 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255))
-          (%descriptor.8 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 255))
+          (%descriptor.11 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.10 (0) (Counter)))
+          ((%field1.13 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %foo.10 ()
+        (circuit %foo.14 ()
              (tfield (field-native))
           (safe-cast (tfield (field-native))
                      (tunsigned 18446744073709551615)
-            (public-ledger %field1.10 (0) read)))))
+            (public-ledger %field1.13 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -74151,23 +74177,36 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 65535))
-          (%descriptor.8 (tunsigned 255))
-          (%descriptor.9 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.10 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 65535))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.11 (0) (Counter)))
-          (constructor ([%state.12 (tunsigned 65535)])
+          ((%field1.14 (0) (Counter)))
+          (constructor ([%state.15 (tunsigned 65535)])
             (seq
-              (public-ledger %field1.11 (0) increment %state.12)
+              (public-ledger %field1.14 (0) increment %state.15)
               (tuple))))
-        (circuit %foo.12 ([%x.13 (tbytes 32)])
+        (circuit %foo.16 ([%x.17 (tbytes 32)])
              (tfield (field-native))
           (seq
-            (public-ledger %kernel.10 () claimZswapNullifier %x.13)
+            (public-ledger %kernel.13 () claimZswapNullifier %x.17)
             (safe-cast (tfield (field-native))
                        (tunsigned 18446744073709551615)
-              (public-ledger %field1.11 (0) read))))))
+              (public-ledger %field1.14 (0) read))))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -74829,6 +74868,63 @@ groups than for single tests.
     (stage-javascript "test-center/ts/schnorr.ts"))
 
   (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export circuit testCaller(): Maybe<Either<ContractAddress, UserAddress>> {"
+      "  return kernel.caller();"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('caller defaults to None when no caller is set', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: false,"
+        "    value: {"
+        "      is_left: false,"
+        "      left: { bytes: new Uint8Array(32) },"
+        "      right: { bytes: new Uint8Array(32) },"
+        "    },"
+        "  });"
+        "});"
+        ""
+        "test('caller returns Some(left(contract)) when called from a contract', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const rawCallerAddress = runtime.sampleContractAddress();"
+        "  context.callContext.currentQueryContext.block = {"
+        "    ...context.callContext.currentQueryContext.block,"
+        "    caller: { tag: 'contract', address: rawCallerAddress },"
+        "  };"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: true,"
+        "    value: {"
+        "      is_left: true,"
+        "      left: { bytes: runtime.encodeContractAddress(rawCallerAddress) },"
+        "      right: { bytes: new Uint8Array(32) },"
+        "    },"
+        "  });"
+        "});"
+        ""
+        "test('caller returns Some(right(user)) when called from a user', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const rawCallerAddress = runtime.sampleUserAddress();"
+        "  context.callContext.currentQueryContext.block = {"
+        "    ...context.callContext.currentQueryContext.block,"
+        "    caller: { tag: 'user', address: rawCallerAddress },"
+        "  };"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: true,"
+        "    value: {"
+        "      is_left: false,"
+        "      left: { bytes: new Uint8Array(32) },"
+        "      right: { bytes: runtime.encodeUserAddress(rawCallerAddress) },"
+        "    },"
+        "  });"
+        "});"
+        )))
+
+  (test
     "test-center/compact/unshielded-tokens.compact"
     (stage-javascript "test-center/ts/unshielded-tokens.ts"))
 
@@ -75019,9 +75115,60 @@ groups than for single tests.
         ""
         "const _descriptor_9 = new _ContractAddress_0();"
         ""
-        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "class _UserAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_1.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_1.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_1.toValue(value_0.bytes);"
+        "  }"
+        "}"
         ""
-        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_10 = new _UserAddress_0();"
+        ""
+        "class _Either_1 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_9.alignment().concat(_descriptor_10.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_9.fromValue(value_0),"
+        "      right: _descriptor_10.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_9.toValue(value_0.left).concat(_descriptor_10.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_11 = new _Either_1();"
+        ""
+        "class _Maybe_1 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_11.alignment());"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_some: _descriptor_3.fromValue(value_0),"
+        "      value: _descriptor_11.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_11.toValue(value_0.value));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_12 = new _Maybe_1();"
+        ""
+        "const _descriptor_13 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -75181,8 +75328,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(32)),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -75191,8 +75338,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -75201,8 +75348,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -75213,8 +75360,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -75223,8 +75370,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -75233,8 +75380,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -75278,8 +75425,8 @@ groups than for single tests.
         "                                                                               pushPath: false,"
         "                                                                               path: ["
         "                                                                                      { tag: 'value',"
-        "                                                                                        value: { value: _descriptor_10.toValue(2n),"
-        "                                                                                                 alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                        value: { value: _descriptor_13.toValue(2n),"
+        "                                                                                                 alignment: _descriptor_13.alignment() } }] } },"
         "                                                                      { popeq: { cached: false,"
         "                                                                                 result: undefined } }]).value)"
         "           ==="
@@ -75294,8 +75441,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(apk_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -75304,8 +75451,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -75314,8 +75461,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -75332,8 +75479,8 @@ groups than for single tests.
         "                                                                                              pushPath: false,"
         "                                                                                              path: ["
         "                                                                                                     { tag: 'value',"
-        "                                                                                                       value: { value: _descriptor_10.toValue(1n),"
-        "                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                                       value: { value: _descriptor_13.toValue(1n),"
+        "                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
         "                                                                                     { popeq: { cached: false,"
         "                                                                                                result: undefined } }]).value));"
         "    } else {"
@@ -75354,8 +75501,8 @@ groups than for single tests.
         "                                                                                                              pushPath: false,"
         "                                                                                                              path: ["
         "                                                                                                                     { tag: 'value',"
-        "                                                                                                                       value: { value: _descriptor_10.toValue(0n),"
-        "                                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                                                       value: { value: _descriptor_13.toValue(0n),"
+        "                                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
         "                                                                                                     { popeq: { cached: false,"
         "                                                                                                                result: undefined } }]).value)),"
         "                            'clear: attempted clear without proper authorization');"
@@ -75364,8 +75511,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -75374,8 +75521,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -75384,8 +75531,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -75424,8 +75571,8 @@ groups than for single tests.
         "                                                                                 pushPath: false,"
         "                                                                                 path: ["
         "                                                                                        { tag: 'value',"
-        "                                                                                          value: { value: _descriptor_10.toValue(1n),"
-        "                                                                                                   alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                          value: { value: _descriptor_13.toValue(1n),"
+        "                                                                                                   alignment: _descriptor_13.alignment() } }] } },"
         "                                                                        { popeq: { cached: false,"
         "                                                                                   result: undefined } }]).value);"
         "    }"
@@ -75466,8 +75613,8 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;\""        "}"
-        ))
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;\""
+        "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
@@ -77679,16 +77826,33 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255))
-          (%descriptor.8 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 255))
+          (%descriptor.11 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          ((%fld.8 (0) (Map (tboolean) (Map (tfield (field-native)) (Counter)))))
+          ((%fld.13
+             (0)
+             (Map (tboolean) (Map (tfield (field-native)) (Counter)))))
           (constructor () (tuple)))
-        (circuit %bogus.9 ([%v.0 (tfield (field-native))])
+        (circuit %bogus.14 ([%v.15 (tfield (field-native))])
              (ttuple)
           (seq
-            (public-ledger %fld.8 (0 ((tboolean) #t) ((tfield (field-native)) %v.0)) read)
+            (public-ledger %fld.13 (0 ((tboolean) #t) ((tfield
+                                                         (field-native))
+                                                        %v.15)) read)
             (tuple)))))
     )
 
@@ -80121,32 +80285,45 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.8 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.10 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.10 ([%x.11 (tboolean)]
-                          [%y.12 (tfield (field-native))])
+        (circuit %bar.14 ([%x.15 (tboolean)]
+                          [%y.16 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
           (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
-            %y.12
-            %x.11))
-        (circuit %foo.13 ([%x.14 (tboolean)]
-                          [%y.15 (tfield (field-native))])
+            %y.16
+            %x.15))
+        (circuit %foo.17 ([%x.18 (tboolean)]
+                          [%y.19 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (const [%__compact_pattern_tmp1.16 (tstruct S
+            (const [%__compact_pattern_tmp1.20 (tstruct S
                                                  (a (tfield (field-native)))
                                                  (b (tboolean)))]
-              (call %bar.10 %x.14 %y.15))
+              (call %bar.14 %x.18 %y.19))
             (seq
-              (const [%b.17 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.16 b 1))
-              (if %b.17
-                  %y.15
+              (const [%b.21 (tboolean)]
+                (elt-ref %__compact_pattern_tmp1.20 b 1))
+              (if %b.21
+                  %y.19
                   (* #f
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)
-                     %y.15)))))))
+                     %y.19)))))))
     )
 
   (test
@@ -82236,21 +82413,34 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.39 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.40 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.41 () (Kernel)))
+          (%descriptor.40 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.41 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.42 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.43 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.44 () (Kernel)))
         (public-ledger-declaration
-          ((%F.42 (0) (__compact_Cell (tbytes 32))))
+          ((%F.45 (0) (__compact_Cell (tbytes 32))))
           (constructor () (tuple)))
-        (circuit %foo.43 ([%v.44 (tvector 62 (tunsigned 255))])
+        (circuit %foo.46 ([%v.47 (tvector 62 (tunsigned 255))])
              (tbytes 32)
           (seq
             (seq
-              (const [%tmp.45 (tbytes 32)]
-                (vector->bytes
-                  32
-                  (vector (spread 32 (tuple-slice %v.44 7 32)))))
-              (public-ledger %F.42 (0) write %tmp.45))
-            (public-ledger %F.42 (0) read)))))
+              (const [%tmp.48 (tbytes 32)]
+                (vector->bytes 32
+                  (vector (spread 32 (tuple-slice %v.47 7 32)))))
+              (public-ledger %F.45 (0) write %tmp.48))
+            (public-ledger %F.45 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -82496,27 +82686,39 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.78 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.79 (tunsigned 255))
-          (%descriptor.80 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.81 () (Kernel)))
+          (%descriptor.79 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.80 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.81 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.82 (tunsigned 255))
+          (%descriptor.83 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.84 () (Kernel)))
         (public-ledger-declaration
-          ((%F.82 (0) (__compact_Cell (tbytes 70))))
+          ((%F.85 (0) (__compact_Cell (tbytes 70))))
           (constructor () (tuple)))
-        (circuit %foo.83 ([%v.84 (tvector 1000 (tunsigned 63))])
+        (circuit %foo.86 ([%v.87 (tvector 1000 (tunsigned 63))])
              (tbytes 70)
           (seq
             (seq
-              (const [%tmp.85 (tbytes 70)]
-                (vector->bytes
-                  70
+              (const [%tmp.88 (tbytes 70)]
+                (vector->bytes 70
                   (vector
-                    (spread
-                      70
+                    (spread 70
                       (safe-cast (tvector 70 (tunsigned 255))
                                  (tvector 70 (tunsigned 63))
-                        (tuple-slice %v.84 0 70))))))
-              (public-ledger %F.82 (0) write %tmp.85))
-            (public-ledger %F.82 (0) read)))))
+                        (tuple-slice %v.87 0 70))))))
+              (public-ledger %F.85 (0) write %tmp.88))
+            (public-ledger %F.85 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -84907,30 +85109,43 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255))
-           (%descriptor.16 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.7 () (Kernel)))
+           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.7 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.8 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+           (%descriptor.9 (tunsigned 255))
+           (%descriptor.10 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.11 () (Kernel)))
          (public-ledger-declaration
-           ((%F.8
+           ((%F.12
               (0)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tfield (field-native)))
                   (bar #f () (ttuple)))))
-            (%F.9
+            (%F.13
               (1)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native)))
                     (tfield (field-native)))))))
-           (constructor ([%c1.10 (tcontract C
+           (constructor ([%c1.14 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native)))
                                    (bar #f () (ttuple)))])
              (seq
-               (public-ledger %F.8 (0) write %c1.10)
+               (public-ledger %F.12 (0) write %c1.14)
                (seq
-                 (const [%tmp.11 (tcontract C
+                 (const [%tmp.15 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native))))]
                    (safe-cast (tcontract C
@@ -84940,8 +85155,8 @@ groups than for single tests.
                                 (foo #f ((tfield (field-native)))
                                   (tfield (field-native)))
                                 (bar #f () (ttuple)))
-                     %c1.10))
-                 (public-ledger %F.9 (1) write %tmp.11))
+                     %c1.14))
+                 (public-ledger %F.13 (1) write %tmp.15))
                (tuple))))))))
 
   ; downcast failure for Contract types
@@ -88895,9 +89110,60 @@ groups than for single tests.
         ""
         "const _descriptor_5 = new _ContractAddress_0();"
         ""
-        "const _descriptor_6 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "class _UserAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_0.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_0.toValue(value_0.bytes);"
+        "  }"
+        "}"
         ""
-        "const _descriptor_7 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_6 = new _UserAddress_0();"
+        ""
+        "class _Either_1 {"
+        "  alignment() {"
+        "    return _descriptor_2.alignment().concat(_descriptor_5.alignment().concat(_descriptor_6.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_2.fromValue(value_0),"
+        "      left: _descriptor_5.fromValue(value_0),"
+        "      right: _descriptor_6.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_5.toValue(value_0.left).concat(_descriptor_6.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_7 = new _Either_1();"
+        ""
+        "class _Maybe_0 {"
+        "  alignment() {"
+        "    return _descriptor_2.alignment().concat(_descriptor_7.alignment());"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_some: _descriptor_2.fromValue(value_0),"
+        "      value: _descriptor_7.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_2.toValue(value_0.is_some).concat(_descriptor_7.toValue(value_0.value));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_8 = new _Maybe_0();"
+        ""
+        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -89000,12 +89266,12 @@ groups than for single tests.
         "                                             ["
         "                                              { push: { storage: false,"
         "                                                        value: __compactRuntime.StateValue.newArray()"
-        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_7.toValue(1n),"
-        "                                                                                                                  alignment: _descriptor_7.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_6.toValue(0n),"
-        "                                                                                                                                                                                                           alignment: _descriptor_6.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                     this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                 partialProofData) }.nullifier),"
-        "                                                                                                                                                                                                                                                                                                    alignment: _descriptor_0.alignment() }))"
+        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
+        "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
+        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
         "  }"
