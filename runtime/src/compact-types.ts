@@ -330,8 +330,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
-    const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & mask)
+    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
       .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
@@ -373,8 +372,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
-    const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & mask)
+    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
       .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
