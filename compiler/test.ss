@@ -91110,8 +91110,7 @@ groups than for single tests.
         "test('the malleated twin signature is accepted for the same owner', async () => {"
         "  // Binding the recovered key to a trusted address fixes *who* signed, but"
         "  // it does not de-malleate the signature: the high-s twin clears both the"
-        "  // signature check and the address check.  A contract that treats a"
-        "  // signature as a unique identifier must reject high-s itself."
+        "  // signature check and the address check.
         "  expect(sig.s <= n / 2n).toBe(true);"
         "  expect(twinSig.s > n / 2n).toBe(true);"
         "  const [contract, context] = await withOwner(SIGNER);"
