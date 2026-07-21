@@ -437,12 +437,6 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
  * Recover the secp256k1 public key from an ECDSA signature and a message
  * hash, following Ethereum `ecrecover` semantics.
  *
- * The intended pattern is to recover the public key here,
- * pass it to a circuit as an ordinary (private) argument or
- * witness, and constrain it in-circuit with `secp256k1EcdsaVerify(msgHash, sig, pk)`.
- * The recovery itself is untrusted hint computation: only a public key that
- * actually verifies against (msgHash, sig) will satisfy the in-circuit check.
- *
  * - bit 0 (`recoveryId & 1`) is the parity of `R.y`: 0 for even, 1 for odd.
  * - bit 1 (`recoveryId >= 2`) says whether the reduction wrapped, i.e. whether
  *   `R.x` is `r` (0, 1) or `r + n` (2, 3).
@@ -453,25 +447,6 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
  * - 1: `R = (r, y)` with `y` odd — the other common case.
  * - 2: `R = (r + n, y)` with `y` even.
  * - 3: `R = (r + n, y)` with `y` odd.
- *
- * ## Signature malleability:
- * Both low-s and high-s signatures are accepted, as in textbook ECDSA and
- * Ethereum's `ecrecover`: `s` is only required to lie in [1, n).  No EIP-2 low-s
- * normalisation is applied here, and `secp256k1EcdsaVerify` does not constrain
- * `s` in-circuit either.
- *
- * Negating `s` negates the nonce point `R`, and the recovery id carries `R`'s
- * parity, so `(r, s, id)` and `(r, n - s, id ^ 1)` recover the *same* public
- * key.  Every signature therefore has a twin that anyone can compute WITHOUT
- * the signing key.  (Flipping only one of the two — `s` without the id, or the
- * id without `s` — recovers a different key, which still verifies.)
- *
- * This does not weaken authorisation: the twin recovers the same key, so a
- * check binding the recovered key to an address the contract already trusts
- * still holds.  It does matter when a signature is treated as a *unique
- * identifier*.  Such callers must reject or normalise high-s themselves
- * (require `s <= n / 2`), or the identifier can be mutated into a second value
- * that passes every check.
  */
 export function secp256k1EcdsaRecover(msgHash: Uint8Array, sig: Secp256k1EcdsaSignature, recoveryId: number): Secp256k1Point {
   if (msgHash.length !== 32) {

@@ -125,9 +125,6 @@ describe('secp256k1 ECDSA public key recovery', () => {
     expect(other).not.toEqual(pk);
   });
 
-  // Both low-s and high-s signatures are accepted, as in textbook ECDSA and
-  // Ethereum's `ecrecover`.  `secp256k1.sign` normalises to low-s, so negating
-  // s gives the high-s twin of the same signature.
   const N = runtime.SECP256K1_SCALAR_MODULUS;
   const highS: runtime.Secp256k1EcdsaSignature = { r: sig.r, s: N - sig.s };
 
