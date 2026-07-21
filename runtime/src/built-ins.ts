@@ -22,7 +22,6 @@ import {
   CompactTypeJubjubPoint,
   JubjubPoint,
   JubjubSchnorrSignature,
-  Secp256k1EcdsaSignature,
   Secp256k1Point,
   toBinaryRepr,
 } from './compact-types.js';
@@ -446,7 +445,11 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
  * - 2: `R = (r + n, y)` with `y` even.
  * - 3: `R = (r + n, y)` with `y` odd.
  */
-export function secp256k1EcdsaRecover(msgHash: Uint8Array, sig: Secp256k1EcdsaSignature, recoveryId: number): Secp256k1Point {
+export function secp256k1EcdsaRecover(
+  msgHash: Uint8Array,
+  sig: { readonly r: bigint; readonly s: bigint },
+  recoveryId: number,
+): Secp256k1Point {
   if (msgHash.length !== 32) {
     throw new CompactError('expected a 32-byte message hash');
   }

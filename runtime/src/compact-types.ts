@@ -60,16 +60,6 @@ export interface Secp256k1Point {
 }
 
 /**
- * An ECDSA signature over the foreign secp256k1 elliptic curve. TypeScript
- * representation of the standard library's `Secp256k1EcdsaSignature` struct.
- * r and s are secp256k1 scalars in the range [0, SECP256K1_SCALAR_MODULUS).
- */
-export interface Secp256k1EcdsaSignature {
-  readonly r: bigint;
-  readonly s: bigint;
-}
-
-/**
  * The hash value of a Merkle tree. TypeScript representation of the Compact
  * type of the same name
  */

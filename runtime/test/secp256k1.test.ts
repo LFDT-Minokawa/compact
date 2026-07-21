@@ -108,7 +108,7 @@ describe('secp256k1 ECDSA public key recovery', () => {
   });
   const recoveryId = sigBytes[0];
   const parsed = secp256k1.Signature.fromBytes(sigBytes, 'recovered');
-  const sig: runtime.Secp256k1EcdsaSignature = { r: parsed.r, s: parsed.s };
+  const sig = { r: parsed.r, s: parsed.s };
   // The signer's public key, SK*G.
   const pk = runtime.secp256k1MulGenerator(SK);
 
@@ -126,7 +126,7 @@ describe('secp256k1 ECDSA public key recovery', () => {
   });
 
   const N = runtime.SECP256K1_SCALAR_MODULUS;
-  const highS: runtime.Secp256k1EcdsaSignature = { r: sig.r, s: N - sig.s };
+  const highS = { r: sig.r, s: N - sig.s };
 
   test('the signature under test is the low-s representative', () => {
     expect(sig.s <= N / 2n).toBe(true);
