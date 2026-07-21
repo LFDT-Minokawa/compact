@@ -13,6 +13,21 @@ representation of the underlying type, which might change.
 extracted from a `JubjubPoint` using respectively
 [`jubjubPointX`](#jubjubpointx) and [`jubjubPointY`](#jubjubpointy).
 
+### `Secp256k1Point`
+
+The type of points on the foreign secp256k1 elliptic curve, including the point
+at infinity.  This is a nominal type alias for an underlying builtin type.  The
+alias is used to hide the representation of the underlying type, which might
+change.
+
+`Secp256k1Point`s are produced by the secp256k1 overloads of
+[`ecAdd`](#ecadd), [`ecMul`](#ecmul) and [`ecMulGenerator`](#ecmulgenerator), or
+are passed into a circuit as an argument or a witness.
+`default<Secp256k1Point>` is the point at infinity.  The X and Y coordinates can
+be extracted from a `Secp256k1Point` using respectively
+[`secp256k1PointX`](#secp256k1pointx) and
+[`secp256k1PointY`](#secp256k1pointy).
+
 ## Structs
 
 ### `Maybe`
@@ -61,6 +76,18 @@ point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrver
 struct JubjubSchnorrSignature {
   announcement: JubjubPoint;
   response: Field;
+}
+```
+
+### `Secp256k1EcdsaSignature`
+
+An ECDSA signature over the foreign secp256k1 curve, used with
+[`secp256k1EcdsaVerify`](#secp256k1ecdsaverify).
+
+```compact
+struct Secp256k1EcdsaSignature {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
 }
 ```
 
@@ -580,6 +607,58 @@ Asserts that the signature is valid; fails if the signature does not verify.
 
 ```compact
 circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, vk: JubjubPoint): [];
+```
+
+### `secp256k1PointX`
+
+This function extracts the affine X coordinate from a
+[`Secp256k1Point`](#secp256k1point).  The coordinate is a `Secp256k1Base`
+element.  For the point at infinity it is zero.
+
+```compact
+circuit secp256k1PointX(pt: Secp256k1Point): Secp256k1Base;
+```
+
+### `secp256k1PointY`
+
+This function extracts the affine Y coordinate from a
+[`Secp256k1Point`](#secp256k1point).  The coordinate is a `Secp256k1Base`
+element.  For the point at infinity it is zero.
+
+```compact
+circuit secp256k1PointY(pt: Secp256k1Point): Secp256k1Base;
+```
+
+### `secp256k1EcdsaVerify`
+
+Verifies an ECDSA signature over the foreign secp256k1 curve. Takes a 32-byte
+message hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a
+public key (a [`Secp256k1Point`](#secp256k1point)). Returns true if the
+signature is valid; false if the signature does not verify.
+
+A valid signature does not by itself identify the signer: more than one public
+key verifies against the same message hash and signature. A circuit that needs
+the signer's identity must additionally bind the key to one it already trusts,
+for example by comparing `secp256k1EthereumAddress(pk)` against a stored
+address.
+
+Both low-s and high-s signatures are accepted, as in
+[FIPS 186-5](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf) section
+6.4.2, which constrains `s` only to the interval `[1, n - 1]`. Consequently
+`(r, s)` and `(r, n - s)` both verify against the same public key. A circuit
+that treats a signature as a unique identifier, such as a replay guard, must
+constrain `s <= n / 2` itself.
+
+To obtain `pk` from a signature, recover it off-circuit with the Compact
+JavaScript runtime's `secp256k1EcdsaRecover`, then pass it in as a witness or
+circuit argument and verify it here.
+
+```compact
+circuit secp256k1EcdsaVerify(
+          msgHash: Bytes<32>,
+          sig: Secp256k1EcdsaSignature,
+          pk: Secp256k1Point
+          ): Boolean;
 ```
 
 ### `merkleTreePathRoot`
