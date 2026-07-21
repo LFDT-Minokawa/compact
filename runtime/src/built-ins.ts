@@ -443,9 +443,21 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
  * The recovery itself is untrusted hint computation: only a public key that
  * actually verifies against (msgHash, sig) will satisfy the in-circuit check.
  *
- * `recoveryId` is in the range [0, 3] (for an Ethereum signature r ‖ s ‖ v,
- * it is v - 27).  Note that up to four public keys can verify against a given
- * (msgHash, sig) pair — the recovery id selects one of them.
+ * - bit 0 (`recoveryId & 1`) is the parity of `R.y`: 0 for even, 1 for odd.
+ * - bit 1 (`recoveryId >= 2`) says whether the reduction wrapped, i.e. whether
+ *   `R.x` is `r` (0, 1) or `r + n` (2, 3).
+ *
+ * So:
+ *
+ * - 0: `R = (r, y)` with `y` even — the common case.
+ * - 1: `R = (r, y)` with `y` odd — the other common case.
+ * - 2: `R = (r + n, y)` with `y` even.
+ * - 3: `R = (r + n, y)` with `y` odd.
+ *
+ * ## NOTE:
+ * Ids 2 and 3 are a theoretical possibility only: Ethereum's `ecrecover` rejects them
+ * outright, accepting only v = 27 (id 0) and v = 28 (id 1), and libraries that
+ * sign will not emit them. They are accepted here for completeness.
  */
 export function secp256k1EcdsaRecover(msgHash: Uint8Array, sig: Secp256k1EcdsaSignature, recoveryId: number): Secp256k1Point {
   if (msgHash.length !== 32) {
