@@ -434,14 +434,12 @@ export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
 }
 
 /**
- * Recover the secp256k1 public key from an ECDSA signature and a message
- * hash, following Ethereum `ecrecover` semantics.
+ * Recover the secp256k1 public key from an ECDSA signature and a message hash.
  *
+ * ## Recovery ID
  * - bit 0 (`recoveryId & 1`) is the parity of `R.y`: 0 for even, 1 for odd.
  * - bit 1 (`recoveryId >= 2`) says whether the reduction wrapped, i.e. whether
  *   `R.x` is `r` (0, 1) or `r + n` (2, 3).
- *
- * So:
  *
  * - 0: `R = (r, y)` with `y` even — the common case.
  * - 1: `R = (r, y)` with `y` odd — the other common case.
