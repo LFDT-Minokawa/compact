@@ -1,0 +1,19 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%secretKey.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%secretKey.1", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+  ],
+  "instructions": [
+    { "op": "constrain_bits", "val": "%secretKey.0", "bits": 8 },
+    { "op": "constrain_bits", "val": "%secretKey.1", "bits": 248 },
+    { "op": "persistent_hash", "output": "%bytes.2", "alignment": [{ "tag": "atom", "value": { "length": 21, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x6d69646e696768743a7a737761702d706b5b76315d", "%secretKey.0", "%secretKey.1"] },
+    { "op": "bytes32_into_low_high", "outputs": ["%t.3", "%t.4"], "bytes": "%bytes.2" },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x04"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "%t.4", "%t.3"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] }
+  ]
+}
