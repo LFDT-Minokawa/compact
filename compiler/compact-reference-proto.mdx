@@ -447,6 +447,21 @@ The following are the primitive types of Compact:
   The current maximum field value is given in
   [Implementation-specific limits](#implementation-specific-limits).
 
+- `JubjubScalar` represents the set of unsigned integers with values up to the
+  order of the prime-order subgroup of the JubJub embedded elliptic curve.
+  It is the type of the scalars used to multiply JubJub curve points.
+  The maximum value is @(parameter max-jubjub-scalar).
+
+- `Secp256k1Base` represents the set of unsigned integers with values up to the
+  order of the base field of the secp256k1 elliptic curve.
+  It is the type of the affine coordinates of a point on that curve.
+  The maximum value is @(parameter max-secp256k1-base).
+
+- `Secp256k1Scalar` represents the set of unsigned integers with values up to
+  the order of the secp256k1 group.
+  It is the type of the scalars used to multiply secp256k1 curve points.
+  The maximum value is @(parameter max-secp256k1-scalar).
+
 - `[`*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*`]`, where *T<sub>1</sub>*, ⋯,
   *T<sub>n</sub>* are zero or more comma-separated types, is the type of *tuple*
   values with element types *T<sub>1</sub>*, ⋯, *T<sub>n</sub>*.

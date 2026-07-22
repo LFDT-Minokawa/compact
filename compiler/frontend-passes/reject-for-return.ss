@@ -13,19 +13,17 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(library (manifest-passes)
-  (export manifest-passes)
-  (import (except (chezscheme) errorf)
-          (utils)
-          (json)
-          (compiler-version)
-          (language-version)
-          (runtime-version)
-          (langs)
-          (pass-helpers))
+#!chezscheme
 
-  (include "manifest-passes/save-manifest.ss")
-
-  (define-passes manifest-passes
-    (save-manifest              Lflattened))
-)
+(define-pass reject-for-return : Lnopattern (ir) -> Lnopattern ()
+  (Block : Block (ir [in-for? #f]) -> Block ()
+    [(block ,src ,[stmt*] ...) ir])
+  (Statement : Statement (ir [in-for? #f]) -> Statement ()
+    [(for ,src ,var-name ,tsize0 ,tsize1 ,[stmt #t -> stmt]) ir]
+    [(for ,src ,var-name ,[expr] ,[stmt #t -> stmt]) ir]
+    [(return ,src)
+     (when in-for? (source-errorf src "return is not supported within for loops"))
+     ir]
+    [(return ,src ,[expr])
+     (when in-for? (source-errorf src "return is not supported within for loops"))
+     ir]))

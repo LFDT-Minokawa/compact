@@ -13,19 +13,8 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(library (manifest-passes)
-  (export manifest-passes)
-  (import (except (chezscheme) errorf)
-          (utils)
-          (json)
-          (compiler-version)
-          (language-version)
-          (runtime-version)
-          (langs)
-          (pass-helpers))
+#!chezscheme
 
-  (include "manifest-passes/save-manifest.ss")
-
-  (define-passes manifest-passes
-    (save-manifest              Lflattened))
-)
+(define-pass drop-safe-casts : Linlined (ir) -> Lnosafecast ()
+  (Expression : Expression (ir) -> Expression ()
+    [(safe-cast ,src ,type ,type^ ,[expr]) expr]))

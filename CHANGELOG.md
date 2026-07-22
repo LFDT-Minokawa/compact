@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.109, language 0.25.102, runtime 0.18.102]
+## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
 
 ### Added
 
@@ -20,6 +20,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `secp256k1EcdsaVerify` accepts both low-s and high-s signatures, as
   [FIPS 186-5](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf)
   section 6.4.2 constrains `s` only to `[1, n - 1]`.
+
+## [Toolchain 0.33.109, language 0.25.102, runtime 0.18.101]
+
+### Internal notes
+
+- Each of the compiler passes now resides in its own file.  For example,
+  infer-types used to reside in analysis-passes.ss along with the other
+  analysis passes.  It now resides in analysis-passes/infer-types.ss, which
+  analysis-passes.ss now includes.
 
 ## [Toolchain 0.33.108, language 0.25.102, runtime 0.18.101]
 
