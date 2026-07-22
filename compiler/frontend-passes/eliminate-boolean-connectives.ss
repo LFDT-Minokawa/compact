@@ -13,19 +13,10 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(library (manifest-passes)
-  (export manifest-passes)
-  (import (except (chezscheme) errorf)
-          (utils)
-          (json)
-          (compiler-version)
-          (language-version)
-          (runtime-version)
-          (langs)
-          (pass-helpers))
+#!chezscheme
 
-  (include "manifest-passes/save-manifest.ss")
-
-  (define-passes manifest-passes
-    (save-manifest              Lflattened))
-)
+(define-pass eliminate-boolean-connectives : Lexpr (ir) -> Lnoandornot ()
+  (Expression : Expression (ir) -> Expression ()
+    [(not ,src ,[expr]) `(if ,src ,expr (quote ,src #f) (quote ,src #t))]
+    [(and ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 ,expr2 (quote ,src #f))]
+    [(or ,src ,[expr1] ,[expr2]) `(if ,src ,expr1 (quote ,src #t) ,expr2)]))

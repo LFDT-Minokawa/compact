@@ -13,19 +13,14 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-(library (manifest-passes)
-  (export manifest-passes)
-  (import (except (chezscheme) errorf)
-          (utils)
-          (json)
-          (compiler-version)
-          (language-version)
-          (runtime-version)
-          (langs)
-          (pass-helpers))
+#!chezscheme
 
-  (include "manifest-passes/save-manifest.ss")
-
-  (define-passes manifest-passes
-    (save-manifest              Lflattened))
-)
+; expands a multi-variable const into multiple single-variable const
+(define-pass expand-const : Lnoinclude (ir) -> Lsingleconst ()
+  (Const-Binding : Const-Binding (ir) -> Statement ()
+    [(,src ,[pattern] ,[type] ,[expr])
+     `(const ,src ,pattern ,type ,expr)])
+  (Statement : Statement (ir) -> Statement ()
+    [(const ,src ,[Const-Binding : cbinding -> stmt]) stmt]
+    [(const ,src ,[Const-Binding : cbinding -> stmt] ,[Const-Binding : cbinding* -> stmt*] ...)
+     `(seq ,src ,stmt ,stmt* ...)]))
