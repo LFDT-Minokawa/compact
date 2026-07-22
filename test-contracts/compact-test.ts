@@ -39,12 +39,19 @@ export type CompileResult = {
 };
 
 export type CompactContract<PrivateState = any> = {
-    initialState(context: any): {
-        currentContractState: any;
-        currentPrivateState: PrivateState;
-        currentZswapLocalState: {
-            coinPublicKey: any;
-        };
+    initialState(
+        context: any,
+        ...args: any[]
+    ):
+        | Promise<CompactConstructorResult<PrivateState>>
+        | CompactConstructorResult<PrivateState>;
+};
+
+type CompactConstructorResult<PrivateState = any> = {
+    currentContractState: any;
+    currentPrivateState: PrivateState;
+    currentZswapLocalState: {
+        coinPublicKey: any;
     };
 };
 
@@ -53,27 +60,45 @@ export type CompactContractConstructor<
     Witnesses = any,
 > = new (witnesses: Witnesses) => Contract;
 
-type ContractPrivateState<Contract> = Contract extends CompactContract<infer PrivateState>
-    ? PrivateState
-    : any;
+type ContractConstructorResult<Contract> = Contract extends {
+    initialState(context: any, ...args: any[]): infer Result;
+}
+    ? Awaited<Result>
+    : {
+          currentContractState: any;
+          currentPrivateState: any;
+          currentZswapLocalState: {
+              coinPublicKey: any;
+          };
+      };
+
+type ContractPrivateState<Contract> =
+    ContractConstructorResult<Contract> extends {
+        currentPrivateState: infer PrivateState;
+    }
+        ? PrivateState
+        : any;
 
 type ContractWitnesses<Contract extends CompactContractConstructor> =
     ConstructorParameters<Contract> extends [infer Witnesses, ...unknown[]]
         ? Witnesses
         : never;
 
-type ContractCircuitContextFromCircuits<Circuits> = Circuits[keyof Circuits] extends (
-    context: infer Context,
-    ...args: any[]
-) => any
-    ? Context
-    : any;
+type ContractCircuitContextFromCircuits<Circuits> =
+    Circuits[keyof Circuits] extends (
+        context: infer Context,
+        ...args: any[]
+    ) => any
+        ? Context
+        : any;
 
-type ContractCircuitContext<Contract> = Contract extends { circuits: infer Circuits }
+type ContractCircuitContext<Contract> = Contract extends {
+    circuits: infer Circuits;
+}
     ? ContractCircuitContextFromCircuits<Circuits>
     : Contract extends { impureCircuits: infer Circuits }
-        ? ContractCircuitContextFromCircuits<Circuits>
-        : any;
+      ? ContractCircuitContextFromCircuits<Circuits>
+      : any;
 
 type TestContract<Contract extends CompactContractConstructor> = {
     contract: InstanceType<Contract>;
@@ -153,17 +178,21 @@ export function defineRuntimeTest<Contract extends CompactContractConstructor>(
  * Creates a generated Compact contract instance and circuit context for
  * runtime fixture assertions while preserving the generated contract type.
  */
-export function createTestContract<Contract extends CompactContractConstructor>(
+export async function createTestContract<
+    Contract extends CompactContractConstructor,
+>(
     Contract: Contract,
     witnesses: ContractWitnesses<Contract> = {} as ContractWitnesses<Contract>,
-    privateState: ContractPrivateState<InstanceType<Contract>> =
-        undefined as ContractPrivateState<InstanceType<Contract>>,
-): TestContract<Contract> {
+    privateState: ContractPrivateState<
+        InstanceType<Contract>
+    > = undefined as ContractPrivateState<InstanceType<Contract>>,
+): Promise<TestContract<Contract>> {
     const contract = new Contract(witnesses) as InstanceType<Contract>;
-    const constructorResult = contract.initialState(
+    const constructorResult = await contract.initialState(
         createConstructorContext(privateState, '0'.repeat(64)),
     );
     const ctx = createCircuitContext(
+        'constructor',
         dummyContractAddress(),
         constructorResult.currentZswapLocalState.coinPublicKey,
         constructorResult.currentContractState,
