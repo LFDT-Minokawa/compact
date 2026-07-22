@@ -44,23 +44,23 @@ const mapFindByKey = <K, V>(map: Map<K, V>, key: K): V | undefined => {
   return result;
 };
 
-test('mintUnshieldedToSelfTest', () => {
+test('mintUnshieldedToSelfTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
 
-  context = c.circuits.mintUnshieldedToSelfTest(context, domainSep, amount).context;
+  context = (await c.circuits.mintUnshieldedToSelfTest(context, domainSep, amount)).context;
 
   // With auto-receive fix, minting to self now also populates unshieldedInputs
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints', 'unshieldedInputs']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints', 'unshieldedInputs']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedMints = context.currentQueryContext.effects.unshieldedMints;
-  const unshieldedInputs = context.currentQueryContext.effects.unshieldedInputs;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedMints = context.callContext.currentQueryContext.effects.unshieldedMints;
+  const unshieldedInputs = context.callContext.currentQueryContext.effects.unshieldedInputs;
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const rawTokenType = runtime.rawTokenType(domainSep, rawSelfAddress);
   const tokenType = {
     tag: 'unshielded',
@@ -94,22 +94,22 @@ const sampleContractRecipient = () => ({
   bytes: runtime.encodeContractAddress(runtime.sampleContractAddress()),
 });
 
-test('mintUnshieldedToContractTest', () => {
+test('mintUnshieldedToContractTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
   const recipient = sampleContractRecipient();
 
-  context = c.circuits.mintUnshieldedToContractTest(context, domainSep, recipient, amount).context;
+  context = (await c.circuits.mintUnshieldedToContractTest(context, domainSep, recipient, amount)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedMints = context.currentQueryContext.effects.unshieldedMints;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedMints = context.callContext.currentQueryContext.effects.unshieldedMints;
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const rawTokenType = runtime.rawTokenType(domainSep, rawSelfAddress);
   const tokenType = {
     tag: 'unshielded',
@@ -133,22 +133,22 @@ const sampleUserRecipient = () => ({
   bytes: runtime.encodeUserAddress(runtime.sampleUserAddress()),
 });
 
-test('mintUnshieldedToUserTest', () => {
+test('mintUnshieldedToUserTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const amount = 100n;
   const domainSep = sampleDomainSep();
   const recipient = sampleUserRecipient();
 
-  context = c.circuits.mintUnshieldedToUserTest(context, domainSep, recipient, amount).context;
+  context = (await c.circuits.mintUnshieldedToUserTest(context, domainSep, recipient, amount)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedMints']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedMints = context.currentQueryContext.effects.unshieldedMints;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedMints = context.callContext.currentQueryContext.effects.unshieldedMints;
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const rawTokenType = runtime.rawTokenType(domainSep, rawSelfAddress);
   const tokenType = {
     tag: 'unshielded',
@@ -173,29 +173,29 @@ const sampleCompactUnshieldedCoinInfo = (rawTokenMinterAddress: runtime.Contract
   value: amount,
 });
 
-test('sendUnshieldedToSelfTest', () => {
+test('sendUnshieldedToSelfTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
   const unshieldedCoinInfo = sampleCompactUnshieldedCoinInfo(rawTokenMinterAddress, amount);
 
-  context = c.circuits.sendUnshieldedToSelfTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value).context;
+  context = (await c.circuits.sendUnshieldedToSelfTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value)).context;
 
   // With auto-receive fix, sending to self now also populates unshieldedInputs
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs', 'unshieldedInputs']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs', 'unshieldedInputs']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedOutputs = context.currentQueryContext.effects.unshieldedOutputs;
-  const unshieldedInputs = context.currentQueryContext.effects.unshieldedInputs;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedOutputs = context.callContext.currentQueryContext.effects.unshieldedOutputs;
+  const unshieldedInputs = context.callContext.currentQueryContext.effects.unshieldedInputs;
 
   const rawTokenType = runtime.decodeRawTokenType(unshieldedCoinInfo.color);
   const tokenType = {
     tag: 'unshielded',
     raw: rawTokenType,
   } as const;
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const publicAddress = {
     tag: 'contract',
     address: rawSelfAddress,
@@ -212,21 +212,21 @@ test('sendUnshieldedToSelfTest', () => {
   expect(unshieldedInput).toBe(amount);
 });
 
-test('sendUnshieldedToContractTest', () => {
+test('sendUnshieldedToContractTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
   const unshieldedCoinInfo = sampleCompactUnshieldedCoinInfo(rawTokenMinterAddress, amount);
   const recipient = sampleContractRecipient();
 
-  context = c.circuits.sendUnshieldedToContractTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value, recipient).context;
+  context = (await c.circuits.sendUnshieldedToContractTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value, recipient)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedOutputs = context.currentQueryContext.effects.unshieldedOutputs;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedOutputs = context.callContext.currentQueryContext.effects.unshieldedOutputs;
 
   const rawTokenType = runtime.decodeRawTokenType(unshieldedCoinInfo.color);
   const tokenType = {
@@ -246,21 +246,21 @@ test('sendUnshieldedToContractTest', () => {
   expect(unshieldedMint).toBe(amount);
 });
 
-test('sendUnshieldedToUserTest', () => {
+test('sendUnshieldedToUserTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
   const unshieldedCoinInfo = sampleCompactUnshieldedCoinInfo(rawTokenMinterAddress, amount);
   const recipient = sampleUserRecipient();
 
-  context = c.circuits.sendUnshieldedToUserTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value, recipient).context;
+  context = (await c.circuits.sendUnshieldedToUserTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value, recipient)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedUnshieldedSpends', 'unshieldedOutputs']);
 
-  const claimedUnshieldedSpends = context.currentQueryContext.effects.claimedUnshieldedSpends;
-  const unshieldedOutputs = context.currentQueryContext.effects.unshieldedOutputs;
+  const claimedUnshieldedSpends = context.callContext.currentQueryContext.effects.claimedUnshieldedSpends;
+  const unshieldedOutputs = context.callContext.currentQueryContext.effects.unshieldedOutputs;
 
   const rawTokenType = runtime.decodeRawTokenType(unshieldedCoinInfo.color);
   const tokenType = {
@@ -280,19 +280,19 @@ test('sendUnshieldedToUserTest', () => {
   expect(unshieldedMint).toBe(amount);
 });
 
-test('receiveUnshieldedTest', () => {
+test('receiveUnshieldedTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
   const amount = 100n;
   const unshieldedCoinInfo = sampleCompactUnshieldedCoinInfo(rawTokenMinterAddress, amount);
 
-  context = c.circuits.receiveUnshieldedTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value).context;
+  context = (await c.circuits.receiveUnshieldedTest(context, unshieldedCoinInfo.color, unshieldedCoinInfo.value)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['unshieldedInputs']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['unshieldedInputs']);
 
-  const unshieldedInputs = context.currentQueryContext.effects.unshieldedInputs;
+  const unshieldedInputs = context.callContext.currentQueryContext.effects.unshieldedInputs;
 
   const rawTokenType = runtime.decodeRawTokenType(unshieldedCoinInfo.color);
   const tokenType = {
@@ -304,9 +304,9 @@ test('receiveUnshieldedTest', () => {
   expect(unshieldedInput).toBe(amount);
 });
 
-test('getUnshieldedBalanceTest', () => {
+test('getUnshieldedBalanceTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const rawTokenMinterAddress = runtime.sampleContractAddress();
 
@@ -319,8 +319,8 @@ test('getUnshieldedBalanceTest', () => {
     raw: rawTokenType,
   } as const;
 
-  context.currentQueryContext.block = {
-    ownAddress: context.currentQueryContext.address,
+  context.callContext.currentQueryContext.block = {
+    ownAddress: context.callContext.currentQueryContext.address,
     secondsSinceEpoch: 0n,
     secondsSinceEpochErr: 0,
     lastBlockTime: 0n,
@@ -329,20 +329,20 @@ test('getUnshieldedBalanceTest', () => {
     comIndices: new Map(),
   };
 
-  expect(c.circuits.getUnshieldedBalanceTest(context, unshieldedCoinInfo0.color).result).toBe(initialBalance);
+  expect((await c.circuits.getUnshieldedBalanceTest(context, unshieldedCoinInfo0.color)).result).toBe(initialBalance);
 
   const unshieldedCoinInfo1 = sampleCompactUnshieldedCoinInfo(rawTokenMinterAddress, initialBalance);
-  expect(c.circuits.getUnshieldedBalanceTest(context, unshieldedCoinInfo1.color).result).toBe(0n);
+  expect((await c.circuits.getUnshieldedBalanceTest(context, unshieldedCoinInfo1.color)).result).toBe(0n);
 
   const testAmount0 = 50n;
   const testAmount1 = 150n;
-  expect(c.circuits.getUnshieldedBalanceGtTest(context, unshieldedCoinInfo0.color, testAmount0).result).toBe(true);
-  expect(c.circuits.getUnshieldedBalanceGtTest(context, unshieldedCoinInfo0.color, testAmount1).result).toBe(false);
+  expect((await c.circuits.getUnshieldedBalanceGtTest(context, unshieldedCoinInfo0.color, testAmount0)).result).toBe(true);
+  expect((await c.circuits.getUnshieldedBalanceGtTest(context, unshieldedCoinInfo0.color, testAmount1)).result).toBe(false);
 
   const ltTestAmount0 = 50n;
   const ltTestAmount1 = 150n;
-  expect(c.circuits.getUnshieldedBalanceLtTest(context, unshieldedCoinInfo0.color, ltTestAmount0).result).toBe(false);
-  expect(c.circuits.getUnshieldedBalanceLtTest(context, unshieldedCoinInfo0.color, ltTestAmount1).result).toBe(true);
+  expect((await c.circuits.getUnshieldedBalanceLtTest(context, unshieldedCoinInfo0.color, ltTestAmount0)).result).toBe(false);
+  expect((await c.circuits.getUnshieldedBalanceLtTest(context, unshieldedCoinInfo0.color, ltTestAmount1)).result).toBe(true);
 });
 
 // Shielded token tests
@@ -374,23 +374,23 @@ const shieldedTokenColor = (domainSep: Buffer, rawContractAddress: runtime.Contr
   return Buffer.from(runtime.encodeRawTokenType(runtime.rawTokenType(domainSep, rawContractAddress)));
 };
 
-test('mintShieldedToSelfTest', () => {
+test('mintShieldedToSelfTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
   const nonce = sampleNonce();
 
-  const result = c.circuits.mintShieldedToSelfTest(context, domainSep, value, nonce);
+  const result = await c.circuits.mintShieldedToSelfTest(context, domainSep, value, nonce);
   context = result.context;
 
   // With auto-receive fix, minting to self now also populates claimedShieldedReceives
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedShieldedSpends', 'claimedShieldedReceives', 'shieldedMints']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedShieldedSpends', 'claimedShieldedReceives', 'shieldedMints']);
 
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
-  const shieldedMints = context.currentQueryContext.effects.shieldedMints;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
+  const shieldedMints = context.callContext.currentQueryContext.effects.shieldedMints;
 
   // Verify shieldedMints has the minted amount
   const domainSepHex = toHex(domainSep);
@@ -405,23 +405,23 @@ test('mintShieldedToSelfTest', () => {
   expect(claimedShieldedReceives[0]).toEqual(claimedShieldedSpends[0]);
 });
 
-test('mintShieldedToContractTest', () => {
+test('mintShieldedToContractTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
   const nonce = sampleNonce();
   const recipient = sampleContractRecipient();
 
-  const result = c.circuits.mintShieldedToContractTest(context, domainSep, value, nonce, recipient);
+  const result = await c.circuits.mintShieldedToContractTest(context, domainSep, value, nonce, recipient);
   context = result.context;
 
   // Minting to another contract should NOT auto-receive
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedShieldedSpends', 'shieldedMints']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedShieldedSpends', 'shieldedMints']);
 
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const shieldedMints = context.currentQueryContext.effects.shieldedMints;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const shieldedMints = context.callContext.currentQueryContext.effects.shieldedMints;
 
   // Verify shieldedMints has the minted amount
   const domainSepHex = toHex(domainSep);
@@ -432,23 +432,23 @@ test('mintShieldedToContractTest', () => {
   expect(claimedShieldedSpends.length).toBe(1);
 });
 
-test('mintShieldedToUserTest', () => {
+test('mintShieldedToUserTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
   const value = 100n;
   const domainSep = sampleDomainSep();
   const nonce = sampleNonce();
   const recipient = sampleZswapCoinPublicKey();
 
-  const result = c.circuits.mintShieldedToUserTest(context, domainSep, value, nonce, recipient);
+  const result = await c.circuits.mintShieldedToUserTest(context, domainSep, value, nonce, recipient);
   context = result.context;
 
   // Minting to a user should NOT auto-receive
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedShieldedSpends', 'shieldedMints']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedShieldedSpends', 'shieldedMints']);
 
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const shieldedMints = context.currentQueryContext.effects.shieldedMints;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const shieldedMints = context.callContext.currentQueryContext.effects.shieldedMints;
 
   // Verify shieldedMints has the minted amount
   const domainSepHex = toHex(domainSep);
@@ -459,49 +459,49 @@ test('mintShieldedToUserTest', () => {
   expect(claimedShieldedSpends.length).toBe(1);
 });
 
-test('receiveShieldedTest', () => {
+test('receiveShieldedTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const value = 100n;
   const coin = sampleShieldedCoinInfo(color, value);
 
-  context = c.circuits.receiveShieldedTest(context, coin).context;
+  context = (await c.circuits.receiveShieldedTest(context, coin)).context;
 
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedShieldedReceives']);
 
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify claimedShieldedReceives has an entry (the commitment)
   expect(claimedShieldedReceives.length).toBe(1);
 });
 
-test('sendShieldedToSelfTestWithChange', () => {
+test('sendShieldedToSelfTestWithChange', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 60n;
   const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
 
-  const result = c.circuits.sendShieldedToSelfTest(context, input, sendValue);
+  const result = await c.circuits.sendShieldedToSelfTest(context, input, sendValue);
   context = result.context;
 
   // When sending to self with change, we have:
   // - claimedNullifiers (from spending the input)
   // - claimedShieldedSpends (from output + change coins)
   // - claimedShieldedReceives (from change coin going back to self)
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -513,26 +513,26 @@ test('sendShieldedToSelfTestWithChange', () => {
   expect(claimedShieldedReceives.length).toBe(2);
 });
 
-test('sendShieldedToSelfTestNoChange', () => {
+test('sendShieldedToSelfTestNoChange', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 100n; // Same as input, so no change
   const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
 
-  const result = c.circuits.sendShieldedToSelfTest(context, input, sendValue);
+  const result = await c.circuits.sendShieldedToSelfTest(context, input, sendValue);
   context = result.context;
 
   // With auto-receive fix, sending full amount to self (no change) also populates claimedShieldedReceives
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -545,11 +545,11 @@ test('sendShieldedToSelfTestNoChange', () => {
   expect(claimedShieldedReceives[0]).toEqual(claimedShieldedSpends[0]);
 });
 
-test('sendShieldedToContractTest', () => {
+test('sendShieldedToContractTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
@@ -557,18 +557,18 @@ test('sendShieldedToContractTest', () => {
   const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
   const recipient = sampleContractRecipient();
 
-  const result = c.circuits.sendShieldedToContractTest(context, input, recipient, sendValue);
+  const result = await c.circuits.sendShieldedToContractTest(context, input, recipient, sendValue);
   context = result.context;
 
   // Sending to another contract with change:
   // - claimedNullifiers (from spending the input)
   // - claimedShieldedSpends (from output + change coins)
   // - claimedShieldedReceives (from change coin going back to self)
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -580,11 +580,11 @@ test('sendShieldedToContractTest', () => {
   expect(claimedShieldedReceives.length).toBe(1);
 });
 
-test('sendShieldedToUserTest', () => {
+test('sendShieldedToUserTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
@@ -592,18 +592,18 @@ test('sendShieldedToUserTest', () => {
   const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
   const recipient = sampleZswapCoinPublicKey();
 
-  const result = c.circuits.sendShieldedToUserTest(context, input, recipient, sendValue);
+  const result = await c.circuits.sendShieldedToUserTest(context, input, recipient, sendValue);
   context = result.context;
 
   // Sending to user with change:
   // - claimedNullifiers (from spending the input)
   // - claimedShieldedSpends (from output + change coins)
   // - claimedShieldedReceives (from change coin going back to self)
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -615,26 +615,26 @@ test('sendShieldedToUserTest', () => {
   expect(claimedShieldedReceives.length).toBe(1);
 });
 
-test('sendImmediateShieldedToSelfTestNoChange', () => {
+test('sendImmediateShieldedToSelfTestNoChange', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 100n; // Full amount, no change
   const input = sampleShieldedCoinInfo(color, inputValue);
 
-  const result = c.circuits.sendImmediateShieldedToSelfTest(context, input, sendValue);
+  const result = await c.circuits.sendImmediateShieldedToSelfTest(context, input, sendValue);
   context = result.context;
 
   // With auto-receive fix, sending full amount to self also populates claimedShieldedReceives
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -647,11 +647,11 @@ test('sendImmediateShieldedToSelfTestNoChange', () => {
   expect(claimedShieldedReceives[0]).toEqual(claimedShieldedSpends[0]);
 });
 
-test('sendImmediateShieldedToContractTest', () => {
+test('sendImmediateShieldedToContractTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
@@ -659,15 +659,15 @@ test('sendImmediateShieldedToContractTest', () => {
   const input = sampleShieldedCoinInfo(color, inputValue);
   const recipient = sampleContractRecipient();
 
-  const result = c.circuits.sendImmediateShieldedToContractTest(context, input, recipient, sendValue);
+  const result = await c.circuits.sendImmediateShieldedToContractTest(context, input, recipient, sendValue);
   context = result.context;
 
   // Sending to another contract with change
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);
@@ -679,11 +679,11 @@ test('sendImmediateShieldedToContractTest', () => {
   expect(claimedShieldedReceives.length).toBe(1);
 });
 
-test('sendImmediateShieldedToUserTest', () => {
+test('sendImmediateShieldedToUserTest', async () => {
 
-  let [c, context] = startContract(contractCode, {}, 0);
+  let [c, context] = await startContract(contractCode, {}, 0);
 
-  const rawSelfAddress = context.currentQueryContext.address;
+  const rawSelfAddress = context.callContext.currentQueryContext.address;
   const domainSep = sampleDomainSep();
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
@@ -691,15 +691,15 @@ test('sendImmediateShieldedToUserTest', () => {
   const input = sampleShieldedCoinInfo(color, inputValue);
   const recipient = sampleZswapCoinPublicKey();
 
-  const result = c.circuits.sendImmediateShieldedToUserTest(context, input, recipient, sendValue);
+  const result = await c.circuits.sendImmediateShieldedToUserTest(context, input, recipient, sendValue);
   context = result.context;
 
   // Sending to user with change
-  expectEmptyEffectsExcept(context.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
+  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
 
-  const claimedNullifiers = context.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.currentQueryContext.effects.claimedShieldedReceives;
+  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
+  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
+  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
 
   // Verify nullifier claimed for input
   expect(claimedNullifiers.length).toBe(1);

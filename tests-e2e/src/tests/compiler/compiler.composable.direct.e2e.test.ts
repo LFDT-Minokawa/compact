@@ -47,6 +47,7 @@ describe('[Composable contracts direct] Compiler', () => {
         ).toCompileWithoutErrors();
     });
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract has been modified after compilation', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -59,6 +60,7 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
     test('should compile when dependency contract contract-info.json file is malformed - add item', async () => {
         const mainFileName = 'Main-interface.compact';
@@ -74,6 +76,7 @@ describe('[Composable contracts direct] Compiler', () => {
         expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
     });
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - delete item', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -89,7 +92,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - empty', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -102,7 +107,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - missing contracts', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -114,7 +121,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - missing circuits', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -126,7 +135,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - missing witnesses', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -142,7 +153,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - circuits not vector', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -154,7 +167,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - change item', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -170,7 +185,9 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is malformed - change item 2', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -186,6 +203,7 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
     test('should compile when dependency contract contract-info.json file is malformed - change item - argument name', async () => {
         const mainFileName = 'Main-interface.compact';
@@ -201,6 +219,7 @@ describe('[Composable contracts direct] Compiler', () => {
         expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
     });
 
+    /* Issue 201: this is no longer a static error
     test('should throw an error when dependency contract contract-info.json file is removed', async () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
@@ -212,6 +231,7 @@ describe('[Composable contracts direct] Compiler', () => {
             compilerDefaultOutput(),
         );
     });
+    */
 
     test('should compile when dependency contract has been accessed after compilation', async () => {
         const mainFileName = 'Main-interface.compact';
@@ -233,32 +253,25 @@ describe('[Composable contracts direct] Compiler', () => {
     });
 
     test('should throw an error on exported circuit parameter', async () => {
+        // CCC: passing a contract value as an exported-circuit parameter is
+        // no longer rejected at the type-check level. The compiler still
+        // rejects this program, but via the disclosure analyzer: invoking
+        // calc.get_square(...) leaks the contract-reference parameter, and
+        // that disclosure has not been declared.
         const mainFileName = 'Main-export-circuit-parameter.compact';
         const mainFilePath = contractsDir + mainFileName;
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
         expectCompilerResult(returnValue).toBeFailure(
-            `Exception: ${mainFileName} line 21 char 1: ` +
-                'invalid type contract Calculator<get_square(Field): Field, get_cube(Field): Field> for circuit calculate_square argument 1: ' +
-                'exported circuit arguments cannot include contract values',
+            `Exception: ${mainFileName} line 22 char 16: ` +
+                'potential witness-value disclosure must be declared but is not: ' +
+                'witness value potentially disclosed: the value of parameter calc of exported circuit calculate_square at line 21 char 33; ' +
+                'nature of the disclosure: contract call contract reference might disclose the witness value',
             compilerDefaultOutput(),
         );
     });
 
-    //  FIXME: un-skip for CC
-    test.skip('should throw an error when contract is in constructor', async () => {
-        const mainFileName = 'Main-constructor.compact';
-        const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
-
-        expectCompilerResult(returnValue).toBeFailure(
-            `Exception: ${mainFileName} line 16 char 1: ` + 'contract types are not yet implemented',
-            compilerDefaultOutput(),
-        );
-    });
-
-    //  FIXME: un-skip for CC
-    test.skip('should throw an error when contract is created in constructor', async () => {
+    test('should throw an error when contract is created in constructor', async () => {
         const mainFileName = 'Main-constructor-contract-create.compact';
         const mainFilePath = contractsDir + mainFileName;
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
@@ -280,40 +293,28 @@ describe('[Composable contracts direct] Compiler', () => {
         );
     });
 
-    // FIXME: un-skip for CC
-    test.skip('should throw an error on contract reference in ledger', async () => {
+    test('should throw an error on contract reference in ledger', async () => {
         const mainFileName = 'Main-ledger-reference.compact';
         const mainFilePath = contractsDir + mainFileName;
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
-            `Exception: ${mainFileName} line 16 char 1: ` + 'contract types are not yet implemented',
-            compilerDefaultOutput(),
-        );
+        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
     });
 
-    // FIXME: un-skip for CC
-    test.skip('should throw an error on circuit returns contract', async () => {
+    test('should throw an error on circuit returns contract', async () => {
         const mainFileName = 'Main-circuit-return-contract.compact';
         const mainFilePath = contractsDir + mainFileName;
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
-            `Exception: ${mainFileName} line 16 char 1: ` + 'contract types are not yet implemented',
-            compilerDefaultOutput(),
-        );
+        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
     });
 
-    test('should throw an error on export circuit returns contract', async () => {
+    test('should compile when exported circuit returns contract', async () => {
         const mainFileName = 'Main-export-circuit-return-contract.compact';
         const mainFilePath = contractsDir + mainFileName;
         const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
-            `Exception: ${mainFileName} line 23 char 1: ` +
-                'invalid type contract Calculator<get_square(Field): Field, get_cube(Field): Field> for circuit get_calc return value: ' +
-                'exported circuit return values cannot include contract values',
-            compilerDefaultOutput(),
-        );
+        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
     });
 });

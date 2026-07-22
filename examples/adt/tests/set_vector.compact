@@ -18,7 +18,7 @@ import CompactStandardLibrary;
 export ledger c: Set<Vector<2, Field>>;
 
 circuit getVector(): Vector<2, Field> {
-  return [2, 12];
+  return [2 as Field, 12 as Field];
 }
 
 export circuit test(): [] {

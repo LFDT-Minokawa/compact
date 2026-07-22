@@ -28,38 +28,38 @@ export ledger slicing_sum: Field;
 export ledger current_vector: Vector<3, Field>;
 
 constructor() {
-    circuit_vector_sum = 0;
+    circuit_vector_sum = 0 as Field;
     tuple_element_count = 0;
-    nested_circuit_calls = 0;
-    matrix_iteration_result = 0;
-    recursive_circuit_sum = 0;
-    complex_sum = 0;
-    concat_sum = 0;
-    conditional_result = 0;
-    slicing_sum = 0;
-    current_vector = [0, 0, 0];
+    nested_circuit_calls = 0 as Field;
+    matrix_iteration_result = 0 as Field;
+    recursive_circuit_sum = 0 as Field;
+    complex_sum = 0 as Field;
+    concat_sum = 0 as Field;
+    conditional_result = 0 as Field;
+    slicing_sum = 0 as Field;
+    current_vector = [0 as Field, 0 as Field, 0 as Field];
 }
 
 // Circuit that returns a vector for iteration
 circuit generate_test_vector(size: Uint<8>): Vector<5, Field> {
     if ((size as Uint<16>) == 5) {
-        return [100, 200, 300, 400, 500];
+        return [100 as Field, 200 as Field, 300 as Field, 400 as Field, 500 as Field];
     } else {
-        return [10, 20, 30, 40, 50];
+        return [10 as Field, 20 as Field, 30 as Field, 40 as Field, 50 as Field];
     }
 }
 
 // Circuit that returns a tuple for iteration
 circuit generate_tuple_data(): [Field, Uint<32>, Boolean, Field] {
-    return [42, 100, true, 256];
+    return [42 as Field, 100, true, 256 as Field];
 }
 
 // Circuit that returns nested vector
 circuit create_matrix(): Vector<3, Vector<2, Field>> {
     return [
-        [1, 5],
-        [2, 6],
-        [3, 7]
+        [1 as Field, 5 as Field],
+        [2 as Field, 6 as Field],
+        [3 as Field, 7 as Field]
     ];
 }
 
@@ -70,7 +70,7 @@ circuit transform_vector(input: Vector<3, Field>): Vector<3, Field> {
 
 // Test 1: For-loop over circuit-returned vector
 export circuit test_circuit_returned_vector(): Field {
-    circuit_vector_sum = 0;
+    circuit_vector_sum = 0 as Field;
 
     // Iterate over vector returned directly from circuit
     for (const value of generate_test_vector(5)) {
@@ -107,7 +107,7 @@ export circuit test_circuit_returned_tuple(): Uint<16> {
 
 // Test 3: Nested for-loop over circuit-returned matrix
 export circuit test_nested_circuit_matrix(): Field {
-    matrix_iteration_result = 0;
+    matrix_iteration_result = 0 as Field;
     const matrix = create_matrix();
 
     // Iterate over matrix returned from circuit
@@ -122,7 +122,7 @@ export circuit test_nested_circuit_matrix(): Field {
 
 // Test 4: For-loop with circuit calls inside loop body
 export circuit test_circuit_calls_in_loop(): Field {
-    nested_circuit_calls = 0;
+    nested_circuit_calls = 0 as Field;
     const base_values = [1 as Field, 2 as Field, 3 as Field];
 
     for (const base of base_values) {
@@ -145,7 +145,7 @@ export circuit test_dynamic_vector_processing(): Field {
     for (const multiplier of [1, 2, 3, 4, 5]) {
         // Generate different vectors based on multiplier
         const generated = generate_test_vector(multiplier as Uint<8>);
-        complex_sum = 0; // Reuse existing ledger variable for sum
+        complex_sum = 0 as Field; // Reuse existing ledger variable for sum
 
         for (const val of generated) {
             complex_sum = complex_sum + val;
@@ -160,7 +160,7 @@ export circuit test_dynamic_vector_processing(): Field {
 
 // Test 6: Complex nested iteration with circuit returns and conditions
 export circuit test_complex_nested_patterns(): Field {
-    complex_sum = 0;
+    complex_sum = 0 as Field;
     const matrices = [create_matrix(), create_matrix()]; // Two identical matrices
 
     for (const matrix of matrices) {
@@ -180,7 +180,7 @@ export circuit test_complex_nested_patterns(): Field {
 
 // Test 7: For-loop over multiple circuit results (simplified)
 export circuit test_concatenated_circuit_results(): Field {
-     concat_sum = 0;
+     concat_sum = 0 as Field;
 
      // Create vector by concatenating results from multiple circuit calls
      const vec1 = generate_test_vector(5);
@@ -196,7 +196,7 @@ export circuit test_concatenated_circuit_results(): Field {
 
 // Test 8: Conditional circuit calls in loop with vector iteration
 export circuit test_conditional_circuit_calls(): Field {
-    conditional_result = 0;
+    conditional_result = 0 as Field;
     const conditions = [true, false, true, false];
 
     for (const condition of conditions) {
@@ -215,8 +215,8 @@ export circuit test_conditional_circuit_calls(): Field {
 
 // Test 9: Recursive-style circuit pattern (simulated since Compact doesn't support recursion)
 export circuit test_recursive_style_processing(): Field {
-    recursive_circuit_sum = 0;
-    current_vector = [1, 2, 3];
+    recursive_circuit_sum = 0 as Field;
+    current_vector = [1 as Field, 2 as Field, 3 as Field];
 
     // Simulate recursive processing through iteration
     for (const iteration of [1, 2, 3]) {
@@ -235,7 +235,7 @@ export circuit test_recursive_style_processing(): Field {
 
 // Test 10: Vector slicing with circuit returns
 export circuit test_vector_slicing_with_circuits(): Field {
-    slicing_sum = 0;
+    slicing_sum = 0 as Field;
     const full_vector = generate_test_vector(5);
 
     // Iterate over different slices of the circuit-returned vector
@@ -271,7 +271,7 @@ export circuit test(): Vector<10, Field> {
         test4,                  // 57 - circuit calls in loop
         test5_vec,              // 1500 - dynamic processing result for multiplier 3
         test6,                  // complex nested patterns
-        0,                      // test7 skipped due to compiler issues
+        0 as Field,             // test7 skipped due to compiler issues
         test8,                  // 1320 - conditional circuit calls
         test9,                  // recursive style sum
         test10                  // 1198 - vector slicing

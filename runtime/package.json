@@ -1,6 +1,6 @@
 {
   "name": "@midnight-ntwrk/compact-runtime",
-  "version": "0.16.101",
+  "version": "0.18.101",
   "description": "Compact Runtime",
   "type": "module",
   "exports": {
@@ -30,10 +30,11 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
-    "@midnight-ntwrk/onchain-runtime-v3"
+    "@midnightntwrk/onchain-runtime-v4"
   ],
   "dependencies": {
-    "@midnight-ntwrk/onchain-runtime-v3": "^3.0.0",
+    "@midnightntwrk/onchain-runtime-v4": "^4.0.0-rc.3",
+    "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",
     "object-inspect": "^1.12.3"

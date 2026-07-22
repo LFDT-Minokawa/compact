@@ -24,63 +24,7 @@
           (langs)
           (pass-helpers))
 
-  (define (save-manifest ir output-directory-pathname manifest-dir*)
-    (define manifest-version-string "1")
-    (define (sha256-hash pathname)
-      (define (hex-digit? c)
-        (or (char<=? #\0 c #\9)
-            (char<=? #\a c #\f)
-            (char<=? #\A c #\F)))
-      (let-values ([(stdout stderr) (shell (format "exec sha256sum -b '~a'" pathname))])
-        (unless (string=? stderr "")
-          (external-errorf "attempt to invoke sha256sum failed with message ~a" stderr))
-        (unless (>= (string-length stdout) 64)
-          (external-errorf "unexpected output from sha256sum: ~a" stdout))
-        (let ([hash (substring stdout 0 64)])
-          (unless (andmap hex-digit? (string->list hash))
-            (external-errorf "unexpected output from sha256sum: ~a" stdout))
-          (string-downcase hash))))
-    (define (file-entry root)
-      (lambda (fn)
-        (let ([pathname (format "~a/~a" root fn)])
-          (cons
-            fn
-            (list
-              (cons "type" "file")
-              (cons "size" (call-with-port (open-file-input-port pathname) port-length))
-              (cons "hash" (sha256-hash pathname)))))))
-    (define (dir-entry root)
-      (lambda (fn)
-        (let* ([pathname (format "~a/~a" root fn)]
-               [fn* (directory-list pathname)]
-               [fn* (sort string<? fn*)]
-               [fn* (remove "contract-manifest.json" fn*)])
-          (let-values ([(dir-fn* file-fn*) (partition file-directory? fn*)])
-            (cons
-              fn
-              (cons*
-                (cons "type" "directory")
-                (append
-                  (map (file-entry pathname) file-fn*)
-                  (map (dir-entry pathname) dir-fn*))))))))
-    (let ([op (get-target-port 'contract-manifest.json)])
-      (print-json op
-        (cons*
-          (cons
-            "manifest-version"
-            manifest-version-string)
-          (cons
-            "compiler-version"
-            compiler-version-string)
-          (cons
-            "language-version"
-            language-version-string)
-          (cons
-            "runtime-version"
-            runtime-version-string)
-          (map (dir-entry output-directory-pathname)
-               (filter file-exists? manifest-dir*)))))
-    ir)
+  (include "manifest-passes/save-manifest.ss")
 
   (define-passes manifest-passes
     (save-manifest              Lflattened))

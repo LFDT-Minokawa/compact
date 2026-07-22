@@ -51,17 +51,6 @@ describe('[WPP] Compiler', () => {
         });
     });
 
-    //  FIXME: un-skip for CC
-    test.skip(`should not be able to compile contract: contract_wpp.compact`, async () => {
-        const filePath = path.join(CONTRACTS_ROOT, 'contract', 'contract_wpp.compact');
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
-
-        expectCompilerResult(result).toBeFailure(
-            'Exception: contract_wpp.compact line 32 char 4:\n  contract types are not yet implemented',
-            compilerDefaultOutput(),
-        );
-    });
-
     test(`should not be able to compile contract: pm_16723_neg.compact`, async () => {
         const filePath = path.join(CONTRACTS_ROOT, 'negative', 'pm_16723_neg.compact');
         const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);

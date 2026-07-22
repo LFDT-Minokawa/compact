@@ -9,6 +9,7 @@ Key parts of the API are:
   - [`Maybe`](exports.md#maybe)
   - [`Either`](exports.md#either)
   - [`NativePoint`](exports.md#nativepoint)
+  - [`Secp256k1Point`](exports.md#secp256k1point)
   - [`MerkleTreeDigest`](exports.md#merkletreedigest)
   - [`MerkleTreePathEntry`](exports.md#merkletreepathentry)
   - [`MerkleTreePath`](exports.md#merkletreepath)
@@ -34,9 +35,17 @@ Key parts of the API are:
   - [`keccak256`](exports.md#keccak256)
 - Elliptic curve functions:
   - [`ecAdd`](exports.md#ecadd)
+  - [`ecNeg`](exports.md#ecneg)
   - [`ecMul`](exports.md#ecmul)
   - [`ecMulGenerator`](exports.md#ecmulgenerator)
+  - [`secp256k1PointX`](exports.md#secp256k1pointx)
+  - [`secp256k1PointY`](exports.md#secp256k1pointy)
   - [`hashToCurve`](exports.md#hashtocurve)
+- secp256k1 field arithmetic functions:
+  - [`add`](exports.md#add)
+  - [`neg`](exports.md#neg)
+  - [`mul`](exports.md#mul)
+  - [`inv`](exports.md#inv)
 - Merkle tree functions:
   - [`merkleTreePathRoot`](exports.md#merkletreepathroot)
   - [`merkleTreePathRootNoLeafHash`](exports.md#merkletreepathrootnoleafhash)
@@ -71,3 +80,6 @@ Key parts of the API are:
 - Cryptographic signature types and circuits:
   - [`JubjubSchnorrSignature`](exports.md#jubjubschnorrsignature)
   - [`jubjubSchnorrVerify`](exports.md#jubjubschnorrverify)
+  - [`Secp256k1EcdsaSignature`](exports.md#secp256k1ecdsasignature)
+  - [`secp256k1EcdsaVerify`](exports.md#secp256k1ecdsaverify)
+  - [`secp256k1EthereumAddress`](exports.md#secp256k1ethereumaddress)
