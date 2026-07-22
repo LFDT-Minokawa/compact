@@ -1,9 +1,9 @@
 # Compact toolchain 0.33.0
 
-- **Date**: 2026-07-21
+- **Date:** 2026-07-21
 - **Language version:** 0.25.0
 - **Compact runtime version:** 0.18.0
-- **Environment**: to-be-filled. For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
+- **Environment:** This release works with a Midnight ledger 9 blockchain.  For the full compatibility matrix, see the [release notes overview](https://docs.midnight.network/relnotes/overview)
 
 ## High-level summary
 
@@ -23,7 +23,9 @@ In addition to the switch from Midnight ledger version 8 to version 9, this rele
 
 Compact now supports _cross-contract calls_.  You can declare contract types, use references to other deployed contracts as values, and call one contract's circuits from another.  This is the first stage of support for multi-contract systems: contracts that work together as a system.  Supporting cross-contract calls in the Compact runtime changes the type `CircuitContext` and the signature of `createCircuitContext`; these are **breaking changes** for DApp code that uses the runtime directly.
 
-Compact now supports _events_.  [More here].
+Compact now supports _events_.  Events can be emitted by Compact code.  A DApp has access to the events that are emitted as part of a transaction.
+
+Compact now supports serialization and deserialization of arbitrary Compact values.
 
 Compact toolchain 0.33 has support for a new ZKIR circuit format, ZKIR version 3.  This format is selected by passing the flag `--feature-zkir-v3` to the compact compiler (`compact compile --feature-zkir-v3`).  ZKIR version 3 has new suppport for cryptographic features that are not available in ZKIR version 2: Keccak-256 hashing, secp256k1 curve points and base and scalar fields, and ECDSA signature verification in the Compact standard library.
 
@@ -31,7 +33,7 @@ Compact toolchain 0.33 has support for a new ZKIR circuit format, ZKIR version 3
 
 ### Cross-contract calls
 
-**Description**: Compact now supports building multiple smart contracts that work together as a system. Three new language features make this possible: contract types, references to other contracts as values, and calls from within a circuit to another contract's circuits. This is the first stage of support for multi-contract systems.
+**Description:** Compact now supports building multiple smart contracts that work together as a system. Three new language features make this possible: contract types, references to other contracts as values, and calls from within a circuit to another contract's circuits. This is the first stage of support for multi-contract systems.
 
 #### Contract types
 
@@ -103,7 +105,7 @@ Restrictions (1-4) will be relaxed as support for those features is added in fut
 
 ### Emitting events
 
-**Description**: There is a new expression form `emit(e)` that takes a standard event and appends the emitted  events, in order of evaluation, to the enclosing exported circuit's context, where it can be read from TypeScript via the `events` field of `CircuitContext`.
+**Description:** There is a new expression form `emit(e)` that takes a standard event and appends the emitted  events, in order of evaluation, to the enclosing exported circuit's context, where it can be read from TypeScript via the `events` field of `CircuitContext`.
 
 The Compact standard library defines the standard event types. 
 
@@ -116,9 +118,17 @@ Evaluation of `emit(e)` proceeds by evaluating `e`, computing its canonical byte
 
 The canonical byte encoding of an event is created via the equivalent of `serialize<T, #n>`. A generic `serialize` circuit is defined in the Compact standard library along with a `deserialize` counterpart.
 
+### Serialization and deserialization
+
+The standard library now provides the ability to serialize a Compact value to a byte vector, and to desrialize from a byte vector to Compact values.  This works for all Compact types except `Opaque` types and contract types.
+
+The standard library has a generic circuit `serialize<T, #N>` where `T` is the argument type being serialized and `N` is the desired size of the resulting byte vector.  It is a compile-time error if `N` is chosen to be too small to hold a serialized value of type `T`.  If `N` is chosen to be too large, it is padded with zero bytes.
+
+It also has a generic circuit `deserialize<T, #N>` where `N` is the length of the byte vector being deseralized and `T` is the desired result type.  It is a compile-time error if the serialized representation of a value of type `T` is larger than `N`.  If `N` is larger than the serialized representation of a value of type `T`, then extra trailing elements of the input byte vector are ignored.
+
 ### The `JubjubScalar` type
 
-**Description**: Previously, the standard library circuits `ecMul` and `ecMulGenerator` took a native (BLS12-381) `Field` value as their second and first argument respectively.  The native curve is Jubjub and these circuit arguments should be values in the Jubjub scalar field.  The Jubjub scalar field is a prime field with a smaller field modulus than the native field.  There was therefore a slight ambiguity when a value was passed that exceeded the Jubjub scalar field modulus.
+**Description:** Previously, the standard library circuits `ecMul` and `ecMulGenerator` took a native (BLS12-381) `Field` value as their second and first argument respectively.  The native curve is Jubjub and these circuit arguments should be values in the Jubjub scalar field.  The Jubjub scalar field is a prime field with a smaller field modulus than the native field.  There was therefore a slight ambiguity when a value was passed that exceeded the Jubjub scalar field modulus.
 
 Compact toolchain 0.33 introduces a builtin type `JubjubScalar`.  The standard library circuits `ecMul` and `ecMulGenerator` now take a `JubjubScalar` value as their second and first argument respectively.  There is a cast from `Field` to `JubjubScalar` and from `JubjubScalar` to `Field`.  The cast from `Field` to `JubjubScalar` will not fail for values out of range, but will instead reduce the `Field` value modulo the Jubjub scalar modulus.  The cast from `JubjubScalar` to `Field` will not fail because the maximum `Field` value is larger than the maximum `JubjubScalar` value.  Do note that round tripping by casting from `Field` to `JubjubScalar` and back to `Field` will possibly give a different value than the original one.
 
@@ -130,7 +140,7 @@ The Compact runtime exports new `bigint` constants `JUBJUB_SCALAR_MODULUS` and `
 
 ### The secp256k1 curve
 
-**Description**: Compact now has support for the secp256k1 curve used in Bitcoin and Ethereum signatures.  There is a standard library type `Secp256k1Point` representing curve points.  There are standard library circuits `secp256k1PointX` and `secp2561kPointY` to extract the affine X- and Y-coordinates of a value of type `Secp256k1Point`.  There is no way in Compact to explicitly construct secp256k1 points, but note that they can be obtained from witnesses and passed as circuit inputs.
+**Description:** Compact now has support for the secp256k1 curve used in Bitcoin and Ethereum signatures.  There is a standard library type `Secp256k1Point` representing curve points.  There are standard library circuits `secp256k1PointX` and `secp2561kPointY` to extract the affine X- and Y-coordinates of a value of type `Secp256k1Point`.  There is no way in Compact to explicitly construct secp256k1 points, but note that they can be obtained from witnesses and passed as circuit inputs.
 
 `default<Secp256k1Point>` is the additive identity point, a point `b` such that `ecAdd(a, b)` equals `a` for any point `a`.  Equals and not-equals comparisons are supported for secp256k1 points.
 
@@ -138,7 +148,7 @@ The elliptic curve operations `ecAdd`, `ecMul`, and `ecMulGenerator` are overloa
 
 There are a pair of new builtin field types, `Secp256k1Base` and `Secp256k1Scalar`.  The X- and Y-coordinates of a `Secp256k1Point` have type `Secp256k1Base`.  The field arguments to `ecMul` and `ecMulGenerator` for `Secp256k1Point` have type `Secp256k1Scalar`.  The default values of both of these fields are zero.  Arithmetic is supported via standard library circuits (**not** the binary arithmetic operators).  `add` performs addition, `mul` performs multiplication, `neg` is the additive inverse (a value `b` such that `add(a, b)` is `a` for all field values `a`), and `inv` is the multiplicative inverse (a value `b` such that `mul(a, b)` is `a` for all field values `b`).  Equals and not-equals comparisons are supported for these types, but other relational comparisons are not supported.
 
-There are casts to and from both secp256k1 fields and `Bytes<32>`.  The `Bytes<32>` representation of a secp256k1 field value is little-endian.  The casts targeting `Bytes<32>` cannot fail (the maximum values of both fields fit in 32 bytes).  The casts from `Bytes<32>` will fail if the resulting value would exceed the target type's maximum value.  Therefore, round-tripping through `Bytes<32>` always succeeds and gives the same value; round tripping through a secp256k1 field type will only work if the original `Bytes<32>` value is a valid value for that field type.
+There are casts to and from both secp256k1 fields and `Bytes<32>`.  The `Bytes<32>` representation of a secp256k1 field value is little-endian.  The casts targeting `Bytes<32>` cannot fail (the maximum values of both fields fit in 32 bytes).  The casts from `Bytes<32>` also cannot fail.  The unsigned integer value of the `Bytes<32>` will be reduced modulo the respective field modulus.
 
 This feature is **only available with the new ZKIR v3 backend**.  To enable it, pass the flag `--feature-zkir-v3` when invoking the compiler.  Note that you will need a proof server release that supports ZKIR version 3.0 construct proofs involving this feature.
 
@@ -146,7 +156,7 @@ The Compact runtime has types and functions to manipulate values of the secp256k
 
 ### ECDSA signature verification
 
-**Description**: Compact circuits can now verify ECDSA signatures in circuit.  There is a standard library struct type `Secp256k1EcdsaSignature` and a circuit `secp256k1EcdsaVerify`.  `secp256k1EcdsaVerify` takes a `Bytes<32>` message hash, a `secp256k1EcdsaSignature` signature containing a pair of `Secp256k1Scalar`s, and a `Secp256k1Point` public key.
+**Description:** Compact circuits can now verify ECDSA signatures in circuit.  There is a standard library struct type `Secp256k1EcdsaSignature` and a circuit `secp256k1EcdsaVerify`.  `secp256k1EcdsaVerify` takes a `Bytes<32>` message hash, a `secp256k1EcdsaSignature` signature containing a pair of `Secp256k1Scalar`s, and a `Secp256k1Point` public key.
 
 It returns a boolean value telling whether the verification succeeded.  If you want to ensure that a signature verifies in Compact, you should `assert` that the result of `secp256k1EcdsaVerify` is is true.
 
@@ -154,11 +164,15 @@ Note that there are JavaScript utilities for working with signatures (such as re
 
 Also note that `secp256k1EcdsaVerify` will verify high-s signatures, where the `s` component of a `Secp256k1EcdsaSignature { r, s }`
 
-## Improvements
-
-## Deprecations
+This feature is **only available with the new ZKIR v3 backend**.  To enable it, pass the flag `--feature-zkir-v3` when invoking the compiler.  Note that you will need a proof server release that supports ZKIR version 3.0 construct proofs involving this feature.
 
 ## Breaking changes
+
+### `ecMul` and `ecMulGenerator` no longer accept `Field`
+
+The second argument to `ecMul` and the argument to `ecMulGenerator` was previously of type `Field`.  In this release we have changed it.
+
+`ecMul` is now overloaded, it takes either a `JubjubPoint` and a `JubjubScalar` and returns a `JubjubPoint` or else it takes a `Secp256k1Point` and a `Secp256k1Scalar` and returns a `Secp256k1Point`.  `ecMulGenerator` now takes either a `JubjubScalar` and returns a `JubjubPoint` or it takes a `Secp256k1Scalar` and returns a `Secp256k1Point`.
 
 ### `CircuitContext` is restructured to model a call tree
 
@@ -173,5 +187,3 @@ Per-call state moves into a new `callContext` member. Fields that were previousl
 ### `CircuitResults` no longer carries `proofData`
 
 `CircuitResults` no longer has a `proofData` field. The proof data for each circuit run — the root circuit and every sub-call — is now collected in the proof-data trace on the context. This is a **breaking change** for code that read `proofData` from a circuit's results.
-
-## Fixed defect list
