@@ -24,51 +24,7 @@
           (langs)
           (pass-helpers))
 
-  (define (save-manifest ir output-directory-pathname manifest-dir*)
-    (define manifest-version-string "1")
-    (define (file-entry root)
-      (lambda (fn)
-        (let ([pathname (format "~a/~a" root fn)])
-          (cons
-            fn
-            (list
-              (cons "type" "file")
-              (cons "size" (call-with-port (open-file-input-port pathname) port-length))
-              (cons "hash" (sha256-file pathname)))))))
-    (define (dir-entry root)
-      (lambda (fn)
-        (let* ([pathname (format "~a/~a" root fn)]
-               [fn* (directory-list pathname)]
-               [fn* (sort string<? fn*)]
-               [fn* (remove "contract-manifest.json" fn*)])
-          (let-values ([(dir-fn* file-fn*) (partition file-directory? fn*)])
-            (cons
-              fn
-              (cons*
-                (cons "type" "directory")
-                (append
-                  (map (file-entry pathname) file-fn*)
-                  (map (dir-entry pathname) dir-fn*))))))))
-    (let ([op (get-target-port 'contract-manifest.json)])
-      (print-json op
-        (cons*
-          (cons
-            "manifest-version"
-            manifest-version-string)
-          (cons
-            "compiler-version"
-            compiler-version-string)
-          (cons
-            "language-version"
-            language-version-string)
-          (cons
-            "runtime-version"
-            runtime-version-string)
-          (map (dir-entry output-directory-pathname)
-               (filter (lambda (d)
-                         (file-exists? (format "~a/~a" output-directory-pathname d)))
-                       manifest-dir*)))))
-    ir)
+  (include "manifest-passes/save-manifest.ss")
 
   (define-passes manifest-passes
     (save-manifest              Lflattened))

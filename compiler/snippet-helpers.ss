@@ -169,6 +169,18 @@
                        (let ()
                          (import (only (field) max-field))
                          (write (max-field)))]
+                      [(max-jubjub-scalar)
+                       (let ()
+                         (import (only (field) max-jubjub-scalar))
+                         (write (max-jubjub-scalar)))]
+                      [(max-secp256k1-base)
+                       (let ()
+                         (import (only (field) max-secp256k1-base))
+                         (write (max-secp256k1-base)))]
+                      [(max-secp256k1-scalar)
+                       (let ()
+                         (import (only (field) max-secp256k1-scalar))
+                         (write (max-secp256k1-scalar)))]
                       [(max-unsigned)
                        (let ()
                          (import (only (langs) max-unsigned))
