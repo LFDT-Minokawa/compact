@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Compact tools 0.5.2]
+
+### Fixed
+
+- Compact dev tool used to have its own help for the compiler. Now it uses the 
+  compiler help when one runs `compact compile --help`. If there's no compiler
+  installed it gives an error that the user needs to install a compiler first.
+
 ## [Compact tools 0.5.1]
 
 ### Fixed
