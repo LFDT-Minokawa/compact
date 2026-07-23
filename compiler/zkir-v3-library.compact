@@ -90,8 +90,8 @@ export circuit secp256k1EcdsaVerify(
   const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
-  const u1: Secp256k1Scalar = mul(z, w);
-  const u2: Secp256k1Scalar = mul(r, w);
+  const u1: Secp256k1Scalar = z * w;
+  const u2: Secp256k1Scalar = r * w;
   const point: Secp256k1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
   return (secp256k1PointX(point) as Bytes<32>) as Secp256k1Scalar == r;
 }

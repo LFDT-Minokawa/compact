@@ -769,13 +769,13 @@
         [,triv (print-gate "copy" `[var ,(Triv triv)])] ; not exercised when optimize-circuit is run
         ; TODO: is there any use to be made of mbits, which if not #f is the
         ; maximum number of bits occupied by the arguments and the result?
-        [(+ ,mbits ,[* triv1] ,[* triv2])
+        [(+ ,primitive-type ,[* triv1] ,[* triv2])
          (print-gate "add" `[a ,triv1] `[b ,triv2])]
-        [(- ,mbits ,[* triv1] ,[* triv2])
+        [(- ,primitive-type ,[* triv1] ,[* triv2])
          (print-gate "neg" `[a ,triv2])
          (print-gate "add" `[a ,triv1] `[b ,ctr])
          (set! ctr (add1 ctr))]
-        [(* ,mbits ,[* triv1] ,[* triv2])
+        [(* ,primitive-type ,[* triv1] ,[* triv2])
          (print-gate "mul" `[a ,triv1] `[b ,triv2])]
         [(< ,bits ,[* triv1] ,[* triv2])
          (print-gate "less_than" `[a ,triv1] `[b ,triv2] `[bits ,bits])]

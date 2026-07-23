@@ -87,14 +87,14 @@
         (and (triv-equal? (car test.single) (car test.single^))
              (let ([single (cdr test.single)] [single^ (cdr test.single^)])
                (T Single single single^
-                  [(+ ,mbits ,triv1 ,triv2) (+ ,mbits^ ,triv1^ ,triv2^)
-                   (and (eqv? mbits mbits^)
+                  [(+ ,primitive-type ,triv1 ,triv2) (+ ,primitive-type^ ,triv1^ ,triv2^)
+                   (and (primitive-type-equal? primitive-type primitive-type^)
                         (commutative-trivs-equal? triv1 triv1^ triv2 triv2^))]
-                  [(- ,mbits ,triv1 ,triv2) (- ,mbits^ ,triv1^ ,triv2^)
-                   (and (eqv? mbits mbits^)
+                  [(- ,primitive-type ,triv1 ,triv2) (- ,primitive-type^ ,triv1^ ,triv2^)
+                   (and (primitive-type-equal? primitive-type primitive-type^)
                         (trivs-equal? triv1 triv1^ triv2 triv2^))]
-                  [(* ,mbits ,triv1 ,triv2) (* ,mbits^ ,triv1^ ,triv2^)
-                   (and (eqv? mbits mbits^)
+                  [(* ,primitive-type ,triv1 ,triv2) (* ,primitive-type^ ,triv1^ ,triv2^)
+                   (and (primitive-type-equal? primitive-type primitive-type^)
                         (commutative-trivs-equal? triv1 triv1^ triv2 triv2^))]
                   [(< ,bits ,triv1 ,triv2) (< ,bits^ ,triv1^ ,triv2^)
                    (and (eqv? bits bits^)
@@ -164,9 +164,14 @@
       (define (nontriv-single-hash test.single)
         (triv-hash (car test.single)
           (nanopass-case (Lflattened Single) (cdr test.single)
-            [(+ ,mbits ,triv1 ,triv2) (mbits-hash mbits (commutative-triv-hash triv1 triv2 119001092))]
-            [(- ,mbits ,triv1 ,triv2) (mbits-hash mbits (triv-hash triv1 (triv-hash triv2 410225874)))]
-            [(* ,mbits ,triv1 ,triv2) (mbits-hash mbits (commutative-triv-hash triv1 triv2 513566316))]
+            [(+ ,primitive-type ,triv1 ,triv2)
+             ;; TODO(kmillikin): the result type is not determined by the types of the inputs, so we
+             ;; should hash it.
+             (commutative-triv-hash triv1 triv2 119001092)]
+            [(- ,primitive-type ,triv1 ,triv2)
+             (triv-hash triv1 (triv-hash triv2 410225874))]
+            [(* ,primitive-type ,triv1 ,triv2)
+             (commutative-triv-hash triv1 triv2 513566316)]
             [(< ,bits ,triv1 ,triv2) (bits-hash bits (triv-hash triv1 (triv-hash triv2 730407)))]
             [(== ,triv1 ,triv2) (commutative-triv-hash triv1 triv2 45862114)]
             [(select ,triv0 ,triv1 ,triv2)
@@ -400,25 +405,33 @@
       (define == (lambda (x y) (if (= x y) 1 0)))
       (define lessthan (lambda (x y) (if (< x y) 1 0)))
       (module (add subtract multiply)
-        (define m (+ (max-field) 1))
-        (define (add mbits)
+        (define (add primitive-type)
           (lambda (x y)
             (let ([a (+ x y)])
-              (if mbits
-                  a ; guaranteed by infer-types to be less than 2^mbits
-                  (modulo a m)))))
-        (define (subtract mbits)
+              (nanopass-case (Lflattened Primitive-Type) primitive-type
+                [(tfield (field-native)) (modulo a (1+ (max-field)))]
+                [(tfield (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+                [(tfield (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+                [(tunsigned ,nat) a]  ; Guaranteed by infer-types not to overflow.
+                [else (assert cannot-happen)]))))
+        (define (subtract primitive-type)
           (lambda (x y)
             (let ([a (- x y)])
-              (if mbits
-                  (and (>= a 0) a)
-                  (modulo a m)))))
-        (define (multiply mbits)
+              (nanopass-case (Lflattened Primitive-Type) primitive-type
+                [(tfield (field-native)) (modulo a (1+ (max-field)))]
+                [(tfield (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+                [(tfield (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+                [(tunsigned ,nat) (and (>= a 0) a)]
+                [else (assert cannot-happen)]))))
+        (define (multiply primitive-type)
           (lambda (x y)
             (let ([a (* x y)])
-              (if mbits
-                  a ; guaranteed by infer-types to be less than 2^mbits
-                  (modulo a m))))))
+              (nanopass-case (Lflattened Primitive-Type) primitive-type
+                [(tfield (field-native)) (modulo a (1+ (max-field)))]
+                [(tfield (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+                [(tfield (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+                [(tunsigned ,nat) a]  ; Guaranteed by infer-types not to overflow.
+                [else (assert cannot-happen)])))))
       (define (ifsingle triv k)
         (let ([maybe-single (nanopass-case (Lflattened Triv) triv
                               [,var-name (hashtable-ref var->nontriv-single var-name #f)]
@@ -457,7 +470,7 @@
       (define-syntax fold2
         (lambda (x)
           (syntax-case x ()
-            [(_ ?op ?mbits ?triv1 ?triv2 commutative? [(_ pat1 pat2) e1 e2 ...] ...)
+            [(_ ?op ?mextra ?triv1 ?triv2 commutative? [(_ pat1 pat2) e1 e2 ...] ...)
              #`($fold2 (lambda (x y) (?op x y)) ?triv1 ?triv2 commutative?
                  (lambda (single1 single2)
                    (or (nanopass-case (Lflattened Single) single1
@@ -468,22 +481,22 @@
                        ...))
                  (lambda (triv1 triv2)
                    (with-output-language (Lflattened Single)
-                     #,(if (datum ?mbits)
-                           #'`(?op ,?mbits ,triv1 ,triv2)
+                     #,(if (datum ?mextra)
+                           #'`(?op ,?mextra ,triv1 ,triv2)
                            #'`(?op ,triv1 ,triv2)))))]))))
     [,triv (FWD-Triv ir)]
-    [(+ ,mbits ,triv1 ,triv2)
-     (let ([+ (add mbits)])
-       (fold2 + mbits triv1 triv2 #t
+    [(+ ,primitive-type ,triv1 ,triv2)
+     (let ([+ (add primitive-type)])
+       (fold2 + primitive-type triv1 triv2 #t
          [(_ ,triv ,nat) (and (eqv? nat 0) triv)]))]
-    [(- ,mbits ,triv1 ,triv2)
-     (let ([- (subtract mbits)])
-       (fold2 - mbits triv1 triv2 #f
+    [(- ,primitive-type ,triv1 ,triv2)
+     (let ([- (subtract primitive-type)])
+       (fold2 - primitive-type triv1 triv2 #f
          [(_ ,triv ,nat) (and (eqv? nat 0) triv)]
          [(_ ,var-name ,var-name^) (and (eq? var-name var-name^) 0)]))]
-    [(* ,mbits ,triv1 ,triv2)
-     (let ([* (multiply mbits)])
-       (fold2 * mbits triv1 triv2 #t
+    [(* ,primitive-type ,triv1 ,triv2)
+     (let ([* (multiply primitive-type)])
+       (fold2 * primitive-type triv1 triv2 #t
          [(_ ,triv ,nat)
           (or (and (eqv? nat 0) 0)
               (and (eqv? nat 1) triv))]))]
@@ -583,9 +596,9 @@
       (define (pure? single)
         (nanopass-case (Lflattened Single) single
           [,triv #t]
-          [(+ ,mbits ,triv1 ,triv2) #t]
-          [(- ,mbits ,triv1 ,triv2) #t]
-          [(* ,mbits ,triv1 ,triv2) #t]
+          [(+ ,primitive-type ,triv1 ,triv2) #t]
+          [(- ,primitive-type ,triv1 ,triv2) #t]
+          [(* ,primitive-type ,triv1 ,triv2) #t]
           [(< ,bits ,triv1 ,triv2) #t]
           [(== ,triv1 ,triv2) #t]
           [(select ,triv0 ,triv1 ,triv2) #t]
@@ -652,9 +665,12 @@
     [else (internal-errorf 'BWD-Statement "unexpected ir ~s" ir)])
   (BWD-Single : Single (ir) -> Single ()
     [,triv (BWD-Triv ir)] ; not exercised since FWD-Single propagates Triv Rhs
-    [(+ ,mbits ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]) `(+ ,mbits ,triv1 ,triv2)]
-    [(- ,mbits ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]) `(- ,mbits ,triv1 ,triv2)]
-    [(* ,mbits ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]) `(* ,mbits ,triv1 ,triv2)]
+    [(+ ,primitive-type ,[BWD-Triv : triv1] ,[BWD-Triv : triv2])
+     `(+ ,primitive-type ,triv1 ,triv2)]
+    [(- ,primitive-type ,[BWD-Triv : triv1] ,[BWD-Triv : triv2])
+     `(- ,primitive-type ,triv1 ,triv2)]
+    [(* ,primitive-type ,[BWD-Triv : triv1] ,[BWD-Triv : triv2])
+     `(* ,primitive-type ,triv1 ,triv2)]
     [(< ,bits ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]) `(< ,bits ,triv1 ,triv2)]
     [(== ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]) `(== ,triv1 ,triv2)]
     [(select ,[BWD-Triv : triv0] ,[BWD-Triv : triv1] ,[BWD-Triv : triv2])

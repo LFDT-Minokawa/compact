@@ -452,12 +452,16 @@
      (values
        `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
        (CTV-unknown no-var-name))]
-    [(+ ,src ,mbits ,expr1 ,expr2)
+    [(+ ,src ,[type] ,expr1 ,expr2)
      (define (add x y)
        (let ([a (+ x y)])
-         (if mbits
-             a ; guaranteed by infer-types not to overflow
-             (modulo a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
+           [else (assert cannot-happen)])))
      (handle-binop src add expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -465,13 +469,17 @@
            [(ifconstant ctv2 iszero?) ctv1]
            [else #f]))
        (lambda (expr1 expr2)
-         `(+ ,src ,mbits ,expr1 ,expr2)))]
-    [(- ,src ,mbits ,expr1 ,expr2)
+         `(+ ,src ,type ,expr1 ,expr2)))]
+    [(- ,src ,[type] ,expr1 ,expr2)
      (define (subtract x y)
        (let ([a (- x y)])
-         (if mbits
-             (if (< a 0) (raise 'fail) a)
-             (mod a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) (if (< a 0) (raise 'fail) a)]
+           [else (assert cannot-happen)])))
      (handle-binop src subtract expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -479,13 +487,17 @@
            [(same-var-name? ctv1 ctv2) (CTV-const no-var-name 0)]
            [else #f]))
        (lambda (expr1 expr2)
-         `(- ,src ,mbits ,expr1 ,expr2)))]
-    [(* ,src ,mbits ,expr1 ,expr2)
+         `(- ,src ,type ,expr1 ,expr2)))]
+    [(* ,src ,[type] ,expr1 ,expr2)
      (define (multiply x y)
        (let ([a (* x y)])
-         (if mbits
-             a ; guaranteed by infer-types not to overflow
-             (modulo a (+ (max-field) 1)))))
+         (nanopass-case (Lnovectorref Type) type
+           ;; infer-types should guarantee that these are the only possibilities.
+           [(tfield ,src (field-native)) (modulo a (1+ (max-field)))]
+           [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
+           [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
+           [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
+           [else (assert cannot-happen)])))
      (handle-binop src multiply expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -494,7 +506,7 @@
            [(ifconstant ctv1 isone?) ctv2]
            [(ifconstant ctv2 isone?) ctv1]
            [else #f]))
-       (lambda (expr1 expr2) `(* ,src ,mbits ,expr1 ,expr2)))]
+       (lambda (expr1 expr2) `(* ,src ,type ,expr1 ,expr2)))]
     [(< ,src ,bits ,expr1 ,expr2)
      (handle-binop src < expr1 expr2
        (lambda (ctv1 ctv2)
