@@ -1,10 +1,11 @@
 Usage: compactc.bin <flag> ... <source-pathname> <target-directory-pathname>
 
-This program compiles the Compact source program in the file specified b
+This program compiles the Compact source program in the file specified by
 <source-pathname> and puts the resulting target files into the directory
 specified by <target-directory-pathname>.  These target files include a
 Typescript equivalent of the Compact source file, Zkir circuit equivalents of
-the exported circuits, and proving keys created by running zkir on the zkir\ncircuits.
+the exported circuits, and proving keys created by running zkir on the zkir
+circuits.
 
 The following flags, if present, affect the compiler's behavior as follows:
   --help prints help text and exits.
@@ -27,14 +28,16 @@ The following flags, if present, affect the compiler's behavior as follows:
     Generating proving keys can be time-consuming, so this option is useful when
     debugging only the Typescript output.  The compiler also skips, after
     printing a warning message, the generation of proving keys when it cannot
-    find zkir.\n\n  --no-communications-commitment omits the contract communications commitment
+    find zkir.
+
+  --no-communications-commitment omits the contract communications commitment
     that enables data integrity for contract-to-contract calls.
 
   --sourceRoot <sourceRoot value> overrides the compiler's setting of the
-  sourceRoot field in the generated source-map (.js.map) file.  By default,
-  the compiler tries to determine a useful value based on the source and
-  target-directory pathnames, but this value might not be appropriate for the
-  deployed structure of the application.
+    sourceRoot field in the generated source-map (.js.map) file.  By default,
+    the compiler tries to determine a useful value based on the source and
+    target-directory pathnames, but this value might not be appropriate for the
+    deployed structure of the application.
 
   --compact-path <search list> sets the compact path, overriding the default
     value, which is the value of the environment variable COMPACT_PATH, if
@@ -46,7 +49,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     in the compact path from left to right.
 
   --trace-search causes the compiler to print a sequence of messages saying
-  where it is looking for each included file and imported module source file.
+    where it is looking for each included file and imported module source file.
 
   --trace-passes causes the compiler to print tracing information that is
-  generally useful only to compiler developers.
+    generally useful only to compiler developers.
