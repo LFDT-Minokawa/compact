@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(unused_imports)]
+
 use crate::common::{
     COMPACT_VERSION, PREVIOUS_COMPACT_VERSION, download_to_temp, run_downloaded_binary,
 };
