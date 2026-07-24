@@ -113,3 +113,8 @@ export circuit test9(): Uint<248> {
     
     return var_test9a - var_test9b;
 }
+
+// test 10: Uint<0>
+export circuit test10(): Uint<0> {
+    return default<Uint<0>>;
+}
