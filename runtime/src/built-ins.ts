@@ -56,7 +56,7 @@ export function subField(x: bigint, y: bigint): bigint {
   // (x - y) % FIELD_MODULUS would return an incorrect value for negative values of x - y.
   // also, any implementation involving % would likely be more expensive
   const t = x - y;
-  return t >= 0 ? t : t + FIELD_MODULUS;
+  return t >= 0n ? t : t + FIELD_MODULUS;
 }
 
 /**
@@ -274,11 +274,13 @@ export function ecMulGenerator(b: bigint): JubjubPoint {
 /**
  * Secp256k1 scalar field addition
  *
+
  * This function returns x + y in the secp256k1 scalar field (modulo
  * SECP256K1_SCALAR_MODULUS).
  */
 export function secp256k1ScalarAdd(x: bigint, y: bigint): bigint {
-  return (x + y) % SECP256K1_SCALAR_MODULUS;
+  const t = x + y;
+  return t < SECP256K1_SCALAR_MODULUS ? t : t - SECP256K1_SCALAR_MODULUS;
 }
 
 /**
@@ -290,6 +292,17 @@ export function secp256k1ScalarAdd(x: bigint, y: bigint): bigint {
  */
 export function secp256k1ScalarNeg(x: bigint): bigint {
   return x == 0n ? x : SECP256K1_SCALAR_MODULUS - x;
+}
+
+/**
+ * Secp256k1 scalar field subtraction
+ *
+ * This function returns x - y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256K1_SCALAR_MODULUS;
 }
 
 /**
@@ -324,7 +337,8 @@ export function secp256k1ScalarInv(x: bigint): bigint {
  * SECP256K1_BASE_MODULUS). 
  */
 export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
-  return (x + y) % SECP256K1_BASE_MODULUS;
+  const t = x + y;
+  return t < SECP256K1_BASE_MODULUS ? t : t - SECP256K1_BASE_MODULUS;
 }
 
 /**
@@ -336,6 +350,17 @@ export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
  */
 export function secp256k1BaseNeg(x: bigint): bigint {
   return x == 0n ? x : SECP256K1_BASE_MODULUS - x;
+}
+
+/**
+ * Secp256k1 base field subtraction
+ *
+ * This function returns x - y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256K1_BASE_MODULUS;
 }
 
 /**

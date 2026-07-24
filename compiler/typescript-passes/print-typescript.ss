@@ -20,18 +20,24 @@
     (define sourcemap-tracker)
     (define compact-stdlib-entries
        '(
-         "CompactError"
-         "typeError"
+         "addField"
          "assert"
-         "convertNumericToJubjubScalar"
+         "CompactError"
          "convertBigintToBytes"
          "convertBytesToField"
          "convertBytesToUint"
-         "addField"
-         "subField"
-         "mulField"
+         "convertNumericToJubjubScalar"
          "crossContractCall"
          "decodeContractAddress"
+         "mulField"
+         "secp256k1BaseAdd"
+         "secp256k1BaseMul"
+         "secp256k1BaseSub"
+         "secp256k1ScalarAdd"
+         "secp256k1ScalarMul"
+         "secp256k1ScalarSub"
+         "subField"
+         "typeError"
          ))
     (define (compact-stdlib name)
       (unless (member name compact-stdlib-entries)
@@ -2676,42 +2682,63 @@
          (format "((e, i) => e.slice(i, i+~d))(" len)
          ((make-Qsep ",") expr (make-Qconcat "Number(" index ")"))
          ")"))]
-    [(+ ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
-     (guard (not mbits))
-     (parenthesize level (precedence call)
-       (make-Qconcat
-         (compact-stdlib "addField")
-         "("
-         ((make-Qsep ",") expr1 expr2)
-         ")"))]
-    [(+ ,src ,mbits ,[Expr : expr1 (precedence +) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 +) outer-pure? -> * expr2])
+    [(+ ,src (tunsigned ,src^ ,nat) ,[Expr : expr1 (precedence +) outer-pure? -> * expr1]
+                                    ,[Expr : expr2 (precedence add1 +) outer-pure? -> * expr2])
      (parenthesize level (precedence +)
-       ; infer-type guarantees that the result is in range via range analysis
+       ;; infer-types guarantees that the result is in range via range analysis.
        (make-Qconcat expr1 0 "+" 0 expr2))]
-    [(- ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
-     (guard (not mbits))
-     (parenthesize level (precedence call)
-       (make-Qconcat
-         (compact-stdlib "subField")
-         "("
-         ((make-Qsep ",") expr1 expr2)
-         ")"))]
-    [(- ,src ,mbits ,[Expr : expr1 (precedence -) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 -) outer-pure? -> * expr2])
+    [(+ ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+                   ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+     (let ([fun (nanopass-case (Ltypescript Type) type
+                  ;; infer-types guarantees that these are the only possibilities.
+                  [(tfield ,src^ (field-native)) "addField"]
+                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseAdd"]
+                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarAdd"]
+                  [else (assert cannot-happen)])])
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (compact-stdlib fun)
+           "("
+           ((make-Qsep ",") expr1 expr2)
+           ")")))]
+    [(- ,src (tunsigned ,src^ ,nat) ,[Expr : expr1 (precedence -) outer-pure? -> * expr1]
+                                    ,[Expr : expr2 (precedence add1 -) outer-pure? -> * expr2])
      (parenthesize level (precedence -)
-       ; infer-type guarantees that the result isn't negative by inserting a run-time check
+       ;; infer-type guarantees that the result isn't negative by inserting a run-time check.
        (make-Qconcat expr1 0 "-" 0 expr2))]
-    [(* ,src ,mbits ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
-     (guard (not mbits))
-     (parenthesize level (precedence call)
-       (make-Qconcat
-         (compact-stdlib "mulField")
-         "("
-         ((make-Qsep ",") expr1 expr2)
-         ")"))]
-    [(* ,src ,mbits ,[Expr : expr1 (precedence *) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 *) outer-pure? -> * expr2])
+    [(- ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+                   ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+     (let ([fun (nanopass-case (Ltypescript Type) type
+                  ;; infer-types guarantees that these are the only possibilities.
+                  [(tfield ,src^ (field-native)) "subField"]
+                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseSub"]
+                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarSub"]
+                  [else (assert cannot-happen)])])
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (compact-stdlib fun)
+           "("
+           ((make-Qsep ",") expr1 expr2)
+           ")")))]
+    [(* ,src (tunsigned ,src^ ,nat) ,[Expr : expr1 (precedence *) outer-pure? -> * expr1]
+                                    ,[Expr : expr2 (precedence add1 *) outer-pure? -> * expr2])
      (parenthesize level (precedence *)
-       ; infer-type guarantees that the result is in range via range analysis
+       ;; infer-type guarantees that the result is in range via range analysis.
        (make-Qconcat expr1 0 "*" 0 expr2))]
+    [(* ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+                   ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+     (let ([fun (nanopass-case (Ltypescript Type) type
+                  ;; infer-types guarantees that these are the only possibilities.
+                  [(tfield ,src^ (field-native)) "mulField"]
+                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseMul"]
+                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarMul"]
+                  [else (assert cannot-happen)])])
+       (parenthesize level (precedence call)
+         (make-Qconcat
+           (compact-stdlib fun)
+           "("
+           ((make-Qsep ",") expr1 expr2)
+           ")")))]
     [(< ,src ,bits ,[Expr : expr1 (precedence <) outer-pure? -> * expr1] ,[Expr : expr2 (precedence add1 <) outer-pure? -> * expr2])
      (parenthesize level (precedence <)
        (make-Qconcat expr1 0 "<" 0 expr2))]
