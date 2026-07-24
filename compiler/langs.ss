@@ -16,7 +16,7 @@
 ;;; limitations under the License.
 
 (library (langs)
-  (export max-field field-bytes max-unsigned unsigned-bits field? datum? path-index?
+  (export field-bytes max-unsigned unsigned-bits datum? path-index?
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
@@ -38,7 +38,9 @@
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
-          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats Lnodisclose-Export-Type-Definition?
+          Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
+          Lnoserialize unparse-Lnoserialize Lnoserialize-pretty-formats
+          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -69,7 +71,7 @@
   (define (bits? x)
     (and (integer? x)
          (exact? x)
-         (<= 1 x (unsigned-bits))))
+         (<= 1 x (integer-length (max-field)))))
 
   (define (maybe-bits? x)
     (or (not x)
@@ -136,6 +138,7 @@
       cdefn
       wdecl
       ecdecl
+      cidecl
       structdef
       enumdef
       tdefn)
@@ -185,6 +188,9 @@
       (src pure-dcl function-name (arg* ...) type) =>
         (pure-dcl function-name (arg* 0 ...) 4 type)
       )
+    (Contract-Implements-Declaration (cidecl)
+      (contract-implements src type) => (contract-implements type)
+      )
     (Structure-Definition (structdef)
       (struct src exported? struct-name (type-param* ...) arg* ...) =>
         (struct exported? struct-name (type-param* ...) #f arg* ...)
@@ -232,6 +238,7 @@
       (if src expr0 expr1 expr2)                          => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name)                         => (elt-ref expr elt-name)
       (elt-call src expr elt-name expr* ...)              => (elt-call expr elt-name expr* ...)
+      (emit src expr)                                     => (emit expr)
       (= src expr1 expr2)                                 => (= expr1 expr2)
       (+= src expr1 expr2)                                => (+= expr1 3 expr2)
       (-= src expr1 expr2)                                => (-= expr1 3 expr2)
@@ -280,7 +287,7 @@
     (Type (type)
       tref
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
       (tbytes src tsize)                     => (tbytes tsize)
@@ -300,6 +307,13 @@
       (targ-size src nat)                    => nat
       (targ-type src type)                   => type
       )
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
   )
 
   (define-language/pretty Lnoinclude (extends Lsrc)
@@ -433,6 +447,9 @@
     (Fixup-Alias-Definition (fixup-alias-defn)
       ; (fixup-alias alias-name actual-name)
       (+ (fixup-alias function-name^ function-name)))
+    (Expression (expr index)
+      (+ (serialize src tsize type expr)      => (serialize tsize type expr)
+         (deserialize src tsize type expr)    => (deserialize tsize type expr)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -488,13 +505,14 @@
          (string (mesg opaque-type file discloses))))
     (Program (p)
       (- (program src pelt* ...))
-      (+ (program src ((export-name* name*) ...) (unused-pelt* ...) (ecdecl* ...) pelt* ...)
+      (+ (program src ((export-name* name*) ...) ((struct-name* type*) ...) (unused-pelt* ...) (ecdecl* ...) (cidecl* ...) pelt* ...)
            => (program ((export-name* name*) 0 ...) #f pelt* ...)))
     (Program-Element (pelt unused-pelt)
       (- mdefn
          idecl
          xdecl
          ecdecl
+         cidecl
          structdef
          enumdef
          tdefn
@@ -568,11 +586,15 @@
       (- (block src (var-name* ...) expr)
          (new src tref new-field* ...)
          (tuple-slice src expr index tsize)
-         (for src var-name tsize0 tsize1 expr2))
+         (for src var-name tsize0 tsize1 expr2)
+         (serialize src tsize type expr)
+         (deserialize src tsize type expr))
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
-         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)))
+         (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
+         (serialize src len type expr)      => (serialize len type expr)
+         (deserialize src len type expr)    => (deserialize len type expr)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -629,7 +651,7 @@
       (native-entry (native-entry))
       )
     (Program (p)
-      (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
+      (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
     (Program-Element (pelt)
       cdefn
       ndecl
@@ -675,11 +697,14 @@
       (default src type)                      => (default type)
       (if src expr0 expr1 expr2)              => (if expr0 3 expr1 3 expr2)
       (elt-ref src expr elt-name nat)         => (elt-ref expr elt-name nat)
+      (emit src type expr)                    => (emit expr)
+      (serialize src len type expr)           => (serialize len type expr)
+      (deserialize src len type expr)         => (deserialize len type expr)
       (enum-ref src type elt-name)            => (enum-ref type elt-name)
       ; for tuple, the elements can have different, even unrelated types
       (tuple src tuple-arg* ...)              => (tuple tuple-arg* ...)
       ; for vector, the elements must all have the same type
-      (vector src tuple-arg* ...)             => (vector tuple-arg* ...)
+      (vector src tuple-arg* ...)             => (vector #f tuple-arg* ...)
       ; for tuple-ref and tuple-slice, the index (nat) is constant, and expr's elements can have different, even unrelated types
       (tuple-ref src expr kindex)             => (tuple-ref #f expr #f kindex)
       (tuple-slice src type expr kindex len)  => (tuple-slice #f expr #f kindex #f len)
@@ -696,13 +721,13 @@
       (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
       (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
       (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
-      (< src bits expr1 expr2)               => (< expr1 expr2)
-      (<= src bits expr1 expr2)              => (<= expr1 3 expr2)
-      (> src bits expr1 expr2)               => (> expr1 expr2)
-      (>= src bits expr1 expr2)              => (>= expr1 3 expr2)
+      (< src bits expr1 expr2)                => (< expr1 expr2)
+      (<= src bits expr1 expr2)               => (<= expr1 3 expr2)
+      (> src bits expr1 expr2)                => (> expr1 expr2)
+      (>= src bits expr1 expr2)               => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
-      (map src len fun map-arg map-arg* ...) =>
+      (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
         (fold #f fun #f expr0 #f map-arg #f map-arg* ...)
@@ -711,15 +736,27 @@
       (seq src expr* ... expr)                => (seq #f expr* ... #f expr)
       (let* src ([local* expr*] ...) expr)    => (let* ([bracket local* 0 expr*] 0 ...) #f expr)
       (assert src expr mesg)                  => (assert expr mesg)
-      (field->bytes src len expr)             => (field->bytes len expr)
+      (field->bytes src len ftype expr)       => (field->bytes len ftype #f expr)
       (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
-      (vector->bytes src len expr)            => (vector->bytes len expr)
-      (bytes->vector src len expr)            => (bytes->vector len expr)
-      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr) ; type is tfield or tunsigned, type^ is tenum
-      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr) ; type is tenum, type^ is tfield or tunsigned
+      (vector->bytes src len expr)            => (vector->bytes len #f expr)
+      (bytes->vector src len expr)            => (bytes->vector len #f expr)
+
+      ;; type is numeric (tfield or tunsigned), type^ is tenum
+      (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr)
+
+      ;; type is tenum, type^ is numeric
+      (cast-to-enum src type type^ expr)      => (cast-to-enum type type^ #f expr)
+
+      ;; Cast from `type` to a distinct type `(tfield ftype)`, `type` is numeric (tfield or tunsigned).
+      (cast-to-field src ftype type expr)     => (cast-to-field ftype type #f expr)
+
+      ;; Cast from `(tfield ftype)` to `(tunsigned nat)`.
+      (cast-from-field src nat ftype expr)    => (cast-from-field nat ftype #f expr)
       (safe-cast src type type^ expr)         => (safe-cast type 10 type^ #f expr)
-      (downcast-unsigned src (maybe nat?) nat expr) =>
-        (downcast-unsigned nat? nat #f expr)
+
+      ;; Cast from `(tunsigned nat2)` to `(tunsigned nat1)` where nat2 > nat1.
+      ;; TODO(kmillikin): the order of these is reversed from other casting operations.  Flip them.
+      (downcast-unsigned src nat2 nat1 expr)  => (downcast-unsigned nat2 nat1 #f expr)
       (disclose src expr)                     => (disclose expr)
       (ledger-call src ledger-op (maybe sugar) expr expr* ...) =>
         (ledger-call ledger-op #f expr #f expr* ...)
@@ -733,7 +770,7 @@
       )
     (Tuple-Argument (tuple-arg)
       (single src expr)                      => expr
-      (spread src nat expr)                  => (spread nat expr)
+      (spread src nat expr)                  => (spread nat #f expr)
       )
     (Function (fun)
       (fref src function-name)               => function-name
@@ -741,14 +778,13 @@
     (Type (type)
       tvar-name
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
       (ttuple src type* ...)                 => (ttuple type* ...)
-      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
-        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
+      contract-type
       (tstruct src struct-name (elt-name* type*) ...) =>
         (tstruct struct-name #f (elt-name* type*) ...)
       (tenum src enum-name elt-name elt-name* ...) =>
@@ -758,7 +794,18 @@
       (talias src nominal? type-name type) =>
         (talias nominal? type-name #f type)
       (tundeclared)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
+    (Contract-Type (contract-type)
+      (tcontract src contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
+        (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...))
+    )
 
   (define-language/pretty Lnotundeclared (extends Ltypes)
     (Type (type)
@@ -839,14 +886,34 @@
     (Expression (expr index)
       (- (disclose src expr))))
 
-  (define-language/pretty Ltypescript (extends Lnodisclose)
+  (define-language/pretty Lnoserialize (extends Lnodisclose)
+    (Expression (expr index)
+      (- (serialize src len type expr)
+         (deserialize src len type expr)
+         (emit src type expr))
+      ; expr here is serialized; type is retained for downstream type-checkers
+      (+ (emit src type len expr) => (emit expr))))
+
+  (define-language/pretty Lloweredemit (extends Lnoserialize)
+    (terminals
+      (- (field (nat kindex)))
+      (+ (field (nat kindex event-version event-tag))))
+    (Program (p)
+      (- (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...))
+      (+ (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
+    (Expression (expr index)
+      (- (emit src type len expr))
+      (+ (emit src event-version event-tag len expr vm-code) =>
+           (emit event-version event-tag expr))))
+
+  (define-language/pretty Ltypescript (extends Lloweredemit)
     (terminals
       (- (id (name var-name function-name ledger-field-name)))
       (+ (id (name var-name function-name ledger-field-name descriptor-id))
          (hashtable (descriptor-table))))
     (Program (p)
-      (- (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...))
-      (+ (program src ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
+      (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
+      (+ (program src (contract-type* ...) ((export-name* name*) ...) tdescs pelt* ...) => (program #f tdescs #f pelt* ...)))
     (Type-Descriptors (tdescs)
       (+ (type-descriptors descriptor-table (descriptor-id* type*) ...) =>
            (type-descriptors #f (descriptor-id* type*) ...)))
@@ -875,7 +942,7 @@
          (const src (local* ...))                => (const (local* 0 ...))
          (statement-expression expr)             => expr)))
 
-  (define-language/pretty Lposttypescript (extends Lnodisclose)
+  (define-language/pretty Lposttypescript (extends Lloweredemit)
     (terminals
       (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
@@ -883,7 +950,7 @@
       (+ (boolean (pure-dcl)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
-      (- (program src (contract-name* ...) ((export-name* name*) ...) pelt* ...))
+      (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
       (- export-tdefn))
@@ -899,8 +966,8 @@
          (>= src bits expr1 expr2)
          (!= src type expr1 expr2)
          (cast-from-bytes src type len expr))
-      (+ (elt-ref src expr elt-name) => (elt-ref expr elt-name)
-         (bytes->field src len expr) => (bytes->field len expr)))
+      (+ (elt-ref src expr elt-name)       => (elt-ref expr elt-name)
+         (bytes->field src ftype len expr) => (bytes->field ftype len expr)))
     (Type (type)
       (- tvar-name
          (talias src nominal? type-name type)
@@ -957,7 +1024,7 @@
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
-      (field (nat))
+      (field (nat event-version event-tag))
       (len (len))
       (kindex (kindex))
       (bits (bits))
@@ -1028,12 +1095,16 @@
       (call src function-name triv* ...)     => (call function-name #f triv* ...)
       (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
         (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
+      (emit src event-version event-tag len triv vm-code) =>
+        (emit event-version event-tag len triv)
       (contract-call src elt-name (triv type) triv* ...) =>
         (contract-call elt-name 4 (triv 0 type) #f triv* ...)
-      (field->bytes src len triv)            => (field->bytes len triv)
-      (bytes->field src len triv)            => (bytes->field len triv)
-      (downcast-unsigned src (maybe nat?) nat triv) =>
-        (downcast-unsigned nat? nat triv))
+      (field->bytes src len ftype triv)      => (field->bytes len ftype triv)
+      (bytes->field src ftype len triv)      => (bytes->field ftype len triv)
+      (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
+      (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
+      (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      )
     (Triv (triv test)
       var-name
       (quote datum)                          => datum
@@ -1047,7 +1118,7 @@
       (src type triv) => (type triv))
     (Type (type)
       (tboolean src)                         => (tboolean)
-      (tfield src)                           => (tfield)
+      (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
@@ -1059,7 +1130,15 @@
         (tstruct struct-name #f (elt-name* type*) ...)
       (tadt src adt-name ([adt-formal* adt-arg*] ...) vm-expr (adt-op* ...)) =>
         (adt-name #f adt-arg* ...)
-      (tunknown)))
+      (tunknown))
+    (Field-Type (ftype)
+      (field-native)
+      (field-base ctype)
+      (field-scalar ctype))
+    (Curve-Type (ctype)
+      (curve-jubjub)
+      (curve-secp256k1))
+    )
 
   (define-language/pretty Lflattened (extends Lcircuit)
     (terminals
@@ -1112,34 +1191,42 @@
          (bytes->vector len triv)
          (call src function-name triv* ...)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
+         (emit src event-version event-tag len triv vm-code)
          (contract-call src elt-name (triv type) triv* ...)
-         (field->bytes src len triv)
-         (bytes->field src len triv)
-         (downcast-unsigned src (maybe nat?) nat triv)))
+         (field->bytes src len ftype triv)
+         (bytes->field src ftype len triv)
+         (downcast-unsigned src nat2 nat1 triv)))
     (Single (single)
       (+ triv
          (+ mbits triv1 triv2)
          (- mbits triv1 triv2)
          (* mbits triv1 triv2)
          (< bits triv1 triv2)
-         (== triv1 triv2)                        => (== triv1 3 triv2)
-         (select triv0 triv1 triv2)              => (select triv0 triv1 triv2)
+         (== triv1 triv2)                            => (== triv1 3 triv2)
+         (select triv0 triv1 triv2)                  => (select triv0 triv1 triv2)
          (bytes-ref triv nat)
-         (bytes->field src len triv1 triv2)      => (bytes->field len #f triv1 #f triv2)
-         (vector->bytes triv triv* ...)          => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
-         (downcast-unsigned src safe (maybe nat?) nat triv) =>
-           (downcast-unsigned safe nat? nat triv)))
+         (bytes->field src ftype len triv1 triv2)    => (bytes->field ftype len #f triv1 #f triv2)
+         (vector->bytes triv triv* ...)              => (vector->bytes triv triv* ...) ; result holds one field's worth of bytes
+         (cast-to-field ftype primitive-type triv)
+         (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
+         (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
+         ))
     (Multiple (multiple)
-      (+ (call src function-name triv* ...)      => (call function-name #f triv* ...)
+      (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
          (default opaque-type)
-         (field->bytes src len triv)             => (field->bytes len #f triv)
-         (bytes->vector triv)                    => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         (field->bytes src len ftype triv)         => (field->bytes len ftype #f triv)
+         (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
-         (contract-call src elt-name (triv primitive-type) triv* ...) =>
-           (contract-call elt-name 4 (triv primitive-type) #f triv* ...)))
-    (Triv (triv test)
+         ; Receiver of a cross-contract call has Bytes<32> shape: its alignment is
+         ; (abytes 32) and it occupies multiple primitive-types (e.g. two `tfield`s).
+         ; So the receiver-triv slot is a list, not a single triv.
+         (emit src event-version event-tag len triv* ... vm-code) =>
+           (emit event-version event-tag len triv* ...)
+         (contract-call src elt-name ((recv* ...) primitive-type) triv* ...) =>
+           (contract-call elt-name 4 ((recv* 0 ...) primitive-type) #f triv* ...)))
+    (Triv (triv test recv)
       (- (quote datum))
       (+ nat))
     (Tuple-Argument (tuple-arg)
@@ -1153,11 +1240,10 @@
          (abytes nat)
          (afield)
          (aadt)
-         (acontract)
          (anative opaque-type)))
     (Type (type)
       (- (tboolean src)
-         (tfield src)
+         (tfield src ftype)
          (tunsigned src nat)
          (tbytes src len)
          (topaque src opaque-type)
@@ -1168,8 +1254,8 @@
          (tunknown))
       (+ (ty (alignment* ...) (primitive-type* ...))))
     (Primitive-Type (primitive-type)
-      (+ (tfield)
-         (tfield nat)
+      (+ (tfield ftype)
+         (tunsigned nat)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -1189,33 +1275,42 @@
       (program src cdefn* ...) => (program #f cdefn* ...))
     (Circuit-Definition (cdefn)
       (circuit src (name* ...) ((var-name* zkir-type*) ...) (zkir-type0* ...) instr* ...) =>
-        (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f (zkir-type0* 0 ...) instr* ...))
+        (circuit (name* ...) ((var-name* zkir-type*) 0 ...) #f (zkir-type0* 0 ...) #f instr* ...))
     (Instruction (instr)
       (add outp inp0 inp1)
       (assert inp)
+      (bytes32_from_low_high outp inp0 inp1)
+      (bytes32_into_low_high outp0 outp1 inp)
       (cond_select outp inp0 inp1 inp2)
       (constrain_bits inp imm)
       (constrain_eq inp0 inp1)
       (constrain_to_boolean inp)
       (copy outp inp)
-      (decode zkir-type outp inp* ...)
       (div_mod_power_of_two outp0 outp1 inp imm)  ;; outps=(quotient remainder)
       (ec_mul outp inp0 inp1)
       (ec_mul_generator outp0 inp)
-      (encode outp0 outp1 inp)
+      (encode (outp* ...) inp)
+      (from_bytes32 zkir-type outp inp)
+      (from_coordinates outp inp0 inp1)
       (hash_to_curve outp inp* ...)
       (impact inp inp* ...)
-      (keccak256 outp0 outp1 (alignment* ...) inp* ...)
+      (into_bytes32 outp inp)
+      (into_coordinates outp0 outp1 inp)
+      (inv outp inp)
+      (jubjub_scalar_from_native outp inp)
+      (keccak256 outp (alignment* ...) inp* ...)
       (less_than outp inp0 inp1 imm)
       (mul outp inp0 inp1)
       (neg outp inp)
+      (not outp inp)
       (output inp* ...)
-      (persistent_hash outp0 outp1 (alignment* ...) inp* ...)
+      (persistent_hash outp (alignment* ...) inp* ...)
       (private_input zkir-type outp)
       (private_input zkir-type outp inp)
       (public_input zkir-type outp)
       (public_input zkir-type outp inp)
       (reconstitute_field outp inp0 inp1 imm)
+      (reverse_bytes outp inp)
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...))
     (Input (inp)

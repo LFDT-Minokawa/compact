@@ -20,10 +20,10 @@ import CompactStandardLibrary;
 export circuit vector_spread_empty(): Vector<3, Field> {
     const empty: Vector<0, Field> = [...[]];
 
-    const result: Vector<3, Field> = [1, ...empty, 2, 3];
-    assert(result[0] == 1, "First element should be 1");
-    assert(result[1] == 2, "Empty spread should not shift elements");
-    assert(result[2] == 3, "Last element should be 3");
+    const result: Vector<3, Field> = [1 as Field, ...empty, 2 as Field, 3 as Field];
+    assert(result[0] == 1 as Field, "First element should be 1");
+    assert(result[1] == 2 as Field, "Empty spread should not shift elements");
+    assert(result[2] == 3 as Field, "Last element should be 3");
 
     return result;
 }

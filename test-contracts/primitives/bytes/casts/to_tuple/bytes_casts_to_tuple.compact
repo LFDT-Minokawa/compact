@@ -21,8 +21,8 @@ export circuit bytes_casts_to_tuple(): [Field, Field, Field, Field] {
     const source = [10, 20, 30, 40] as Bytes<4>;
 
     const tuple = source as [Field, Field, Field, Field];
-    assert(tuple[0] == 10, "First element should be 10");
-    assert(tuple[3] == 40, "Last element should be 40");
+    assert(tuple[0] == 10 as Field, "First element should be 10");
+    assert(tuple[3] == 40 as Field, "Last element should be 40");
 
     return tuple;
 }

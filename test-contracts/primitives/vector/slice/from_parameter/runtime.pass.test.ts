@@ -17,14 +17,17 @@ import { expect } from 'vitest';
 
 // @ts-ignore - generated at test time
 import { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest(import.meta.url, () => {
-    const { contract, ctx } = createTestContract(Contract);
-    const result = contract.circuits.vector_slice_from_parameter(ctx, [false, true, 42n]).result;
+export default defineRuntimeTest(import.meta.url, async () => {
+    const { contract, ctx } = await createTestContract(Contract);
+    const result = (
+        await contract.circuits.vector_slice_from_parameter(ctx, [
+            false,
+            true,
+            42n,
+        ])
+    ).result;
 
     expect(Array.from(result)).toEqual([42n]);
 });

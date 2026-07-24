@@ -18,7 +18,7 @@ import CompactStandardLibrary;
 // A zero-length slice yields the empty vector, whether taken from a non-empty
 // vector or from the empty vector itself.
 export circuit vector_slice_empty(): Vector<0, Field> {
-    const vector: Vector<3, Field> = [10, 20, 30];
+    const vector: Vector<3, Field> = [10 as Field, 20 as Field, 30 as Field];
 
     const fromNonEmpty: Vector<0, Field> = slice<0>(vector, 0);
     const fromEmpty: Vector<0, Field> = slice<0>([], 0);

@@ -16,12 +16,12 @@
 import CompactStandardLibrary;
 
 export circuit vector_slice_semantics(): Vector<2, Field> {
-    const vector: Vector<5, Field> = [10, 20, 30, 40, 50];
+    const vector: Vector<5, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field, 50 as Field];
 
     const window = slice<2>(vector, 1);
 
-    assert(window[0] == 20, "First sliced element should be 20");
-    assert(window[1] == 30, "Second sliced element should be 30");
+    assert(window[0] == 20 as Field, "First sliced element should be 20");
+    assert(window[1] == 30 as Field, "Second sliced element should be 30");
 
     return window;
 }

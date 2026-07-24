@@ -23,8 +23,8 @@ export circuit vector_witness_return_semantics(): [] {
     const w = vector_witness();
 
     const window = slice<2>(w, 1);
-    assert(window[0] == 6, "Sliced witness element 0 should be 6");
-    assert(window[1] == 7, "Sliced witness element 1 should be 7");
-    assert(w[0] == 5, "Witness element 0 should be 5");
-    assert(w[3] == 8, "Witness element 3 should be 8");
+    assert(window[0] == 6 as Field, "Sliced witness element 0 should be 6");
+    assert(window[1] == 7 as Field, "Sliced witness element 1 should be 7");
+    assert(w[0] == 5 as Field, "Witness element 0 should be 5");
+    assert(w[3] == 8 as Field, "Witness element 3 should be 8");
 }

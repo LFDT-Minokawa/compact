@@ -18,9 +18,9 @@ import CompactStandardLibrary;
 // Spread expressions nest: an inner spread builds a vector that an outer spread
 // then expands again, leaving the elements unchanged.
 export circuit vector_spread_nested(): Vector<3, Field> {
-    const result: Vector<3, Field> = [...[...[...[1, 2, 3]]]];
-    assert(result[0] == 1, "First element should survive nested spreads");
-    assert(result[2] == 3, "Last element should survive nested spreads");
+    const result: Vector<3, Field> = [...[...[...[1 as Field, 2 as Field, 3 as Field]]]];
+    assert(result[0] == 1 as Field, "First element should survive nested spreads");
+    assert(result[2] == 3 as Field, "Last element should survive nested spreads");
 
     return result;
 }

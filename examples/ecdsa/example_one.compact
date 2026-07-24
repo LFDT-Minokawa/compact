@@ -1,0 +1,46 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export { secp256k1EthereumAddress }
+
+// Prove knowledge of an Ethereum-style ECDSA signature.
+// msg is hashed with keccak256 in-circuit before verification, binding the
+// proof to the actual message content.
+export circuit proveEthereumSignature(
+  msg: Bytes<32>,
+  sig: Secp256k1EcdsaSignature,
+  pk: Secp256k1Point
+): Boolean {
+  return secp256k1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk);
+}
+
+// Prove knowledge of a Bitcoin-style ECDSA signature.
+// msg is hashed with SHA-256 in-circuit before verification, binding the
+// proof to the actual message content.
+export circuit proveBitcoinSignature(
+  msg: Bytes<32>,
+  sig: Secp256k1EcdsaSignature,
+  pk: Secp256k1Point
+): Boolean {
+  return secp256k1EcdsaVerify(persistentHash<Bytes<32>>(msg), sig, pk);
+}
+
+// Multiply two secp256k1 scalars.
+// export { mul } doesn't work because it's implemented as a native.
+export circuit scalarMul(x: Secp256k1Scalar, y: Secp256k1Scalar): Secp256k1Scalar {
+  return mul(x, y);
+}

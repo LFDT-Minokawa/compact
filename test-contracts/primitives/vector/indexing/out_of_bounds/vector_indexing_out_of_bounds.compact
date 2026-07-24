@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 // Indexing past the end of a vector is rejected at compile time.
 export circuit vector_indexing_out_of_bounds(): Field {
-    const vector: Vector<4, Field> = [10, 20, 30, 40];
+    const vector: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
 
     return vector[10];
 }

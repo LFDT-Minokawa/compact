@@ -17,10 +17,10 @@ import CompactStandardLibrary;
 
 // fold reduces a vector to a single accumulated value, left to right.
 export circuit vector_fold_semantics(): Field {
-    const vector: Vector<5, Field> = [1, 2, 3, 4, 5];
+    const vector: Vector<5, Field> = [1 as Field, 2 as Field, 3 as Field, 4 as Field, 5 as Field];
 
     const sum = fold((acc, x) => acc + x, 0 as Field, vector);
-    assert(sum == 15, "Sum of all elements should be 15");
+    assert(sum == 15 as Field, "Sum of all elements should be 15");
 
     return sum;
 }

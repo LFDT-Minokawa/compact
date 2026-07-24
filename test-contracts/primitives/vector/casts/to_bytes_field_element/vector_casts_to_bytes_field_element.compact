@@ -18,6 +18,6 @@ import CompactStandardLibrary;
 // A Vector whose element is a Field (not a Uint that fits in a byte) cannot
 // reinterpret as Bytes.
 export circuit vector_casts_to_bytes_field_element(): Bytes<1> {
-    const v: Vector<1, Field> = [1];
+    const v: Vector<1, Field> = [1 as Field];
     return v as Bytes<1>;
 }

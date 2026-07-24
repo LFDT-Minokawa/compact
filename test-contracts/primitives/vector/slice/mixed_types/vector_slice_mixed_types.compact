@@ -24,5 +24,5 @@ export circuit vector_slice_mixed_types(): [Field, Boolean] {
     assert(window[0] == 4, "Sliced element 0 should be 4");
     assert(window[1] == true, "Sliced element 1 should be true");
 
-    return window;
+    return [window[0] as Field, window[1]];
 }

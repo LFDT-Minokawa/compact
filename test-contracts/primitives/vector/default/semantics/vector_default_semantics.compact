@@ -21,8 +21,8 @@ export ledger default_result: Vector<4, Field>;
 export circuit vector_default_semantics(): Vector<4, Field> {
     default_result = default<Vector<4, Field>>;
 
-    assert(default_result[0] == 0, "First element should be zero");
-    assert(default_result[3] == 0, "Last element should be zero");
+    assert(default_result[0] == 0 as Field, "First element should be zero");
+    assert(default_result[3] == 0 as Field, "Last element should be zero");
 
     return default_result;
 }

@@ -18,8 +18,8 @@ import CompactStandardLibrary;
 // Spreading a default-initialized vector expands to that many zero elements.
 export circuit vector_spread_default(): Vector<10, Field> {
     const zeros: Vector<10, Field> = [...default<Vector<10, Field>>];
-    assert(zeros[0] == 0, "Default Field element should be 0");
-    assert(zeros[9] == 0, "Last default element should be 0");
+    assert(zeros[0] == 0 as Field, "Default Field element should be 0");
+    assert(zeros[9] == 0 as Field, "Last default element should be 0");
 
     return zeros;
 }

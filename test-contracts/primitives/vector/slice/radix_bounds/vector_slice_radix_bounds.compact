@@ -18,7 +18,7 @@ import CompactStandardLibrary;
 // The slice size and start index may be written in any radix; both must reduce
 // to a constant nonnegative value at compile time.
 export circuit vector_slice_radix_bounds(): Vector<2, Field> {
-    const vector: Vector<8, Field> = [0, 10, 20, 30, 40, 50, 60, 70];
+    const vector: Vector<8, Field> = [0 as Field, 10 as Field, 20 as Field, 30 as Field, 40 as Field, 50 as Field, 60 as Field, 70 as Field];
 
     // octal size, binary start index
     const window = slice<0o2>(vector, 0b011);
@@ -27,8 +27,8 @@ export circuit vector_slice_radix_bounds(): Vector<2, Field> {
     const limit: Uint<16> = 0xff;
     assert(limit == 255, "Hex literal 0xff should parse as 255");
 
-    assert(window[0] == 30, "Binary start 0b011 should select element 30");
-    assert(window[1] == 40, "Octal size 0o2 should include element 40");
+    assert(window[0] == 30 as Field, "Binary start 0b011 should select element 30");
+    assert(window[1] == 40 as Field, "Octal size 0o2 should include element 40");
 
     return window;
 }

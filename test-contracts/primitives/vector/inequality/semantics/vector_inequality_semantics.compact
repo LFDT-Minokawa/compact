@@ -18,11 +18,11 @@ import CompactStandardLibrary;
 // Inequality is the structural negation of equality: vectors are unequal when
 // any element differs, while identical vectors are never unequal.
 export circuit vector_inequality_semantics(): Boolean {
-    const a: Vector<3, Field> = [10, 20, 30];
+    const a: Vector<3, Field> = [10 as Field, 20 as Field, 30 as Field];
 
-    assert(a != [10, 20, 31], "Differing in one element makes vectors unequal");
-    assert(a != [30, 20, 10], "Reordered elements make vectors unequal");
-    assert(!(a != [10, 20, 30]), "Identical vectors are not unequal");
+    assert(a != [10 as Field, 20 as Field, 31 as Field], "Differing in one element makes vectors unequal");
+    assert(a != [30 as Field, 20 as Field, 10 as Field], "Reordered elements make vectors unequal");
+    assert(!(a != [10 as Field, 20 as Field, 30 as Field]), "Identical vectors are not unequal");
 
-    return a != [0, 0, 0];
+    return a != [0 as Field, 0 as Field, 0 as Field];
 }

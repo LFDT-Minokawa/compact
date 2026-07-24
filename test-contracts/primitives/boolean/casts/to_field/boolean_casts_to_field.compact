@@ -19,7 +19,7 @@ import CompactStandardLibrary;
 export circuit boolean_casts_to_field(): Field {
     const t = true as Field;
     const f = false as Field;
-    assert(t == 1, "true should cast to 1");
-    assert(f == 0, "false should cast to 0");
+    assert(t == 1 as Field, "true should cast to 1");
+    assert(f == 0 as Field, "false should cast to 0");
     return t;
 }

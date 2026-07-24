@@ -17,8 +17,8 @@ import CompactStandardLibrary;
 
 // A Field value casts to Boolean: zero becomes false and non-zero becomes true.
 export circuit field_casts_to_boolean(): Boolean {
-    const zero: Field = 0;
-    const one: Field = 1;
+    const zero: Field = 0 as Field;
+    const one: Field = 1 as Field;
     assert(!(zero as Boolean), "Field 0 should cast to false");
     assert(one as Boolean, "Field 1 should cast to true");
     return one as Boolean;

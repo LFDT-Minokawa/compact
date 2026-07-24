@@ -20,8 +20,8 @@ import CompactStandardLibrary;
 export circuit vector_slice_default(): Vector<2, Field> {
     const fields = default<Vector<4, Field>>;
     const window = slice<2>(fields, 1);
-    assert(window[0] == 0, "Sliced default Field element should be zero");
-    assert(window[1] == 0, "Sliced default Field element should be zero");
+    assert(window[0] == 0 as Field, "Sliced default Field element should be zero");
+    assert(window[1] == 0 as Field, "Sliced default Field element should be zero");
 
     const bytes = default<Vector<3, Uint<8>>>;
     const head = slice<1>(bytes, 0);

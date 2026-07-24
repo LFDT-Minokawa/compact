@@ -16,14 +16,16 @@
 import { expect } from 'vitest';
 
 import type { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest<typeof Contract>(import.meta.url, (Contract) => {
-    const { contract, ctx } = createTestContract(Contract);
-    const result = contract.circuits.bytes_manual_update_semantics(ctx).result;
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (
+            await contract.circuits.bytes_manual_update_semantics(ctx)
+        ).result;
 
-    expect(result).toEqual(Uint8Array.from([1, 4, 14, 50]));
-});
+        expect(result).toEqual(Uint8Array.from([1, 4, 14, 50]));
+    },
+);

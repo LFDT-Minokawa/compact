@@ -18,7 +18,7 @@ import CompactStandardLibrary;
 // A Field value reinterprets as Bytes in little-endian byte order: the least
 // significant byte comes first, and high bytes are zero-padded.
 export circuit field_casts_to_bytes(): Bytes<4> {
-    const value: Field = 1;
+    const value: Field = 1 as Field;
     const bytes = value as Bytes<4>;
     assert(bytes[0] == 1, "Least significant byte should be 1");
     assert(bytes[1] == 0, "High bytes should be zero");

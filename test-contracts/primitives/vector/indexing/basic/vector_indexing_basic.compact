@@ -17,13 +17,13 @@ import CompactStandardLibrary;
 
 // A vector element is read with a constant index.
 export circuit vector_indexing_basic(): [Field, Field, Field] {
-    const vector: Vector<4, Field> = [10, 20, 30, 40];
+    const vector: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
 
     const picked: [Field, Field, Field] = [vector[0], vector[2], vector[3]];
 
-    assert(picked[0] == 10, "First indexed element should be 10");
-    assert(picked[1] == 30, "Indexed element should be 30");
-    assert(picked[2] == 40, "Last indexed element should be 40");
+    assert(picked[0] == 10 as Field, "First indexed element should be 10");
+    assert(picked[1] == 30 as Field, "Indexed element should be 30");
+    assert(picked[2] == 40 as Field, "Last indexed element should be 40");
 
     return picked;
 }

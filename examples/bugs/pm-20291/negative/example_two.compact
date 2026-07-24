@@ -16,7 +16,7 @@
 // test15: same signature, different return types - Boolean vs Field
 module M15 {
   export circuit test15(n: Uint<8>): Boolean { return true; }
-  export circuit test15(n: Uint<8>): Field { return 1; }
+  export circuit test15(n: Uint<8>): Field { return 1 as Field; }
   export circuit call15a(): Boolean { return test15(1); }
   export circuit call15b(): Field { return test15(1); }
 }

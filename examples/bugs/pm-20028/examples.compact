@@ -17,7 +17,7 @@
 export ledger var_field1: Field;
 
 export circuit test1(): Uint<248> {
-  var_field1 = 1;
+  var_field1 = 1 as Field;
   return 1;
 }
 
@@ -26,7 +26,7 @@ export ledger var_uint2: Uint<248>;
 
 export circuit test2(): Field {
   var_uint2 = 1;
-  return 1;
+  return 1 as Field;
 }
 
 // test3: use generic from module
@@ -34,7 +34,7 @@ module N<#n> {
   export ledger field: Field;
 
   export circuit test3a(): Uint<n> {
-    field = 1;
+    field = 1 as Field;
     return 1;
   }
 }

@@ -18,17 +18,17 @@ import CompactStandardLibrary;
 // The slice start index may be any expression that reduces to a constant at
 // compile time: arithmetic, or a cast that folds to a constant.
 export circuit vector_slice_computed_index(): Vector<2, Field> {
-    const vector: Vector<4, Field> = [10, 20, 30, 40];
+    const vector: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
 
     const window = slice<2>(vector, 0 + 1);
-    assert(window[0] == 20, "Arithmetic index 0 + 1 should select element 20");
-    assert(window[1] == 30, "Arithmetic index 0 + 1 should include element 30");
+    assert(window[0] == 20 as Field, "Arithmetic index 0 + 1 should select element 20");
+    assert(window[1] == 30 as Field, "Arithmetic index 0 + 1 should include element 30");
 
     const tail = slice<1>(vector, 0 + 4 - 1);
-    assert(tail[0] == 40, "Arithmetic index 0 + 4 - 1 should select element 40");
+    assert(tail[0] == 40 as Field, "Arithmetic index 0 + 4 - 1 should select element 40");
 
     const fromBool = slice<1>(vector, true as Uint<8>);
-    assert(fromBool[0] == 20, "Cast index (true as Uint<8>) should fold to 1");
+    assert(fromBool[0] == 20 as Field, "Cast index (true as Uint<8>) should fold to 1");
 
     return window;
 }

@@ -18,13 +18,13 @@ import CompactStandardLibrary;
 // Vectors compare structurally: equal element-by-element regardless of how each
 // element literal was written, and a slice result compares like any other vector.
 export circuit vector_equality_semantics(): Boolean {
-    const a: Vector<2, Field> = [0b1010, 0x14];
-    const b: Vector<2, Field> = [10, 20];
+    const a: Vector<2, Field> = [0b1010 as Field, 0x14 as Field];
+    const b: Vector<2, Field> = [10 as Field, 20 as Field];
 
     assert(a == b, "Vectors with equal elements should be equal across radixes");
 
-    const source: Vector<4, Field> = [10, 20, 30, 40];
+    const source: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
     assert(slice<2>(source, 0) == a, "A slice should equal a matching vector");
 
-    return a == b && slice<2>(source, 2) == [30, 40];
+    return a == b && slice<2>(source, 2) == [30 as Field, 40 as Field];
 }

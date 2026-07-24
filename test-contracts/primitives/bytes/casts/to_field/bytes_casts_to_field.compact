@@ -19,11 +19,11 @@ import CompactStandardLibrary;
 export circuit bytes_casts_to_field(): Field {
     const single = [42] as Bytes<1>;
     const value = single as Field;
-    assert(value == 42, "Single byte should convert to Field 42");
+    assert(value == 42 as Field, "Single byte should convert to Field 42");
 
     const source: Vector<1, Uint<8>> = [7];
     const fromSlice = slice<1>(source, 0) as Bytes<1> as Field;
-    assert(fromSlice == 7, "Sliced single byte should convert to Field 7");
+    assert(fromSlice == 7 as Field, "Sliced single byte should convert to Field 7");
 
     return value;
 }

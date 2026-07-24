@@ -20,8 +20,8 @@ export ledger c: Map<Boolean, Map<Field, Counter>>;
 export circuit test(): [] {
   c.insert(true, default<Map<Field, Counter>>);
   c.insert(false, default<Map<Field, Counter>>);
-  c.lookup(true).insert(1, default<Counter>);
-  c.lookup(false).insert(2, default<Counter>);
-  c.lookup(true).insert(3, default<Counter>);
-  c.lookup(false).lookup(2).increment(5);
+  c.lookup(true).insert(1 as Field, default<Counter>);
+  c.lookup(false).insert(2 as Field, default<Counter>);
+  c.lookup(true).insert(3 as Field, default<Counter>);
+  c.lookup(false).lookup(2 as Field).increment(5);
 }

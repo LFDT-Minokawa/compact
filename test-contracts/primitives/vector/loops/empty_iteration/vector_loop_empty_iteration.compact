@@ -19,13 +19,13 @@ export ledger loop_result: Field;
 
 // A for...of loop over an empty (zero-length) slice never executes its body.
 export circuit vector_loop_empty_iteration(): Field {
-    const empty: Vector<0, Field> = slice<0>([10, 20, 30], 0);
+    const empty: Vector<0, Field> = slice<0>([10 as Field, 20 as Field, 30 as Field], 0);
 
     for (const v of empty) {
         loop_result = loop_result + v;
     }
 
-    assert(loop_result == 0, "Loop over an empty slice should not execute");
+    assert(loop_result == 0 as Field, "Loop over an empty slice should not execute");
 
     return loop_result;
 }

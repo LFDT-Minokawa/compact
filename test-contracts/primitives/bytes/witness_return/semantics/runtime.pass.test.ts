@@ -17,16 +17,17 @@ import { expect } from 'vitest';
 
 // @ts-ignore - generated at test time
 import { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest(import.meta.url, () => {
-    const { contract, ctx } = createTestContract(Contract, {
-        bytes_witness: (context) => [context.privateState, Uint8Array.from([10, 20, 30, 40])],
+export default defineRuntimeTest(import.meta.url, async () => {
+    const { contract, ctx } = await createTestContract(Contract, {
+        bytes_witness: (context) => [
+            context.privateState,
+            Uint8Array.from([10, 20, 30, 40]),
+        ],
     });
-    const result = contract.circuits.bytes_witness_return_semantics(ctx).result;
+    const result = (await contract.circuits.bytes_witness_return_semantics(ctx))
+        .result;
 
     expect(result).toEqual([]);
 });

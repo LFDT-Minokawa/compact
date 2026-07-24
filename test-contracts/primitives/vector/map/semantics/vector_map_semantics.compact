@@ -18,17 +18,17 @@ import CompactStandardLibrary;
 // map applies a function element-wise: the binary form zips two vectors, the
 // unary form transforms a single vector.
 export circuit vector_map_semantics(): Vector<3, Field> {
-    const a: Vector<3, Field> = [1, 2, 3];
-    const b: Vector<3, Field> = [10, 20, 30];
+    const a: Vector<3, Field> = [1 as Field, 2 as Field, 3 as Field];
+    const b: Vector<3, Field> = [10 as Field, 20 as Field, 30 as Field];
 
     const summed = map((x, y) => x + y, a, b);
-    assert(summed[0] == 11, "Binary map element 0 should be 11");
-    assert(summed[1] == 22, "Binary map element 1 should be 22");
-    assert(summed[2] == 33, "Binary map element 2 should be 33");
+    assert(summed[0] == 11 as Field, "Binary map element 0 should be 11");
+    assert(summed[1] == 22 as Field, "Binary map element 1 should be 22");
+    assert(summed[2] == 33 as Field, "Binary map element 2 should be 33");
 
     const doubled = map((x) => x * 2, a);
-    assert(doubled[0] == 2, "Unary map element 0 should be 2");
-    assert(doubled[2] == 6, "Unary map element 2 should be 6");
+    assert(doubled[0] == 2 as Field, "Unary map element 0 should be 2");
+    assert(doubled[2] == 6 as Field, "Unary map element 2 should be 6");
 
     return summed;
 }

@@ -18,12 +18,12 @@ import CompactStandardLibrary;
 // Spread expressions can be interleaved with literal elements anywhere in a
 // vector literal; each spread is expanded in place.
 export circuit vector_spread_with_literals(): Vector<5, Field> {
-    const middle: Vector<2, Field> = [2, 3];
+    const middle: Vector<2, Field> = [2 as Field, 3 as Field];
 
-    const result: Vector<5, Field> = [1, ...middle, ...[4, 5]];
-    assert(result[0] == 1, "Leading literal should be 1");
-    assert(result[2] == 3, "Spread element should be 3");
-    assert(result[4] == 5, "Trailing spread literal should be 5");
+    const result: Vector<5, Field> = [1 as Field, ...middle, ...[4 as Field, 5 as Field]];
+    assert(result[0] == 1 as Field, "Leading literal should be 1");
+    assert(result[2] == 3 as Field, "Spread element should be 3");
+    assert(result[4] == 5 as Field, "Trailing spread literal should be 5");
 
     return result;
 }

@@ -19,6 +19,7 @@
   (export ledger-adt-definitions)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (nanopass)
           (langs)
           (vm)
@@ -27,7 +28,7 @@
 
   (define (ledger-adt-definitions)
     (define ledger-adt* '())
-    (define ledger-type-src (make-source-object (assert (stdlib-sfd)) 0 0 1 1))
+    (define ledger-type-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
     (meta define ledger-type-marker (cons 'ledger 'type))
 
@@ -121,7 +122,7 @@
                               [(assp (lambda (x) (free-identifier=? x #'name)) alist) => cdr]
                               [else (syntax-error #'name)])]
                           [(primitive-type ?Boolean) (eq? (datum ?Boolean) 'Boolean) #'(tboolean ,ledger-type-src)]
-                          [(primitive-type ?Field) (eq? (datum ?Field) 'Field) #'(tfield ,ledger-type-src)]
+                          [(primitive-type ?Field) (eq? (datum ?Field) 'Field) #'(tfield ,ledger-type-src (field-native))]
                           [(primitive-type ?Void) (eq? (datum ?Void) 'Void) #'(ttuple ,ledger-type-src)]
                           [(primitive-type ?Bytes n) (eq? (datum ?Bytes) 'Bytes) #'(tbytes ,ledger-type-src (type-size ,ledger-type-src n))]
                           [(primitive-type ?Uint n) (eq? (datum ?Uint) 'Uint) #'(tunsigned ,ledger-type-src (type-size ,ledger-type-src n))]

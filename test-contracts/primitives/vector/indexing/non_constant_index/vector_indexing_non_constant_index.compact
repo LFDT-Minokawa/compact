@@ -18,7 +18,7 @@ import CompactStandardLibrary;
 // A vector element index must reduce to a constant at compile time, so a
 // runtime argument cannot be used as an index.
 export circuit vector_indexing_non_constant_index(index: Uint<8>): Field {
-    const vector: Vector<4, Field> = [10, 20, 30, 40];
+    const vector: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
 
     return vector[index];
 }

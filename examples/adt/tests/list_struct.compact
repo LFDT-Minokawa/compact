@@ -31,9 +31,9 @@ circuit construct(bool: Boolean): Complex {
   const coin_info = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
   return Complex { boolean: bool,
                    bytes: pad(32, "some"),
-                   field: 42 * 42 * 42,
+                   field: (42 as Field) * 42 * 42,
                    uint: 1234567890,
-                   vector: [8, 128 * 128],
+                   vector: [8 as Field, (128 as Field) * 128],
                    coin: coin_info,
                    qcoin: QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 9, 8 } };
 }

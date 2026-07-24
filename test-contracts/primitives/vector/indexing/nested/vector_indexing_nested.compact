@@ -18,11 +18,11 @@ import CompactStandardLibrary;
 // A vector of vectors is indexed one dimension at a time: the first index
 // selects an inner vector, the second selects an element of it.
 export circuit vector_indexing_nested(): Field {
-    const grid: Vector<2, Vector<3, Field>> = [[10, 20, 30], [40, 50, 60]];
+    const grid: Vector<2, Vector<3, Field>> = [[10 as Field, 20 as Field, 30 as Field], [40 as Field, 50 as Field, 60 as Field]];
 
-    assert(grid[0][0] == 10, "grid[0][0] should be 10");
-    assert(grid[0][2] == 30, "grid[0][2] should be 30");
-    assert(grid[1][2] == 60, "grid[1][2] should be 60");
+    assert(grid[0][0] == 10 as Field, "grid[0][0] should be 10");
+    assert(grid[0][2] == 30 as Field, "grid[0][2] should be 30");
+    assert(grid[1][2] == 60 as Field, "grid[1][2] should be 60");
 
     return grid[1][2];
 }

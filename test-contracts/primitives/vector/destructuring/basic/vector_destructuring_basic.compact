@@ -18,15 +18,15 @@ import CompactStandardLibrary;
 // Destructuring a vector binds names to its leading elements; a shorter pattern
 // ignores the trailing elements, and a full pattern binds every element.
 export circuit vector_destructuring_basic(): [Field, Field] {
-    const vector: Vector<4, Field> = [10, 20, 30, 40];
+    const vector: Vector<4, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field];
 
     const [first, second] = vector;
-    assert(first == 10, "First destructured element should be 10");
-    assert(second == 20, "Second destructured element should be 20");
+    assert(first == 10 as Field, "First destructured element should be 10");
+    assert(second == 20 as Field, "Second destructured element should be 20");
 
     const [a, b, c, d] = vector;
-    assert(a == 10, "Full destructuring: element 0 should be 10");
-    assert(d == 40, "Full destructuring: element 3 should be 40");
+    assert(a == 10 as Field, "Full destructuring: element 0 should be 10");
+    assert(d == 40 as Field, "Full destructuring: element 3 should be 40");
 
     return [first, second];
 }

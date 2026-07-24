@@ -19,13 +19,13 @@ export ledger loop_result: Field;
 
 // A for...of loop iterates the elements of a vector in order.
 export circuit vector_loop_iteration(): Field {
-    const values: Vector<5, Field> = [10, 20, 30, 40, 50];
+    const values: Vector<5, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field, 50 as Field];
 
     for (const v of values) {
         loop_result = loop_result + v;
     }
 
-    assert(loop_result == 150, "Sum of all elements should be 150");
+    assert(loop_result == 150 as Field, "Sum of all elements should be 150");
 
     return loop_result;
 }
