@@ -57,18 +57,7 @@ describe('[Bug] [PM-20028] [PM-20222] Unsigned range changes', () => {
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 3 - return default<Uint<0>>', async () => {
-            const filePath = CONTRACTS_ROOT + 'negative/example_three.compact';
-
-            const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-            expectCompilerResult(result).toBeFailure(
-                'Exception: example_three.compact line 16 char 25: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
-                compilerDefaultOutput(),
-            );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
-        });
+        // Example 3 was a negative test for Uint<0> which is now allowed.
 
         test('example 4 - cast Uint<249> to Uint<64>', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_four.compact';

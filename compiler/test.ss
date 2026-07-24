@@ -18250,9 +18250,13 @@ groups than for single tests.
       "  return b as Uint<0>;"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)])
+             (tunsigned 1023)
+          (safe-cast (tunsigned 1023)
+                     (tunsigned 0)
+            (if %b.1 (downcast-unsigned 1 0 1) 0)))))
     )
 
   (test
@@ -18278,7 +18282,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
+      irritants: '("testfile.compact line 2 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Field" "circuit foo")))
     )
 
   (test
