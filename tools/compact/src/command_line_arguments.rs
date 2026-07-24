@@ -125,7 +125,13 @@ pub enum Command {
         alias = "com",
         alias = "comp",
         alias = "compi",
-        alias = "compil"
+        alias = "compil",
+        // `compile` is a transparent passthrough to `compactc`. Disable clap's
+        // built-in help/version flags so that `--help`, `-h`, `--version`, and
+        // `-V` fall through into `args` and are forwarded to the compiler
+        // verbatim, making `compact compile --help` == `compactc --help`.
+        disable_help_flag = true,
+        disable_version_flag = true
     )]
     Compile(CompileCommand),
 }
