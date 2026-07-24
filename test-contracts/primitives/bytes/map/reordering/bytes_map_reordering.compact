@@ -1,0 +1,32 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger map_result: Vector<3, Bytes<2>>;
+
+export circuit bytes_map_reordering(): Vector<3, Bytes<2>> {
+    const vec_bytes = [Bytes[1, 2], Bytes[3, 4], Bytes[5, 6]];
+
+    map_result = map(
+        (b: Bytes<2>) => Bytes[b[1] + 1 as Uint<8>, b[0] + 1 as Uint<8>],
+        vec_bytes
+    );
+
+    assert(map_result[0][0] == 3 as Uint<8>, "First modified byte should be 3 (2+1)");
+    assert(map_result[0][1] == 2 as Uint<8>, "Second modified byte should be 2 (1+1)");
+
+    return map_result;
+}
