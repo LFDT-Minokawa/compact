@@ -1,0 +1,32 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger loop_result: Field;
+
+export circuit bytes_loop_iteration(): Field {
+    const b1 = Bytes[1, 2, 3, 4];
+    const b2 = Bytes[5, 6, 7, 8];
+    const bytes = Bytes[...b1, ...b2];
+
+    for (const b of bytes) {
+        loop_result = loop_result + 0xf;
+    }
+
+    assert(loop_result == 120 as Field, "Loop should execute 8 times");
+
+    return loop_result;
+}
