@@ -226,7 +226,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.33.110"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.33.111"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -579,6 +579,19 @@
               packages.zkir-v3-bin
             ];
 
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+          };
+          devShells.test-contracts = pkgs.mkShell {
+            inputsFrom = with packages; [compactc];
+            packages = [
+              packages.compactc
+              packages.runtime.package
+              pkgs.yarn
+              zkir.packages.${system}.zkir
+              packages.zkir-v3-bin
+            ];
+
+            COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
           };
 

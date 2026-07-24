@@ -1,0 +1,45 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger spread_result: Bytes<15>;
+
+export circuit bytes_spread_multiple(): Bytes<15> {
+    const bytes1 = Bytes[1, 2, 3];
+    const bytes2 = Bytes[4, 5];
+    const bytes3 = Bytes[6, 7, 8, 9];
+    const bytes4 = Bytes[10];
+
+    spread_result = Bytes[
+        ...bytes1,
+        ...bytes2,
+        ...bytes3,
+        ...bytes4,
+        11,
+        12,
+        13,
+        14,
+        15
+    ];
+
+    assert(spread_result[0] == 1 as Uint<8>, "First element from bytes1");
+    assert(spread_result[3] == 4 as Uint<8>, "First element from bytes2");
+    assert(spread_result[5] == 6 as Uint<8>, "First element from bytes3");
+    assert(spread_result[9] == 10 as Uint<8>, "Element from bytes4");
+    assert(spread_result[14] == 15 as Uint<8>, "Last literal element");
+
+    return spread_result;
+}
