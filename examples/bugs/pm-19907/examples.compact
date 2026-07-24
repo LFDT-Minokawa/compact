@@ -17,7 +17,7 @@
 export circuit test1(b: Boolean): Field {
   const p = (b) => { if(b) { return 1; } return 2; }(true), d = () => { return 2; }();
 
-  return p;
+  return p as Field;
 }
 
 // test2: const in empty loop
@@ -26,10 +26,10 @@ export ledger var_2a: Field;
 export circuit test2(): Field {
   for (const a of 0..0) {
     const b = (a as Uint<16>) * (a as Uint<16>), c = (() => { return a; }());
-    var_2a = b * b;
+    var_2a = (b * b) as Field;
   }
 
-  return 1;
+  return 1 as Field;
 }
 
 // test3: for with vector size 0
@@ -40,7 +40,7 @@ export circuit test3(): Field {
   for (const a of default<Vector<0, Field>>) {
     // casting unknown
     const b = (a as Uint<16>) * (a as Uint<16>), c = (() => { return a; }());
-    var_3a = b * b;
+    var_3a = (b * b) as Field;
 
     const [] = [];
   }
@@ -59,7 +59,7 @@ export circuit test4(): Field {
   if (b.size >= 0) { const a = 1, b = 2, c = 3; }
   else { const a = 1, b = 2, c = 3; }
 
-  return 1;
+  return 1 as Field;
 }
 
 // test5: single const in code block

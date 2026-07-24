@@ -31,28 +31,31 @@
       # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
       inputs.zkir.follows = "zkir";
     };
-    onchain-runtime-v3 = {
+    onchain-runtime-v4 = {
       # dependency for compact-runtime release
       # all notes for the zkir input applies to onchain-runtime input too.
-      url = "github:midnightntwrk/midnight-ledger/ledger-8";
+      # NOTE: ledger-9.1.0.0-rc.2 is the first tag packaging the wasm under the
+      # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
+      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
       inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-8.0.2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
       inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412"; # zkir-v3
       inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/3a7ae0361d03e6eed4fc91e31f6600f334f605d5";
+      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412";
       inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
@@ -70,7 +73,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v3,
+    onchain-runtime-v4,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -106,6 +109,9 @@
             cp -r ${self.packages.${system}.runtime.node-modules}/node_modules node_modules
             chown $USER -R node_modules
             chmod u+w -R node_modules
+            # compact-runtime is published under the @midnight-ntwrk scope, but its nix-provided
+            # dependencies live under @midnightntwrk, so the parent directory must be created explicitly.
+            mkdir -p node_modules/@midnight-ntwrk
             cp -r ${self.packages.${system}.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
             chown $USER -R node_modules
             chmod u+w -R node_modules
@@ -176,11 +182,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/onchain-runtime-v3" = let
-                pkg = onchain-runtime-v3.packages.${system}.onchain-runtime-wasm;
+              "@midnightntwrk/onchain-runtime-v4" = let
+                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/onchain-runtime-v3";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v4";
               };
             };
           };
@@ -193,17 +199,17 @@
             src = ./test-center;
 
             nixDependenciesMap = {
-              "@midnight-ntwrk/zkir-v2" = let
+              "@midnightntwrk/zkir-v2" = let
                 pkg = zkir-wasm.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/zkir-v2";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
               };
-              "@midnight-ntwrk/zkir-v3" = let
+              "@midnightntwrk/zkir-v3" = let
                 pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnight-ntwrk/zkir-v3";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
               };
             };
           };
@@ -212,7 +218,7 @@
             NODE_PATH = "";
             buildInputs = [
               pkgs.nodejs
-              pkgs.nodePackages.typescript
+              pkgs.typescript
               chez
             ];
             checkPhase = "";
@@ -220,7 +226,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.31.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.33.110"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -271,6 +277,7 @@
             checkPhase = ''
               cp -r ${packages.runtime.node-modules}/node_modules node_modules
               chmod -R +rw node_modules
+              mkdir -p node_modules/@midnight-ntwrk
               cp -r ${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime node_modules/@midnight-ntwrk/compact-runtime
               ./compiler/go
               ./srcMaps/test.sh
@@ -527,6 +534,7 @@
           devShells.default = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.alejandra
@@ -545,6 +553,7 @@
           devShells.with-zkir = packages.runtime.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.yarn
               pkgs.binaryen
@@ -563,6 +572,7 @@
           devShells.compiler = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
+              pkgs.git
               packages.compactc
               pkgs.yarn
               zkir.packages.${system}.zkir
@@ -571,9 +581,23 @@
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
           };
+          devShells.test-contracts = pkgs.mkShell {
+            inputsFrom = with packages; [compactc];
+            packages = [
+              packages.compactc
+              packages.runtime.package
+              pkgs.yarn
+              zkir.packages.${system}.zkir
+              packages.zkir-v3-bin
+            ];
+
+            COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+          };
 
           devShells.runtime = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               pkgs.nodejs
               pkgs.chez
             ];
@@ -582,6 +606,7 @@
 
           devShells.dapp = packages.runtime.mkShell {
             packages = [
+              pkgs.git
               packages.compactc
               packages.runtime.package
               packages.runtime.node-modules

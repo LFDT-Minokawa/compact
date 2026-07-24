@@ -31,7 +31,7 @@ import karol prefix $;
 
 constructor() {
   const p = $round;
-  const z = $fooBar.lookup(1);
+  const z = $fooBar.lookup(1 as Field);
 }
 
 export circuit iNCREment(): [] {

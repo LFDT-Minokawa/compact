@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//  	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,10 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module.exports = {
-    semi: true,
-    trailingComma: 'all',
-    singleQuote: true,
-    printWidth: 120,
-    tabWidth: 2,
-};
+import { expect } from 'vitest';
+
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (
+            await contract.circuits.bytes_loop_spread_iteration(ctx)
+        ).result;
+
+        expect(result).toEqual(0n);
+    },
+);

@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//  	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,4 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export ledger test: Map<Field, implements>;
+import { expect } from 'vitest';
+
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (await contract.circuits.bytes_spread_basic(ctx)).result;
+
+        expect(result).toEqual(
+            Uint8Array.from([0, 255, 255, 255, 128, 0, 255, 255, 255, 128]),
+        );
+    },
+);

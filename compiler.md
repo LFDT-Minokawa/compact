@@ -363,6 +363,15 @@ expressions that perform ledger operations.
 Instead of the original chain of ADT operations, each public-ledger form holds
 a series of path indices and a single (final) ADT operation.
 
+### Lnodisclose
+
+In the Lnodisclose language, the `disclose` expression is dropped.
+
+### Lloweredemit
+
+In the Lloweredemit language, the `emit` form exposes the version and tag
+of the event to be emitted. It also exposes the vm code instruction for `emit`.
+
 ### Ltypescript
 
 Ltypescript differs from Lnodca in a number of ways that make it closer in
@@ -1238,7 +1247,6 @@ accessed in:
   the witness from `C`, `B`, and `A`. These witnesses are used in the generated
   TypeScript code.
 
-
 ### infer-types (Lexpanded -> Ltypes)
 
 This pass infers the types of all expressions within the body of a
@@ -1547,6 +1555,11 @@ circuit or any circuit that is reachable from an exported circuit. We
 presently assume that no witnesses or external circuits can modify any
 sealed fields.
 
+### reject-constructor-emit (Lnodca -> Lnodca)
+
+This pass raises an exception if the constructor tries to emit an event,
+either directly or indirectly.
+
 ### reject-constructor-cc-calls (Lnodca -> Lnodca)
 
 This pass raises an exception if the constructor tries to make a contract call, either
@@ -1560,7 +1573,8 @@ ability, that the circuit does not touch public state, does not call
 any impure circuits, and does not call any witnesses. Otherwise,
 it considers a circuit to be impure. Once it verifies that a circuit
 is impure it checks if the circuit has been declared pure. If so,
-it throws an error.
+it throws an error. Note that emitting an event requires reading the public
+state and thus it causes a circuit to be impure.
 
 It considers a circuit that is not declared pure and is being called
 by another pure circuit pure. However, it considers circuits that are
@@ -1611,7 +1625,22 @@ processed.
 In most cases, termination will be quick; it would take some careful crafting
 to get the analysis to iterate many times over the same circuit.
 
-### save-contract-info (Lwithpaths -> Lwithpaths)
+### remove-disclose (Lwithpaths -> Lnodisclose)
+
+This pass drops `disclose`.
+
+### expand-serialize (Lnodisclose -> Lnoserialize)
+
+This pass serializes the payload of a `emit` expression and
+drops the `serialize` and `deserialize` forms and inlines the
+body of instantiated circuits for `serialize` and `deserialize`.
+
+
+### lower-emit (Lnoserialize -> Lloweredemit)
+
+This pass generates the vm-code instructions for emitting an event.
+
+### save-contract-info (Lloweredemit -> Lloweredemit)
 
 This pass generates a `contract-info.json` for the contract `C` being compiled
 by Compactc. For contract `C`, this file contains the following in this order:
@@ -1627,11 +1656,7 @@ by Compactc. For contract `C`, this file contains the following in this order:
   full layout is required to navigate the on-chain state tree.
 
 
-### exported-impure-circuit-names (Lwithpaths -> *)
-
-This pass generates a list of the exported impure circuit names of the program.
-
-### prepare-for-typescript (Lwithpaths -> Ltypescript)
+### prepare-for-typescript (Lloweredemit -> Ltypescript)
 
 This pass converts the input program into one that is more directly
 amenable to typescript generation.
@@ -1730,7 +1755,7 @@ Structure types, enum types, and type aliases created by declarations
 exported from the top level of a contract are replaced by the corrsponding
 struct, enum, or type name in the generated type-definition file.
 
-### drop-ledger-runtime (Lnodisclose -> Lposttypescript)
+### drop-ledger-runtime (Lloweredemit -> Lposttypescript)
 
 This pass is a simple one that discards things that are no longer needed after
 we have emitted JavaScript code.  It discards (1) type definitions, (2) the
@@ -2242,6 +2267,10 @@ Similarly, when a `let*`-bound variable `var` is not in the `idsets` of the
 right-hand sides of subsequent `let*` bindings or the `let*` body, the binding
 is dropped.
 The input `effect?` flag is used when building `seq` expressions to avoid polluting idsets.
+
+### prune-unnecessary-circuits (Lnovectorref -> Lnovectorref)
+
+TODO
 
 ### reduce-to-circuit (Lnovectorref -> Lcircuit)
 
