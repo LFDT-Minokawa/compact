@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
+
+### Added
+
+- Add `secp256k1EcdsaRecover` to the Compact JavaScript runtime. Given a
+  32-byte message hash, an ECDSA signature and a recovery,
+  it returns the corresponding secp256k1 public key.
+
+  Recovery runs off-circuit: the intended pattern is to recover the key here,
+  pass it into a circuit as a witness or an argument, and
+  constrain it there with the standard library's `secp256k1EcdsaVerify`.
+
+  `secp256k1EcdsaVerify` accepts both low-s and high-s signatures, as
+  [FIPS 186-5](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf)
+  section 6.4.2 constrains `s` only to `[1, n - 1]`.
+
 ## [Toolchain 0.33.109, language 0.25.102, runtime 0.18.101]
 
 ### Internal notes
