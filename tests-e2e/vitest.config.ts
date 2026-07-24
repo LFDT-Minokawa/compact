@@ -15,6 +15,9 @@
 
 import { defineConfig } from 'vitest/config';
 import path from 'path';
+import { createRequire } from 'module';
+
+const require = createRequire(import.meta.url);
 
 export default defineConfig({
     test: {
@@ -39,6 +42,7 @@ export default defineConfig({
         extensions: ['.ts', '.js'],
         alias: {
             '@': path.resolve(__dirname, 'src'),
+            '@midnight-ntwrk/compact-runtime': require.resolve('@midnight-ntwrk/compact-runtime'),
         },
     },
 });

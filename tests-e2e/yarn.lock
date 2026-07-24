@@ -270,6 +270,22 @@
     "@jridgewell/resolve-uri" "^3.0.3"
     "@jridgewell/sourcemap-codec" "^1.4.10"
 
+"@midnight-ntwrk/compact-runtime@0.18.0-rc.0":
+  version "0.18.0-rc.0"
+  resolved "https://npm.pkg.github.com/download/@midnight-ntwrk/compact-runtime/0.18.0-rc.0/27afe600c8093b8d02a99e94f32b7c9f445bdf52#27afe600c8093b8d02a99e94f32b7c9f445bdf52"
+  integrity sha512-qhiHTujshwMEGJKW5i+c/3rx24rDRH20yYzAuqFfxgFuY1HzFwLwuF3jMC9D0HvQd1A05wF3VJo7v5MAj/kh6A==
+  dependencies:
+    "@midnightntwrk/onchain-runtime-v4" "^4.0.0-rc.2"
+    "@noble/curves" "^2.2.0"
+    "@noble/hashes" "^2.0.1"
+    "@types/object-inspect" "^1.8.1"
+    object-inspect "^1.12.3"
+
+"@midnightntwrk/onchain-runtime-v4@^4.0.0-rc.2":
+  version "4.0.0-rc.3"
+  resolved "https://registry.yarnpkg.com/@midnightntwrk/onchain-runtime-v4/-/onchain-runtime-v4-4.0.0-rc.3.tgz#95d9c3219d6d0e5d5e812659bca78b417eaaa4c3"
+  integrity sha512-LAf4g3vgwtPqActbi5RAoZcfYduqnFqtsHN+i1s/Mcb5vi2yMbPmpSOJ0YCCIGb2S/qY7G5tQARHVD0PJyHSNA==
+
 "@noble/curves@^2.2.0":
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/@noble/curves/-/curves-2.2.0.tgz#981be3aadc3bbfbcdb245e78cc97aa6f759246c2"
@@ -516,6 +532,11 @@
   integrity sha512-+qIYRKdNYJwY3vRCZMdJbPLJAtGjQBudzZzdzwQYkEPQd+PJGixUL5QfvCLDaULoLv+RhT3LDkwEfKaAkgSmNQ==
   dependencies:
     undici-types "~7.19.0"
+
+"@types/object-inspect@^1.8.1":
+  version "1.13.0"
+  resolved "https://registry.yarnpkg.com/@types/object-inspect/-/object-inspect-1.13.0.tgz#f80afdc636247ef4cfa2a16ffcbf124084dae5dd"
+  integrity sha512-lwGTVESDDV+XsQ1pH4UifpJ1f7OtXzQ6QBOX2Afq2bM/T3oOt8hF6exJMjjIjtEWeAN2YAo25J7HxWh97CCz9w==
 
 "@typescript-eslint/eslint-plugin@^8.38.0":
   version "8.58.2"
@@ -2147,7 +2168,7 @@ npm-run-path@^6.0.0:
     path-key "^4.0.0"
     unicorn-magic "^0.3.0"
 
-object-inspect@^1.13.3, object-inspect@^1.13.4:
+object-inspect@^1.12.3, object-inspect@^1.13.3, object-inspect@^1.13.4:
   version "1.13.4"
   resolved "https://registry.yarnpkg.com/object-inspect/-/object-inspect-1.13.4.tgz#8375265e21bc20d0fa582c22e1b13485d6e00213"
   integrity sha512-W67iLl4J2EXEGTbfeHCffrjDfitvLANg0UlX3wFUUSTx92KXRFegMHUVgSqE+wvhAbi4WqjGg9czysTV2Epbew==
