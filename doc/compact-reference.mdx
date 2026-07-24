@@ -1831,6 +1831,13 @@ The return type of the constructor is always `[]`.
 Any attempt to return another type of value using `return` *expr*`;` where the
 type of *expr* is something other than `[]`, is a static error.
 
+The constructor cannot call any effect-producing operations, directly or indirectly.
+Any attempt to do so is a static error.  The minimal set of these operations is
+`emit`, `minShielded`, `mintUnshielded`, `claimZswapCoinSpend`, `claimZswapCoinReceive`,
+`claimZswapNullifier`, `claimUnshieldedCoinSpend`, `incUnshieldedInputs`,
+`incUnshieldedOutputs`, `claimContractCall`, `checkpoint`, `kernel.self`,
+`createZswapInput`, and `createZswapOutput`.
+
 ## Circuit definitions
 
 The basic operational element in Compact is the *circuit*.

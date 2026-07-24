@@ -30915,7 +30915,7 @@ groups than for single tests.
     )
 )
 
-(run-tests reject-constructor-emit
+(run-tests reject-constructor-effects
   (test
     '(
       "import CompactStandardLibrary;"
@@ -30925,7 +30925,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but ~a at ~a" ("emits event ShieldedSpend" "line 3 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("emits event ShieldedSpend" "line 3 char 3")))
     )
 
   (test
@@ -30943,7 +30943,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "constructor cannot emit an event but calls (directly or indirectly) ~a, which ~a at ~a" (foo "emits event ShieldedSpend" "line 8 char 3")))
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "emits event ShieldedSpend" "line 8 char 3")))
     )
 
   (test
@@ -30964,6 +30964,345 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 1" "~a is declared to return a value of type ~a, but its body can return without supplying a value" ("circuit bar" "struct ShieldedSpend<nullifier: Bytes<32>>")))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.claimContractCall" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimContractCall(default<Bytes<32>>, default<Bytes<32>>, 0 as Field);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.claimContractCall" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.checkpoint" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.checkpoint();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.checkpoint" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (mintShieldedToken "calls kernel.claimZswapCoinSpend" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const x = mintShieldedToken(default<Bytes<32>>, 1, default<Bytes<32>>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.claimZswapCoinSpend" "<standard library>")))
+    )
+
+    (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const x = receiveShielded(default<ShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (receiveShielded "calls kernel.claimZswapCoinReceive" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (createZswapOutput "calls createZswapOutput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapOutput(default<ShieldedCoinInfo>, left<ZswapCoinPublicKey, ContractAddress>(default<ZswapCoinPublicKey>));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls createZswapOutput" "line 6 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (createZswapInput "calls createZswapInput" "line 3 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  createZswapInput(default<QualifiedShieldedCoinInfo>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls createZswapInput" "line 6 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (receiveUnshielded "calls kernel.incUnshieldedInputs" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  receiveUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.incUnshieldedInputs" "<standard library>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.mintUnshielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintUnshielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.mintUnshielded" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.mintShielded" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.mintShielded(default<Bytes<32>>, 1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.mintShielded" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.incUnshieldedOutputs" "line 4 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  const color = tokenType(default<Bytes<32>>, default<ContractAddress>);"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(color), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.incUnshieldedOutputs" "line 7 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.claimZswapCoinReceive" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapCoinReceive(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.claimZswapCoinReceive" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.claimZswapNullifier" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimZswapNullifier(default<Bytes<32>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.claimZswapNullifier" "line 6 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  kernel.incUnshieldedOutputs(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but ~a at ~a" ("calls kernel.incUnshieldedOutputs" "line 3 char 9")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor() {"
+      "  foo ();"
+      "}"
+      "export circuit foo (): [] {"
+      "  kernel.claimUnshieldedCoinSpend(left<Bytes<32>, Bytes<32>>(default<Bytes<32>>), left<ContractAddress, UserAddress>(default<ContractAddress>), default<Uint<64>>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "constructor cannot call an effect-producing operation but calls (directly or indirectly) ~a, which ~a at ~a" (foo "calls kernel.claimUnshieldedCoinSpend" "line 6 char 9")))
+    )
+
   )
 
 (run-tests identify-pure-circuits

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.111, language 0.25.102, runtime 0.18.102]
+
+### Fixed
+
+- The compiler now complains if the constructor attempts to call an effect-producing
+  operation directly or indirectly. The minimum set of these operations is `emit`,
+  `minShielded`, `mintUnshielded`, `claimZswapCoinSpend`, `claimZswapCoinReceive`,
+  `claimZswapNullifier`, `claimUnshieldedCoinSpend`, `incUnshieldedInputs`,
+  `incUnshieldedOutputs`, `claimContractCall`, `checkpoint`, `kernel.self`,
+  `createZswapInput`, and `createZswapOutput`.
+
 ## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
 
 ### Added
