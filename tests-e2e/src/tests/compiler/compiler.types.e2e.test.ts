@@ -186,7 +186,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_fourteen.compact line 16 char 22: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_fourteen.compact line 16 char 22: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -212,7 +212,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_sixteen.compact line 16 char 35: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_sixteen.compact line 16 char 35: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

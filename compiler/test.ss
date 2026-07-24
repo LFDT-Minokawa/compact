@@ -18315,7 +18315,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (,(+ (unsigned-bits) 1) ,(unsigned-bits))))
+      irritants: '("testfile.compact line 2 char 15" "Uint width ~d exceeds the maximum Uint width ~d" (249 248)))
     )
 
   (test
@@ -86069,7 +86069,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 25" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (249 248)))
+      irritants: '("testfile.compact line 4 char 25" "Uint width ~d exceeds the maximum Uint width ~d" (249 248)))
     ))
 
   (let ([width (unsigned-bits)])
