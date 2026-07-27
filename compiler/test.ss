@@ -26109,7 +26109,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {bar: 1 as Field} );"
       "}"
       )
@@ -26121,7 +26121,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {1 as Field} );"
       "}"
       )
@@ -26133,7 +26133,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {baz: 1} );"
       "}"
       )
@@ -26145,7 +26145,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {true} );"
       "}"
       )
@@ -26157,7 +26157,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {nullifier: 1} );"
       "}"
       )
@@ -26169,7 +26169,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {1} );"
       "}"
       )
@@ -26181,7 +26181,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {x: pad(32, 'a')} );"
       "}"
       )
@@ -26193,7 +26193,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
       "  emit (x);"
       "  return x;"
@@ -26215,7 +26215,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {pad(32, 'a')} );"
       "}"
       )
@@ -90976,6 +90976,157 @@ groups than for single tests.
 
 ;;; Tests that are only run in ZKIR-v3 mode:
 (parameterize ([feature-zkir-v3 #t])
+(run-tests prepare-for-typescript
+  ;; Ensure casts appear where we expect them to.
+  (test
+    '(
+      "new type Base = Field;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-native)))]
+                          [%b1.2 (talias #t Base (tfield (field-native)))]
+                          [%b2.3 (talias #t Base (tfield (field-native)))])
+             (talias #t Base (tfield (field-native)))
+          (safe-cast (talias #t Base (tfield (field-native)))
+                     (tfield (field-native))
+            (+ (tfield (field-native))
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 %b0.1)
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 (safe-cast (talias #t Base (tfield (field-native)))
+                            (tfield (field-native))
+                   (* (tfield (field-native))
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b1.2)
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b2.3)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.4 (talias #t Base (tfield (field-native))))
+          (%descriptor.5 (tunsigned 255))
+          (%descriptor.6 (tunsigned 4294967295))
+          (%descriptor.7 (tunsigned 18446744073709551615))
+          (%descriptor.8 (tunsigned
+                           340282366920938463463374607431768211455)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-native)))]
+                          [%b1.2 (talias #t Base (tfield (field-native)))]
+                          [%b2.3 (talias #t Base (tfield (field-native)))])
+             (talias #t Base (tfield (field-native)))
+          (safe-cast (talias #t Base (tfield (field-native)))
+                     (tfield (field-native))
+            (+ (tfield (field-native))
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 %b0.1)
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 (safe-cast (talias #t Base (tfield (field-native)))
+                            (tfield (field-native))
+                   (* (tfield (field-native))
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b1.2)
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b2.3)))))))))
+    )
+
+  (test
+    '(
+      "new type Base = Secp256k1Base;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b1.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b2.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))])
+             (talias #t Base (tfield (field-base (curve-secp256k1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256k1))))
+                     (tfield (field-base (curve-secp256k1)))
+            (+ (tfield (field-base (curve-secp256k1)))
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 %b0.1)
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256k1))))
+                            (tfield (field-base (curve-secp256k1)))
+                   (* (tfield (field-base (curve-secp256k1)))
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b1.2)
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b2.3)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.4 (talias #t Base
+                           (tfield (field-base (curve-secp256k1)))))
+          (%descriptor.5 (tunsigned 255))
+          (%descriptor.6 (tunsigned 4294967295))
+          (%descriptor.7 (tunsigned 18446744073709551615))
+          (%descriptor.8 (tunsigned
+                           340282366920938463463374607431768211455)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b1.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b2.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))])
+             (talias #t Base (tfield (field-base (curve-secp256k1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256k1))))
+                     (tfield (field-base (curve-secp256k1)))
+            (+ (tfield (field-base (curve-secp256k1)))
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 %b0.1)
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256k1))))
+                            (tfield (field-base (curve-secp256k1)))
+                   (* (tfield (field-base (curve-secp256k1)))
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b1.2)
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b2.3)))))))))
+    )
+)
+
+
 (run-tests save-manifest
   (test
     '(

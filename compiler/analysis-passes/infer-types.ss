@@ -633,14 +633,14 @@
             [(tunsigned ,src ,nat) (values '() type)]
             [else (source-errorf src "~a is an invalid ~a operand type for binary arithmetic operator ~a"
                     (format-type type) l/r op)]))
-        (define (make-native-field-op)
-          (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src (field-native)))])
+        (define (make-field-op field-type)
+          (let ([result-type (with-output-language (Ltypes Type) `(tfield ,src ,field-type))])
             (values
               (k result-type
                 (maybe-safecast src result-type type1 expr1)
                 (maybe-safecast src result-type type2 expr2))
               result-type)))
-        (define (invalid-combination)
+        (define (incompatible-combination)
           (source-errorf src "incompatible combination of types ~a and ~a for binary arithmetic operator ~a"
             (format-type type1)
             (format-type type2)
@@ -649,28 +649,29 @@
                      [(type-name2* unaliased-type2) (condense type2 "right")])
           (let-values
               ([(result-expr result-type)
-                (nanopass-case (Ltypes Type) unaliased-type1
-                  [(tfield ,src1 (field-native))
-                   (nanopass-case (Ltypes Type) unaliased-type2
-                     [(tfield ,src2 (field-native))
-                      (make-native-field-op)]
-                     [(tunsigned ,src2 ,nat)
-                      (make-native-field-op)]
-                     [else (invalid-combination)])]
+                (with-output-language (Ltypes Field-Type)
+                  (nanopass-case (Ltypes Type) unaliased-type1
+                    [(tfield ,src1 (field-native))
+                     (nanopass-case (Ltypes Type) unaliased-type2
+                       [(tfield ,src2 (field-native))
+                        (make-field-op `(field-native))]
+                       [(tunsigned ,src2 ,nat)
+                        (make-field-op `(field-native))]
+                       [else (incompatible-combination)])]
                   [(tfield ,src1 (field-base (curve-secp256k1)))
                    (nanopass-case (Ltypes Type) unaliased-type2
                      [(tfield ,src2 (field-base (curve-secp256k1)))
-                      (values (k unaliased-type1 expr1 expr2) unaliased-type1)]
-                     [else (invalid-combination)])]
+                      (make-field-op `(field-base (curve-secp256k1)))]
+                     [else (incompatible-combination)])]
                   [(tfield ,src1 (field-scalar (curve-secp256k1)))
                    (nanopass-case (Ltypes Type) unaliased-type2
                      [(tfield ,src2 (field-scalar (curve-secp256k1)))
-                      (values (k unaliased-type1 expr1 expr2) unaliased-type1)]
-                     [else (invalid-combination)])]
+                      (make-field-op `(field-scalar (curve-secp256k1)))]
+                     [else (incompatible-combination)])]
                   [(tunsigned ,src1 ,nat1)
                    (nanopass-case (Ltypes Type) unaliased-type2
                      [(tfield ,src2 (field-native))
-                      (make-native-field-op)]
+                      (make-field-op `(field-native))]
                      [(tunsigned ,src2 ,nat2)
                       (let ([result-nat (case op
                                           [+ (+ nat1 nat2)]
@@ -698,28 +699,28 @@
                                                ,(let-values ([(type nat) (if (< nat1 nat2)
                                                                              (values type2 nat2)
                                                                              (values type1 nat1))])
-                                                    (let ([mbits (fxmax 1 (integer-length nat))])
-                                                      (with-output-language (Ltypes Expression)
-                                                        `(>= ,src ,mbits
-                                                           ,(maybe-safecast src type type1 expr1)
-                                                           ,(maybe-safecast src type type2 expr2)))))
-                                                 "result of subtraction would be negative")
-                                               ,(k result-type
-                                                  (maybe-cast nat1 type1 expr1)
-                                                  (maybe-cast nat2 type2 expr2)))))))
-                                    (k result-type
-                                      (maybe-cast nat1 type1 expr1)
-                                      (maybe-cast nat2 type2 expr2))))
-                              result-type)))]
-                     [else (invalid-combination)])]
-                  [else (invalid-combination)])])
+                                                  (let ([mbits (fxmax 1 (integer-length nat))])
+                                                    (with-output-language (Ltypes Expression)
+                                                      `(>= ,src ,mbits
+                                                         ,(maybe-safecast src type type1 expr1)
+                                                         ,(maybe-safecast src type type2 expr2)))))
+                                               "result of subtraction would be negative")
+                                             ,(k result-type
+                                                (maybe-cast nat1 type1 expr1)
+                                                (maybe-cast nat2 type2 expr2)))))))
+                                  (k result-type
+                                    (maybe-cast nat1 type1 expr1)
+                                    (maybe-cast nat2 type2 expr2))))
+                            result-type)))]
+                     [else (incompatible-combination)])]
+                  [else (incompatible-combination)]))])
             (if (and (null? type-name1*) (null? type-name2*))
                 (values result-expr result-type)
                 (begin
-                  ; this is, in effect, (sametype? type1 type2)
+                  ;; this is, in effect, (sametype? type1 type2)
                   (unless (and (equal? type-name1* type-name2*)
                                (sametype? unaliased-type1 unaliased-type2))
-                    (invalid-combination))
+                    (incompatible-combination))
                   (values
                     (with-output-language (Ltypes Expression)
                       (nanopass-case (Ltypes Type) unaliased-type1
