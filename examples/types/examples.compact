@@ -577,3 +577,10 @@ export circuit test42(): Uint<16> {
   const v: Vector<4, Uint<8>> = [1, 2, 3, 4];
   return _test42<4, 1, 2>(v);
 }
+
+export circuit test43(): [] {
+  const a: UX<0> = 0;
+}
+export circuit test44(): [] {
+  const p: SX<0, Field> = default<SX<0,Field>>;
+}
