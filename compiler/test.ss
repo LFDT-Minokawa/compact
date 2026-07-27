@@ -788,6 +788,7 @@ groups than for single tests.
                     (lambda (s) (put-string javascript-op s))
                     '(
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
+                      "import { secp256k1 } from '@noble/curves/secp256k1.js';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
                       "import { TestChain } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
@@ -18349,9 +18350,13 @@ groups than for single tests.
       "  return b as Uint<0>;"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
+    (returns
+      (program
+        (circuit %foo.0 ([%b.1 (tboolean)])
+             (tunsigned 1023)
+          (safe-cast (tunsigned 1023)
+                     (tunsigned 0)
+            (if %b.1 (downcast-unsigned 1 0 1) 0)))))
     )
 
   (test
@@ -18377,7 +18382,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (0 ,(unsigned-bits))))
+      irritants: '("testfile.compact line 2 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<0..1>" "Field" "circuit foo")))
     )
 
   (test
@@ -18410,7 +18415,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: `("testfile.compact line 2 char 15" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (,(+ (unsigned-bits) 1) ,(unsigned-bits))))
+      irritants: '("testfile.compact line 2 char 15" "Uint width ~d exceeds the maximum Uint width ~d" (249 248)))
     )
 
   (test
@@ -86691,7 +86696,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 25" "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)" (249 248)))
+      irritants: '("testfile.compact line 4 char 25" "Uint width ~d exceeds the maximum Uint width ~d" (249 248)))
     ))
 
   (let ([width (unsigned-bits)])
@@ -91659,6 +91664,110 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "export ledger owner: Bytes<20>;"
+      "witness recoverKey(digest: Bytes<32>,"
+      "                   sig: Secp256k1EcdsaSignature,"
+      "                   recoveryId: Uint<2>): Secp256k1Point;"
+      "export circuit setOwner(addr: Bytes<20>): [] {"
+      "  owner = disclose(addr);"
+      "}"
+      "// The Ethereum pattern: `require(ecrecover(hash, v, r, s) == owner)`."
+      "// Verification alone does not say *who* signed -- every recoverable id"
+      "// yields a key that verifies -- so the recovered key is additionally bound"
+      "// to an address the contract already trusts."
+      "export circuit verifyOwnerSignature(msg: Bytes<32>,"
+      "                                    sig: Secp256k1EcdsaSignature,"
+      "                                    recoveryId: Uint<2>): [] {"
+      "  const digest = keccak256<Bytes<32>>(msg);"
+      "  const pk = recoverKey(digest, sig, recoveryId);"
+      "  assert(secp256k1EcdsaVerify(digest, sig, pk), 'bad signature');"
+      "  assert(secp256k1EthereumAddress(pk) == owner, 'not the owner');"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const msg = new Uint8Array(32);"
+        "for (let i = 0; i < 32; i++) msg[i] = i + 1;"
+        "const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
+        "// Signing is RFC 6979 deterministic and low-s normalised, so the signature"
+        "// and its recovery id are the same on every run."
+        "const SK = 7n;"
+        "// `recovered` format is the recovery byte followed by r and s."
+        "const sigBytes = secp256k1.sign(digest, secp256k1.Point.Fn.toBytes(SK), {"
+        "  prehash: false,"
+        "  format: 'recovered',"
+        "});"
+        "const recoveryId = sigBytes[0];"
+        "const parsed = secp256k1.Signature.fromBytes(sigBytes, 'recovered');"
+        "const sig = { r: parsed.r, s: parsed.s };"
+        "const ethAddress = (p: typeof secp256k1.Point.BASE): Uint8Array =>"
+        "  runtime.keccak256(new runtime.CompactTypeBytes(64), p.toBytes(false).subarray(1)).slice(12);"
+        "// Ethereum address of the signer, SK*G."
+        "const SIGNER = ethAddress(secp256k1.Point.BASE.multiplyUnsafe(SK));"
+        "// Ethereum address of the key recovered with the other recovery id, which"
+        "// verifies just as well but belongs to nobody in particular."
+        "const OTHER = ethAddress("
+        "  new secp256k1.Signature(sig.r, sig.s, recoveryId ^ 1).recoverPublicKey(digest));"
+        "// The malleated twin.  Negating s negates the nonce point R, and the"
+        "// recovery id carries R's parity, so (r, s, v) and (r, n - s, v ^ 1)"
+        "// recover the same key -- and therefore the same Ethereum address."
+        "const n = secp256k1.Point.Fn.ORDER;"
+        "const twinSig = { r: sig.r, s: n - sig.s };"
+        "// The witness takes the digest, the signature and the recovery id as"
+        "// arguments, so one implementation serves every case below.  A dApp would"
+        "// take the recovery id from the signature's v byte.  Uint<2> arrives as a"
+        "// bigint, while the runtime's recover expects a number."
+        "const witnesses = {"
+        "  recoverKey(wc: runtime.WitnessContext<{}, number>,"
+        "             digest: Uint8Array,"
+        "             sig: { r: bigint, s: bigint },"
+        "             recoveryId: bigint): [number, runtime.Secp256k1Point] {"
+        "    return [wc.privateState,"
+        "            runtime.secp256k1EcdsaRecover(digest, sig, Number(recoveryId))];"
+        "  },"
+        "};"
+        "const withOwner = async (addr: Uint8Array) => {"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const r = await contract.circuits.setOwner(context, addr);"
+        "  return [contract, r.context] as const;"
+        "};"
+        "test('the owner\\'s signature is accepted', async () => {"
+        "  const [contract, context] = await withOwner(SIGNER);"
+        "  const r = await contract.circuits.verifyOwnerSignature("
+        "                    context, msg, sig, BigInt(recoveryId));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(SIGNER);"
+        "});"
+        "test('the malleated twin signature is accepted for the same owner', async () => {"
+        "  // Binding the recovered key to a trusted address fixes *who* signed, but"
+        "  // it does not de-malleate the signature: the high-s twin clears both the"
+        "  // signature check and the address check.
+        "  expect(sig.s <= n / 2n).toBe(true);"
+        "  expect(twinSig.s > n / 2n).toBe(true);"
+        "  const [contract, context] = await withOwner(SIGNER);"
+        "  const r = await contract.circuits.verifyOwnerSignature("
+        "                    context, msg, twinSig, BigInt(recoveryId ^ 1));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(SIGNER);"
+        "});"
+        "test('the wrong recovery id is caught by the address check', async () => {"
+        "  // This is the case secp256k1EcdsaVerify alone lets through: the other"
+        "  // id recovers a different key that still verifies, but its address is"
+        "  // not the owner's.  Contrast with the twin above, where negating s as"
+        "  // well as flipping the id lands back on the owner."
+        "  const [contract, context] = await withOwner(SIGNER);"
+        "  await expect(contract.circuits.verifyOwnerSignature("
+        "                 context, msg, sig, BigInt(recoveryId ^ 1))).rejects.toThrow();"
+        "});"
+        "test('a valid signature by a non-owner is rejected', async () => {"
+        "  const [contract, context] = await withOwner(OTHER);"
+        "  await expect(contract.circuits.verifyOwnerSignature("
+        "                 context, msg, sig, BigInt(recoveryId))).rejects.toThrow();"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit addb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"
@@ -91827,8 +91936,7 @@ groups than for single tests.
              (modulo (* scalar1 (max-secp256k1-scalar)) (1+ (max-secp256k1-scalar))))
           ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256k1-scalar))))
         "});"
-        ))
-      )
+        )))
     )
   )
 

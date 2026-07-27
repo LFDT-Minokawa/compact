@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.110, language 0.25.103, runtime 0.18.102]
+## [Toolchain 0.33.112, language 0.25.104, runtime 0.18.103]
 
 ### Added/Changed
 
@@ -14,6 +14,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   will have that type.  There is a new runtime function to perform subtraction
   for these types.  The standard library circuits `add` and `mul` have been
   removed.
+
+## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
+
+### Changed
+
+- The type `Uint<0>` is allowed where previously it was a compiler error.  It's
+  equivalent to `Uint<0..1>` by the rule and the fact that 2^0 equals 1.
+  `Uint<0..1>` is allowed so there is no reason to prohibit `Uint<0>` even
+  though it's not super useful.
+
+## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
+
+### Added
+
+- Add `secp256k1EcdsaRecover` to the Compact JavaScript runtime. Given a
+  32-byte message hash, an ECDSA signature and a recovery,
+  it returns the corresponding secp256k1 public key.
+
+  Recovery runs off-circuit: the intended pattern is to recover the key here,
+  pass it into a circuit as a witness or an argument, and
+  constrain it there with the standard library's `secp256k1EcdsaVerify`.
+
+  `secp256k1EcdsaVerify` accepts both low-s and high-s signatures, as
+  [FIPS 186-5](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf)
+  section 6.4.2 constrains `s` only to `[1, n - 1]`.
 
 ## [Toolchain 0.33.109, language 0.25.102, runtime 0.18.101]
 

@@ -61,6 +61,22 @@ describe('[Errors] Compiler', () => {
             file: 'tuple.compact',
             error: /Exception: tuple.compact line 21 char 11: expected right-hand side of = to have type \[Field, Boolean] but received \[Field, Field]/,
         },
+        {
+            file: 'counter_direct_assignment.compact',
+            error: /Exception: counter_direct_assignment.compact line 21 char 5: operation = undefined for ledger field type Counter/,
+        },
+        {
+            file: 'duplicate_ledger_binding.compact',
+            error: /Exception: duplicate_ledger_binding.compact line 18 char 1: another binding found for c in the same scope at line 17 char 1/,
+        },
+        {
+            file: 'invalid_cast_to_map_type.compact',
+            error: /Exception: invalid_cast_to_map_type.compact line 20 char 13: cannot cast from type Uint<64> to type Map<Field, Field>/,
+        },
+        {
+            file: 'sealed_ledger_mutation.compact',
+            error: /Exception: sealed_ledger_mutation.compact line 20 char 1: exported circuits cannot modify sealed ledger fields but test calls \(directly or indirectly\) test, which modifies sealed field c at line 21 char 3/,
+        },
     ])(`should throw: $error for contract: $file`, async ({ file, error }) => {
         const filePath = CONTRACTS_ROOT + file;
 

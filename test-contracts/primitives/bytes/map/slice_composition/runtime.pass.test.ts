@@ -13,6 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test3(): Uint<0> {
-    return default<Uint<0>>;
-}
+import { expect } from 'vitest';
+
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (
+            await contract.circuits.bytes_map_slice_composition(ctx)
+        ).result;
+
+        expect(result).toEqual([
+            Uint8Array.from([20]),
+            Uint8Array.from([40]),
+            Uint8Array.from([60]),
+        ]);
+    },
+);

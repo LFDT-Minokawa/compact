@@ -13,8 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export type UX<#n> = Uint<n>;
+import { expect } from 'vitest';
 
-export circuit test(): [] {
-  const a: UX<0> = 0;
-}
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (await contract.circuits.bytes_spread_basic(ctx)).result;
+
+        expect(result).toEqual(
+            Uint8Array.from([0, 255, 255, 255, 128, 0, 255, 255, 255, 128]),
+        );
+    },
+);

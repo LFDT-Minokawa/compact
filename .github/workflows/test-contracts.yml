@@ -1,0 +1,32 @@
+name: Test Contracts
+
+on:
+  workflow_dispatch:
+  pull_request:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test-contracts:
+    name: Run test-contracts fixtures
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout compactc repository
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Setup Nix with cache
+        uses: ./.github/actions/setup-nix-cache
+        with:
+          attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
+
+      - name: Realize runtime from cache
+        run: nix build --no-link .#runtime.package
+
+      - name: Test contracts
+        run: ./test-contracts/test.sh

@@ -1,0 +1,16 @@
+{
+    "compilerOptions": {
+        "allowJs": true,
+        "esModuleInterop": true,
+        "module": "esnext",
+        "moduleResolution": "bundler",
+        "paths": {
+            "@test/compact-test": ["./compact-test.ts"]
+        },
+        "strict": true,
+        "target": "esnext",
+        "types": ["vitest/globals"]
+    },
+    "include": ["**/*.ts"],
+    "exclude": ["**/.build", "**/.compact-test-build", "node_modules"]
+}

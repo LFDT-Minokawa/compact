@@ -1231,8 +1231,8 @@
   (Type : Type (ir p) -> Type ()
     [,tref (Type-Ref->Type ir p)]
     [(tunsigned ,src ,[Type-Size->nat : tsize p 1 -> * nat])
-     (unless (<= 1 nat (unsigned-bits))
-        (source-errorf src "Uint width ~d is not between 1 and the maximum Uint width ~d (inclusive)"
+     (unless (<= nat (unsigned-bits))
+        (source-errorf src "Uint width ~d exceeds the maximum Uint width ~d"
                        nat
                        (unsigned-bits)))
      `(tunsigned ,src ,(- (expt 2 nat) 1))]
