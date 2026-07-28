@@ -46,7 +46,7 @@
               (values (reverse new-alignment*) (reverse new-triv*) instr*))
             (let ([atom (car alignment*)])
               (nanopass-case (Lflattened Alignment) atom
-                [(anative ,opaque-type) (guard (string=? opaque-type "JubjubScalar"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "JubjubScalar"))
                  ;; This doesn't have its own descriptor in `runtime/src/compact-types.ts.  It's
                  ;; just a native field but it needs a ZKIR conversion instruction.
                  (let ([fld (make-temp-id src 'fld)])
@@ -56,8 +56,8 @@
                      (with-output-language (Lflattened Alignment)
                        (cons `(afield) new-alignment*))
                      (cons fld new-triv*)))]
-                [(anative ,opaque-type) (guard (or (string=? opaque-type "Secp256k1Base")
-                                                   (string=? opaque-type "Secp256k1Scalar")))
+                [(anative ,zkir-type) (guard (or (string=? zkir-type "Secp256k1Base")
+                                                 (string=? zkir-type "Secp256k1Scalar")))
                  (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -66,7 +66,7 @@
                        ;; Reversed:
                        (cons* `(abytes 8) `(abytes 24) new-alignment*))
                      (cons* fld1 fld0 new-triv*)))]
-                [(anative ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "JubjubPoint"))
                  (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -74,7 +74,7 @@
                      (with-output-language (Lflattened Alignment)
                        (cons* `(afield) `(afield) new-alignment*))
                      (cons* pt1 pt0 new-triv*)))]
-                [(anative ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "Secp256k1Point"))
                  (let ([fld* (maplr (lambda (ignore) (make-temp-id src 'fld)) (make-list 5))])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -522,7 +522,7 @@
         [(acompress) -1]
         [(afield) -2]
         [(aadt) -3]
-        [(anative ,opaque-type)
+        [(anative ,zkir-type)
          ;; These are handled specially because (1) they assemble into a sequence of alignment
          ;; atoms and (2) they need ZKIR instructions to be emitted.
          (assert cannot-happen)]))
@@ -910,9 +910,9 @@
                        (cons 'emit-tag     event-tag)
                        (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
        (assemble test '() '() '() src '() env vm-code instr*))]
-    [(= ,test (,var-name) (default ,opaque-type))
+    [(= ,test (,var-name) (default ,zkir-type))
      (with-output-language (Lzkir Instruction)
-       (case opaque-type
+       (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
          [("Secp256k1Point")
           (let* ([tmp0 (make-temp-id default-src 'tmp)]
