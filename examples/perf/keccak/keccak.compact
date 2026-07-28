@@ -1,0 +1,655 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export ledger lastDigest: Bytes<32>;
+
+constructor() {
+  lastDigest = default<Bytes<32>>;
+  withZkir = false;
+}
+
+
+export circuit hashField(value: Field): Bytes<32> {
+  return disclose(keccak256<Field>(value));
+}
+
+export circuit hashVector3(value: Vector<3, Field>): Bytes<32> {
+  return disclose(keccak256<Vector<3, Field>>(value));
+}
+
+export circuit hashFieldAndStore(value: Field): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Field>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashVector3AndStore(value: Vector<3, Field>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Vector<3, Field>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// Three equal 4-byte fields: flattens to 12 bytes.
+struct Triple { a: Bytes<4>, b: Bytes<4>, c: Bytes<4> }
+
+// Unequal field sizes that still sum to 12 bytes: flattens to the SAME 12 bytes
+// as `Triple` / `Bytes<12>`, proving the digest ignores where the field
+// boundaries fall.
+struct Uneven { head: Bytes<1>, mid: Bytes<4>, tail: Bytes<7> }
+
+export circuit hashBytes12(x: Bytes<12>): Bytes<32> {
+  return disclose(keccak256<Bytes<12>>(x));
+}
+
+export circuit hashTriple(t: Triple): Bytes<32> {
+  return disclose(keccak256<Triple>(t));
+}
+
+export circuit hashUneven(u: Uneven): Bytes<32> {
+  return disclose(keccak256<Uneven>(u));
+}
+
+// Touching this ledger flag is what makes `hashBytes` provable and pulls the
+// keccak256 into zkir.
+export ledger withZkir: Boolean;
+
+export circuit hashBytes(value: Bytes<32>): Bytes<32> {
+  withZkir = true;
+  return disclose(keccak256<Bytes<32>>(value));
+}
+
+// 1 = the minimal width: a single byte.
+export circuit hashAndStore1(value: Bytes<1>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<1>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 32..63 (spread across the chunk contracts) — EVERY width from the digest
+// width (32) through one byte past the 2x31 = 62 field-element packing
+// boundary (63); 33 is also the compressed secp256k1 public-key length.
+export circuit hashAndStore32(value: Bytes<32>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<32>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore33(value: Bytes<33>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<33>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore34(value: Bytes<34>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<34>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore35(value: Bytes<35>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<35>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore36(value: Bytes<36>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<36>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore37(value: Bytes<37>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<37>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore38(value: Bytes<38>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<38>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore39(value: Bytes<39>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<39>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore40(value: Bytes<40>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<40>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore41(value: Bytes<41>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<41>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore42(value: Bytes<42>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<42>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore43(value: Bytes<43>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<43>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore44(value: Bytes<44>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<44>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore45(value: Bytes<45>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<45>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore46(value: Bytes<46>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<46>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore47(value: Bytes<47>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<47>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore48(value: Bytes<48>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<48>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore49(value: Bytes<49>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<49>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore50(value: Bytes<50>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<50>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore51(value: Bytes<51>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<51>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore52(value: Bytes<52>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<52>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore53(value: Bytes<53>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<53>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore54(value: Bytes<54>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<54>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore55(value: Bytes<55>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<55>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore56(value: Bytes<56>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<56>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore57(value: Bytes<57>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<57>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore58(value: Bytes<58>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<58>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore59(value: Bytes<59>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<59>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore60(value: Bytes<60>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<60>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore61(value: Bytes<61>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<61>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore62(value: Bytes<62>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<62>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore63(value: Bytes<63>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<63>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 93 = 3x31: exactly three 31-byte field-element packing units.
+export circuit hashAndStore93(value: Bytes<93>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<93>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 94 = 3x31 + 1: one byte past the three-unit packing boundary.
+export circuit hashAndStore94(value: Bytes<94>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<94>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 376 = the CCTP V2 burn-message length (see dapps/usdcx).
+export circuit hashAndStore376(value: Bytes<376>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<376>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// A deliberately large, multi-block input — the heaviest keccak proof in the
+// suite (proving cost scales with the number of 136-byte keccak blocks).
+export circuit hashAndStore1024(value: Bytes<1024>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<1024>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 32..63 — EVERY width from the digest width (32) through one byte past the
+// 2x31 = 62 field-element packing boundary (63); 33 is also the compressed
+// secp256k1 public-key length.
+export circuit hashBytes32(value: Bytes<32>): Bytes<32> {
+  return disclose(keccak256<Bytes<32>>(value));
+}
+
+export circuit hashBytes33(value: Bytes<33>): Bytes<32> {
+  return disclose(keccak256<Bytes<33>>(value));
+}
+
+export circuit hashBytes34(value: Bytes<34>): Bytes<32> {
+  return disclose(keccak256<Bytes<34>>(value));
+}
+
+export circuit hashBytes35(value: Bytes<35>): Bytes<32> {
+  return disclose(keccak256<Bytes<35>>(value));
+}
+
+export circuit hashBytes36(value: Bytes<36>): Bytes<32> {
+  return disclose(keccak256<Bytes<36>>(value));
+}
+
+export circuit hashBytes37(value: Bytes<37>): Bytes<32> {
+  return disclose(keccak256<Bytes<37>>(value));
+}
+
+export circuit hashBytes38(value: Bytes<38>): Bytes<32> {
+  return disclose(keccak256<Bytes<38>>(value));
+}
+
+export circuit hashBytes39(value: Bytes<39>): Bytes<32> {
+  return disclose(keccak256<Bytes<39>>(value));
+}
+
+export circuit hashBytes40(value: Bytes<40>): Bytes<32> {
+  return disclose(keccak256<Bytes<40>>(value));
+}
+
+export circuit hashBytes41(value: Bytes<41>): Bytes<32> {
+  return disclose(keccak256<Bytes<41>>(value));
+}
+
+export circuit hashBytes42(value: Bytes<42>): Bytes<32> {
+  return disclose(keccak256<Bytes<42>>(value));
+}
+
+export circuit hashBytes43(value: Bytes<43>): Bytes<32> {
+  return disclose(keccak256<Bytes<43>>(value));
+}
+
+export circuit hashBytes44(value: Bytes<44>): Bytes<32> {
+  return disclose(keccak256<Bytes<44>>(value));
+}
+
+export circuit hashBytes45(value: Bytes<45>): Bytes<32> {
+  return disclose(keccak256<Bytes<45>>(value));
+}
+
+export circuit hashBytes46(value: Bytes<46>): Bytes<32> {
+  return disclose(keccak256<Bytes<46>>(value));
+}
+
+export circuit hashBytes47(value: Bytes<47>): Bytes<32> {
+  return disclose(keccak256<Bytes<47>>(value));
+}
+
+export circuit hashBytes48(value: Bytes<48>): Bytes<32> {
+  return disclose(keccak256<Bytes<48>>(value));
+}
+
+export circuit hashBytes49(value: Bytes<49>): Bytes<32> {
+  return disclose(keccak256<Bytes<49>>(value));
+}
+
+export circuit hashBytes50(value: Bytes<50>): Bytes<32> {
+  return disclose(keccak256<Bytes<50>>(value));
+}
+
+export circuit hashBytes51(value: Bytes<51>): Bytes<32> {
+  return disclose(keccak256<Bytes<51>>(value));
+}
+
+export circuit hashBytes52(value: Bytes<52>): Bytes<32> {
+  return disclose(keccak256<Bytes<52>>(value));
+}
+
+export circuit hashBytes53(value: Bytes<53>): Bytes<32> {
+  return disclose(keccak256<Bytes<53>>(value));
+}
+
+export circuit hashBytes54(value: Bytes<54>): Bytes<32> {
+  return disclose(keccak256<Bytes<54>>(value));
+}
+
+export circuit hashBytes55(value: Bytes<55>): Bytes<32> {
+  return disclose(keccak256<Bytes<55>>(value));
+}
+
+export circuit hashBytes56(value: Bytes<56>): Bytes<32> {
+  return disclose(keccak256<Bytes<56>>(value));
+}
+
+export circuit hashBytes57(value: Bytes<57>): Bytes<32> {
+  return disclose(keccak256<Bytes<57>>(value));
+}
+
+export circuit hashBytes58(value: Bytes<58>): Bytes<32> {
+  return disclose(keccak256<Bytes<58>>(value));
+}
+
+export circuit hashBytes59(value: Bytes<59>): Bytes<32> {
+  return disclose(keccak256<Bytes<59>>(value));
+}
+
+export circuit hashBytes60(value: Bytes<60>): Bytes<32> {
+  return disclose(keccak256<Bytes<60>>(value));
+}
+
+export circuit hashBytes61(value: Bytes<61>): Bytes<32> {
+  return disclose(keccak256<Bytes<61>>(value));
+}
+
+export circuit hashBytes62(value: Bytes<62>): Bytes<32> {
+  return disclose(keccak256<Bytes<62>>(value));
+}
+
+export circuit hashBytes63(value: Bytes<63>): Bytes<32> {
+  return disclose(keccak256<Bytes<63>>(value));
+}
+
+// 93 = 3x31: exactly three 31-byte field-element packing units.
+export circuit hashBytes93(value: Bytes<93>): Bytes<32> {
+  return disclose(keccak256<Bytes<93>>(value));
+}
+
+// 94 = 3x31 + 1: one byte past the three-unit packing boundary.
+export circuit hashBytes94(value: Bytes<94>): Bytes<32> {
+  return disclose(keccak256<Bytes<94>>(value));
+}
+
+// 376 = the CCTP V2 burn-message length (see dapps/usdcx).
+export circuit hashBytes376(value: Bytes<376>): Bytes<32> {
+  return disclose(keccak256<Bytes<376>>(value));
+}
+
+// A deliberately large, multi-block input.
+export circuit hashBytes1024(value: Bytes<1024>): Bytes<32> {
+  return disclose(keccak256<Bytes<1024>>(value));
+}
+
+// ordinary-types-keccak256.compact — the RUNTIME (prove + verify) sibling of
+// types-keccak256.compact. keccak256 accepts any ORDINARY Compact type; this
+// contract proves that the IN-CIRCUIT (zkir-v3) digest of such a type matches
+// the OFF-CIRCUIT digest the Compact JS runtime computes for the SAME value,
+// for the composite / non-`Bytes`, non-`Field` shapes:
+//
+//   * Boolean
+//   * Uint<64>
+//   * Vector<3, Boolean>
+//   * a custom enum (`Direction`)                    — lowers to a bounded Uint
+//   * a custom struct `Parcel { a: Boolean, b: Uint<8>, c: Direction }`
+//   * Vector<3, Parcel>
+//
+// WHY these types: `types-keccak256.compact` already covers them OFF-chain
+// (shape / determinism / distinctness) and `field-keccak256.compact` covers the
+// prove+verify path for `Field` / `Vector<Field>`. The gap this closes is the
+// prove+verify path for the ORDINARY COMPOSITE types — structs and enums flatten
+// to a non-trivial field-aligned layout, exactly where the in-circuit flattening
+// is most likely to diverge from the JS runtime's `toBinaryRepr`. An enum is an
+// ordinary value type (it lowers to a bounded unsigned integer), so keccak256
+// accepts it — unlike an ADT such as `Counter` (see adt-keccak256.compact).
+//
+// HOW the case checks it (see src/cases/runtime/ordinary-types.ts): the driver
+// takes the OFF-circuit digest from the PURE circuit below (`pureCircuits.*`,
+// computed in JS with no proof and no ledger), then submits the matching
+// `*AndStore` RUNTIME circuit as a real proven call. The `*AndStore` circuit
+// writes its digest to the shared `lastDigest` ledger field, which (1) makes the
+// circuit provable so keccak enters zkir, and (2) gives the driver an indexed
+// on-chain value to read back. A successful prove + verify whose indexed digest
+// equals the pure digest IS the "off-circuit == in-circuit" match: if the
+// in-circuit keccak disagreed with the JS keccak, the proof would be
+// unsatisfiable (the ledger write is pinned to the JS value) and the call would
+// fail at prove time.
+//
+// Because the runtime circuits are provable, the whole contract compiles WITH
+// `--feature-zkir-v3` (the pure circuits stay off-chain regardless — purity is
+// per-circuit). Same branch toolchain as the other keccak cases: a compactc that
+// knows keccak256 + compact-runtime >= 0.16.101. See README / RUNNING.md.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// A custom enum. `replace-enums` lowers it to a bounded unsigned integer, an
+// ORDINARY (flattenable) type, so keccak256 accepts it. In the JS bindings its
+// values are the plain numbers 0..3 (North=0, East=1, South=2, West=3).
+enum Direction {
+  North,
+  East,
+  South,
+  West
+}
+
+// A custom struct mixing a Boolean, a Uint<8>, and the enum — the shape the test
+// plan calls out. Flattens field-by-field, in declaration order.
+struct Parcel {
+  a: Boolean,
+  b: Uint<8>,
+  c: Direction
+}
+
+// --- PURE (off-chain) — the off-circuit digest oracle ----------------------
+// These never touch the ledger, so they stay off-chain (pure) even
+// though the contract compiles with `--feature-zkir-v3`.
+
+export circuit hashBool(x: Boolean): Bytes<32> {
+  return disclose(keccak256<Boolean>(x));
+}
+
+export circuit hashUint(x: Uint<64>): Bytes<32> {
+  return disclose(keccak256<Uint<64>>(x));
+}
+
+export circuit hashVecBool(x: Vector<3, Boolean>): Bytes<32> {
+  return disclose(keccak256<Vector<3, Boolean>>(x));
+}
+
+export circuit hashEnum(x: Direction): Bytes<32> {
+  return disclose(keccak256<Direction>(x));
+}
+
+export circuit hashStruct(x: Parcel): Bytes<32> {
+  return disclose(keccak256<Parcel>(x));
+}
+
+export circuit hashVecStruct(x: Vector<3, Parcel>): Bytes<32> {
+  return disclose(keccak256<Vector<3, Parcel>>(x));
+}
+
+// --- RUNTIME (ledger-touching → provable under --feature-zkir-v3) ----------
+// Each writes its digest to `lastDigest`, which makes the circuit provable (the
+// keccak enters zkir) and gives the driver an indexed on-chain digest to read.
+
+export circuit hashBoolAndStore(x: Boolean): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Boolean>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashUintAndStore(x: Uint<64>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Uint<64>>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashVecBoolAndStore(x: Vector<3, Boolean>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Vector<3, Boolean>>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashEnumAndStore(x: Direction): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Direction>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashStructAndStore(x: Parcel): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Parcel>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashVecStructAndStore(x: Vector<3, Parcel>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Vector<3, Parcel>>(x);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+export circuit hashAndStore(value: Bytes<32>): Bytes<32> {
+  const digest: Bytes<32> = keccak256<Bytes<32>>(value);
+  lastDigest = disclose(digest);
+  return disclose(digest);
+}
+
+// 0 = the empty input: keccak256 of zero bytes.
+export circuit hashBytes0(value: Bytes<0>): Bytes<32> {
+  return disclose(keccak256<Bytes<0>>(value));
+}
+
+// 1 = the "1 zero byte" vector.
+export circuit hashBytes1(value: Bytes<1>): Bytes<32> {
+  return disclose(keccak256<Bytes<1>>(value));
+}
+
+// 2 = the "2 zero bytes" vector.
+export circuit hashBytes2(value: Bytes<2>): Bytes<32> {
+  return disclose(keccak256<Bytes<2>>(value));
+}
+
+// 4 = "test".
+export circuit hashBytes4(value: Bytes<4>): Bytes<32> {
+  return disclose(keccak256<Bytes<4>>(value));
+}
+
+// 5 = the "5 zero bytes" vector.
+export circuit hashBytes5(value: Bytes<5>): Bytes<32> {
+  return disclose(keccak256<Bytes<5>>(value));
+}
+
+// 10 = the "10 zero bytes" vector.
+export circuit hashBytes10(value: Bytes<10>): Bytes<32> {
+  return disclose(keccak256<Bytes<10>>(value));
+}
+
+// 18 = "longer test string".
+export circuit hashBytes18(value: Bytes<18>): Bytes<32> {
+  return disclose(keccak256<Bytes<18>>(value));
+}
+
+// types-keccak256.compact — keccak256 accepts any ORDINARY Compact type, not
+// just `Bytes<N>`. The keccak256 test plan asks for coverage that each such
+// type hashes to a 32-byte digest and is deterministic: `Field`, `Bytes<N>`,
+// `Boolean`, `Uint<N>`, `Vector`, and a struct. (ADT types like `Counter` are
+// rejected — see adt-keccak256.compact.)
+//
+// These are PURE circuits (no ledger state), computed off-chain by the Compact JS
+// runtime (`pureCircuits.*`); the case asserts shape (32 bytes), determinism
+// (same input → same digest), and distinctness (different inputs → different
+// digests) rather than fixed vectors, because the per-type flattened encoding is
+// an internal detail. Pure → never enters zkir → compiles WITHOUT
+// `--feature-zkir-v3`. Branch toolchain required (see README).
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+struct Mixed {
+  tag: Bytes<8>,
+  count: Uint<64>,
+  flag: Boolean,
+}
+
+export circuit hashVector(x: Vector<4, Field>): Bytes<32> {
+  return disclose(keccak256<Vector<4, Field>>(x));
+}
+

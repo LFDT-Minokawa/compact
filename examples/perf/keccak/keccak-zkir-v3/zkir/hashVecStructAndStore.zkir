@@ -1,0 +1,36 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%x.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.1", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.2", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.3", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.4", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.5", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.6", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.7", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.8", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+    "Scalar<BLS12-381>",
+    "Scalar<BLS12-381>"
+  ],
+  "instructions": [
+    { "op": "constrain_to_boolean", "val": "%x.0" },
+    { "op": "constrain_bits", "val": "%x.1", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.2", "bits": 2 },
+    { "op": "constrain_to_boolean", "val": "%x.3" },
+    { "op": "constrain_bits", "val": "%x.4", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.5", "bits": 2 },
+    { "op": "constrain_to_boolean", "val": "%x.6" },
+    { "op": "constrain_bits", "val": "%x.7", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.8", "bits": 2 },
+    { "op": "keccak256", "output": "%bytes.9", "alignment": [{ "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }], "inputs": ["%x.0", "%x.1", "%x.2", "%x.3", "%x.4", "%x.5", "%x.6", "%x.7", "%x.8"] },
+    { "op": "bytes32_into_low_high", "outputs": ["%digest.10", "%digest.11"], "bytes": "%bytes.9" },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "%digest.11", "%digest.10"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "output", "vals": ["%digest.11", "%digest.10"] }
+  ]
+}

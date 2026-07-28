@@ -1,0 +1,21 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%value.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.1", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.2", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+    "Scalar<BLS12-381>",
+    "Scalar<BLS12-381>"
+  ],
+  "instructions": [
+    { "op": "keccak256", "output": "%bytes.3", "alignment": [{ "tag": "atom", "value": { "tag": "field" } }, { "tag": "atom", "value": { "tag": "field" } }, { "tag": "atom", "value": { "tag": "field" } }], "inputs": ["%value.0", "%value.1", "%value.2"] },
+    { "op": "bytes32_into_low_high", "outputs": ["%digest.4", "%digest.5"], "bytes": "%bytes.3" },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "%digest.5", "%digest.4"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "output", "vals": ["%digest.5", "%digest.4"] }
+  ]
+}

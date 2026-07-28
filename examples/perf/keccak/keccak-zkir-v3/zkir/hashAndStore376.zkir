@@ -1,0 +1,44 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%value.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.1", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.2", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.3", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.4", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.5", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.6", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.7", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.8", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.9", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.10", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.11", "type": "Scalar<BLS12-381>" },
+    { "name": "%value.12", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+    "Scalar<BLS12-381>",
+    "Scalar<BLS12-381>"
+  ],
+  "instructions": [
+    { "op": "constrain_bits", "val": "%value.0", "bits": 32 },
+    { "op": "constrain_bits", "val": "%value.1", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.2", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.3", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.4", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.5", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.6", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.7", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.8", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.9", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.10", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.11", "bits": 248 },
+    { "op": "constrain_bits", "val": "%value.12", "bits": 248 },
+    { "op": "keccak256", "output": "%bytes.13", "alignment": [{ "tag": "atom", "value": { "length": 376, "tag": "bytes" } }], "inputs": ["%value.0", "%value.1", "%value.2", "%value.3", "%value.4", "%value.5", "%value.6", "%value.7", "%value.8", "%value.9", "%value.10", "%value.11", "%value.12"] },
+    { "op": "bytes32_into_low_high", "outputs": ["%digest.14", "%digest.15"], "bytes": "%bytes.13" },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "%digest.15", "%digest.14"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "output", "vals": ["%digest.15", "%digest.14"] }
+  ]
+}

@@ -1,0 +1,24 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%x.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.1", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.2", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+    "Scalar<BLS12-381>",
+    "Scalar<BLS12-381>"
+  ],
+  "instructions": [
+    { "op": "constrain_to_boolean", "val": "%x.0" },
+    { "op": "constrain_to_boolean", "val": "%x.1" },
+    { "op": "constrain_to_boolean", "val": "%x.2" },
+    { "op": "keccak256", "output": "%bytes.3", "alignment": [{ "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 1, "tag": "bytes" } }], "inputs": ["%x.0", "%x.1", "%x.2"] },
+    { "op": "bytes32_into_low_high", "outputs": ["%digest.4", "%digest.5"], "bytes": "%bytes.3" },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x20", "%digest.5", "%digest.4"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "output", "vals": ["%digest.5", "%digest.4"] }
+  ]
+}
