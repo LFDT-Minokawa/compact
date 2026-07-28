@@ -1,0 +1,166 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// USDCx inbound bridge — ATOMIC 2-of-2 variant. Same design as the 1-of-1
+// sibling `bridged-usdc-mint.compact`, but it verifies BOTH attester signatures
+// of a real Circle CCTP V2 2-of-N attestation in a single `receiveAndMint`
+// circuit: two stdlib `secp256k1EcdsaVerify` calls, both signers checked against
+// the registered set, and Circle's strict-ascending attester-address ordering
+// (its dedup-in-one-pass trick, which also rejects the same attester signing
+// twice). This is the faithful CCTP threshold check.
+//
+// Like the 1-of-1, each signature is verified against the attester's public key
+// — supplied as a witness (`attesterPk0`/`attesterPk1`), recovered OFF-circuit by
+// the prover — rather than recovered in-circuit. The in-circuit Ethereum-address
+// gate binds each pubkey to the registered attester set; verify alone only proves
+// "this pubkey signed the digest", not "this pubkey is authorized".
+//
+// ============================================================================
+// TWO VERIFIES IN ONE CIRCUIT — COMPILES, PROVES, AND MINTS
+// ============================================================================
+// `receiveAndMint` below calls `secp256k1EcdsaVerify` TWICE in one provable
+// circuit (each is one full ECDSA verify: `ecMulGenerator` + `ecMul` + `ecAdd`
+// + a point-x compare). This compiles, proves on the zkir-v3 proof server, and
+// mints end-to-end on the pinned language-0.25 crypto stack — verified by the
+// driver's 2-of-2 scenario.
+//
+// The driver treats any failure here as a hard error — no gap banner, so a
+// regression would turn `vp run usdcx` red rather than being silently tolerated.
+// This is a SEPARATE compile unit from the 1-of-1 file, which compiles and mints
+// independently (src/main.ts runs the 1-of-1 scenario first, then this one).
+//
+// ============================================================================
+// Crypto surface — from CompactStandardLibrary
+// ============================================================================
+// ECDSA verify, the secp256k1 Ethereum-address gate (`secp256k1EthereumAddress`),
+// and keccak256 all come from the stdlib. The one local helper is
+// `ethAddressToUint` (below), which the stdlib lacks: it packs a 20-byte address
+// into a `Uint<160>` for the strict-ascending ordering check. These primitives
+// live in compactc's zkir-v3 library, so this contract MUST be compiled with
+// `--feature-zkir-v3`.
+// ============================================================================
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// Interpret a 20-byte big-endian Ethereum address as a 160-bit unsigned integer
+// for the strict-ascending ordering check. The `as Uint` cast is little-endian,
+// so the big-endian address is reversed first.
+circuit ethAddressToUint(addr: Bytes<20>): Uint<160> {
+  return Bytes[addr[19], addr[18], addr[17], addr[16], addr[15], addr[14],
+               addr[13], addr[12], addr[11], addr[10], addr[9],  addr[8],
+               addr[7],  addr[6],  addr[5],  addr[4],  addr[3],  addr[2],
+               addr[1],  addr[0]] as Uint<160>;
+}
+
+
+// ============================================================================
+// On-ledger state — identical shape to the 1-of-1 sibling
+// ============================================================================
+
+// Authorized Circle attester Ethereum addresses (20-byte). Populated by the
+// constructor with BOTH attesters; not mutated by any circuit.
+export ledger registeredAttesters: Set<Bytes<20>>;
+
+// Replay protection. Key = keccak256(sourceDomain || nonce), matching Circle.
+export ledger usedNonces: Map<Bytes<32>, Boolean>;
+
+// Total bridged in, for public accounting (checked-width Uint<128> accumulator).
+export ledger totalMinted: Uint<128>;
+
+// Mint events for shielded claim, keyed by the same nonce hash as usedNonces.
+export ledger mintEvents: Map<Bytes<32>, Uint<128>>;
+
+
+// ============================================================================
+// Witnesses (private inputs from the prover)
+// ============================================================================
+// Same as the 1-of-1 plus a SECOND attester signature + public key. The driver
+// sorts the two attesters so (`attesterSig0`, `attesterPk0`) is the lower address
+// and (`attesterSig1`, `attesterPk1`) the higher (Circle's convention); the
+// ordering is re-enforced in-circuit. Each pubkey is recovered off-circuit and
+// verified against the digest below.
+
+witness messageBytes():  Bytes<376>;
+witness attesterSig0():  Secp256k1EcdsaSignature;
+witness attesterPk0():   Secp256k1Point;
+witness attesterSig1():  Secp256k1EcdsaSignature;
+witness attesterPk1():   Secp256k1Point;
+witness mintAmount():    Uint<128>;
+witness sourceDomain():  Bytes<4>;
+witness messageNonce():  Bytes<32>;
+
+
+// ============================================================================
+// Constructor — seed the authorised attester set with BOTH attesters
+// ============================================================================
+
+constructor(attester0: Bytes<20>, attester1: Bytes<20>) {
+  registeredAttesters.insert(disclose(attester0));
+  registeredAttesters.insert(disclose(attester1));
+  totalMinted = 0;
+}
+
+
+// ============================================================================
+// Main mint circuit — atomic 2-of-2 (two verifies in one circuit)
+// ============================================================================
+
+export circuit receiveAndMint(): [] {
+
+  // ---- 1. Pull witnesses ----------------------------------------------------
+  const msg:    Bytes<376> = messageBytes();
+  const sig0:   Secp256k1EcdsaSignature = attesterSig0();
+  const pk0:    Secp256k1Point = attesterPk0();
+  const sig1:   Secp256k1EcdsaSignature = attesterSig1();
+  const pk1:    Secp256k1Point = attesterPk1();
+  const amount: Uint<128>  = mintAmount();
+  const srcDom: Bytes<4>   = sourceDomain();
+  const nonce:  Bytes<32>  = messageNonce();
+
+  // ---- 2. Zero-amount guard -------------------------------------------------
+  assert(amount > 0, "zero amount not allowed");
+
+  // ---- 3. Hash the message IN-CIRCUIT with keccak256 ------------------------
+  // Both attesters signed keccak256(message); recompute it so the proof attests
+  // to signatures over THIS exact message.
+  const digest: Bytes<32> = keccak256<Bytes<376>>(msg);
+
+  // ---- 4. Verify BOTH signers + check registered + enforce ordering ---------
+  // 2-of-2: two stdlib `secp256k1EcdsaVerify` calls in one provable circuit. Each
+  // verified attester must be registered, and the two addresses must be strictly
+  // ascending — Circle's dedup-in-one-pass trick, which also rejects the same
+  // attester signing twice (equal addresses fail the `>` check).
+  assert(secp256k1EcdsaVerify(digest, sig0, pk0), "invalid attester 0 signature");
+  const addr0: Bytes<20> = secp256k1EthereumAddress(pk0);
+  assert(registeredAttesters.member(disclose(addr0)), "attester 0 not registered");
+
+  assert(secp256k1EcdsaVerify(digest, sig1, pk1), "invalid attester 1 signature");
+  const addr1: Bytes<20> = secp256k1EthereumAddress(pk1);
+  assert(registeredAttesters.member(disclose(addr1)), "attester 1 not registered");
+
+  assert(ethAddressToUint(addr1) > ethAddressToUint(addr0), "attesters not strictly ascending");
+
+  // ---- 5. Replay protection -------------------------------------------------
+  const nonceKey: Bytes<32> = keccak256<Bytes<36>>(slice<36>([...srcDom, ...nonce], 0) as Bytes<36>);
+  assert(!usedNonces.member(disclose(nonceKey)), "nonce already used");
+  usedNonces.insert(disclose(nonceKey), true);
+
+  // ---- 6. Mint --------------------------------------------------------------
+  totalMinted = disclose((totalMinted + disclose(amount)) as Uint<128>);
+  mintEvents.insert(disclose(nonceKey), disclose(amount));
+}

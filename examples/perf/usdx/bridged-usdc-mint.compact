@@ -1,0 +1,188 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// bridged-usdc-mint.compact
+//
+// USDCx inbound bridge: receives a Circle CCTP V2 attestation and records a
+// public mint event on Midnight, keyed by the source-domain/nonce hash so the
+// owning wallet (off-circuit) can sweep it into a shielded note.
+//
+// ============================================================================
+// SCENARIO: single attester (1-of-1) — the 2-of-2 sibling is a separate file
+// ============================================================================
+// CCTP V2 mainnet uses a 2-of-N attester threshold: the attestation is two
+// secp256k1 ECDSA signatures over keccak256(message), sorted strictly ascending
+// by attester Ethereum address (Circle's dedup-in-one-pass trick).
+//
+// This contract is the minimal single-signature bridge (one stdlib ECDSA
+// *verify*). The atomic 2-of-2 (two verifies in one circuit) lives in the sibling
+// file `bridged-usdc-mint-2of2.compact`. The two files are separate compile
+// units, so neither depends on the other's build outcome.
+//
+// ============================================================================
+// Crypto surface — all from CompactStandardLibrary
+// ============================================================================
+// Verifies the single signature with the stdlib `secp256k1EcdsaVerify` (it does
+// NOT recover the key in-circuit). The attester's public key is a witness
+// (`attesterPk0`, recovered off-circuit by the prover); the in-circuit Ethereum
+// address gate (`secp256k1EthereumAddress`) binds it to the registered attester
+// set. These secp256k1 + keccak256 primitives live in compactc's zkir-v3 library,
+// so this contract MUST be compiled with `--feature-zkir-v3`.
+// ============================================================================
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+
+// ============================================================================
+// On-ledger state
+// ============================================================================
+// All four fields are `export ledger` so they appear in the compiled `ledger()`
+// projection — i.e. the indexer/driver can read them back (the driver asserts on
+// totalMinted / mintEvents / usedNonces / registeredAttesters). A bare `ledger`
+// (non-exported) field is private to the contract and projects to nothing.
+
+// Authorized Circle attester Ethereum addresses (20-byte). Populated by the
+// constructor; not mutated by any circuit in this feature.
+export ledger registeredAttesters: Set<Bytes<20>>;
+
+// Replay protection. Key = keccak256(sourceDomain || nonce), matching Circle's
+// MessageTransmitter convention so the same nonce on different source domains
+// never collides.
+export ledger usedNonces: Map<Bytes<32>, Boolean>;
+
+// Total bridged in, for public accounting. A `Uint<128>` accumulator rather than
+// a `Counter`: `Counter.increment` only accepts a `Uint<16>` per call, but a CCTP
+// `amount` is a `Uint<128>`. We accumulate with a checked-width add instead (see
+// `receiveAndMint`), matching the baseline `argument-counter` pattern.
+export ledger totalMinted: Uint<128>;
+
+// Mint events for shielded claim. Keyed by the same nonce hash as usedNonces;
+// value is the bridged amount. The recipient identity travels inside the
+// off-chain signed messageBytes (a witness) and is NOT stored here — that
+// keeps the public ledger free of any recipient-identifying data.
+export ledger mintEvents: Map<Bytes<32>, Uint<128>>;
+
+
+// ============================================================================
+// CCTP V2 burn message layout (376 bytes, off-circuit, signed by attesters)
+// ============================================================================
+// Offset  Bytes    Field                       Type
+// ------  -------  --------------------------  ------------------
+//   0     4        version                     Uint<32>
+//   4     4        sourceDomain                Uint<32>
+//   8     4        destinationDomain           Uint<32>
+//  12     32       nonce                       Bytes<32>
+//  44     32       sender                      Bytes<32>
+//  76     32       recipient                   Bytes<32>
+// 108     32       destinationCaller           Bytes<32>
+// 140     4        minFinalityThreshold        Uint<32>
+// 144     4        finalityThresholdExecuted   Uint<32>
+// 148     dynamic  messageBody                 Bytes<N>, N >= 228
+// 376
+//
+// The contract does NOT parse these fields out of the bytes in-circuit. The
+// bytes are bound to the digest by in-circuit keccak256, and the
+// (amount, recipient, sourceDomain, nonce) come along as witnesses. A prover
+// who lies in the parsed fields produces a mintEvents entry the intended
+// recipient wallet won't recognise, harming only that prover.
+// ============================================================================
+
+
+// ============================================================================
+// Witnesses (private inputs from the prover)
+// ============================================================================
+
+witness messageBytes(): Bytes<376>;
+witness attesterSig0(): Secp256k1EcdsaSignature;
+// The attester's public key, recovered off-circuit by the prover. Verified
+// against `digest` by `secp256k1EcdsaVerify` and bound to the registered set via
+// its derived Ethereum address (see `receiveAndMint` step 4).
+witness attesterPk0():  Secp256k1Point;
+witness mintAmount():    Uint<128>;
+witness sourceDomain():  Bytes<4>;
+witness messageNonce():  Bytes<32>;
+
+// Note: the mint recipient is NOT a separate witness. It already lives inside
+// `messageBytes` (CCTP body offset 184) and is bound by the in-circuit keccak
+// digest; the contract never parses it out (see the layout note above).
+
+
+// ============================================================================
+// Constructor — seed the authorised attester set
+// ============================================================================
+
+constructor(attester0: Bytes<20>) {
+  registeredAttesters.insert(disclose(attester0));
+  totalMinted = 0;
+}
+
+
+// ============================================================================
+// Main mint circuit
+// ============================================================================
+
+export circuit receiveAndMint(): [] {
+
+  // ---- 1. Pull witnesses ----------------------------------------------------
+  const msg:    Bytes<376> = messageBytes();
+  const sig0:   Secp256k1EcdsaSignature = attesterSig0();
+  const pk0:    Secp256k1Point = attesterPk0();
+  const amount: Uint<128>  = mintAmount();
+  const srcDom: Bytes<4>   = sourceDomain();
+  const nonce:  Bytes<32>  = messageNonce();
+
+  // ---- 2. Zero-amount guard -------------------------------------------------
+  // Placed before the expensive signature verification so a zero-amount
+  // submission fails cheaply and does NOT consume the (srcDom, nonce) slot.
+  assert(amount > 0, "zero amount not allowed");
+
+  // ---- 3. Hash the message IN-CIRCUIT with keccak256 ------------------------
+  // Binding step: Circle's attesters sign keccak256(message); we recompute the
+  // same hash here so the proof attests to a signature over THIS exact message
+  // and not some hash supplied by the prover. The big-endian digest is passed
+  // straight to secp256k1EcdsaVerify, which reverses it to little-endian for the
+  // scalar cast internally (via its own hashToSecp256k1Scalar).
+  const digest: Bytes<32> = keccak256<Bytes<376>>(msg);
+
+  // ---- 4. Verify the signature + check the signer is registered -------------
+  // 1-of-1: verify ONE attester signature with the stdlib ECDSA verifier, using
+  // the attester's public key (`pk0`, a witness recovered off-circuit) instead of
+  // recovering it in-circuit. `secp256k1EcdsaVerify` binds (r, s) to `digest`
+  // under `pk0`; the address gate below is what AUTHORIZES the signer — verify
+  // alone only proves "pk0 signed this digest", not "pk0 is a registered
+  // attester". `pk0` need not be trusted: a pk whose address isn't registered
+  // fails the member check, and forging (r, s) valid under a registered
+  // attester's pk is ECDSA-hard.
+  assert(secp256k1EcdsaVerify(digest, sig0, pk0), "invalid attester signature");
+  const addr0: Bytes<20> = secp256k1EthereumAddress(pk0);
+  assert(registeredAttesters.member(disclose(addr0)), "attester 0 not registered");
+
+  // ---- 5. Replay protection -------------------------------------------------
+  // nonce key = keccak256(sourceDomain || nonce), matching Circle.
+  const nonceKey: Bytes<32> = keccak256<Bytes<36>>(slice<36>([...srcDom, ...nonce], 0) as Bytes<36>);
+  assert(!usedNonces.member(disclose(nonceKey)), "nonce already used");
+  usedNonces.insert(disclose(nonceKey), true);
+
+  // ---- 6. Mint --------------------------------------------------------------
+  // The mintEvents entry is keyed by nonceKey; the wallet that owns the
+  // recipient identity (carried inside `msg`, never stored on-ledger as a
+  // parsed field) recomputes the same nonceKey off-chain and sweeps this entry
+  // into a shielded note. Public observers see "some amount bridged at this
+  // nonce", not the recipient.
+  totalMinted = disclose((totalMinted + disclose(amount)) as Uint<128>);
+  mintEvents.insert(disclose(nonceKey), disclose(amount));
+}

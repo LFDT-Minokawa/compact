@@ -1,0 +1,144 @@
+{
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "circuits": [
+    {
+      "name": "receiveAndMint",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "messageBytes",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 376
+      }
+    },
+    {
+      "name": "attesterSig0",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Struct",
+        "name": "Secp256k1EcdsaSignature",
+        "elements": [
+          {
+            "name": "r",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          },
+          {
+            "name": "s",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "attesterPk0",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Alias",
+        "name": "Secp256k1Point",
+        "type": {
+          "type-name": "Opaque",
+          "tsType": "Secp256k1Point"
+        }
+      }
+    },
+    {
+      "name": "mintAmount",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    },
+    {
+      "name": "sourceDomain",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 4
+      }
+    },
+    {
+      "name": "messageNonce",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    }
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "registeredAttesters",
+      "index": 0,
+      "exported": true,
+      "storage": "Set",
+      "type": {
+        "type-name": "Bytes",
+        "length": 20
+      }
+    },
+    {
+      "name": "usedNonces",
+      "index": 1,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Boolean"
+      }
+    },
+    {
+      "name": "totalMinted",
+      "index": 2,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    },
+    {
+      "name": "mintEvents",
+      "index": 3,
+      "exported": true,
+      "storage": "Map",
+      "key": {
+        "type-name": "Bytes",
+        "length": 32
+      },
+      "value": {
+        "type-name": "Uint",
+        "maxval": 340282366920938463463374607431768211455
+      }
+    }
+  ]
+}
