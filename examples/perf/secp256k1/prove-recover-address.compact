@@ -1,0 +1,118 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+//
+// prove-recover-address-secp256k1.compact — recover a public key and derive its
+// Ethereum address IN-CIRCUIT, exactly as the usdcx dapp does
+// (`pubkeyToEthAddress`): address = keccak256(x_be(32) || y_be(32))[12:32).
+//
+// It reads BOTH point coordinates (`secp256k1PointX` and `secp256k1PointY`),
+// concatenates them with a vector spread + `slice<64>`, hashes the 64-byte
+// uncompressed key, and `slice<20>`s the address out.
+//
+// THIS shape — keccak256 over the 64-byte value assembled from the recovered
+// coordinates — is the one that failed to prove on the zkir-v3 stack (a
+// `prepare`/`synthesize` misalignment in the proof server), while lighter
+// secp256k1 prove shapes did not. That pinned the trigger to keccak256 over the
+// 64-byte preimage — exactly this address derivation, which the usdcx dapp needs.
+// The IR VM's fab-decode byte extraction hashed one 31-byte chunk twice for
+// 62+-byte inputs; FIXED in the patched midnight ledger the stack now pins, so
+// this proves and stays as the regression test (usdcx receiveAndMint passes
+// end-to-end).
+//
+// LOCAL RECOVERY SURFACE: the stdlib (`compiler/zkir-v3-library.compact`) is now
+// verify-only — the `Secp256k1EcdsaSignatureWithRecovery` struct and the
+// `secp256k1EcdsaRecover` circuit were removed (recovery is expected off-circuit).
+// We carry that removed surface locally to keep exercising in-circuit recovery.
+//
+// keccak256<Bytes<64>> trims trailing 0x00 off-circuit but not in-circuit, so the
+// uncompressed key must end in a nonzero byte (y's low byte); the driver's fixed
+// vector is chosen so it does. Only ONE secp256k1 EC op per circuit.
+//
+// ENDIANNESS: `msgHash` is big-endian and passed straight through to
+// `secp256k1EcdsaRecover` (the local `hashToSecp256k1Scalar` reverses it); the
+// recovered coordinates come out little-endian and are reversed back to
+// big-endian (`reverseBytes32`) before being concatenated and hashed.
+//
+// MUST be compiled with `--feature-zkir-v3`.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export ledger lastAddr: Bytes<20>;
+
+constructor() {
+  lastAddr = default<Bytes<20>>;
+}
+
+// Reverse a 32-byte value: little-endian EC-coordinate bytes -> big-endian.
+circuit reverseBytes32(b: Bytes<32>): Bytes<32> {
+  return Bytes[b[31], b[30], b[29], b[28], b[27], b[26], b[25], b[24],
+               b[23], b[22], b[21], b[20], b[19], b[18], b[17], b[16],
+               b[15], b[14], b[13], b[12], b[11], b[10], b[9],  b[8],
+               b[7],  b[6],  b[5],  b[4],  b[3],  b[2],  b[1],  b[0]];
+}
+
+// ── Local secp256k1 ECDSA recovery surface (removed from the stdlib) ─────────
+// ECDSA signature carrying the recoverable nonce commitment `R`. `R` is supplied
+// by the prover off-circuit (avoiding an in-circuit square root/liftX); the
+// recover circuit re-binds it by asserting `R.x == r` as bytes.
+export struct Secp256k1EcdsaSignatureWithRecovery {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+  R: Secp256k1Point,
+}
+
+// Deserialize a 32-byte big-endian digest into a secp256k1 scalar (the digest is
+// a big-endian integer; the `as Secp256k1Scalar` cast reads little-endian).
+// Inlined from the stdlib so callers pass the big-endian digest directly.
+circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
+  const beReversed: Bytes<32> = Bytes[
+    digest[31], digest[30], digest[29], digest[28], digest[27], digest[26], digest[25], digest[24],
+    digest[23], digest[22], digest[21], digest[20], digest[19], digest[18], digest[17], digest[16],
+    digest[15], digest[14], digest[13], digest[12], digest[11], digest[10], digest[9],  digest[8],
+    digest[7],  digest[6],  digest[5],  digest[4],  digest[3],  digest[2],  digest[1],  digest[0]];
+  return beReversed as Secp256k1Scalar;
+}
+
+// Recover the secp256k1 public key from an ECDSA signature. `msgHash` is
+// big-endian.
+circuit secp256k1EcdsaRecover(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignatureWithRecovery
+): Secp256k1Point {
+  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
+  const {r, s, R} = sig;
+  assert((secp256k1PointX(R) as Bytes<32>) as Secp256k1Scalar == r, "R.x does not match r");
+  const r_inv: Secp256k1Scalar = inv(r);
+  const u1: Secp256k1Scalar = mul(neg(z), r_inv);
+  const u2: Secp256k1Scalar = mul(s, r_inv);
+  return ecAdd(ecMulGenerator(u1), ecMul(R, u2));
+}
+
+// Recover the signer's public key, then derive its Ethereum address in-circuit.
+export circuit recoverAddr(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignatureWithRecovery
+): Bytes<20> {
+  const pk: Secp256k1Point = secp256k1EcdsaRecover(msgHash, sig);
+  const xBe: Bytes<32> = reverseBytes32(secp256k1PointX(pk) as Bytes<32>);
+  const yBe: Bytes<32> = reverseBytes32(secp256k1PointY(pk) as Bytes<32>);
+  const uncompressed: Bytes<64> = slice<64>([...xBe, ...yBe], 0) as Bytes<64>;
+  const addr: Bytes<20> = slice<20>(keccak256<Bytes<64>>(uncompressed), 12);
+  lastAddr = disclose(addr);
+  return disclose(addr);
+}

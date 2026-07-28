@@ -1,0 +1,86 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// recover-secp256k1.compact — exercise the secp256k1 ECDSA *public-key recovery*
+// path: the `Secp256k1EcdsaSignatureWithRecovery` struct (which carries the
+// signing-nonce point `R` alongside `r`/`s`), the `Secp256k1Point` type, and the
+// `secp256k1EcdsaRecover` circuit.
+//
+// `secp256k1EcdsaRecover(msgHash, sig)` recovers the public key:
+//   assert R.x == r; u1 = -z*r^-1; u2 = s*r^-1; pk = u1*G + u2*R
+// where z = hashToSecp256k1Scalar(msgHash). `R` is supplied by the prover
+// off-circuit.
+//
+// As in `verify-secp256k1.compact`, `msgHash` is a `Bytes<32>` parameter rather
+// than hashed in-circuit, isolating the secp256k1 feature from `keccak256`. This
+// is a PURE circuit (no ledger state), computed off-chain by the Compact JS
+// runtime; disclosing the recovered key (derived from witness parameters) is
+// declared with `disclose`.
+//
+// ENDIANNESS: the big-endian `msgHash` digest is passed straight through to
+// `secp256k1EcdsaRecover`; the local `hashToSecp256k1Scalar` reverses it to the
+// little-endian byte order the `as Secp256k1Scalar` cast reads (no caller-side
+// `reverseBytes32` — the reversal lives inside the recover surface).
+//
+// MUST be compiled with `--feature-zkir-v3`: the secp256k1 primitives
+// (`Secp256k1Point`, the scalar/EC ops) live in the compiler's
+// `zkir-v3-library.compact` and are unbound without the flag.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// ECDSA signature carrying the recoverable nonce commitment `R`. `R` is supplied
+// by the prover off-circuit
+export struct Secp256k1EcdsaSignatureWithRecovery {
+  r: Secp256k1Scalar,
+  s: Secp256k1Scalar,
+  R: Secp256k1Point,
+}
+
+// Deserialize a 32-byte big-endian digest into a secp256k1 scalar. By ECDSA
+// convention the digest is a big-endian integer, but the `as Secp256k1Scalar`
+// cast reads little-endian, so the bytes are reversed here. Inlined from the
+// stdlib so callers pass the big-endian digest directly.
+circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
+  const beReversed: Bytes<32> = Bytes[
+    digest[31], digest[30], digest[29], digest[28], digest[27], digest[26], digest[25], digest[24],
+    digest[23], digest[22], digest[21], digest[20], digest[19], digest[18], digest[17], digest[16],
+    digest[15], digest[14], digest[13], digest[12], digest[11], digest[10], digest[9],  digest[8],
+    digest[7],  digest[6],  digest[5],  digest[4],  digest[3],  digest[2],  digest[1],  digest[0]];
+  return beReversed as Secp256k1Scalar;
+}
+
+// Recover the secp256k1 public key from an ECDSA signature (standard ECDSA
+// recovery). `msgHash` is the big-endian digest.
+circuit secp256k1EcdsaRecover(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignatureWithRecovery
+): Secp256k1Point {
+  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
+  const {r, s, R} = sig;
+  assert((secp256k1PointX(R) as Bytes<32>) as Secp256k1Scalar == r, "R.x does not match r");
+  const r_inv: Secp256k1Scalar = inv(r);
+  const u1: Secp256k1Scalar = mul(neg(z), r_inv);
+  const u2: Secp256k1Scalar = mul(s, r_inv);
+  return ecAdd(ecMulGenerator(u1), ecMul(R, u2));
+}
+
+export circuit recoverPublicKey(
+  msgHash: Bytes<32>,
+  sig: Secp256k1EcdsaSignatureWithRecovery
+): Secp256k1Point {
+  return disclose(secp256k1EcdsaRecover(msgHash, sig));
+}

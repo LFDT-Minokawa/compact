@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../",
+  "sources": ["examples/verify-sequential.compact", "compiler/zkir-v3-library.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAwBA;;;;;;;;;;;;;;;;;;;;;;;;;;;;MAaA,AAAA,GAIC;;;;;cAJkB,GAAY;;;;;;;;;;;;;;;;;;yCAAZ,GAAY;;;;;;;sEAAZ,GAAY;;;;OAI9B;MAED,AAAA,KAKC;;;;;cALoB,GAAY;;;;;;;;;;;;;;;;;;yCAAZ,GAAY;;;;;;;wEAAZ,GAAY;;;;OAKhC;;;;;;;;;;GACA;EAzBD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAIA;;;;;;;;;yEAA0B;;;;;;;GAqBzB;ECrBD,AAAA,yBAA8B;UACtB,iBAAI;UACJ,gCACQ;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;0CACA;;;;gDACP;;;;EAqBT,AAAA,wBACiB,WACA,OACA;UAET,oCAA2C;UAC3C,2BAAS;UAAT,MAAA;UAAA,MAAA;UACA,kBAAyB;UACzB,mBAA0B,KAAG;UAC7B,mBAA0B,KAAG;UAC7B,+CAA6C;gDAAW,MAAI;;;;8GAC1C;;;;;WAA2C;;EA/FrE,AAAA,OAAA,KAAA;yDAAA,KAAA;;;EAAA,AAAA,OAAA;yDAAA;;;EAAA,AAAA,mBAAA;sDAAA;;;EAAA,AAAA,SAAA,KAAA;mDAAA,KAAA;;;EAAA,AAAA,SAAA,KAAA;mDAAA,KAAA;;;EAAA,AAAA,kBAAA;4DAAA;;;ED8BA,AAAA,MAA8B;;0DAA9B,GAA8B;;;;;;;GAAA;EAC9B,AAAA,OAAwC;;0DAAxC,IAAwC;;;;;;;;;;;;;;GAAA;EACxC,AAAA,MAA8B;;0DAA9B,GAA8B;;;;;;;GAAA;EAC9B,AAAA,OAAwC;;0DAAxC,IAAwC;;;;;;;;;;;;;;GAAA;EACxC,AAAA,MAA8B;;0DAA9B,GAA8B;;;;;;;GAAA;EAC9B,AAAA,OAAwC;;0DAAxC,IAAwC;;;;;;;;;;;;;;GAAA;EAExC,AAAA,YAIC,4BAJkB,GAAY;yDACD,GAAC;;;;;;yDACD,GAAC;;;;;;UAC7B,KAAC;;;;;6CAAI;;;;;;;;;;;kHAAC;;;IAAN;;;;;;;2HAAA,KAAC;;yEAAA;;GACF;EAED,AAAA,cAKC,4BALoB,GAAY;yDACH,GAAC;;;;;;yDACD,GAAC;;;;;;yDACD,GAAC;;;;;;UAC7B,KAAC;;;;;6CAAI;;;;;;;;;;;kHAAC;;;IAAN;;;;;;;2HAAA,KAAC;;yEAAA;;GACF;;;;;;;;;;;;;;;;IApBD;qCAAA;;;;;;;;;;;0GAA0B;KAAA;;;;;;;;;;;;;;;;;;;;;;"
+}

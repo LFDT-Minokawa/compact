@@ -1,0 +1,58 @@
+{
+  "manifest-version": "1",
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "compiler": {
+    "type": "directory",
+    "contract-info.json": {
+      "type": "file",
+      "size": 1551,
+      "hash": "b76650b96200955735112a6974818d0d945f08c927689e9da515900e89822329"
+    }
+  },
+  "contract": {
+    "type": "directory",
+    "index.d.ts": {
+      "type": "file",
+      "size": 1910,
+      "hash": "ff266a00890b55dfaadcfabcaf7840c47acf6a881ed6425afc52afbc7033d7dc"
+    },
+    "index.js": {
+      "type": "file",
+      "size": 21118,
+      "hash": "d368cd21184dec1745ab591bedb56d5c3335972f54a5a86b5c6446f1196d8929"
+    },
+    "index.js.map": {
+      "type": "file",
+      "size": 2171,
+      "hash": "488b7eedec60ff2e7d34f2486bea297d530fad7c2bf58c14f8145932ea22269f"
+    }
+  },
+  "zkir": {
+    "type": "directory",
+    "recoverAddr.bzkir": {
+      "type": "file",
+      "size": 15153,
+      "hash": "0986248ecf62d54e2a202b1f043dbb3521fd0fe05a6bba75b46712f5bfdd1bb4"
+    },
+    "recoverAddr.zkir": {
+      "type": "file",
+      "size": 53555,
+      "hash": "9117d3374581a749b2b651d8d7f50d795f16ea055fc6f3ac9f4a6ee75a350464"
+    }
+  },
+  "keys": {
+    "type": "directory",
+    "recoverAddr.prover": {
+      "type": "file",
+      "size": 222318633,
+      "hash": "d960dcd28afef228ab0da9fadda04035be9bd6b98ff364950091ea6c32e7171b"
+    },
+    "recoverAddr.verifier": {
+      "type": "file",
+      "size": 2601,
+      "hash": "574a31ac704c26b41d3e2b8085181b8d670ff506d8a75956523b37c90abdc2db"
+    }
+  }
+}

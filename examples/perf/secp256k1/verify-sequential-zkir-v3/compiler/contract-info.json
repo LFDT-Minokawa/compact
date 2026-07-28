@@ -1,0 +1,169 @@
+{
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "circuits": [
+    {
+      "name": "two",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "d",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    },
+    {
+      "name": "three",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "d",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Tuple",
+        "types": [
+        ]
+      }
+    }
+  ],
+  "witnesses": [
+    {
+      "name": "pk0",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Alias",
+        "name": "Secp256k1Point",
+        "type": {
+          "type-name": "Opaque",
+          "tsType": "Secp256k1Point"
+        }
+      }
+    },
+    {
+      "name": "sig0",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Struct",
+        "name": "Secp256k1EcdsaSignature",
+        "elements": [
+          {
+            "name": "r",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          },
+          {
+            "name": "s",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "pk1",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Alias",
+        "name": "Secp256k1Point",
+        "type": {
+          "type-name": "Opaque",
+          "tsType": "Secp256k1Point"
+        }
+      }
+    },
+    {
+      "name": "sig1",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Struct",
+        "name": "Secp256k1EcdsaSignature",
+        "elements": [
+          {
+            "name": "r",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          },
+          {
+            "name": "s",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "pk2",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Alias",
+        "name": "Secp256k1Point",
+        "type": {
+          "type-name": "Opaque",
+          "tsType": "Secp256k1Point"
+        }
+      }
+    },
+    {
+      "name": "sig2",
+      "arguments": [
+      ],
+      "result type": {
+        "type-name": "Struct",
+        "name": "Secp256k1EcdsaSignature",
+        "elements": [
+          {
+            "name": "r",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          },
+          {
+            "name": "s",
+            "type": {
+              "type-name": "Secp256k1Scalar"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "n",
+      "index": 0,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Uint",
+        "maxval": 18446744073709551615
+      }
+    }
+  ]
+}

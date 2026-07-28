@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../../",
+  "sources": ["examples/prove-ethereum-address.compact", "compiler/zkir-v3-library.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAqCA;;;;;;;;;;MAIA,AAAA,oBAIC;;;;;cAJmC,IAAkB;;;;;;;;;;;yCAAlB,IAAkB;;;;;;;;;4DAAlB,IAAkB;;;;OAIrD;;;;;;;;GANA;EAFD;;;;;;;;;;;;;;;;;;;;;;;;;;IAFA;;;;;;;;;yEAAkC;UAGhC,KAAQ;IAAR;;;;;;;2HAAA,KAAQ;;yEAAA;;;;;;;GACT;EC6DD,AAAA,0BAA+B;UACvB;mEAAM;;;YACJ;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;YACA;;EAKV,AAAA,4BAAwC;2CAC/B;;;UACD,mFACiD;6FACA;wCAEtC;;EAhJnB,AAAA,aAAA;+DAAA;;;EAAA,AAAA,mBAAA;sDAAA;;;EAAA,AAAA,mBAAA;sDAAA;;;EDyCA,AAAA,6BAIC,4BAJmC,IAAkB;UAC9C,MAA8C,oCAAH,IAAE;IACnD;;;;;;;2HAAoB,MAAI;;yEAAhB;WACQ,MAAI;GACrB;;;;;;;;;;;;;;;;;;;;;;;IAVD;qCAAA;;;;;;;;;;;0GAAkC;KAAA;;;;;;;;;;;;;;"
+}

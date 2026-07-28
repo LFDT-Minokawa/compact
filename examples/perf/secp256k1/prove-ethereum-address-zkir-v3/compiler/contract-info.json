@@ -1,0 +1,45 @@
+{
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "circuits": [
+    {
+      "name": "storeEthereumAddress",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "pk",
+          "type": {
+            "type-name": "Alias",
+            "name": "Secp256k1Point",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "Secp256k1Point"
+            }
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 20
+      }
+    }
+  ],
+  "witnesses": [
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "lastAddr",
+      "index": 0,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Bytes",
+        "length": 20
+      }
+    }
+  ]
+}

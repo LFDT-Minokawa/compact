@@ -1,0 +1,71 @@
+{
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "circuits": [
+    {
+      "name": "verifyAndStore",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "msgHash",
+          "type": {
+            "type-name": "Bytes",
+            "length": 32
+          }
+        },
+        {
+          "name": "sig",
+          "type": {
+            "type-name": "Struct",
+            "name": "Secp256k1EcdsaSignature",
+            "elements": [
+              {
+                "name": "r",
+                "type": {
+                  "type-name": "Secp256k1Scalar"
+                }
+              },
+              {
+                "name": "s",
+                "type": {
+                  "type-name": "Secp256k1Scalar"
+                }
+              }
+            ]
+          }
+        },
+        {
+          "name": "pk",
+          "type": {
+            "type-name": "Alias",
+            "name": "Secp256k1Point",
+            "type": {
+              "type-name": "Opaque",
+              "tsType": "Secp256k1Point"
+            }
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Boolean"
+      }
+    }
+  ],
+  "witnesses": [
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "lastVerified",
+      "index": 0,
+      "exported": true,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Boolean"
+      }
+    }
+  ]
+}

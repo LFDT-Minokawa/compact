@@ -1,0 +1,58 @@
+{
+  "manifest-version": "1",
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "compiler": {
+    "type": "directory",
+    "contract-info.json": {
+      "type": "file",
+      "size": 833,
+      "hash": "8c8092f03919fed3d874e2192e4e4f345c531de307c1ffb7cb9941491a6b1a63"
+    }
+  },
+  "contract": {
+    "type": "directory",
+    "index.d.ts": {
+      "type": "file",
+      "size": 1571,
+      "hash": "4eea875aa5ec92051b40fadbee0fabf643e8b68cff1e24c294ff4a35ca4d95d5"
+    },
+    "index.js": {
+      "type": "file",
+      "size": 14091,
+      "hash": "99115eef1dfaa1a51230de487702736fd311eac9ed8522ca0f03ff21c8168bee"
+    },
+    "index.js.map": {
+      "type": "file",
+      "size": 973,
+      "hash": "c0b4121b5e352e9456c0c04e05fb01fbe5e84c3dc1b113166f2beda6394bd0f2"
+    }
+  },
+  "zkir": {
+    "type": "directory",
+    "storeEthereumAddress.bzkir": {
+      "type": "file",
+      "size": 4789,
+      "hash": "4ecc9e610b235bde98fd0f4b6e9b5d97b62dc34e8a1b94ec2be7295646dc17b2"
+    },
+    "storeEthereumAddress.zkir": {
+      "type": "file",
+      "size": 19150,
+      "hash": "92372ffaf9975adbe29328e96dfb59dbeb2cb7f2eb291596869d0a16bf45865a"
+    }
+  },
+  "keys": {
+    "type": "directory",
+    "storeEthereumAddress.prover": {
+      "type": "file",
+      "size": 55584685,
+      "hash": "88f73935614350fe6771cac444829e0c018942c463dea1a144f3f7f72508d05d"
+    },
+    "storeEthereumAddress.verifier": {
+      "type": "file",
+      "size": 2601,
+      "hash": "3f4e09b593e82b232fe65def5da74a0e5becc5cac0c0c59f9fe88c0573c93c2f"
+    }
+  }
+}

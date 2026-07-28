@@ -1,0 +1,48 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+//
+// ethereum-address-secp256k1.compact — the Compact standard library's
+// `secp256k1EthereumAddress` circuit, exercised as a pure circuit:
+//
+//   `ethereumAddress(pk)` = slice<20>(keccak256<Secp256k1Point>(pk), 0)
+//   i.e. keccak256 over the point's runtime binary representation, FIRST 20 bytes.
+//
+// This is the stdlib's own "Ethereum-style" address. It is NOT the real Ethereum
+// derivation — the EIP address is keccak256(x_be(32) || y_be(32))[12:32) over the
+// big-endian 64-byte uncompressed key (LAST 20 bytes), a different preimage AND a
+// different slice. The `secp256k1-std-eth-address-kat` case holds this circuit to
+// the canonical `ethereum/tests` key→address vectors, which it does NOT match, so
+// that case is an EXPECTED FAILURE documenting the divergence (see the case file).
+//
+// PURE ONLY: `keccak256<Secp256k1Point>` hashes the runtime binary representation
+// of the point, which the Compact JS runtime computes but zkir cannot prove — so
+// this is exercised as a `mode: "pure"` case, not prove/verify.
+//
+// This is a PURE contract (no ledger state), computed off-chain by the Compact JS
+// runtime; the address is derived from the `pk` parameter, so the return is
+// declared with `disclose`, matching the sibling verify/recover contracts.
+//
+// MUST be compiled with `--feature-zkir-v3`: `Secp256k1Point`,
+// `secp256k1EthereumAddress`, and `keccak256` over the point live in the
+// compiler's `zkir-v3-library.compact` and are unbound without it.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// Stdlib "Ethereum-style" address: keccak256 over the point, first 20 bytes.
+export circuit ethereumAddress(pk: Secp256k1Point): Bytes<20> {
+  return disclose(secp256k1EthereumAddress(pk));
+}
