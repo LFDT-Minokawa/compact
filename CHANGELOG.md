@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.112, language 0.25.104, runtime 0.18.102]
+
+### Changed
+
+- The types `JubjubPoint` and `Secp256k1Point` are now builtin Compact types.
+  They do not need to be imported from the standard library.
+
+### Internal notes
+
+- Previously, there were builtin types `Opaque<'JubjubPoint'>` and
+  `Opaque<'Secp256k1Point'>` and the standard library exported nominal type
+  aliases `JubjuPoint` and `Secp256k1Point` for these.
+
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
 ### Changed

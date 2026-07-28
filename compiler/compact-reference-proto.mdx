@@ -462,6 +462,19 @@ The following are the primitive types of Compact:
   It is the type of the scalars used to multiply secp256k1 curve points.
   The maximum value is @(parameter max-secp256k1-scalar).
 
+- `JubjubPoint` is the type of points on the [Jubjub
+  curve](https://github.com/zkcrypto/jubjub).
+  They can be created in Compact with the standard library's `constructJubjubPoint` circuit,
+  and the X- and Y- coordinates can be extracted with the standard library's
+  `jubjubPointX` and `jubjubPointY` circuits.
+
+- `Secp256k1Point` is the type of points on the
+  [secp256k1 curve](https://www.secg.org/sec2-v2.pdf).
+  The X- and Y- coordinates can be extracted with the standard library's
+  `secp256k1PointX` and `secp256k1PointY` circuits.
+  Secp256k1 points `cannot be created in Compact,
+  but they can be passed as circuit arguments and returned from witness functions.
+
 - `[`*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*`]`, where *T<sub>1</sub>*, ⋯,
   *T<sub>n</sub>* are zero or more comma-separated types, is the type of *tuple*
   values with element types *T<sub>1</sub>*, ⋯, *T<sub>n</sub>*.
