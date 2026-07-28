@@ -56,6 +56,10 @@
              [(field-base (curve-secp256k1)) 952780025]
              [(field-scalar (curve-secp256k1)) 817054627])]
           [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
+          [(tpoint ,src ,ctype)
+           (nanopass-case (Ltypescript Curve-Type) ctype
+             [(curve-jubjub) 556995959]
+             [(curve-secp256k1) 234863430])]
           [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
           [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
            ; arrange for equivalent vectors and tuples to hash to same value with same elements,
@@ -117,6 +121,8 @@
                [(tfield ,src1 ,ftype1)
                 (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
                [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+               [(tpoint ,src1 ,ctype1)
+                (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
                [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
                [(topaque ,src1 ,opaque-type1)
                 (T type2

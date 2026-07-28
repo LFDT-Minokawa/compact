@@ -290,6 +290,7 @@
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
+      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src tsize)                     => (tbytes tsize)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src tsize type)               => (tvector tsize type)
@@ -780,6 +781,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
+      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -1120,6 +1122,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
+      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -1144,10 +1147,12 @@
     (terminals
       (- (symbol (export-name struct-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal))
          (boolean (pure-dcl))
-         (datum (datum)))
+         (datum (datum))
+         (string (mesg opaque-type file sugar)))
       (+ (symbol (export-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal ledger-op-formal))
          (boolean (pure-dcl safe))
-         (field-bytes (nb))))
+         (field-bytes (nb))
+         (string (mesg opaque-type file sugar zkir-type))))
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type stmt* ... triv))
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
@@ -1213,7 +1218,7 @@
          ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
-         (default opaque-type)
+         (default zkir-type)
          (field->bytes src len ftype triv)         => (field->bytes len ftype #f triv)
          (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (div-mod-power-of-two triv bits)
@@ -1240,11 +1245,12 @@
          (abytes nat)
          (afield)
          (aadt)
-         (anative opaque-type)))
+         (anative zkir-type)))
     (Type (type)
       (- (tboolean src)
          (tfield src ftype)
          (tunsigned src nat)
+         (tpoint src ctype)
          (tbytes src len)
          (topaque src opaque-type)
          (tvector src len type)
@@ -1256,6 +1262,7 @@
     (Primitive-Type (primitive-type)
       (+ (tfield ftype)
          (tunsigned nat)
+         (tpoint ctype)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -1270,6 +1277,8 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
+      ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
     (Program (p)
       (program src cdefn* ...) => (program #f cdefn* ...))

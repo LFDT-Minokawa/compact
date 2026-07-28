@@ -60,8 +60,7 @@
       (constructNativePoint . constructJubjubPoint)))
 
   (define stdlib-type-aliases
-    '((NativePoint . JubjubPoint)
-      (CurvePoint . JubjubPoint)))
+    '())
 
   (define stdlib-struct-field-aliases
     '(

@@ -51,6 +51,10 @@
         [(field-scalar (curve-jubjub)) "JubjubScalar"]
         [(field-base (curve-secp256k1)) "Secp256k1Base"]
         [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+    (define (format-point-type ctype)
+      (nanopass-case (Lflattened Curve-Type) ctype
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]))
     (define (format-primitive-type primitive-type)
       (define (format-type type)
         (format "(~{~a~^, ~})" (map format-primitive-type (type->primitive-types type))))
@@ -61,6 +65,7 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (format-field-type ftype)]
         [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
+        [(tpoint ,ctype) (format-point-type ctype)]
         [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
          (format "contract ~a<~{~a~^, ~}>" contract-name
@@ -105,6 +110,8 @@
             ;; default<public-adt> is the only value of type public-adt and is represented by 0
             [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
              (eqv? nat1 0)])]
+         [(tpoint (curve-jubjub)) (T primitive-type2 [(tpoint (curve-jubjub)) #t])]
+         [(tpoint (curve-secp256k1)) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])]
          [(topaque ,opaque-type1)
           (T primitive-type2
              [(topaque ,opaque-type2)
@@ -281,7 +288,7 @@
           (if (feature-zkir-v3)
               (begin
                 (assert (= (length var-name*) 1))
-                (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
+                (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub)))))
               (begin
                 (assert (= (length var-name*) 2))
                 (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
@@ -289,7 +296,7 @@
          [("Secp256k1Point")
           (assert (feature-zkir-v3))
           (assert (= (length var-name*) 1))
-          (set-idtype! (car var-name*) (Idtype-Base `(topaque "Secp256k1Point")))]
+          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-secp256k1))))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
      (verify-test src test)

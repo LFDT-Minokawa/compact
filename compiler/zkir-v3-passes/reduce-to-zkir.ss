@@ -429,14 +429,14 @@
                  (with-output-language (Lzkir Instruction)
                    (nanopass-case (Lflattened Primitive-Type)
                                   (car (zkir-val-primitive-type* val))
-                     [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                     [(tpoint (curve-jubjub))
                       (let* ([pt0 (make-temp-id default-src 'pt)]
                              [pt1 (make-temp-id default-src 'pt)])
                         (zkir-instr*
                           (cons `(encode (,pt0 ,pt1) ,(car (zkir-val-input* val)))
                             (zkir-instr*)))
                         (cons* pt1 pt0 -2 -2 2 1 code*))]
-                     [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                     [(tpoint (curve-secp256k1))
                       (let* (;; This is the alignment of Secp256k1Point, see
                              ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
                              [alignment* '(24 8 24 8 -2)]
@@ -568,7 +568,7 @@
                    ;; Special handling of ZKIR native types.
                    (if (= 1 (length primitive-type*))
                        (nanopass-case (Lflattened Primitive-Type) (car primitive-type*)
-                         [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                         [(tpoint (curve-jubjub))
                           (let* ([pt0 (make-temp-id default-src 'pt)]
                                  [pt1 (make-temp-id default-src 'pt)])
                             (zkir-instr*
@@ -577,7 +577,7 @@
                                 (make-public-input test-val (car var-name*) "Point<Jubjub>")
                                 (zkir-instr*)))
                             (values (list -2 -2) (list pt0 pt1)))]
-                         [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                         [(tpoint (curve-secp256k1))
                           (let* (;; This is the alignment of Secp256k1Point, see
                                  ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
                                  [alignment* '(24 8 24 8 -2)]
@@ -769,6 +769,7 @@
                    `(assert ,tmp)
                    `(less_than ,tmp ,var-name ,(1+ nat) ,bits)
                    instr*))]))]
+        [(tpoint ,ctype) instr*]
         [else (assert cannot-happen)]))
 
     ;; Turn an Lflattened argument list into a list of names, a parallel list of types, and
@@ -792,11 +793,9 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (field-type->string ftype)]
         [(tunsigned ,nat) "Scalar<BLS12-381>"]
-        [(topaque ,opaque-type)
-         (case opaque-type
-           [("JubjubPoint") "Point<Jubjub>"]
-           [("Secp256k1Point") "Point<Secp256k1>"]
-           [else "Scalar<BLS12-381>"])]
+        [(tpoint (curve-jubjub)) "Point<Jubjub>"]
+        [(tpoint (curve-secp256k1)) "Point<Secp256k1>"]
+        [(topaque ,opaque-type) "Scalar<BLS12-381>"]
         [else (assert cannot-happen)])))
 
   (Program : Program (ir) -> Program ()

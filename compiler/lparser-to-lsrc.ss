@@ -279,8 +279,10 @@
       [,tref (Type-Ref tref)]
       [(tboolean ,src ,kwd) `(tboolean ,src)]
       [(tfield ,src ,kwd) `(tfield ,src (field-native))]
+      [(tjubjub-point ,src ,kwd) `(tpoint ,src (curve-jubjub))]
       [(tjubjub-scalar ,src ,kwd) `(tfield ,src (field-scalar (curve-jubjub)))]
       [(tsecp256k1-base ,src ,kwd) `(tfield ,src (field-base (curve-secp256k1)))]
+      [(tsecp256k1-point ,src ,kwd) `(tpoint ,src (curve-secp256k1))]
       [(tsecp256k1-scalar ,src ,kwd) `(tfield ,src (field-scalar (curve-secp256k1)))]
       [(tunsigned ,src ,kwd ,langle ,[tsize] ,rangle)
        `(tunsigned ,src ,tsize)]

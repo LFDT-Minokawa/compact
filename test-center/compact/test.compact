@@ -103,6 +103,8 @@ ledger x13: ContractAddress;
 ledger x14: JubjubScalar;
 ledger x15: Secp256k1Base;
 ledger x16: Secp256k1Scalar;
+ledger x17: JubjubPoint;
+ledger x18: Secp256k1Point;
 ledger authority: Bytes<32>;
 ledger state: PublicState;
 ledger topic: Maybe<Opaque<"string">>;

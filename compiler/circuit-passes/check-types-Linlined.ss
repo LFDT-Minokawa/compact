@@ -60,6 +60,10 @@
         [(field-scalar (curve-jubjub)) "JubjubScalar"]
         [(field-base (curve-secp256k1)) "Secp256k1Base"]
         [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+    (define (format-point-type ctype)
+      (nanopass-case (Linlined Curve-Type) ctype
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]))
     (define (format-type type)
       (define (format-adt-arg adt-arg)
         (nanopass-case (Linlined Public-Ledger-ADT-Arg) adt-arg
@@ -69,6 +73,7 @@
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -131,6 +136,8 @@
          [(tfield ,src1 ,ftype1)
           (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
          [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+         [(tpoint ,src1 ,ctype1)
+          (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
          [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
          [(topaque ,src1 ,opaque-type1)
           (T type2

@@ -890,11 +890,16 @@
         [(field-scalar (curve-jubjub)) "JubjubScalar"]
         [(field-base (curve-secp256k1)) "Secp256k1Base"]
         [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+    (define (format-point-type ctype)
+      (nanopass-case (Ltypescript Curve-Type) ctype
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Scalar"]))
     (define (format-type type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -1016,14 +1021,16 @@
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
+                [(tpoint ,src ,ctype)
+                 (nanopass-case (Ltypescript Curve-Type) ctype
+                   [(curve-jubjub) "__compactRuntime.CompactTypeJubjubPoint"]
+                   [(curve-secp256k1) "__compactRuntime.CompactTypeSecp256k1Point"])]
                 [(tbytes ,src ,len)
                  (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                 [(topaque ,src ,opaque-type)
                  (case opaque-type
                    [("string") "__compactRuntime.CompactTypeOpaqueString"]
                    [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
-                   [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
-                   [("Secp256k1Point") "__compactRuntime.CompactTypeSecp256k1Point"]
                    ; FIXME: what should happen with other opaque types?
                    [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                 [(tvector ,src ,len ,type)
@@ -1111,8 +1118,19 @@
                              [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
                      (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
                        var field-name))]
-                  [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
-                  [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
+                  [(tunsigned ,src ,nat)
+                   (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
+                  [(tpoint ,src ,ctype)
+                   (nanopass-case (Ltypescript Curve-Type) ctype
+                     [(curve-jubjub)
+                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint'" var)]
+                     [(curve-secp256k1)
+                      ;; We could check for canonical identity points if we relied on them.
+                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint' && typeof(~:*~a.identity) == 'boolean'" var)])]
+                  [(tbytes ,src ,len)
+                   (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
+                  ;; TODO(660): Implement type checks for opaque values.
+                  ;; https://github.com/LFDT-Minokawa/compact/issues/660
                   [(topaque ,src ,opaque-type) "true"]
                   [(tvector ,src ,len ,type)
                    (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
@@ -2513,16 +2531,14 @@
                        (printf "}\n"))
                      elt-name*
                      type*)]
-                  [(topaque ,src ,opaque-type)
-                   (guard (string=? opaque-type "JubjubPoint"))
+                  [(tpoint ,src (curve-jubjub))
                    (print-indent indent)
                    (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
                    (print-indent (fx+ indent 2))
                    (printf "return false;\n")
                    (print-indent indent)
                    (printf "}\n")]
-                  [(topaque ,src ,opaque-type)
-                   (guard (string=? opaque-type "Secp256k1Point"))
+                  [(tpoint ,src (curve-secp256k1))
                    (print-indent indent)
                    (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
                    (print-indent indent)
@@ -2561,6 +2577,10 @@
              [(tboolean ,src) "false"]
              [(tfield ,src ,ftype) "0n"]
              [(tunsigned ,src ,nat) "0n"]
+             [(tpoint ,src ,ctype)
+              (nanopass-case (Ltypescript Curve-Type) ctype
+                [(curve-jubjub) "({x: 0n, y: 1n})"]
+                [(curve-secp256k1) "({x: 0n, y: 0n, identity: true})"])]
              [(tbytes ,src ,len)
               (parenthesize level (precedence new)
                 (format "new Uint8Array(~d)" len))]
@@ -2568,8 +2588,6 @@
               (case opaque-type
                 [("string") "''"]
                 [("Uint8Array") "new Uint8Array(0)"]
-                [("JubjubPoint") "({x: 0n, y: 1n})"]
-                [("Secp256k1Point") "({x: 0n, y: 0n, identity: true})"]
                 ; FIXME: what should happen with other opaque types?
                 [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
              [(tvector ,src ,len ,type)
@@ -3197,12 +3215,14 @@
     [(tboolean ,src) "boolean"]
     [(tfield ,src ,ftype) "bigint"]
     [(tunsigned ,src ,nat) "bigint"]
+    [(tpoint ,src ,ctype)
+     (nanopass-case (Ltypescript Curve-Type) ctype
+       [(curve-jubjub) "__compactRuntime.JubjubPoint"]
+       [(curve-secp256k1) "__compactRuntime.Secp256k1Point"])]
     [(tbytes ,src ,len) "Uint8Array"]
     [(topaque ,src ,opaque-type)
      (case opaque-type
        [("string" "Uint8Array") opaque-type]
-       [("JubjubPoint") "__compactRuntime.JubjubPoint"]
-       [("Secp256k1Point") "__compactRuntime.Secp256k1Point"]
        ;; FIXME: what should happen with other opaque types?
        [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
     [(tvector ,src ,len ,[Type : type -> * type])

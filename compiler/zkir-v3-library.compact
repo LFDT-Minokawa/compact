@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export new type Secp256k1Point = Opaque<'Secp256k1Point'>;
-
 // ECDSA signature over Secp256k1.
 export struct Secp256k1EcdsaSignature {
   r: Secp256k1Scalar,
