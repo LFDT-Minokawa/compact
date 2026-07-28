@@ -13,6 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test3(): Uint<0> {
-    return default<Uint<0>>;
-}
+// PM-16056
+export sealed ledger c: Bytes<32>;
+export sealed ledger c: Bytes<32>;

@@ -13,8 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export type UX<#n> = Uint<n>;
+import CompactStandardLibrary;
+
+export sealed ledger c: Counter;
 
 export circuit test(): [] {
-  const a: UX<0> = 0;
+  c.increment(1);
 }

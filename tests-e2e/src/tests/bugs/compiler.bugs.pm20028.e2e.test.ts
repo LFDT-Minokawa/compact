@@ -51,24 +51,13 @@ describe('[Bug] [PM-20028] [PM-20222] Unsigned range changes', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_two.compact line 16 char 25: Uint width 254 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_two.compact line 16 char 25: Uint width 254 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 3 - return default<Uint<0>>', async () => {
-            const filePath = CONTRACTS_ROOT + 'negative/example_three.compact';
-
-            const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-            expectCompilerResult(result).toBeFailure(
-                'Exception: example_three.compact line 16 char 25: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
-                compilerDefaultOutput(),
-            );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
-        });
+        // Example 3 was a negative test for Uint<0> which is now allowed.
 
         test('example 4 - cast Uint<249> to Uint<64>', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_four.compact';
@@ -77,7 +66,7 @@ describe('[Bug] [PM-20028] [PM-20222] Unsigned range changes', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_four.compact line 17 char 20: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_four.compact line 17 char 20: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -103,7 +92,7 @@ describe('[Bug] [PM-20028] [PM-20222] Unsigned range changes', () => {
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_six.compact line 17 char 23: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_six.compact line 17 char 23: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
