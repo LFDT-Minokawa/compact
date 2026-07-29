@@ -115,6 +115,10 @@
            (if nominal?
                (+ 15 (combine (list (symbol-hash type-name) (type-hash type))))
                (type-hash type))]
+          [(tpoint ,src ,ctype)
+           (nanopass-case (Lexpanded Curve-Type) ctype
+             [(curve-jubjub) 16]
+             [(curve-secp256k1) 17])]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
