@@ -60,50 +60,6 @@ export interface Secp256k1Point {
 }
 
 /**
- * The hash value of a Merkle tree. TypeScript representation of the Compact
- * type of the same name
- */
-export interface MerkleTreeDigest {
-  readonly field: bigint;
-}
-
-/**
- * An entry in a Merkle path. TypeScript representation of the Compact type of
- * the same name.
- */
-export interface MerkleTreePathEntry {
-  readonly sibling: MerkleTreeDigest;
-  readonly goes_left: boolean;
-}
-
-/**
- * A path demonstrating inclusion in a Merkle tree. TypeScript representation
- * of the Compact type of the same name.
- */
-export interface MerkleTreePath<A> {
-  readonly leaf: A;
-  readonly path: MerkleTreePathEntry[];
-}
-
-/**
- * The recipient of a coin produced by a circuit.
- */
-export interface Recipient {
-  /**
-   * Whether the recipient is a user or a contract.
-   */
-  readonly is_left: boolean;
-  /**
-   * The recipient's public key, if the recipient is a user.
-   */
-  readonly left: ocrt.CoinPublicKey;
-  /**
-   * The recipient's contract address, if the recipient is a contract.
-   */
-  readonly right: ocrt.ContractAddress;
-}
-
-/**
  * Runtime type of {@link JubjubPoint}
  */
 export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
@@ -159,6 +115,34 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
       .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
   },
 };
+
+// These MerkleTree types and their descriptors are used by JS implementations
+// of MerkleTree ledger operations.
+/**
+ * The hash value of a Merkle tree. TypeScript representation of the Compact
+ * type of the same name
+ */
+export interface MerkleTreeDigest {
+  readonly field: bigint;
+}
+
+/**
+ * An entry in a Merkle path. TypeScript representation of the Compact type of
+ * the same name.
+ */
+export interface MerkleTreePathEntry {
+  readonly sibling: MerkleTreeDigest;
+  readonly goes_left: boolean;
+}
+
+/**
+ * A path demonstrating inclusion in a Merkle tree. TypeScript representation
+ * of the Compact type of the same name.
+ */
+export interface MerkleTreePath<A> {
+  readonly leaf: A;
+  readonly path: MerkleTreePathEntry[];
+}
 
 /**
  * Runtime type of {@link MerkleTreeDigest}
@@ -229,39 +213,6 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
     return this.leaf.toValue(value.leaf).concat(this.path.toValue(value.path));
   }
 }
-
-/**
- * A Schnorr signature over the JubJub curve. TypeScript representation of the
- * Compact type of the same name.
- */
-export interface JubjubSchnorrSignature {
-  readonly announcement: JubjubPoint;
-  readonly response: bigint;
-}
-
-/**
- * Runtime type of {@link JubjubSchnorrSignature}
- */
-export const CompactTypeJubjubSchnorrSignature: CompactType<JubjubSchnorrSignature> = {
-  alignment(): ocrt.Alignment {
-    return [
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-    ];
-  },
-  fromValue(value: ocrt.Value): JubjubSchnorrSignature {
-    const announcement = CompactTypeJubjubPoint.fromValue(value);
-    const responseVal = value.shift();
-    if (responseVal == undefined) {
-      throw new CompactError('expected JubjubSchnorrSignature');
-    }
-    return { announcement, response: ocrt.valueToBigInt([responseVal]) };
-  },
-  toValue(value: JubjubSchnorrSignature): ocrt.Value {
-    return CompactTypeJubjubPoint.toValue(value.announcement).concat(ocrt.bigIntToValue(value.response));
-  },
-};
 
 /**
  * Runtime type of the builtin `Field` type
@@ -568,81 +519,6 @@ export const CompactTypeOpaqueString: CompactType<string> = {
   },
   toValue(value: string): ocrt.Value {
     return [new TextEncoder().encode(value)];
-  },
-};
-
-/**
- * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
- * consumption.
- */
-
-export const Bytes32Descriptor = new CompactTypeBytes(32);
-
-export const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
-
-export const ShieldedCoinInfoDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
-  },
-  fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
-    return {
-      nonce: Bytes32Descriptor.fromValue(value),
-      color: Bytes32Descriptor.fromValue(value),
-      value: MaxUint8Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.nonce).concat(
-      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
-    );
-  },
-};
-
-export const ZswapCoinPublicKeyDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
-  },
-  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
-    return {
-      bytes: Bytes32Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
-  },
-};
-
-export const ContractAddressDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
-  },
-  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
-    return {
-      bytes: Bytes32Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
-  },
-};
-
-export const ShieldedCoinRecipientDescriptor = {
-  alignment(): ocrt.Alignment {
-    return CompactTypeBoolean.alignment().concat(
-      ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
-    );
-  },
-  fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
-    return {
-      is_left: CompactTypeBoolean.fromValue(value),
-      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
-      right: ContractAddressDescriptor.fromValue(value),
-    };
-  },
-  toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
-    return CompactTypeBoolean.toValue(value.is_left).concat(
-      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
-    );
   },
 };
 
