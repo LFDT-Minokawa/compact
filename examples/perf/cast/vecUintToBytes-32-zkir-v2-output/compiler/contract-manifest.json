@@ -1,0 +1,58 @@
+{
+  "manifest-version": "1",
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "compiler": {
+    "type": "directory",
+    "contract-info.json": {
+      "type": "file",
+      "size": 792,
+      "hash": "82bfed6d87b68b92457840edeab6638ee1d3948ab9f448f6ae6f5a186954be27"
+    }
+  },
+  "contract": {
+    "type": "directory",
+    "index.d.ts": {
+      "type": "file",
+      "size": 1367,
+      "hash": "4c0f5f07b559716397a55da3eb00b13201eb7f45683c15fcf4a9d100ef84fe73"
+    },
+    "index.js": {
+      "type": "file",
+      "size": 10600,
+      "hash": "b5aa32e9294a924f58ee7f8a28d55644fbebbed0b04d75f06a5de48c4abd3f06"
+    },
+    "index.js.map": {
+      "type": "file",
+      "size": 509,
+      "hash": "5391659512fa6c8b917b381ed790da3dedbf9f7f1a794433b0dd41f34ec84440"
+    }
+  },
+  "zkir": {
+    "type": "directory",
+    "vecToBytes.bzkir": {
+      "type": "file",
+      "size": 355,
+      "hash": "c39e7c0c306ede8c76d099f0bd99409ec906cc022e9ce68d25f7e0de88d901ba"
+    },
+    "vecToBytes.zkir": {
+      "type": "file",
+      "size": 6002,
+      "hash": "efc94b2090b8e730c1bf65b4392610cd4457e6b586cd67fdf65ca474ffd3baec"
+    }
+  },
+  "keys": {
+    "type": "directory",
+    "vecToBytes.prover": {
+      "type": "file",
+      "size": 4238434,
+      "hash": "6b6108a0c2e82d45f3227b859ca1dc0fbd9aef215a1038ac474383cd3e485704"
+    },
+    "vecToBytes.verifier": {
+      "type": "file",
+      "size": 1351,
+      "hash": "35976522b101c5102343d9d994ee32752705c92b1825b7202b685fbd0090ae0f"
+    }
+  }
+}

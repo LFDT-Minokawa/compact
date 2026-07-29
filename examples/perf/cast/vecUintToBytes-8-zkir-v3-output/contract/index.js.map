@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../",
+  "sources": ["cast/vecUintToBytes.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAeA;;;;;;;;;;MAQE,AAAA,UAGC;;;;;cAHyB,GAAqB;;;;;;;;;;;;;;;;;;yCAArB,GAAqB;;;;;;;6EAArB,GAAqB;;;;OAG9C;;;;GAKF;EAhBD;;;;;;;;;;;;;;;;;;;;;;;;;;IAME;;;;;;;;;yEAAqB;;;;;;;GAUtB;EARC,AAAA,mBAGC,4BAHyB,GAAqB;UAC7C,KAAG,mBAAY,GAAC;IAAhB;;;;;;;2HAAA,KAAG;;yEAAA;mCACI;;;;;;;;;;;wGAAG;GACX;;;;;;;;;;;;;;;;;;;;;;;;;;;;;"
+}

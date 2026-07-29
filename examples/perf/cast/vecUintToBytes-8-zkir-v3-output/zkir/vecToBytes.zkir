@@ -1,0 +1,42 @@
+{
+  "version": { "major": 3, "minor": 0 },
+  "do_communications_commitment": true,
+  "inputs": [
+    { "name": "%x.0", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.1", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.2", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.3", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.4", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.5", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.6", "type": "Scalar<BLS12-381>" },
+    { "name": "%x.7", "type": "Scalar<BLS12-381>" }
+  ],
+  "outputs": [
+    "Scalar<BLS12-381>"
+  ],
+  "instructions": [
+    { "op": "constrain_bits", "val": "%x.0", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.1", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.2", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.3", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.4", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.5", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.6", "bits": 8 },
+    { "op": "constrain_bits", "val": "%x.7", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.8", "divisor": "%x.7", "modulus": "%x.6", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.9", "divisor": "%div.8", "modulus": "%x.5", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.10", "divisor": "%div.9", "modulus": "%x.4", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.11", "divisor": "%div.10", "modulus": "%x.3", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.12", "divisor": "%div.11", "modulus": "%x.2", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%div.13", "divisor": "%div.12", "modulus": "%x.1", "bits": 8 },
+    { "op": "reconstitute_field", "output": "%tmp.14", "divisor": "%div.13", "modulus": "%x.0", "bits": 8 },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x10", "0x01", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x11", "0x01", "0x01", "0x08", "%tmp.14"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x91"] },
+    { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.15", "guard": null },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x30"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x50", "0x01", "0x01", "0x00"] },
+    { "op": "impact", "guard": "0x01", "inputs": ["0x0c", "0x01", "0x08", "%t.15"] },
+    { "op": "output", "vals": ["%t.15"] }
+  ]
+}

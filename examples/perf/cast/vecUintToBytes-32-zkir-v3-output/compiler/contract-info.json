@@ -1,0 +1,45 @@
+{
+  "compiler-version": "0.33.0",
+  "language-version": "0.25.0",
+  "runtime-version": "0.18.0-rc.1",
+  "circuits": [
+    {
+      "name": "vecToBytes",
+      "pure": false,
+      "proof": true,
+      "arguments": [
+        {
+          "name": "x",
+          "type": {
+            "type-name": "Vector",
+            "length": 32,
+            "type": {
+              "type-name": "Uint",
+              "maxval": 255
+            }
+          }
+        }
+      ],
+      "result-type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    }
+  ],
+  "witnesses": [
+  ],
+  "contracts": [
+  ],
+  "ledger": [
+    {
+      "name": "vec",
+      "index": 0,
+      "exported": false,
+      "storage": "Cell",
+      "type": {
+        "type-name": "Bytes",
+        "length": 32
+      }
+    }
+  ]
+}
