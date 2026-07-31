@@ -13,5 +13,7 @@
 " See the License for the specific language governing permissions and
 " limitations under the License.
 
-au BufRead,BufNewFile *.compact set filetype=compact
-au FileType compact setlocal nospell
+augroup compact_ftdetect
+  autocmd!
+  autocmd BufRead,BufNewFile *.compact setf compact
+augroup END
