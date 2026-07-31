@@ -1113,7 +1113,14 @@
                        var field-name))]
                   [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                   [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
-                  [(topaque ,src ,opaque-type) "true"]
+                  [(topaque ,src ,opaque-type)
+                   (case opaque-type
+                     [("string") (format "typeof (~a) === 'string'" var)]
+                     [("Uint8Array") (format "~a instanceof Uint8Array" var)]
+                     [("JubjubPoint" "Secp256k1Point") "true"]
+                     [else (assertf cannot-happen
+                             "cannot insert runtime type check for Opaque<'~a'>"
+                             opaque-type)])]
                   [(tvector ,src ,len ,type)
                    (format "Array.isArray(~a) && ~:*~a.length === ~d && ~2:*~a.every((t) => ~*~a)"
                            var len (typeof type "t"))]

@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+
+### Changed
+
+- The generated JS code now has circuit argument and witness return value type
+  checks for the JS opaque types `Opaque<'string'>` and `Opaque<'Uint8Array'>`.
+  Before, we allowed any value at all to be passed or returned.  This is a
+  **breaking change** for programs that relied on being able to store any random
+  JS value as, say, an `Opaque<'string'>`.
+
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
 ### Changed
