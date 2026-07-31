@@ -165,8 +165,8 @@
         (triv-hash (car test.single)
           (nanopass-case (Lflattened Single) (cdr test.single)
             [(+ ,primitive-type ,triv1 ,triv2)
-             ;; TODO(kmillikin): the result type is not determined by the types of the inputs, so we
-             ;; should hash it.
+             ;; Note that though the result type is not determined by the types of the inputs, we do
+             ;; not hash it because collisions seem unlikely.
              (commutative-triv-hash triv1 triv2 119001092)]
             [(- ,primitive-type ,triv1 ,triv2)
              (triv-hash triv1 (triv-hash triv2 410225874))]

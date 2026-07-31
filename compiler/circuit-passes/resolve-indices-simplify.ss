@@ -461,7 +461,7 @@
            [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
            [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
            [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
-           [else (assert cannot-happen)])))
+           [else (assertf cannot-happen "infer-types should not allow this addition")])))
      (handle-binop src add expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -479,7 +479,7 @@
            [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
            [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
            [(tunsigned ,src ,nat) (if (< a 0) (raise 'fail) a)]
-           [else (assert cannot-happen)])))
+           [else (assertf cannot-happen "infer-types should not allow this subtraction")])))
      (handle-binop src subtract expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
@@ -497,7 +497,7 @@
            [(tfield ,src (field-base (curve-secp256k1))) (modulo a (1+ (max-secp256k1-base)))]
            [(tfield ,src (field-scalar (curve-secp256k1))) (modulo a (1+ (max-secp256k1-scalar)))]
            [(tunsigned ,src ,nat) a]  ; Guaranteed by infer-types not to overflow.
-           [else (assert cannot-happen)])))
+           [else (assertf cannot-happen "infer-types should not allow this multiplication")])))
      (handle-binop src multiply expr1 expr2
        (lambda (ctv1 ctv2)
          (cond
