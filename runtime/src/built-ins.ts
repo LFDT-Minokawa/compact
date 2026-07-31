@@ -184,7 +184,7 @@ export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
 /**
  * The Compact builtin `jubjubPointX` function
  *
- * This function extracts the X-coordinate of a Compact `JubjubPoint`.
+ * This function extracts the x-coordinate of a Compact `JubjubPoint`.
  */
 export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
@@ -193,7 +193,7 @@ export function jubjubPointX(pt: JubjubPoint): bigint {
 /**
  * The Compact builtin `jubjubPointY` function
  *
- * This function extracts the Y-coordinate of a Compact `JubjubPoint`.
+ * This function extracts the y-coordinate of a Compact `JubjubPoint`.
  */
 export function jubjubPointY(pt: JubjubPoint): bigint {
   return pt.y;
@@ -202,8 +202,8 @@ export function jubjubPointY(pt: JubjubPoint): bigint {
 /**
  * The Compact builtin `constructJubjubPoint` function
  *
- * This function constructs a Compact `JubjubPoint` from the X- and
- * Y-coordinates.  NOTE that it does not check that the coordinates represent a
+ * This function constructs a Compact `JubjubPoint` from the x- and
+ * y-coordinates.  NOTE that it does not check that the coordinates represent a
  * valid point on the Jubjub curve.
  */
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
@@ -360,18 +360,24 @@ export function secp256k1BaseInv(x: bigint): bigint {
 /**
  * The Compact builtin `secp256k1PointX` function
  *
- * This function extracts the affine X-coordinate of a Compact `Secp256k1Point`.
+ * This function extracts the affine x-coordinate of a Compact `Secp256k1Point`.
  */
 export function secp256k1PointX(pt: Secp256k1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the x-coordinate of the secp256k1 identity point');
+  }
   return pt.x;
 }
 
 /**
  * The Compact builtin `secp256k1PointY` function
  *
- * This function extracts the affine Y-coordinate of a Compact `Secp256k1Point`.
+ * This function extracts the affine y-coordinate of a Compact `Secp256k1Point`.
  */
 export function secp256k1PointY(pt: Secp256k1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the y-coordinate of the secp256k1 identity point');
+  }
   return pt.y;
 }
 

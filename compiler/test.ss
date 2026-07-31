@@ -91138,7 +91138,34 @@ groups than for single tests.
         "});"
         ))
     )
-  )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test0(pt: Secp256k1Point): Secp256k1Base {"
+      "  return secp256k1PointX(pt);"
+      "}"
+      "export circuit test1(pt: Secp256k1Point): Secp256k1Base {"
+      "  return secp256k1PointY(pt);"
+      "}"
+      "export circuit test2(pt: Secp256k1Point): [Secp256k1Base, Secp256k1Base] {"
+      "  return pt == default<Secp256k1Point>"
+      "      ? [default<Secp256k1Base>, default<Secp256k1Base>]"
+      "      : [secp256k1PointX(pt), secp256k1PointY(pt)];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on the identity', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity = { x: 0n, y: 0n, identity: true };"
+        "  await expect(contract.circuits.test0(context, identity)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+)
 
 (run-javascript)
 )
