@@ -90342,7 +90342,35 @@ groups than for single tests.
         "});"
         ))
     )
-  )
+
+  (test
+    '(
+      "export circuit test(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  return arr0 == arr1;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a0 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  const a1 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  // Different length."
+        "  const a2 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13, 21]);"
+        "  // Different element."
+        "  const a3 = new Uint8Array([0, 1, 1, 2, 3, 1000000, 8, 13]);"
+        "  expect((await contract.circuits.test(context, a0, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.test(context, a0, a1)).result).toEqual(true);"
+        "  expect((await contract.circuits.test(context, a0, a2)).result).toEqual(false);"
+        "  expect((await contract.circuits.test(context, a0, a3)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.test(context, a1, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.test(context, a2, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.test(context, a3, a0)).result).toEqual(false);"
+        "});"
+        ))
+    )
+)
 
 (run-javascript)
 )
