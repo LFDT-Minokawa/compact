@@ -725,7 +725,11 @@
 
     (define (assemble test-val primitive-type* alignment* var-name* src path env vm-code instr*)
       (parameterize ([zkir-instr* instr*])
-        (let* ([code (expand-vm-code src path #f env (vm-code-code vm-code))]
+        (let* ([result-type (with-output-language (Lflattened Type)
+                              `(ty (,alignment* ...) (,primitive-type* ...)))]
+               [code (expand-vm-code src path #f
+                       (cons (cons 'result_type result-type) env)
+                       (vm-code-code vm-code))]
                [op** (map (lambda (c)
                             (assemble1 c test-val primitive-type* alignment* var-name*))
                        code)])

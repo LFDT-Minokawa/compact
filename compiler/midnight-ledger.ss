@@ -81,6 +81,12 @@
             (type-ref UserAddress))
   "UnshieldedRecipient")
 
+(declare-ledger-type PublicAddress ()
+  (type-ref Either
+            (type-ref ContractAddress)
+            (type-ref UserAddress))
+  "PublicAddress")
+
 (declare-ledger-type TokenType ()
   (type-ref Either
             (primitive-type Bytes 32)
@@ -131,8 +137,9 @@
 ;;
 ;; The following variables should be instantiated at compile time to the context
 ;; where the form is being used:
-;; - f, the path to the field being operated on, and
-;; - f-cached, a boolean indicating if f is guaranteed to be in cache.
+;; - f, the path to the field being operated on,
+;; - f-cached, a boolean indicating if f is guaranteed to be in cache, and
+;; - result_type, the declared result type of the operation.
 ;;
 ;; A path is a list of either aligned value instances, or the symbol 'stack.
 ;; Aligned value literals are created with the (align value bytes) literal, which
@@ -258,6 +265,55 @@
     ((dup [n 2])
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
+  (function read caller () (Maybe PublicAddress)
+    "Returns the caller of this circuit invocation, if known. \
+     `left(addr)` when called by contract `addr`; `right(addr)` when this is the \
+     top-level call for user `addr` (uniquely identified by the transaction's \
+     unshielded inputs). None when no caller can be determined (e.g. a purely \
+     shielded top-level transaction, or one with unshielded inputs from \
+     multiple distinct owners). \
+     Maybe, Either, ContractAddress, UserAddress, and the PublicAddress alias \
+     for Either<ContractAddress, UserAddress> are defined in CompactStandardLibrary."
+    ;; [context, effects, state]
+    ((dup [n 2])
+     ;; [context, effects, state, context]
+     ;; The context array is built by `From<&QueryContext> for VmValue` in the
+     ;; ledger's onchain-runtime/src/context.rs: [own_address, com_indices,
+     ;; tblock, tblock_err, parent_block_hash, balance, caller,
+     ;; last_block_time], so caller is at index 6 (cf. self at 0, block time
+     ;; at 2, balance at 5 elsewhere in this file).
+     (idx [cached #t] [pushPath #f] [path (list (align 6 1))])
+     ;; [context, effects, state, caller_slot]
+     ;;   caller_slot is Cell(PublicAddress) or Null
+     (dup [n 0])
+     ;; [context, effects, state, caller_slot, caller_slot]
+     (type)
+     ;; [context, effects, state, caller_slot, type_tag]
+     ;;   type_tag = 0 if Cell (some), 1 if Null (none)
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, type_tag, 1]
+     (eq)
+     ;; [context, effects, state, caller_slot, is_none]
+     (branch [skip 4])
+     ;; some-branch:
+     ;; [context, effects, state, caller_slot]
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, is_some=1]
+     (swap [n 0])
+     ;; [context, effects, state, is_some=1, caller_slot]
+     (concat [cached #f] [n (rt-max-sizeof result_type)])
+     ;; [context, effects, state, (1, public_address)]
+     (jmp [skip 2])
+     ;; none-branch:
+     ;; [context, effects, state, caller_slot]
+     (pop)
+     ;; [context, effects, state]
+     (push [storage #f] [value (state-value 'cell (rt-null result_type))])
+     ;; merge:
+     ;; [context, effects, state, (0|1, addr_or_default)]
+     (popeq [cached #t] [result (void)])
+     ;; [context, effects, state]
+     ))
   (function update mintUnshielded
             ([domain_sep Bytes32 (discloses "the domain separator of the unshielded token being minted given by")]
              [amount Uint64 (discloses "the amount of the unshielded token being minted given by")])
