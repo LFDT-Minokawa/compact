@@ -30,7 +30,7 @@ import { assertDefined, assertUndefined } from './error.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
 import { CompactError, ContractInterfaceMismatchError } from './error.js';
 import { PartialProofData } from './proof-data.js';
-import { CompactTypeField, CompactTypeUnsignedInteger, Bytes32Descriptor } from './compact-types.js';
+import { CompactTypeBytes, CompactTypeField, CompactTypeUnsignedInteger } from './compact-types.js';
 import { alignedConcat } from './built-ins.js';
 
 /**
@@ -274,6 +274,8 @@ const restoreCircuitContext = (
   const callerAddress = callerCircuitContext.callContext.contractAddress;
   callerCircuitContext.callContext.currentQueryContext = callerCircuitContext.queryContexts[callerAddress];
 };
+
+const Bytes32Descriptor = new CompactTypeBytes(32);
 
 const contractAddressToValue = (address: ocrt.ContractAddress): ocrt.AlignedValue => ({
   value: Bytes32Descriptor.toValue(ocrt.encodeContractAddress(address)),
