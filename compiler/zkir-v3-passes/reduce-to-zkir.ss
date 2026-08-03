@@ -1007,17 +1007,17 @@
       (assert cannot-happen)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
-    [(+ ,mbits ,triv0 ,triv1)
+    [(+ ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(add ,var-name ,triv0 ,triv1) instr*))]
-    [(- ,mbits ,triv0 ,triv1)
+    [(- ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (let ([neg (make-temp-id default-src 'neg)])
          (cons*
            `(add ,var-name ,triv0 ,neg)
            `(neg ,neg ,triv1)
            instr*)))]
-    [(* ,mbits ,triv0 ,triv1)
+    [(* ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(mul ,var-name ,triv0 ,triv1) instr*))]
     [(< ,bits ,triv0 ,triv1)

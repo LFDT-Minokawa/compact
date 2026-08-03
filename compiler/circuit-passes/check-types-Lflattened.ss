@@ -135,30 +135,47 @@
         (format-primitive-type type)
         (format-primitive-type declared-type)
         what))
-    (define (arithmetic-binop op mbits triv1 triv2)
+    (define (arithmetic-binop op result-primitive-type triv1 triv2)
       (let* ([primitive-type1 (Triv triv1)] [primitive-type2 (Triv triv2)])
-        (unless (T primitive-type1
+        (unless (T result-primitive-type
                   [(tfield (field-native))
-                   (T primitive-type2
-                     [(tfield (field-native)) (not mbits)]
-                     [(tunsigned ,nat2) (not mbits)])]
+                   ;; After dropping safe casts, arithmetic with unsigned operands can have a
+                   ;; (native) field result.
+                   (T primitive-type1
+                     [(tfield (field-native))
+                      (T primitive-type2
+                        [(tfield (field-native)) #t]
+                        [(tunsigned ,nat) #t])]
+                     [(tunsigned ,nat)
+                      (T primitive-type2
+                        [(tfield (field-native)) #t]
+                        [(tunsigned ,nat) #t])])]
+                  [(tfield (field-base (curve-secp256k1)))
+                   (T primitive-type1
+                     [(tfield (field-base (curve-secp256k1)))
+                      (T primitive-type2
+                        [(tfield (field-base (curve-secp256k1))) #t])])]
                   [(tfield (field-scalar (curve-secp256k1)))
-                   (guard (string=? op "*"))
-                   (T primitive-type2
-                     [(tfield (field-scalar (curve-secp256k1))) (not mbits)])]
-                  [(tunsigned ,nat1)
-                   (T primitive-type2
-                     [(tfield (field-native)) (not mbits)]
-                     [(tunsigned ,nat2)
-                      (or (not mbits)
-                          (let ([nat (if (string=? op "-") nat1 (max nat1 nat2))])
-                            (<= (fxmax 1 (integer-length nat)) mbits)))])])
-          (source-errorf program-src "mismatched mbits ~s and types ~a and ~a for ~s"
-            mbits
+                   (T primitive-type1
+                     [(tfield (field-scalar (curve-secp256k1)))
+                      (T primitive-type2
+                        [(tfield (field-scalar (curve-secp256k1))) #t])])]
+                  [(tunsigned ,nat)
+                   (T primitive-type1
+                     [(tunsigned ,nat1)
+                      (T primitive-type2
+                        [(tunsigned ,nat2)
+                         ;; After dropping safe casts, these are inequalities.
+                         (case op
+                           [(+) (<= (+ nat1 nat2) nat)]
+                           [(-) (<= nat1 nat)]
+                           [(*) (<= (* nat1 nat2) nat)])])])])
+          (source-errorf program-src "incompatible combination of types ~a ~s ~a = ~a"
             (format-primitive-type primitive-type1)
+            op
             (format-primitive-type primitive-type2)
-            op))
-        primitive-type1))
+            (format-primitive-type result-primitive-type)))
+        result-primitive-type))
     (define (verify-test src test)
       (let ([type (Triv test)])
         (unless (nanopass-case (Lflattened Primitive-Type) type
@@ -363,12 +380,12 @@
     [else (internal-errorf 'Statement "unhandled form ~s" ir)])
   (Single : Single (ir) -> * (type)
     [,triv (Triv triv)]
-    [(+ ,mbits ,triv1 ,triv2)
-     (arithmetic-binop "+" mbits triv1 triv2)]
-    [(- ,mbits ,triv1 ,triv2)
-     (arithmetic-binop "-" mbits triv1 triv2)]
-    [(* ,mbits ,triv1 ,triv2)
-     (arithmetic-binop "*" mbits triv1 triv2)]
+    [(+ ,primitive-type ,triv1 ,triv2)
+     (arithmetic-binop '+ primitive-type triv1 triv2)]
+    [(- ,primitive-type ,triv1 ,triv2)
+     (arithmetic-binop '- primitive-type triv1 triv2)]
+    [(* ,primitive-type ,triv1 ,triv2)
+     (arithmetic-binop '* primitive-type triv1 triv2)]
     [(< ,bits ,triv1 ,triv2)
      (let* ([primitive-type1 (Triv triv1)] [primitive-type2 (Triv triv2)])
        (let ([maybe-nat1 (T primitive-type1 [(tunsigned ,nat) nat])]
