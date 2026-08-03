@@ -2558,10 +2558,10 @@ has a specific structure type, so does the other.
   the values are equal if the values of the corresponding fields are equal.
 - **Enumeration types:**
   the values are equal if they are the same enumeration member.
-- **`Opaque<'string'>:**
+- **`Opaque<"string">`:**
   the values are equal if the run-time values are equal according to JavaScript's
   strict equality (`===`) operator.
-- **`Opaque<'Uint8Array'>:**
+- **`Opaque<"Uint8Array">`:**
   the values are equal if the run-time values have the same length and
   they are element-wise equal according to JavaScript's
   strict equality (`===`) operator.
