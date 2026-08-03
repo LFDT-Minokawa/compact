@@ -15256,10 +15256,10 @@ groups than for single tests.
           (let* ([[%x.2 (tfield (field-native))]
                   (safe-cast (tfield (field-native)) (tunsigned 7) 7)])
             (if %a.1
-                (+ #f
+                (+ (tfield (field-native))
                    %x.2
                    (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                (- #f
+                (- (tfield (field-native))
                    %x.2
                    (safe-cast (tfield (field-native)) (tunsigned 1) 1)))))))
     )
@@ -15397,14 +15397,19 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %foo.0 ([%a.1 (tfield (field-native))] [%b.2 (tfield (field-native))])
+        (circuit %foo.0 ([%a.1 (tfield (field-native))]
+                         [%b.2 (tfield (field-native))])
              (tfield (field-native))
-          (* #f %a.1 %b.2))
+          (* (tfield (field-native)) %a.1 %b.2))
         (circuit %bar.3 ([%x.4 (tfield (field-native))])
              (tfield (field-native))
           (call %foo.0
-            (- #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-            (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+            (- (tfield (field-native))
+               %x.4
+               (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+            (+ (tfield (field-native))
+               %x.4
+               (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
   )
 
   (test
@@ -15719,15 +15724,19 @@ groups than for single tests.
              (ttuple)
           (seq
             (assert
-              (if (< (safe-cast (tunsigned 4294967295) (tunsigned 65535)
+              (if (< (safe-cast (tunsigned 4294967295)
+                                (tunsigned 65535)
                        %a.1)
                      %b.2)
                   #t
                   (> %b.2
-                     (safe-cast (tunsigned 4294967295) (tunsigned 131070)
-                       (+ 17
+                     (safe-cast (tunsigned 4294967295)
+                                (tunsigned 131070)
+                       (+ (tunsigned 131070)
                           (safe-cast (tunsigned 131070) (tunsigned 65535) %a.1)
-                          (safe-cast (tunsigned 131070) (tunsigned 65535) %a.1)))))
+                          (safe-cast (tunsigned 131070)
+                                     (tunsigned 65535)
+                            %a.1)))))
               "oops")
             (tuple)))))
     )
@@ -16355,12 +16364,15 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.2 %n.3))
+              (+ (tfield (field-native)) %a.2 %n.3))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))))
   )
@@ -16443,12 +16455,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (- #f (+ #f %a.2 %n.3) (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 (+ (tfield (field-native)) %a.2 %n.3)
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (safe-cast (tfield (field-native)) (tunsigned 17) 17)
             %v.1))))
     )
@@ -16463,12 +16480,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (- #f (+ #f %a.2 %n.3) (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 (+ (tfield (field-native)) %a.2 %n.3)
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (safe-cast (tfield (field-native)) (tunsigned 17) 17)
             %v.1))))
     )
@@ -16483,12 +16505,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (- #f (+ #f %a.2 %n.3) (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 (+ (tfield (field-native)) %a.2 %n.3)
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (safe-cast (tfield (field-native)) (tunsigned 17) 17)
             %v.1))))
     )
@@ -16616,32 +16643,46 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 20 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 20
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.2 %n.3))
+              (+ (tfield (field-native)) %a.2 %n.3))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))
-        (circuit %sum.4 ([%v.5 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.4 ([%v.5 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.6 (tfield (field-native))] [%n.7 (tfield (field-native))])
+            (circuit ([%a.6 (tfield (field-native))]
+                      [%n.7 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.6 %n.7))
+              (+ (tfield (field-native)) %a.6 %n.7))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.5))
-        (circuit %foo.8 ([%u.9 (tvector 10 (tfield (field-native)))])
+        (circuit %foo.8 ([%u.9 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (call %sum.4 %u.9))
-        (circuit %foo.10 ([%w.11 (tvector 20 (tfield (field-native)))])
+        (circuit %foo.10 ([%w.11 (tvector
+                                   20
+                                   (tfield (field-native)))])
              (tfield (field-native))
           (call %sum.0 %w.11))
-        (circuit %bar.12 ([%u.13 (tvector 10 (tfield (field-native)))]
+        (circuit %bar.12 ([%u.13 (tvector
+                                   10
+                                   (tfield (field-native)))]
                           [%v.14 (tvector 20 (tfield (field-native)))])
              (tfield (field-native))
-          (+ #f (call %foo.8 %u.13) (call %foo.10 %v.14)))))
+          (+ (tfield (field-native))
+             (call %foo.8 %u.13)
+             (call %foo.10 %v.14)))))
   )
 
   (test
@@ -16682,18 +16723,23 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %foo.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %foo.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tboolean)
           (fold
             (circuit ([%b.2 (tboolean)] [%x.3 (tfield (field-native))])
                  (tboolean)
               (let* ([[%y.4 (tfield (field-native))] %x.3])
-                (let* ([[%x.5 (tfield (field-native))] (* #f
-                                           %y.4
-                                           (safe-cast (tfield (field-native)) (tunsigned 1)
-                                             1))])
+                (let* ([[%x.5 (tfield (field-native))]
+                        (* (tfield (field-native))
+                           %y.4
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 1)
+                             1))])
                   (if %b.2
-                      (== %x.5 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                      (== %x.5
+                          (safe-cast (tfield (field-native)) (tunsigned 0) 0))
                       #f))))
             #t
             %v.1))))
@@ -16736,36 +16782,66 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %C.0 ([%x.1 (tfield (field-native))] [%y.2 (tfield (field-native))])
+        (circuit %C.0 ([%x.1 (tfield (field-native))]
+                       [%y.2 (tfield (field-native))])
              (tfield (field-native))
-          (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2))
-              (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 7) 7))
+          (if (== %x.1
+                  (safe-cast (tfield (field-native)) (tunsigned 2) 2))
+              (+ (tfield (field-native))
+                 %y.2
+                 (safe-cast (tfield (field-native)) (tunsigned 7) 7))
               (seq
                 (assert
-                  (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2)) #f #t)
+                  (if (== %x.1
+                          (safe-cast (tfield (field-native)) (tunsigned 2) 2))
+                      #f
+                      #t)
                   "oops 1")
-                (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
-                    (if (== %y.2 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                (if (== %x.1
+                        (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                    (if (== %y.2
+                            (safe-cast (tfield (field-native))
+                                       (tunsigned 0)
+                              0))
                         (seq
                           (assert
-                            (== %y.2 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                            (== %y.2
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 0)
+                                  0))
                             "oops 2")
                           (assert
-                            (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                            (if (== %x.1
+                                    (safe-cast (tfield (field-native))
+                                               (tunsigned 3)
+                                      3))
                                 #f
                                 #t)
                             "oops 3")
-                          (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 11) 11)))
-                        (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 9) 9)))
+                          (+ (tfield (field-native))
+                             %y.2
+                             (safe-cast (tfield (field-native))
+                                        (tunsigned 11)
+                               11)))
+                        (+ (tfield (field-native))
+                           %y.2
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 9)
+                             9)))
                     (seq
                       (assert
-                        (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                        (if (== %x.1
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 3)
+                                  3))
                             #f
                             #t)
                         "oops 3")
-                      (+ #f
+                      (+ (tfield (field-native))
                          %y.2
-                         (safe-cast (tfield (field-native)) (tunsigned 11) 11)))))))))
+                         (safe-cast (tfield (field-native))
+                                    (tunsigned 11)
+                           11)))))))))
   )
 
   (test
@@ -16891,27 +16967,35 @@ groups than for single tests.
     (returns
       (program
         (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
-        (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
+        (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
             (circuit ([%x.4 (tfield (field-native))])
                  (tboolean)
-              (call %foo.0 (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+              (call %foo.0
+                (+ (tfield (field-native))
+                   %x.4
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.3))
-        (circuit %Y$C.5 ([%v.6 (tvector 1 (tfield (field-native)))])
+        (circuit %C.5 ([%v.6 (tvector 1 (tfield (field-native)))])
              (tvector 1 (tboolean))
           (map
             (circuit ([%x.7 (tfield (field-native))])
                  (tboolean)
-              (call %foo.0 (+ #f %x.7 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+              (call %foo.0
+                (+ (tfield (field-native))
+                   %x.7
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.6))
-        (circuit %Z$C.8 ([%v.9 (tvector 2 (tfield (field-native)))])
+        (circuit %C.8 ([%v.9 (tvector 2 (tfield (field-native)))])
              (tvector 2 (tboolean))
           (map
             (circuit ([%x.10 (tfield (field-native))])
                  (tboolean)
               (call %foo.0
-                (+ #f %x.10 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                (+ (tfield (field-native))
+                   %x.10
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.9))))
     )
 
@@ -17218,7 +17302,9 @@ groups than for single tests.
       (program
         (circuit %baz.0 ([%x.1 (tfield (field-native))])
              (tboolean)
-          (if (== (+ #f %x.1 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+          (if (== (+ (tfield (field-native))
+                     %x.1
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                   (safe-cast (tfield (field-native)) (tunsigned 0) 0))
               #f
               #t))))
@@ -17395,22 +17481,24 @@ groups than for single tests.
                (is_left (tboolean))
                (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new
-            (tstruct Either
-              (is_left (tboolean))
-              (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-              (right (tstruct ContractAddress (bytes (tbytes 32)))))
+          (new (tstruct Either
+                 (is_left (tboolean))
+                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
+                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
             #f
             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
             %value.2))
         (public-ledger-declaration %field0.3 (Counter))
-        (public-ledger-declaration %field1.4 (__compact_Cell (tboolean)))
-        (public-ledger-declaration %field2.5 (Set (tfield (field-native))))
+        (public-ledger-declaration
+          %field1.4
+          (__compact_Cell (tboolean)))
+        (public-ledger-declaration
+          %field2.5
+          (Set (tfield (field-native))))
         (public-ledger-declaration
           %field3.6
-          (Map
-            (tfield (field-native))
-            (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
+          (Map (tfield (field-native))
+               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
           %field4.7
           (List (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
@@ -17432,21 +17520,19 @@ groups than for single tests.
               (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
           %field8.11
-          (Set
-            (tstruct QualifiedShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
+          (Set (tstruct QualifiedShieldedCoinInfo
+                 (nonce (tbytes 32))
+                 (color (tbytes 32))
+                 (value (tunsigned 340282366920938463463374607431768211455))
+                 (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
           %field9.12
-          (Map
-            (tfield (field-native))
-            (tstruct QualifiedShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
+          (Map (tfield (field-native))
+               (tstruct QualifiedShieldedCoinInfo
+                 (nonce (tbytes 32))
+                 (color (tbytes 32))
+                 (value (tunsigned 340282366920938463463374607431768211455))
+                 (mt_index (tunsigned 18446744073709551615)))))
         (public-ledger-declaration
           %field10.13
           (List
@@ -17473,7 +17559,9 @@ groups than for single tests.
             (assert
               (ledger-call lessThan
                 %field0.3
-                (safe-cast (tunsigned 18446744073709551615) (tunsigned 4) 4))
+                (safe-cast (tunsigned 18446744073709551615)
+                           (tunsigned 4)
+                  4))
               "oops 1")
             (ledger-call write %field1.4 #t)
             (let* ([[%b.17 (tboolean)] (ledger-call read %field1.4)])
@@ -17492,13 +17580,19 @@ groups than for single tests.
                 (ledger-call insert %field2.5 %x.15)
                 (ledger-call insert
                   %field2.5
-                  (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                  (+ (tfield (field-native))
+                     %x.15
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (ledger-call insert
                   %field2.5
-                  (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
+                  (+ (tfield (field-native))
+                     %x.15
+                     (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                 (ledger-call insert
                   %field2.5
-                  (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                  (+ (tfield (field-native))
+                     %x.15
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
                   (== (ledger-call size %field2.5)
                       (safe-cast (tunsigned 18446744073709551615)
@@ -17507,7 +17601,9 @@ groups than for single tests.
                   "oops 2d")
                 (ledger-call remove
                   %field2.5
-                  (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                  (+ (tfield (field-native))
+                     %x.15
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
                   (== (ledger-call size %field2.5)
                       (safe-cast (tunsigned 18446744073709551615)
@@ -17521,14 +17617,20 @@ groups than for single tests.
                 (assert
                   (if (ledger-call member
                         %field2.5
-                        (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                        (+ (tfield (field-native))
+                           %x.15
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 1)
+                             1)))
                       #f
                       #t)
                   "oops 2h")
                 (assert
                   (ledger-call member
                     %field2.5
-                    (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
+                    (+ (tfield (field-native))
+                       %x.15
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                   "oops 2i")
                 (ledger-call resetToDefault %field3.6)
                 (ledger-call resetToDefault %field4.7)
@@ -17605,7 +17707,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 3
+                    (+ (tunsigned 4)
                        (safe-cast (tunsigned 4) (tunsigned 3) %i.2)
                        (safe-cast (tunsigned 4) (tunsigned 1) 1))
                     (tuple))
@@ -17683,7 +17785,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 3
+                    (+ (tunsigned 7)
                        (safe-cast (tunsigned 7) (tunsigned 6) %i.2)
                        (safe-cast (tunsigned 7) (tunsigned 1) 1))
                     (tuple))
@@ -17756,10 +17858,8 @@ groups than for single tests.
         (circuit %foo.0 ([%b.1 (tboolean)] [%x.2 (tunsigned 1023)])
              (tunsigned 1023)
           (if %b.1
-              (downcast-unsigned
-                2046
-                1023
-                (+ 11
+              (downcast-unsigned 2046 1023
+                (+ (tunsigned 2046)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) %x.2)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) 1023)))
               (safe-cast (tunsigned 1023) (tunsigned 0) 0)))))
@@ -17791,7 +17891,7 @@ groups than for single tests.
              (tunsigned
                56539106072908298546665520023773392506479484700019806659891398441363832831)
           (cast-from-field 56539106072908298546665520023773392506479484700019806659891398441363832831 (field-native)
-            (* #f
+            (* (tfield (field-native))
                (safe-cast (tfield (field-native))
                           (tunsigned
                             56539106072908298546665520023773392506479484700019806659891398441363832831)
@@ -18000,27 +18100,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 255)]
                       [%z.6 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
                     %x.4
                     (safe-cast (tfield (field-native)) (tunsigned 255) %y.5))
                  %z.6))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             (map
               (circuit ([%v.7 (tunsigned 255)])
                    (tfield (field-native))
@@ -18043,8 +18145,9 @@ groups than for single tests.
              (ttuple)
           (seq
             (call %foo.0
-              (safe-cast (tunsigned 31) (tunsigned 30)
-                (+ 5
+              (safe-cast (tunsigned 31)
+                         (tunsigned 30)
+                (+ (tunsigned 30)
                    (safe-cast (tunsigned 30) (tunsigned 15) %a.3)
                    (safe-cast (tunsigned 30) (tunsigned 15) %b.4))))
             (tuple)))))
@@ -18271,12 +18374,12 @@ groups than for single tests.
         (public-ledger-declaration %kernel.0 (Kernel))
         (circuit %foo.1 ([%x.2 (tunsigned 4)])
              (tunsigned 15)
-          (safe-cast (tunsigned 15) (tunsigned 5)
-            (let* ([[%t.3 (tunsigned 5)] (+ 3
-                                            (safe-cast (tunsigned 5) (tunsigned 4)
-                                              %x.2)
-                                            (safe-cast (tunsigned 5) (tunsigned 1)
-                                              1))])
+          (safe-cast (tunsigned 15)
+                     (tunsigned 5)
+            (let* ([[%t.3 (tunsigned 5)]
+                    (+ (tunsigned 5)
+                       (safe-cast (tunsigned 5) (tunsigned 4) %x.2)
+                       (safe-cast (tunsigned 5) (tunsigned 1) 1))])
               %t.3)))))
     )
 
@@ -18321,7 +18424,9 @@ groups than for single tests.
     (returns
       (program
         (circuit %foo.0 ([%arg.1 (tboolean)]) (tboolean) %arg.1)
-        (circuit %foo.2 ([%arg.3 (tfield (field-native))]) (tfield (field-native)) %arg.3)
+        (circuit %foo.2 ([%arg.3 (tfield (field-native))])
+             (tfield (field-native))
+          %arg.3)
         (circuit %bar1.4 ([%x.5 (tboolean)])
              (tboolean)
           (if (call %foo.0 %x.5) #f #t))
@@ -18330,7 +18435,7 @@ groups than for single tests.
           (call %foo.0 %x.7))
         (circuit %bar3.8 ([%x.9 (tfield (field-native))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %foo.2 %x.9)
              (safe-cast (tfield (field-native)) (tunsigned 1) 1)))))
     )
@@ -18358,7 +18463,7 @@ groups than for single tests.
           (cast-from-bytes (tfield (field-native)) 11 %x.4))
         (circuit %bar1.6 ([%x.7 (tbytes 10)])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %foo.0
                %x.7
                (tuple
@@ -18368,7 +18473,7 @@ groups than for single tests.
              (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
         (circuit %bar2.8 ([%x.9 (tbytes 10)])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %foo.0
                %x.9
                (tuple
@@ -18378,7 +18483,7 @@ groups than for single tests.
              (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
         (circuit %bar3.10 ([%x.11 (tbytes 11)])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %foo.3
                %x.11
                (tuple
@@ -19270,7 +19375,7 @@ groups than for single tests.
                  (c (tbytes 8)))
             (safe-cast (tunsigned 4294967295)
                        (tunsigned 65536)
-              (+ 17
+              (+ (tunsigned 65536)
                  (safe-cast (tunsigned 65536) (tunsigned 65535) %a.1)
                  (safe-cast (tunsigned 65536) (tunsigned 1) 1)))
             (if %b.2 #f #t)
@@ -19346,7 +19451,7 @@ groups than for single tests.
                    (c (tbytes 8)))
               (safe-cast (tunsigned 4294967295)
                          (tunsigned 65536)
-                (+ 17
+                (+ (tunsigned 65536)
                    (safe-cast (tunsigned 65536) (tunsigned 65535) %a.1)
                    (safe-cast (tunsigned 65536) (tunsigned 1) 1)))
               (if %b.2 #f #t)
@@ -19511,27 +19616,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 255)]
                       [%z.6 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
                     %x.4
                     (safe-cast (tfield (field-native)) (tunsigned 255) %y.5))
                  %z.6))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             (map
               (circuit ([%v.7 (tunsigned 255)])
                    (tfield (field-native))
@@ -19562,27 +19669,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 255)]
                       [%z.6 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
                     %x.4
                     (safe-cast (tfield (field-native)) (tunsigned 255) %y.5))
                  %z.6))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             (map
               (circuit ([%v.7 (tunsigned 255)])
                    (tfield (field-native))
@@ -19613,25 +19722,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 49)]
                       [%z.6 (tunsigned 255)])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
+                    %x.4
+                    (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
                  (safe-cast (tfield (field-native)) (tunsigned 255) %z.6)))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= (safe-cast (tunsigned 17) (tunsigned 7) %n.1) 17)
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 17) 17))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 17) 17))))
             %v2.3))))
     )
 
@@ -19747,7 +19860,9 @@ groups than for single tests.
        (program
          (circuit %foo.0 ([%x.1 (tfield (field-native))])
               (tfield (field-native))
-           (* #f %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))
+           (* (tfield (field-native))
+              %x.1
+              (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))
      ))
 
   (test-group
@@ -19772,7 +19887,9 @@ groups than for single tests.
        (program
          (circuit %foo.0 ([%x.1 (tfield (field-native))])
               (tfield (field-native))
-           (* #f %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))
+           (* (tfield (field-native))
+              %x.1
+              (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))
      ))
 
   (test-group
@@ -20360,9 +20477,13 @@ groups than for single tests.
                       [%n.3 (tunsigned 4294967295)])
                  (tunsigned 4294967295)
               (downcast-unsigned 8589934590 4294967295
-                (+ 33
-                   (safe-cast (tunsigned 8589934590) (tunsigned 4294967295) %a.2)
-                   (safe-cast (tunsigned 8589934590) (tunsigned 4294967295) %n.3))))
+                (+ (tunsigned 8589934590)
+                   (safe-cast (tunsigned 8589934590)
+                              (tunsigned 4294967295)
+                     %a.2)
+                   (safe-cast (tunsigned 8589934590)
+                              (tunsigned 4294967295)
+                     %n.3))))
             (safe-cast (tunsigned 4294967295) (tunsigned 0) 0)
             %x.1))
         (circuit %foo.4 ([%x.5 (tvector 2 (tunsigned 65535))])
@@ -20371,7 +20492,7 @@ groups than for single tests.
             (circuit ([%a.6 (tunsigned 65535)] [%n.7 (tunsigned 65535)])
                  (tunsigned 65535)
               (downcast-unsigned 131070 65535
-                (+ 17
+                (+ (tunsigned 131070)
                    (safe-cast (tunsigned 131070) (tunsigned 65535) %a.6)
                    (safe-cast (tunsigned 131070) (tunsigned 65535) %n.7))))
             (safe-cast (tunsigned 65535) (tunsigned 0) 0)
@@ -20382,7 +20503,7 @@ groups than for single tests.
             (circuit ([%a.10 (tunsigned 255)] [%n.11 (tunsigned 255)])
                  (tunsigned 255)
               (downcast-unsigned 510 255
-                (+ 9
+                (+ (tunsigned 510)
                    (safe-cast (tunsigned 510) (tunsigned 255) %a.10)
                    (safe-cast (tunsigned 510) (tunsigned 255) %n.11))))
             (safe-cast (tunsigned 255) (tunsigned 0) 0)
@@ -20740,7 +20861,7 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 65790)
-            (+ 17
+            (+ (tunsigned 65790)
                (safe-cast (tunsigned 65790)
                           (tunsigned 65535)
                  (tuple-ref (call %foo.1 %b.5) 1))
@@ -20773,7 +20894,7 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 131070)
-            (+ 17
+            (+ (tunsigned 131070)
                (safe-cast (tunsigned 131070)
                           (tunsigned 65535)
                  (tuple-ref
@@ -20817,10 +20938,15 @@ groups than for single tests.
         (circuit %bar.3 ([%a.4 (tfield (field-native))])
              (ttuple (tfield (field-native)) (tfield (field-native)))
           (call %foo.1
-            (new (tstruct S (x (ttuple (tfield (field-native)) (tfield (field-native)))))
+            (new (tstruct S
+                   (x (ttuple
+                        (tfield (field-native))
+                        (tfield (field-native)))))
               (tuple
                 %a.4
-                (* #f %a.4 (safe-cast (tfield (field-native)) (tunsigned 2) 2))))))))
+                (* (tfield (field-native))
+                   %a.4
+                   (safe-cast (tfield (field-native)) (tunsigned 2) 2))))))))
     )
 
   (test
@@ -20849,19 +20975,27 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (ttuple (tfield (field-native)) (tboolean))
           (tuple %y.3 %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_tuple1.5 (ttuple (tfield (field-native)) (tboolean))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (tuple-ref %__compact_tuple1.5 0)])
+          (let* ([[%__compact_pattern_tmp1.5 (ttuple
+                                               (tfield (field-native))
+                                               (tboolean))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (tuple-ref %__compact_pattern_tmp1.5 0)])
               (let* ([[%b.7 (tboolean)]
-                      (tuple-ref %__compact_tuple1.5 1)])
+                      (tuple-ref %__compact_pattern_tmp1.5 1)])
                 (if %b.7
                     %a.6
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.6))))))))
     )
 
   (test
@@ -20878,19 +21012,27 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (ttuple (tfield (field-native)) (tboolean))
           (tuple %y.3 %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_tuple1.5 (ttuple (tfield (field-native)) (tboolean))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (tuple-ref %__compact_tuple1.5 0)])
+          (let* ([[%__compact_pattern_tmp1.5 (ttuple
+                                               (tfield (field-native))
+                                               (tboolean))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (tuple-ref %__compact_pattern_tmp1.5 0)])
               (let* ([[%b.7 (tboolean)]
-                      (tuple-ref %__compact_tuple1.5 1)])
+                      (tuple-ref %__compact_pattern_tmp1.5 1)])
                 (if %b.7
                     %a.6
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.6))))))))
     )
 
   (test
@@ -20916,12 +21058,15 @@ groups than for single tests.
                                                (tfield (field-native))
                                                (tfield (field-native))
                                                (tfield (field-native)))]
-                  (call %bar.1 (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+                  (call %bar.1
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
             (let* ([[%a.5 (tfield (field-native))]
                     (tuple-ref %__compact_pattern_tmp1.4 2)])
               (if #t
                   %a.5
-                  (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.5)))))))
+                  (* (tfield (field-native))
+                     (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                     %a.5)))))))
     )
 
   (test
@@ -20938,22 +21083,28 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (ttuple (tfield (field-native)) (tboolean) (tboolean))
           (tuple %y.3 %x.2 %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_tuple1.5 (ttuple
-                                         (tfield (field-native))
-                                         (tboolean)
-                                         (tboolean))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (tuple-ref %__compact_tuple1.5 0)])
+          (let* ([[%__compact_pattern_tmp1.5 (ttuple
+                                               (tfield (field-native))
+                                               (tboolean)
+                                               (tboolean))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (tuple-ref %__compact_pattern_tmp1.5 0)])
               (let* ([[%b.7 (tboolean)]
-                      (tuple-ref %__compact_tuple1.5 1)])
+                      (tuple-ref %__compact_pattern_tmp1.5 1)])
                 (if %b.7
                     %a.6
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.6))))))))
     )
 
   (test
@@ -21019,21 +21170,29 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
-          (new (tstruct S (a (tfield (field-native))) (b (tboolean))) %y.3 %x.2))
+          (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
+            %y.3
+            %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_const1.5 (tstruct S
-                                         (a (tfield (field-native)))
-                                         (b (tboolean)))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (elt-ref %__compact_const1.5 a 0)])
+          (let* ([[%__compact_pattern_tmp1.5 (tstruct S
+                                               (a (tfield (field-native)))
+                                               (b (tboolean)))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (elt-ref %__compact_pattern_tmp1.5 a 0)])
               (let* ([[%b.7 (tboolean)]
-                      (elt-ref %__compact_const1.5 b 1)])
+                      (elt-ref %__compact_pattern_tmp1.5 b 1)])
                 (if %b.7
                     %a.6
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.6))))))))
     )
 
   (test
@@ -21051,21 +21210,29 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
-          (new (tstruct S (a (tfield (field-native))) (b (tboolean))) %y.3 %x.2))
+          (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
+            %y.3
+            %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_const1.5 (tstruct S
-                                         (a (tfield (field-native)))
-                                         (b (tboolean)))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (elt-ref %__compact_const1.5 a 0)])
+          (let* ([[%__compact_pattern_tmp1.5 (tstruct S
+                                               (a (tfield (field-native)))
+                                               (b (tboolean)))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (elt-ref %__compact_pattern_tmp1.5 a 0)])
               (let* ([[%b.7 (tboolean)]
-                      (elt-ref %__compact_const1.5 b 1)])
+                      (elt-ref %__compact_pattern_tmp1.5 b 1)])
                 (if %b.7
                     %a.6
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.6))))))))
     )
 
   (test
@@ -21083,17 +21250,25 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
-          (new (tstruct S (a (tfield (field-native))) (b (tboolean))) %y.3 %x.2))
+          (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
+            %y.3
+            %x.2))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_const1.5 (tstruct S
-                                         (a (tfield (field-native)))
-                                         (b (tboolean)))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
-            (let* ([[%a.6 (tfield (field-native))] (elt-ref %__compact_const1.5 a 0)])
-              (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.6))))))
+          (let* ([[%__compact_pattern_tmp1.5 (tstruct S
+                                               (a (tfield (field-native)))
+                                               (b (tboolean)))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+            (let* ([[%a.6 (tfield (field-native))]
+                    (elt-ref %__compact_pattern_tmp1.5 a 0)])
+              (* (tfield (field-native))
+                 (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                 %a.6))))))
     )
 
   (test
@@ -21148,21 +21323,29 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %bar.1 ([%x.2 (tboolean)] [%y.3 (tfield (field-native))])
+        (circuit %bar.1 ([%x.2 (tboolean)]
+                         [%y.3 (tfield (field-native))])
              (tstruct T (x (tboolean)) (y (tfield (field-native))))
-          (new (tstruct T (x (tboolean)) (y (tfield (field-native)))) %x.2 %y.3))
+          (new (tstruct T (x (tboolean)) (y (tfield (field-native))))
+            %x.2
+            %y.3))
         (circuit %foo.4 ()
              (tfield (field-native))
-          (let* ([[%__compact_const1.5 (tstruct T
-                                         (x (tboolean))
-                                         (y (tfield (field-native))))]
-                  (call %bar.1 #t (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
+          (let* ([[%__compact_pattern_tmp1.5 (tstruct T
+                                               (x (tboolean))
+                                               (y (tfield (field-native))))]
+                  (call %bar.1
+                    #t
+                    (safe-cast (tfield (field-native)) (tunsigned 17) 17))])
             (let* ([[%b.6 (tboolean)]
-                    (elt-ref %__compact_const1.5 x 0)])
-              (let* ([[%a.7 (tfield (field-native))] (elt-ref %__compact_const1.5 y 1)])
+                    (elt-ref %__compact_pattern_tmp1.5 x 0)])
+              (let* ([[%a.7 (tfield (field-native))]
+                      (elt-ref %__compact_pattern_tmp1.5 y 1)])
                 (if %b.6
                     %a.7
-                    (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.7))))))))
+                    (* (tfield (field-native))
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2)
+                       %a.7))))))))
     )
 
   (test
@@ -21185,7 +21368,9 @@ groups than for single tests.
                          [%y.4 (tfield (field-native))]
                          [%z.5 (tbytes 6)])
              (ttuple
-               (tstruct S (a (ttuple (tfield (field-native)) (tbytes 6))) (b (tboolean)))
+               (tstruct S
+                 (a (ttuple (tfield (field-native)) (tbytes 6)))
+                 (b (tboolean)))
                (tboolean))
           (tuple
             (new (tstruct S
@@ -21199,30 +21384,40 @@ groups than for single tests.
                          [%y.9 (tfield (field-native))]
                          [%z.10 (tbytes 6)])
              (ttuple (tfield (field-native)) (tbytes 6))
-          (let* ([[%__compact_const1.11 (ttuple
-                                          (tstruct S
-                                            (a (ttuple (tfield (field-native)) (tbytes 6)))
-                                            (b (tboolean)))
-                                          (tboolean))]
+          (let* ([[%__compact_pattern_tmp1.11 (ttuple
+                                                (tstruct S
+                                                  (a (ttuple
+                                                       (tfield (field-native))
+                                                       (tbytes 6)))
+                                                  (b (tboolean)))
+                                                (tboolean))]
                   (call %bar.1 %x1.7 %x2.8 %y.9 %z.10)])
-            (let* ([[%__compact_const2.12 (tstruct S
-                                            (a (ttuple (tfield (field-native)) (tbytes 6)))
-                                            (b (tboolean)))]
-                    (tuple-ref %__compact_const1.11 0)])
-              (let* ([[%__compact_const3.13 (ttuple (tfield (field-native)) (tbytes 6))]
-                      (elt-ref %__compact_const2.12 a 0)])
+            (let* ([[%__compact_pattern_tmp2.12 (tstruct S
+                                                  (a (ttuple
+                                                       (tfield (field-native))
+                                                       (tbytes 6)))
+                                                  (b (tboolean)))]
+                    (tuple-ref %__compact_pattern_tmp1.11 0)])
+              (let* ([[%__compact_pattern_tmp3.13 (ttuple
+                                                    (tfield (field-native))
+                                                    (tbytes 6))]
+                      (elt-ref %__compact_pattern_tmp2.12 a 0)])
                 (let* ([[%a.14 (tfield (field-native))]
-                        (tuple-ref %__compact_const3.13 0)])
+                        (tuple-ref %__compact_pattern_tmp3.13 0)])
                   (let* ([[%b.15 (tbytes 6)]
-                          (tuple-ref %__compact_const3.13 1)])
+                          (tuple-ref %__compact_pattern_tmp3.13 1)])
                     (let* ([[%b1.16 (tboolean)]
-                            (elt-ref %__compact_const2.12 b 1)])
+                            (elt-ref %__compact_pattern_tmp2.12 b 1)])
                       (let* ([[%b2.17 (tboolean)]
-                              (tuple-ref %__compact_const1.11 1)])
+                              (tuple-ref %__compact_pattern_tmp1.11 1)])
                         (tuple
                           (if %b1.16
                               %a.14
-                              (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.14))
+                              (* (tfield (field-native))
+                                 (safe-cast (tfield (field-native))
+                                            (tunsigned 2)
+                                   2)
+                                 %a.14))
                           (if %b2.17
                               %b.15
                               #vu8(104 101 108 108 111 33)))))))))))))
@@ -21282,7 +21477,9 @@ groups than for single tests.
                          [%y.4 (tfield (field-native))]
                          [%z.5 (tbytes 6)])
              (ttuple
-               (tstruct S (a (ttuple (tfield (field-native)) (tbytes 6))) (b (tboolean)))
+               (tstruct S
+                 (a (ttuple (tfield (field-native)) (tbytes 6)))
+                 (b (tboolean)))
                (tboolean))
           (tuple
             (new (tstruct S
@@ -21323,7 +21520,11 @@ groups than for single tests.
                       (tuple
                         (if %b1.16
                             %a.14
-                            (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.14))
+                            (* (tfield (field-native))
+                               (safe-cast (tfield (field-native))
+                                          (tunsigned 2)
+                                 2)
+                               %a.14))
                         (if %b1.16
                             %b.15
                             #vu8(104 101 108 108 111 33))))))))))))
@@ -21349,7 +21550,9 @@ groups than for single tests.
                          [%y.4 (tfield (field-native))]
                          [%z.5 (tbytes 6)])
              (ttuple
-               (tstruct S (a (ttuple (tfield (field-native)) (tbytes 6))) (b (tboolean)))
+               (tstruct S
+                 (a (ttuple (tfield (field-native)) (tbytes 6)))
+                 (b (tboolean)))
                (tboolean))
           (tuple
             (new (tstruct S
@@ -21390,7 +21593,11 @@ groups than for single tests.
                       (tuple
                         (if %b1.16
                             %a.14
-                            (* #f (safe-cast (tfield (field-native)) (tunsigned 2) 2) %a.14))
+                            (* (tfield (field-native))
+                               (safe-cast (tfield (field-native))
+                                          (tunsigned 2)
+                                 2)
+                               %a.14))
                         (if %b1.16
                             %b.15
                             #vu8(104 101 108 108 111 33))))))))))))
@@ -21443,14 +21650,15 @@ groups than for single tests.
             (let* ([[%q1.4 (tunsigned 255)]
                     (call %bar.0
                       (safe-cast (tvector 15 (tunsigned 255))
-                              (ttuple (tunsigned 1) (tunsigned 2) (tunsigned 3)
-                                (tunsigned 4) (tunsigned 5) (tunsigned 6)
-                                (tunsigned 7) (tunsigned 8) (tunsigned 9)
-                                (tunsigned 10) (tunsigned 11) (tunsigned 12)
-                                (tunsigned 13) (tunsigned 14) (tunsigned 15))
+                                 (ttuple (tunsigned 1) (tunsigned 2) (tunsigned 3)
+                                   (tunsigned 4) (tunsigned 5) (tunsigned 6)
+                                   (tunsigned 7) (tunsigned 8) (tunsigned 9)
+                                   (tunsigned 10) (tunsigned 11) (tunsigned 12)
+                                   (tunsigned 13) (tunsigned 14)
+                                   (tunsigned 15))
                         (tuple 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)))])
               (let* ([[%q2.5 (tunsigned 255)] (call %bar.0 %x.3)])
-                (+ 9
+                (+ (tunsigned 510)
                    (safe-cast (tunsigned 510) (tunsigned 255) %q1.4)
                    (safe-cast (tunsigned 510) (tunsigned 255) %q2.5))))))))
     )
@@ -21475,10 +21683,10 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %bar.1 ([%x.2 (tvector 15 (tunsigned 255))])
+        (circuit %bar.0 ([%x.1 (tvector 15 (tunsigned 255))])
              (tunsigned 255)
-          (tuple-ref %x.2 5))
-        (circuit %foo.3 ([%x.4 (ttuple (tunsigned 255) (tunsigned 255)
+          (tuple-ref %x.1 5))
+        (circuit %foo.2 ([%x.3 (ttuple (tunsigned 255) (tunsigned 255)
                                  (tunsigned 255) (tunsigned 255)
                                  (tunsigned 255) (tunsigned 255)
                                  (tunsigned 255) (tunsigned 255)
@@ -21486,27 +21694,28 @@ groups than for single tests.
                                  (tunsigned 255) (tunsigned 255)
                                  (tunsigned 255) (tunsigned 255)
                                  (tunsigned 255))]
-                         [%y.0 (tvector 15 (tunsigned 255))])
+                         [%y.4 (tvector 15 (tunsigned 255))])
              (tunsigned 65535)
           (safe-cast (tunsigned 65535)
                      (tunsigned 765)
-            (let* ([[%q1.5 (tunsigned 255)] (call %bar.1 %x.4)])
-              (let* ([[%q2.6 (tunsigned 255)] (call %bar.1 %y.0)])
+            (let* ([[%q1.5 (tunsigned 255)] (call %bar.0 %x.3)])
+              (let* ([[%q2.6 (tunsigned 255)] (call %bar.0 %y.4)])
                 (let* ([[%q3.7 (tunsigned 255)]
-                        (call %bar.1
+                        (call %bar.0
                           (safe-cast (tvector 15 (tunsigned 255))
-                                     (ttuple
-                                       (tunsigned 1) (tunsigned 2) (tunsigned 3)
-                                       (tunsigned 4) (tunsigned 5) (tunsigned 6)
-                                       (tunsigned 7) (tunsigned 8) (tunsigned 9)
-                                       (tunsigned 10) (tunsigned 11)
-                                       (tunsigned 12) (tunsigned 13)
-                                       (tunsigned 14) (tunsigned 15))
+                                     (ttuple (tunsigned 1) (tunsigned 2)
+                                       (tunsigned 3) (tunsigned 4)
+                                       (tunsigned 5) (tunsigned 6)
+                                       (tunsigned 7) (tunsigned 8)
+                                       (tunsigned 9) (tunsigned 10)
+                                       (tunsigned 11) (tunsigned 12)
+                                       (tunsigned 13) (tunsigned 14)
+                                       (tunsigned 15))
                             (tuple 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15)))])
-                  (+ 10
+                  (+ (tunsigned 765)
                      (safe-cast (tunsigned 765)
                                 (tunsigned 510)
-                       (+ 9
+                       (+ (tunsigned 510)
                           (safe-cast (tunsigned 510) (tunsigned 255) %q1.5)
                           (safe-cast (tunsigned 510) (tunsigned 255) %q2.6)))
                      (safe-cast (tunsigned 765) (tunsigned 255) %q3.7)))))))))
@@ -21555,20 +21764,34 @@ groups than for single tests.
     (returns
       (program
         (circuit %bar.0 ([%__compact_pattern_tmp1.1 (tstruct pr
-                                                      (a (tfield (field-native)))
-                                                      (d (tfield (field-native))))])
-             (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+                                                      (a (tfield
+                                                           (field-native)))
+                                                      (d (tfield
+                                                           (field-native))))])
+             (tstruct pr
+               (a (tfield (field-native)))
+               (d (tfield (field-native))))
           (let* ([[%a.2 (tfield (field-native))]
                   (elt-ref %__compact_pattern_tmp1.1 a 0)])
             (let* ([[%d.3 (tfield (field-native))]
                     (elt-ref %__compact_pattern_tmp1.1 d 1)])
-              (new (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
-                (+ #f %a.2 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                (- #f %d.3 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+              (new (tstruct pr
+                     (a (tfield (field-native)))
+                     (d (tfield (field-native))))
+                (+ (tfield (field-native))
+                   %a.2
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                (- (tfield (field-native))
+                   %d.3
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
         (circuit %foo.4 ()
-             (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+             (tstruct pr
+               (a (tfield (field-native)))
+               (d (tfield (field-native))))
           (call %bar.0
-            (new (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+            (new (tstruct pr
+                   (a (tfield (field-native)))
+                   (d (tfield (field-native))))
               (safe-cast (tfield (field-native)) (tunsigned 7) 7)
               (safe-cast (tfield (field-native)) (tunsigned 13) 13))))))
     )
@@ -21594,20 +21817,34 @@ groups than for single tests.
     (returns
       (program
         (circuit %bar.0 ([%__compact_pattern_tmp1.1 (tstruct pr
-                                                      (a (tfield (field-native)))
-                                                      (d (tfield (field-native))))])
-             (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+                                                      (a (tfield
+                                                           (field-native)))
+                                                      (d (tfield
+                                                           (field-native))))])
+             (tstruct pr
+               (a (tfield (field-native)))
+               (d (tfield (field-native))))
           (let* ([[%a.2 (tfield (field-native))]
                   (elt-ref %__compact_pattern_tmp1.1 a 0)])
             (let* ([[%d.3 (tfield (field-native))]
                     (elt-ref %__compact_pattern_tmp1.1 d 1)])
-              (new (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
-                (+ #f %a.2 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                (- #f %d.3 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+              (new (tstruct pr
+                     (a (tfield (field-native)))
+                     (d (tfield (field-native))))
+                (+ (tfield (field-native))
+                   %a.2
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                (- (tfield (field-native))
+                   %d.3
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
         (circuit %foo.4 ()
-             (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+             (tstruct pr
+               (a (tfield (field-native)))
+               (d (tfield (field-native))))
           (call %bar.0
-            (new (tstruct pr (a (tfield (field-native))) (d (tfield (field-native))))
+            (new (tstruct pr
+                   (a (tfield (field-native)))
+                   (d (tfield (field-native))))
               (safe-cast (tfield (field-native)) (tunsigned 7) 7)
               (safe-cast (tfield (field-native)) (tunsigned 13) 13))))))
     )
@@ -21965,7 +22202,7 @@ groups than for single tests.
                 (ledger-call increment %counter.1 (disclose %x.4))
                 (safe-cast (tfield (field-native))
                            (tunsigned 4294836225)
-                  (* 32
+                  (* (tunsigned 4294836225)
                      (safe-cast (tunsigned 4294836225) (tunsigned 65535) %x.4)
                      (safe-cast (tunsigned 4294836225)
                                 (tunsigned 65535)
@@ -21976,7 +22213,7 @@ groups than for single tests.
                     (ledger-call decrement %counter.1 (disclose %x.4))
                     (safe-cast (tfield (field-native))
                                (tunsigned 4294836225)
-                      (* 32
+                      (* (tunsigned 4294836225)
                          (safe-cast (tunsigned 4294836225)
                                     (tunsigned 65535)
                            %x.4)
@@ -21991,7 +22228,7 @@ groups than for single tests.
                         (disclose %x.4)))
                     (safe-cast (tfield (field-native))
                                (tunsigned 4294836225)
-                      (* 32
+                      (* (tunsigned 4294836225)
                          (safe-cast (tunsigned 4294836225)
                                     (tunsigned 65535)
                            %x.4)
@@ -22185,7 +22422,9 @@ groups than for single tests.
           (safe-cast (tfield (field-native)) (tunsigned 0) 0))
         (circuit %foo.4 ([%v.5 (tvector 5 (tfield (field-native)))])
              (tfield (field-native))
-          (+ #f (call %bar.2 %v.5) (call %bar.0 %v.5)))))
+          (+ (tfield (field-native))
+             (call %bar.2 %v.5)
+             (call %bar.0 %v.5)))))
     )
 
   (test
@@ -22211,7 +22450,9 @@ groups than for single tests.
           (tuple-ref %v.3 0))
         (circuit %foo.4 ([%v.5 (tvector 5 (tfield (field-native)))])
              (tfield (field-native))
-          (+ #f (call %bar.2 %v.5) (call %bar.0 %v.5)))))
+          (+ (tfield (field-native))
+             (call %bar.2 %v.5)
+             (call %bar.0 %v.5)))))
     )
 
   (test
@@ -22577,7 +22818,7 @@ groups than for single tests.
                       (tuple-ref %__compact_pattern_tmp1.1 2)])
                 (safe-cast (tfield (field-native))
                            (tunsigned 4)
-                  (+ 3
+                  (+ (tunsigned 4)
                      (safe-cast (tunsigned 4) (tunsigned 1) %x.2)
                      (safe-cast (tunsigned 4) (tunsigned 3) %y.3)))))))
         (circuit %bar.4 () (tfield (field-native)) (call %foo.0))))
@@ -22817,7 +23058,7 @@ groups than for single tests.
    '(
      "constructor([x, y]: [Field, Field]) { const z = x + y; }"
      )
-   (returns
+    (returns
       (program
         (constructor ([%__compact_pattern_tmp1.0 (ttuple
                                                    (tfield (field-native))
@@ -22827,7 +23068,9 @@ groups than for single tests.
                     (tuple-ref %__compact_pattern_tmp1.0 0)])
               (let* ([[%y.2 (tfield (field-native))]
                       (tuple-ref %__compact_pattern_tmp1.0 1)])
-                (let* ([[%z.3 (tfield (field-native))] (+ #f %x.1 %y.2)]) (tuple))))
+                (let* ([[%z.3 (tfield (field-native))]
+                        (+ (tfield (field-native)) %x.1 %y.2)])
+                  (tuple))))
             (tuple)))))
    )
 
@@ -23014,17 +23257,23 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %sum.0 ([%v.1 (tvector 3 (tvector 2 (tfield (field-native))))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 3
+                                 (tvector 2 (tfield (field-native))))])
              (tfield (field-native))
           (fold
             (circuit ([%x.2 (tfield (field-native))]
-                      [%__compact_pattern_tmp1.3 (tvector 2 (tfield (field-native)))])
+                      [%__compact_pattern_tmp1.3 (tvector
+                                                   2
+                                                   (tfield (field-native)))])
                  (tfield (field-native))
               (let* ([[%a.4 (tfield (field-native))]
                       (tuple-ref %__compact_pattern_tmp1.3 0)])
                 (let* ([[%b.5 (tfield (field-native))]
                         (tuple-ref %__compact_pattern_tmp1.3 1)])
-                  (+ #f (+ #f %a.4 %b.5) %x.2))))
+                  (+ (tfield (field-native))
+                     (+ (tfield (field-native)) %a.4 %b.5)
+                     %x.2))))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))))
     )
@@ -23039,17 +23288,23 @@ groups than for single tests.
       (program
         (circuit %sum.0 ([%v.1 (tvector
                                  3
-                                 (ttuple (tfield (field-native)) (tfield (field-native))))])
+                                 (ttuple
+                                   (tfield (field-native))
+                                   (tfield (field-native))))])
              (tfield (field-native))
           (fold
             (circuit ([%x.2 (tfield (field-native))]
-                      [%__compact_pattern_tmp1.3 (ttuple (tfield (field-native)) (tfield (field-native)))])
+                      [%__compact_pattern_tmp1.3 (ttuple
+                                                   (tfield (field-native))
+                                                   (tfield (field-native)))])
                  (tfield (field-native))
               (let* ([[%a.4 (tfield (field-native))]
                       (tuple-ref %__compact_pattern_tmp1.3 0)])
                 (let* ([[%b.5 (tfield (field-native))]
                         (tuple-ref %__compact_pattern_tmp1.3 1)])
-                  (+ #f (+ #f %a.4 %b.5) %x.2))))
+                  (+ (tfield (field-native))
+                     (+ (tfield (field-native)) %a.4 %b.5)
+                     %x.2))))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))))
     )
@@ -23146,7 +23401,7 @@ groups than for single tests.
       "  return x + y + a + b as Uint<32>;"
       "}"
       )
-(returns
+    (returns
       (program
         (circuit %bad.0 ()
              (tunsigned 4294967295)
@@ -23189,13 +23444,13 @@ groups than for single tests.
                         (let* ([[%c.8 (tunsigned 4294967295)]
                                 (tuple-ref %__compact_pattern_tmp2.5 3)])
                           (downcast-unsigned 17179869180 4294967295
-                            (+ 34
+                            (+ (tunsigned 17179869180)
                                (safe-cast (tunsigned 17179869180)
                                           (tunsigned 12884901885)
-                                 (+ 34
+                                 (+ (tunsigned 12884901885)
                                     (safe-cast (tunsigned 12884901885)
                                                (tunsigned 8589934590)
-                                      (+ 33
+                                      (+ (tunsigned 8589934590)
                                          (safe-cast (tunsigned 8589934590)
                                                     (tunsigned 4294967295)
                                            %x.2)
@@ -23257,13 +23512,13 @@ groups than for single tests.
                     (let* ([[%b.6 (tunsigned 4294967295)]
                             (tuple-ref %__compact_pattern_tmp2.4 1)])
                       (downcast-unsigned 17179869180 4294967295
-                        (+ 34
+                        (+ (tunsigned 17179869180)
                            (safe-cast (tunsigned 17179869180)
                                       (tunsigned 12884901885)
-                             (+ 34
+                             (+ (tunsigned 12884901885)
                                 (safe-cast (tunsigned 12884901885)
                                            (tunsigned 8589934590)
-                                  (+ 33
+                                  (+ (tunsigned 8589934590)
                                      (safe-cast (tunsigned 8589934590)
                                                 (tunsigned 4294967295)
                                        %x.2)
@@ -23286,7 +23541,7 @@ groups than for single tests.
       "  return x + y + a + b as Uint<32>;"
       "}"
       )
-(returns
+    (returns
       (program
         (circuit %bad.0 ()
              (tunsigned 4294967295)
@@ -23325,13 +23580,13 @@ groups than for single tests.
                     (let* ([[%b.6 (tunsigned 4294967295)]
                             (tuple-ref %__compact_pattern_tmp2.4 1)])
                       (downcast-unsigned 17179869180 4294967295
-                        (+ 34
+                        (+ (tunsigned 17179869180)
                            (safe-cast (tunsigned 17179869180)
                                       (tunsigned 12884901885)
-                             (+ 34
+                             (+ (tunsigned 12884901885)
                                 (safe-cast (tunsigned 12884901885)
                                            (tunsigned 8589934590)
-                                  (+ 33
+                                  (+ (tunsigned 8589934590)
                                      (safe-cast (tunsigned 8589934590)
                                                 (tunsigned 4294967295)
                                        %x.2)
@@ -23406,7 +23661,7 @@ groups than for single tests.
                         (tuple-ref %__compact_pattern_tmp1.1 2)])
                   (safe-cast (tunsigned 4294967295)
                              (tunsigned 4)
-                    (+ 3
+                    (+ (tunsigned 4)
                        (safe-cast (tunsigned 4) (tunsigned 1) %x.2)
                        (safe-cast (tunsigned 4) (tunsigned 3) %y.4))))))))))
     )
@@ -23499,13 +23754,13 @@ groups than for single tests.
                     (let* ([[%b.6 (tunsigned 4294967295)]
                             (tuple-ref %__compact_pattern_tmp2.4 2)])
                       (downcast-unsigned 17179869180 4294967295
-                        (+ 34
+                        (+ (tunsigned 17179869180)
                            (safe-cast (tunsigned 17179869180)
                                       (tunsigned 12884901885)
-                             (+ 34
+                             (+ (tunsigned 12884901885)
                                 (safe-cast (tunsigned 12884901885)
                                            (tunsigned 8589934590)
-                                  (+ 33
+                                  (+ (tunsigned 8589934590)
                                      (safe-cast (tunsigned 8589934590)
                                                 (tunsigned 4294967295)
                                        %x.2)
@@ -24548,14 +24803,17 @@ groups than for single tests.
         (public-ledger-declaration %kernel.0 (Kernel))
         (public-ledger-declaration
           %x.1
-          (talias #t X (Map (tfield (field-native)) (tfield (field-native)))))
+          (talias #t X
+            (Map (tfield (field-native)) (tfield (field-native)))))
         (circuit %foo.2 ([%y.3 (tfield (field-native))])
              (tfield (field-native))
           (seq
             (ledger-call insert
               %x.1
               (disclose %y.3)
-              (+ #f (disclose %y.3) (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (+ (tfield (field-native))
+                 (disclose %y.3)
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (ledger-call lookup %x.1 (disclose %y.3))))))
     )
 
@@ -24738,7 +24996,7 @@ groups than for single tests.
           (safe-cast (talias #f U33 (tunsigned 8589934591))
                      (tunsigned 8589934590)
             (let* ([[%x.3 (tunsigned 4294967295)] (call %bar.1)])
-              (+ 33
+              (+ (tunsigned 8589934590)
                  (safe-cast (tunsigned 8589934590)
                             (tunsigned 4294967295)
                    %x.3)
@@ -24772,7 +25030,7 @@ groups than for single tests.
                      (tunsigned 8589934590)
             (let* ([[%x.3 (talias #f U32 (tunsigned 4294967295))]
                     (call %bar.1)])
-              (+ 33
+              (+ (tunsigned 8589934590)
                  (safe-cast (tunsigned 8589934590)
                             (talias #f U32 (tunsigned 4294967295))
                    (call %bar.1))
@@ -24985,7 +25243,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 3
+                    (+ (tunsigned 7)
                        (safe-cast (tunsigned 7) (tunsigned 6) %i.2)
                        (safe-cast (tunsigned 7) (tunsigned 1) 1))
                     (tuple))
@@ -25011,7 +25269,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 10
+                    (+ (tunsigned 1003)
                        (safe-cast (tunsigned 1003) (tunsigned 1002) %i.2)
                        (safe-cast (tunsigned 1003) (tunsigned 1) 1))
                     (tuple))
@@ -25106,7 +25364,8 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 248
+                    (+ (tunsigned
+                         452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (safe-cast (tunsigned
                                     452312848583266388373324160190187140051835877600158453279131187530910662655)
                                   (tunsigned
@@ -25417,7 +25676,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {bar: 1 as Field} );"
       "}"
       )
@@ -25429,7 +25688,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {1 as Field} );"
       "}"
       )
@@ -25441,7 +25700,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {baz: 1} );"
       "}"
       )
@@ -25453,7 +25712,7 @@ groups than for single tests.
   (test
     '(
       "struct F { bar: Field }"
-      "export circuit foo (): F {"
+      "export circuit foo(): F {"
       "  return emit ( F {true} );"
       "}"
       )
@@ -25465,7 +25724,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {nullifier: 1} );"
       "}"
       )
@@ -25477,7 +25736,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {1} );"
       "}"
       )
@@ -25489,7 +25748,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {x: pad(32, 'a')} );"
       "}"
       )
@@ -25501,7 +25760,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  const x = ShieldedSpend {pad(32, 'a')};"
       "  emit (x);"
       "  return x;"
@@ -25523,7 +25782,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo (): ShieldedSpend {"
+      "export circuit foo(): ShieldedSpend {"
       "  return emit ( ShieldedSpend {pad(32, 'a')} );"
       "}"
       )
@@ -26251,14 +26510,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %foo.0 ([%v.1 (tvector ,(max-bytes/vector-length) (tfield (field-native)))])
+        (circuit %foo.0 ([%v.1 (tvector
+                                 513
+                                 (tfield (field-native)))])
              (tfield (field-native))
-          (let* ([[%n.2 (tunsigned ,(- (max-bytes/vector-length) 1))] ,(- (max-bytes/vector-length) 1)])
+          (let* ([[%n.2 (tunsigned 512)] 512])
             (vector-ref
               %v.1
-              (+ 10
-                 (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) %n.2)
-                 (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1))))))))
+              (+ (tunsigned 513)
+                 (safe-cast (tunsigned 513) (tunsigned 512) %n.2)
+                 (safe-cast (tunsigned 513) (tunsigned 1) 1)))))))
+    )
 
   (test
     `(
@@ -26279,13 +26541,16 @@ groups than for single tests.
       )
     (returns
       (program
-        (circuit %foo.0 ([%v.1 (tvector ,(max-bytes/vector-length) (tfield (field-native)))])
+        (circuit %foo.0 ([%v.1 (tvector
+                                 513
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (vector-ref
             %v.1
-            (+ 10
-               (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned ,(- (max-bytes/vector-length) 1)) ,(- (max-bytes/vector-length) 1))
-               (safe-cast (tunsigned ,(max-bytes/vector-length)) (tunsigned 1) 1)))))))
+            (+ (tunsigned 513)
+               (safe-cast (tunsigned 513) (tunsigned 512) 512)
+               (safe-cast (tunsigned 513) (tunsigned 1) 1))))))
+    )
 
   (test
     `(
@@ -26747,7 +27012,7 @@ groups than for single tests.
             (public-ledger %field1.1
               (decrement (safe-cast (tunsigned 65535) (tunsigned 2) 2)))
             (public-ledger %field2.2 (write %x.4))
-            (* #f
+            (* (tfield (field-native))
                (safe-cast (tfield (field-native))
                           (tunsigned 18446744073709551615)
                  (public-ledger %field1.1 (read)))
@@ -27459,10 +27724,10 @@ groups than for single tests.
           (let* ([[%x.2 (tfield (field-native))]
                   (safe-cast (tfield (field-native)) (tunsigned 7) 7)])
             (if %a.1
-                (+ #f
+                (+ (tfield (field-native))
                    %x.2
                    (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                (- #f
+                (- (tfield (field-native))
                    %x.2
                    (safe-cast (tfield (field-native)) (tunsigned 1) 1)))))))
     )
@@ -27506,14 +27771,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %foo.0 ([%a.1 (tfield (field-native))] [%b.2 (tfield (field-native))])
+        (circuit %foo.0 ([%a.1 (tfield (field-native))]
+                         [%b.2 (tfield (field-native))])
              (tfield (field-native))
-          (* #f %a.1 %b.2))
+          (* (tfield (field-native)) %a.1 %b.2))
         (circuit %bar.3 ([%x.4 (tfield (field-native))])
              (tfield (field-native))
           (call %foo.0
-            (- #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-            (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+            (- (tfield (field-native))
+               %x.4
+               (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+            (+ (tfield (field-native))
+               %x.4
+               (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
   )
 
   (test
@@ -27827,12 +28097,15 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %sum.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.2 %n.3))
+              (+ (tfield (field-native)) %a.2 %n.3))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))))
   )
@@ -27857,32 +28130,46 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %sum.0 ([%v.1 (tvector 20 (tfield (field-native)))])
+        (circuit %sum.0 ([%v.1 (tvector
+                                 20
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.2 (tfield (field-native))] [%n.3 (tfield (field-native))])
+            (circuit ([%a.2 (tfield (field-native))]
+                      [%n.3 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.2 %n.3))
+              (+ (tfield (field-native)) %a.2 %n.3))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.1))
-        (circuit %sum.4 ([%v.5 (tvector 10 (tfield (field-native)))])
+        (circuit %sum.4 ([%v.5 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (fold
-            (circuit ([%a.6 (tfield (field-native))] [%n.7 (tfield (field-native))])
+            (circuit ([%a.6 (tfield (field-native))]
+                      [%n.7 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %a.6 %n.7))
+              (+ (tfield (field-native)) %a.6 %n.7))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %v.5))
-        (circuit %foo.8 ([%u.9 (tvector 10 (tfield (field-native)))])
+        (circuit %foo.8 ([%u.9 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (call %sum.4 %u.9))
-        (circuit %foo.10 ([%w.11 (tvector 20 (tfield (field-native)))])
+        (circuit %foo.10 ([%w.11 (tvector
+                                   20
+                                   (tfield (field-native)))])
              (tfield (field-native))
           (call %sum.0 %w.11))
-        (circuit %bar.12 ([%u.13 (tvector 10 (tfield (field-native)))]
+        (circuit %bar.12 ([%u.13 (tvector
+                                   10
+                                   (tfield (field-native)))]
                           [%v.14 (tvector 20 (tfield (field-native)))])
              (tfield (field-native))
-          (+ #f (call %foo.8 %u.13) (call %foo.10 %v.14)))))
+          (+ (tfield (field-native))
+             (call %foo.8 %u.13)
+             (call %foo.10 %v.14)))))
   )
 
   (test
@@ -27925,18 +28212,23 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %foo.0 ([%v.1 (tvector 10 (tfield (field-native)))])
+        (circuit %foo.0 ([%v.1 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tboolean)
           (fold
             (circuit ([%b.2 (tboolean)] [%x.3 (tfield (field-native))])
                  (tboolean)
               (let* ([[%y.4 (tfield (field-native))] %x.3])
-                (let* ([[%x.5 (tfield (field-native))] (* #f
-                                           %y.4
-                                           (safe-cast (tfield (field-native)) (tunsigned 1)
-                                             1))])
+                (let* ([[%x.5 (tfield (field-native))]
+                        (* (tfield (field-native))
+                           %y.4
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 1)
+                             1))])
                   (if %b.2
-                      (== %x.5 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                      (== %x.5
+                          (safe-cast (tfield (field-native)) (tunsigned 0) 0))
                       #f))))
             #t
             %v.1))))
@@ -27960,36 +28252,66 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %C.0 ([%x.1 (tfield (field-native))] [%y.2 (tfield (field-native))])
+        (circuit %C.0 ([%x.1 (tfield (field-native))]
+                       [%y.2 (tfield (field-native))])
              (tfield (field-native))
-          (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2))
-              (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 7) 7))
+          (if (== %x.1
+                  (safe-cast (tfield (field-native)) (tunsigned 2) 2))
+              (+ (tfield (field-native))
+                 %y.2
+                 (safe-cast (tfield (field-native)) (tunsigned 7) 7))
               (seq
                 (assert
-                  (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 2) 2)) #f #t)
+                  (if (== %x.1
+                          (safe-cast (tfield (field-native)) (tunsigned 2) 2))
+                      #f
+                      #t)
                   "oops 1")
-                (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
-                    (if (== %y.2 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                (if (== %x.1
+                        (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                    (if (== %y.2
+                            (safe-cast (tfield (field-native))
+                                       (tunsigned 0)
+                              0))
                         (seq
                           (assert
-                            (== %y.2 (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                            (== %y.2
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 0)
+                                  0))
                             "oops 2")
                           (assert
-                            (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                            (if (== %x.1
+                                    (safe-cast (tfield (field-native))
+                                               (tunsigned 3)
+                                      3))
                                 #f
                                 #t)
                             "oops 3")
-                          (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 11) 11)))
-                        (+ #f %y.2 (safe-cast (tfield (field-native)) (tunsigned 9) 9)))
+                          (+ (tfield (field-native))
+                             %y.2
+                             (safe-cast (tfield (field-native))
+                                        (tunsigned 11)
+                               11)))
+                        (+ (tfield (field-native))
+                           %y.2
+                           (safe-cast (tfield (field-native))
+                                      (tunsigned 9)
+                             9)))
                     (seq
                       (assert
-                        (if (== %x.1 (safe-cast (tfield (field-native)) (tunsigned 3) 3))
+                        (if (== %x.1
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 3)
+                                  3))
                             #f
                             #t)
                         "oops 3")
-                      (+ #f
+                      (+ (tfield (field-native))
                          %y.2
-                         (safe-cast (tfield (field-native)) (tunsigned 11) 11)))))))))
+                         (safe-cast (tfield (field-native))
+                                    (tunsigned 11)
+                           11)))))))))
   )
 
   (test
@@ -28120,27 +28442,35 @@ groups than for single tests.
       (program
         (public-ledger-declaration (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
-        (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
+        (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
             (circuit ([%x.4 (tfield (field-native))])
                  (tboolean)
-              (call %foo.0 (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+              (call %foo.0
+                (+ (tfield (field-native))
+                   %x.4
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.3))
-        (circuit %Y$C.5 ([%v.6 (tvector 1 (tfield (field-native)))])
+        (circuit %C.5 ([%v.6 (tvector 1 (tfield (field-native)))])
              (tvector 1 (tboolean))
           (map
             (circuit ([%x.7 (tfield (field-native))])
                  (tboolean)
-              (call %foo.0 (+ #f %x.7 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+              (call %foo.0
+                (+ (tfield (field-native))
+                   %x.7
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.6))
-        (circuit %Z$C.8 ([%v.9 (tvector 2 (tfield (field-native)))])
+        (circuit %C.8 ([%v.9 (tvector 2 (tfield (field-native)))])
              (tvector 2 (tboolean))
           (map
             (circuit ([%x.10 (tfield (field-native))])
                  (tboolean)
               (call %foo.0
-                (+ #f %x.10 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                (+ (tfield (field-native))
+                   %x.10
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             %v.9))))
     )
 
@@ -28348,7 +28678,9 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %baz.0 ([%x.1 (tfield (field-native))])
              (tboolean)
-          (if (== (+ #f %x.1 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+          (if (== (+ (tfield (field-native))
+                     %x.1
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                   (safe-cast (tfield (field-native)) (tunsigned 0) 0))
               #f
               #t))))
@@ -28576,7 +28908,9 @@ groups than for single tests.
             (assert
               (public-ledger %field0.1
                 (lessThan
-                  (safe-cast (tunsigned 18446744073709551615) (tunsigned 4) 4)))
+                  (safe-cast (tunsigned 18446744073709551615)
+                             (tunsigned 4)
+                    4)))
               "oops 1")
             (public-ledger %field1.2 (write #t))
             (let* ([[%b.17 (tboolean)]
@@ -28595,23 +28929,35 @@ groups than for single tests.
                   "oops 2c")
                 (public-ledger %field2.3 (insert %x.15))
                 (public-ledger %field2.3
-                  (insert (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                  (insert
+                    (+ (tfield (field-native))
+                       %x.15
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (public-ledger %field2.3
-                  (insert (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
+                  (insert
+                    (+ (tfield (field-native))
+                       %x.15
+                       (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                 (public-ledger %field2.3
-                  (insert (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                  (insert
+                    (+ (tfield (field-native))
+                       %x.15
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
                       (safe-cast (tunsigned 18446744073709551615)
-                              (tunsigned 3)
+                                 (tunsigned 3)
                         3))
                   "oops 2d")
                 (public-ledger %field2.3
-                  (remove (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                  (remove
+                    (+ (tfield (field-native))
+                       %x.15
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
                       (safe-cast (tunsigned 18446744073709551615)
-                              (tunsigned 2)
+                                 (tunsigned 2)
                         2))
                   "oops 2e")
                 (assert
@@ -28621,13 +28967,20 @@ groups than for single tests.
                 (assert
                   (if (public-ledger %field2.3
                         (member
-                          (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                          (+ (tfield (field-native))
+                             %x.15
+                             (safe-cast (tfield (field-native))
+                                        (tunsigned 1)
+                               1))))
                       #f
                       #t)
                   "oops 2h")
                 (assert
                   (public-ledger %field2.3
-                    (member (+ #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
+                    (member
+                      (+ (tfield (field-native))
+                         %x.15
+                         (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                   "oops 2i")
                 (public-ledger %field3.4 (resetToDefault))
                 (public-ledger %field4.5 (resetToDefault))
@@ -28707,7 +29060,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 3
+                    (+ (tunsigned 4)
                        (safe-cast (tunsigned 4) (tunsigned 3) %i.2)
                        (safe-cast (tunsigned 4) (tunsigned 1) 1))
                     (tuple))
@@ -28789,7 +29142,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ 3
+                    (+ (tunsigned 7)
                        (safe-cast (tunsigned 7) (tunsigned 6) %i.2)
                        (safe-cast (tunsigned 7) (tunsigned 1) 1))
                     (tuple))
@@ -28843,10 +29196,8 @@ groups than for single tests.
         (circuit %foo.0 ([%b.1 (tboolean)] [%x.2 (tunsigned 1023)])
              (tunsigned 1023)
           (if %b.1
-              (downcast-unsigned
-                2046
-                1023
-                (+ 11
+              (downcast-unsigned 2046 1023
+                (+ (tunsigned 2046)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) %x.2)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) 1023)))
               (safe-cast (tunsigned 1023) (tunsigned 0) 0)))))
@@ -28873,25 +29224,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 49)]
                       [%z.6 (tunsigned 255)])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
+                    %x.4
+                    (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
                  (safe-cast (tfield (field-native)) (tunsigned 255) %z.6)))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 1) 1))))
             %v2.3))))
     )
 
@@ -28964,10 +29319,8 @@ groups than for single tests.
         (circuit %foo.0 ([%b.1 (tboolean)] [%x.2 (tunsigned 1023)])
              (tunsigned 1023)
           (if %b.1
-              (downcast-unsigned
-                2046
-                1023
-                (+ 11
+              (downcast-unsigned 2046 1023
+                (+ (tunsigned 2046)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) %x.2)
                    (safe-cast (tunsigned 2046) (tunsigned 1023) 1023)))
               (safe-cast (tunsigned 1023) (tunsigned 0) 0)))))
@@ -28994,25 +29347,29 @@ groups than for single tests.
                       [%y.5 (tunsigned 49)]
                       [%z.6 (tunsigned 255)])
                  (tfield (field-native))
-              (+ #f
-                 (+ #f %x.4 (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
+              (+ (tfield (field-native))
+                 (+ (tfield (field-native))
+                    %x.4
+                    (safe-cast (tfield (field-native)) (tunsigned 49) %y.5))
                  (safe-cast (tfield (field-native)) (tunsigned 255) %z.6)))
             %v1.2
             (tuple
-              (+ 4
+              (+ (tunsigned 8)
                  (safe-cast (tunsigned 8) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 8) (tunsigned 1) 1))
-              (* 6
+              (* (tunsigned 49)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 49) (tunsigned 7) %n.1))
-              (+ 5
+              (+ (tunsigned 17)
                  (safe-cast (tunsigned 17) (tunsigned 7) %n.1)
                  (safe-cast (tunsigned 17) (tunsigned 10) 10))
               (seq
                 (assert
                   (>= %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))
                   "result of subtraction would be negative")
-                (- 3 %n.1 (safe-cast (tunsigned 7) (tunsigned 1) 1))))
+                (- (tunsigned 7)
+                   %n.1
+                   (safe-cast (tunsigned 7) (tunsigned 1) 1))))
             %v2.3))))
     )
 
@@ -29243,7 +29600,7 @@ groups than for single tests.
              (tunsigned 1073741823)
           (safe-cast (tunsigned 1073741823)
                      (tunsigned 49)
-            (* 6
+            (* (tunsigned 49)
                (safe-cast (tunsigned 49) (tunsigned 7) %x.3)
                (safe-cast (tunsigned 49)
                           (tunsigned 7)
@@ -29277,7 +29634,7 @@ groups than for single tests.
              (tunsigned 1073741823)
           (safe-cast (tunsigned 1073741823)
                      (tunsigned 49)
-            (* 6
+            (* (tunsigned 49)
                (safe-cast (tunsigned 49) (tunsigned 7) %x.3)
                (safe-cast (tunsigned 49)
                           (tunsigned 7)
@@ -29330,8 +29687,10 @@ groups than for single tests.
                                  (ttuple (tfield (field-native)))
                                  (tunsigned 4294967295))])
              (tfield (field-native))
-          (+ #f
-             (+ #f (tuple-ref %x.1 0) (tuple-ref (tuple-ref %x.1 1) 0))
+          (+ (tfield (field-native))
+             (+ (tfield (field-native))
+                (tuple-ref %x.1 0)
+                (tuple-ref (tuple-ref %x.1 1) 0))
              (safe-cast (tfield (field-native))
                         (tunsigned 4294967295)
                (tuple-ref %x.1 2))))
@@ -29440,13 +29799,13 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 262140)
-            (+ 18
+            (+ (tunsigned 262140)
                (safe-cast (tunsigned 262140)
                           (tunsigned 196605)
-                 (+ 18
+                 (+ (tunsigned 196605)
                     (safe-cast (tunsigned 196605)
                                (tunsigned 131070)
-                      (+ 17
+                      (+ (tunsigned 131070)
                          (safe-cast (tunsigned 131070)
                                     (tunsigned 65535)
                            (tuple-ref
@@ -29454,7 +29813,9 @@ groups than for single tests.
                                (safe-cast (ttuple
                                             (tunsigned 65535)
                                             (tunsigned 65535))
-                                       (ttuple (tunsigned 255) (tunsigned 255))
+                                          (ttuple
+                                            (tunsigned 255)
+                                            (tunsigned 255))
                                  %y.4))
                              0))
                          (safe-cast (tunsigned 131070)
@@ -29464,14 +29825,18 @@ groups than for single tests.
                                (safe-cast (ttuple
                                             (tunsigned 65535)
                                             (tunsigned 65535))
-                                          (ttuple (tunsigned 255) (tunsigned 255))
+                                          (ttuple
+                                            (tunsigned 255)
+                                            (tunsigned 255))
                                  %y.4))
                              1))))
                     (safe-cast (tunsigned 196605)
                                (tunsigned 65535)
                       (tuple-ref
                         (call %foo.1
-                          (safe-cast (ttuple (tunsigned 65535) (tunsigned 65535))
+                          (safe-cast (ttuple
+                                       (tunsigned 65535)
+                                       (tunsigned 65535))
                                      (ttuple (tunsigned 255) (tunsigned 255))
                             %y.4))
                         0))))
@@ -29511,19 +29876,21 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 262140)
-            (+ 18
+            (+ (tunsigned 262140)
                (safe-cast (tunsigned 262140)
                           (tunsigned 196605)
-                 (+ 18
+                 (+ (tunsigned 196605)
                     (safe-cast (tunsigned 196605)
                                (tunsigned 131070)
-                      (+ 17
+                      (+ (tunsigned 131070)
                          (safe-cast (tunsigned 131070)
                                     (tunsigned 65535)
                            (tuple-ref
                              (call %foo.1
                                (safe-cast (tvector 2 (tunsigned 65535))
-                                          (ttuple (tunsigned 255) (tunsigned 255))
+                                          (ttuple
+                                            (tunsigned 255)
+                                            (tunsigned 255))
                                  %y.4))
                              0))
                          (safe-cast (tunsigned 131070)
@@ -29531,7 +29898,9 @@ groups than for single tests.
                            (tuple-ref
                              (call %foo.1
                                (safe-cast (tvector 2 (tunsigned 65535))
-                                          (ttuple (tunsigned 255) (tunsigned 255))
+                                          (ttuple
+                                            (tunsigned 255)
+                                            (tunsigned 255))
                                  %y.4))
                              1))))
                     (safe-cast (tunsigned 196605)
@@ -29578,13 +29947,13 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 262140)
-            (+ 18
+            (+ (tunsigned 262140)
                (safe-cast (tunsigned 262140)
                           (tunsigned 196605)
-                 (+ 18
+                 (+ (tunsigned 196605)
                     (safe-cast (tunsigned 196605)
                                (tunsigned 131070)
-                      (+ 17
+                      (+ (tunsigned 131070)
                          (safe-cast (tunsigned 131070)
                                     (tunsigned 65535)
                            (tuple-ref
@@ -29606,10 +29975,12 @@ groups than for single tests.
                                  %y.4))
                              1))))
                     (safe-cast (tunsigned 196605)
-                            (tunsigned 65535)
+                               (tunsigned 65535)
                       (tuple-ref
                         (call %foo.1
-                          (safe-cast (ttuple (tunsigned 65535) (tunsigned 65535))
+                          (safe-cast (ttuple
+                                       (tunsigned 65535)
+                                       (tunsigned 65535))
                                      (tvector 2 (tunsigned 255))
                             %y.4))
                         0))))
@@ -29647,13 +30018,13 @@ groups than for single tests.
              (tunsigned 4294967295)
           (safe-cast (tunsigned 4294967295)
                      (tunsigned 262140)
-            (+ 18
+            (+ (tunsigned 262140)
                (safe-cast (tunsigned 262140)
                           (tunsigned 196605)
-                 (+ 18
+                 (+ (tunsigned 196605)
                     (safe-cast (tunsigned 196605)
                                (tunsigned 131070)
-                      (+ 17
+                      (+ (tunsigned 131070)
                          (safe-cast (tunsigned 131070)
                                     (tunsigned 65535)
                            (tuple-ref
@@ -29710,7 +30081,7 @@ groups than for single tests.
                                    (tstruct S (x (tfield (field-native))))
                                    (tfield (field-native))))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (elt-ref (tuple-ref (tuple-ref %x.1 1) 2) x 0)
              (tuple-ref (tuple-ref %x.1 0) 3)))
         (circuit %foo.2 ([%x.3 (tvector
@@ -29721,7 +30092,7 @@ groups than for single tests.
                                    (tstruct S (x (tfield (field-native))))
                                    (tunsigned 65535)))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %bar.0
                (map
                  (circuit ([%__compact_pattern_tmp1.4 (ttuple
@@ -29775,7 +30146,7 @@ groups than for single tests.
                                    (tbytes 32)
                                    (tfield (field-native))))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (tuple-ref (tuple-ref %x.1 0) 3)
              (safe-cast (tfield (field-native)) (tunsigned 11) 11)))
         (circuit %foo.2 ([%x.3 (tvector
@@ -29786,7 +30157,7 @@ groups than for single tests.
                                    (tbytes 32)
                                    (tunsigned 65535)))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (call %bar.0
                (map
                  (circuit ([%__compact_pattern_tmp1.4 (ttuple
@@ -30012,16 +30383,28 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %foo.0 ([%n.1 (tfield (field-native))])
              (tboolean)
-          (let* ([[%x.2 (tboolean)] (if (== %n.1 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                                        #f
-                                        #t)])
+          (let* ([[%x.2 (tboolean)]
+                  (if (== %n.1
+                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                      #f
+                      #t)])
             (let* ([[%x.3 (tboolean)] (if %x.2 #f #t)])
-              (if %x.3 (== %n.1 (safe-cast (tfield (field-native)) (tunsigned 0) 0)) #f))))
+              (if %x.3
+                  (== %n.1
+                      (safe-cast (tfield (field-native)) (tunsigned 0) 0))
+                  #f))))
         (circuit %bar.4 ([%n.5 (tfield (field-native))])
              (tfield (field-native))
-          (if (call %foo.0 (+ #f %n.5 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-              (- #f %n.5 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-              (+ #f %n.5 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+          (if (call %foo.0
+                (+ (tfield (field-native))
+                   %n.5
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 %n.5
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+              (+ (tfield (field-native))
+                 %n.5
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
     )
 
   (test
@@ -30039,19 +30422,33 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %foo.0 ([%n.1 (tfield (field-native))])
              (tfield (field-native))
-          (let* ([[%x.2 (tboolean)] (== %n.1 (safe-cast (tfield (field-native)) (tunsigned 0) 0))])
-            (+ #f
+          (let* ([[%x.2 (tboolean)]
+                  (== %n.1
+                      (safe-cast (tfield (field-native)) (tunsigned 0) 0))])
+            (+ (tfield (field-native))
                (safe-cast (tfield (field-native)) (tunsigned 1) 1)
                (let* ([[%x.3 (tboolean)] (if %x.2 #f #t)])
                  (if (== %x.3 #f)
-                     (+ #f %n.1 (safe-cast (tfield (field-native)) (tunsigned 7) 7))
-                     (+ #f %n.1 (safe-cast (tfield (field-native)) (tunsigned 13) 13)))))))
+                     (+ (tfield (field-native))
+                        %n.1
+                        (safe-cast (tfield (field-native)) (tunsigned 7) 7))
+                     (+ (tfield (field-native))
+                        %n.1
+                        (safe-cast (tfield (field-native))
+                                   (tunsigned 13)
+                          13)))))))
         (circuit %bar.4 ([%n.5 (tfield (field-native))])
              (tfield (field-native))
-          (* #f
-             (* #f
-                (call %foo.0 (- #f %n.5 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-                (call %foo.0 (- #f %n.5 (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
+          (* (tfield (field-native))
+             (* (tfield (field-native))
+                (call %foo.0
+                  (- (tfield (field-native))
+                     %n.5
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                (call %foo.0
+                  (- (tfield (field-native))
+                     %n.5
+                     (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
              (safe-cast (tfield (field-native)) (tunsigned 3) 3)))))
     )
 
@@ -30069,13 +30466,18 @@ groups than for single tests.
         (public-ledger-declaration (constructor () (tuple)))
         (circuit %foo.0 ([%x.1 (tfield (field-native))])
              (tfield (field-native))
-          (+ #f (safe-cast (tfield (field-native)) (tunsigned 1) 1) (let* () %x.1)))
+          (+ (tfield (field-native))
+             (safe-cast (tfield (field-native)) (tunsigned 1) 1)
+             (let* () %x.1)))
         (circuit %bar.2 ([%n.3 (tfield (field-native))])
              (tfield (field-native))
-          (* #f
-             (* #f
+          (* (tfield (field-native))
+             (* (tfield (field-native))
                 (call %foo.0 %n.3)
-                (call %foo.0 (+ #f %n.3 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+                (call %foo.0
+                  (+ (tfield (field-native))
+                     %n.3
+                     (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
              (safe-cast (tfield (field-native)) (tunsigned 3) 3)))))
     )
 
@@ -30088,15 +30490,25 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (circuit %foo.0 ([%b.1 (tboolean)] [%x.2 (tfield (field-native))])
+        (circuit %foo.0 ([%b.1 (tboolean)]
+                         [%x.2 (tfield (field-native))])
              (tfield (field-native))
-          (+ #f
+          (+ (tfield (field-native))
              (safe-cast (tfield (field-native)) (tunsigned 1) 1)
-             (let* ([[%b.3 (tfield (field-native))] (+ #f %x.2 (safe-cast (tfield (field-native)) (tunsigned 1) 1))]
+             (let* ([[%b.3 (tfield (field-native))]
+                     (+ (tfield (field-native))
+                        %x.2
+                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))]
                     [[%x.4 (tboolean)] (if %b.1 #f #t)])
                (if %x.4
-                   (- #f %b.3 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                   (+ #f %b.3 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))))
+                   (- (tfield (field-native))
+                      %b.3
+                      (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                   (+ (tfield (field-native))
+                      %b.3
+                      (safe-cast (tfield (field-native))
+                                 (tunsigned 1)
+                        1))))))))
     )
 
   (test
@@ -30202,7 +30614,7 @@ groups than for single tests.
           (map
             (circuit ([%n.1 (tunsigned 3)])
                  (tfield (field-native))
-              (+ #f
+              (+ (tfield (field-native))
                  (safe-cast (tfield (field-native)) (tunsigned 3) %n.1)
                  (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (tuple 1 2 3)))))
@@ -30220,7 +30632,9 @@ groups than for single tests.
           (map
             (circuit ([%n.1 (tfield (field-native))])
                  (tfield (field-native))
-              (+ #f %n.1 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (+ (tfield (field-native))
+                 %n.1
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (tuple)))))
     )
 
@@ -30237,7 +30651,7 @@ groups than for single tests.
             (circuit ([%a.1 (tfield (field-native))]
                       [%n.2 (tunsigned 5)])
                  (tfield (field-native))
-              (+ #f
+              (+ (tfield (field-native))
                  %a.1
                  (safe-cast (tfield (field-native)) (tunsigned 5) %n.2)))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
@@ -31617,22 +32031,22 @@ groups than for single tests.
                               (b (tunsigned 65535)))])
                  (tunsigned 65535)
               (let* ([[%x.8 (tunsigned 65535)]
-                      (downcast-unsigned
-                        196605
-                        65535
-                        (+ 18
+                      (downcast-unsigned 196605 65535
+                        (+ (tunsigned 196605)
                            (safe-cast (tunsigned 196605)
                                       (tunsigned 131070)
-                             (+ 17
+                             (+ (tunsigned 131070)
                                 (safe-cast (tunsigned 131070)
-                                        (tunsigned 65535)
+                                           (tunsigned 65535)
                                   %a.6)
                                 (safe-cast (tunsigned 131070)
                                            (tunsigned 65535)
                                   (public-ledger %X.1 (0) read))))
                            (safe-cast (tunsigned 196605)
                                       (tunsigned 65535)
-                             (if %b.4 (elt-ref %s.7 a 0) (elt-ref %s.7 b 1)))))])
+                             (if %b.4
+                                 (elt-ref %s.7 a 0)
+                                 (elt-ref %s.7 b 1)))))])
                 (seq (public-ledger %X.1 (0) write %x.8) %x.8)))
             (safe-cast (tunsigned 65535) (tunsigned 0) 0)
             %v.5))
@@ -31749,11 +32163,11 @@ groups than for single tests.
             (circuit ([%a.4 (tunsigned 4294967295)]
                       [%n.5 (tunsigned 65535)])
                  (tunsigned 4294967295)
-              (downcast-unsigned
-                4295032830 
-                4294967295
-                (+ 33
-                   (safe-cast (tunsigned 4295032830) (tunsigned 4294967295) %a.4)
+              (downcast-unsigned 4295032830 4294967295
+                (+ (tunsigned 4295032830)
+                   (safe-cast (tunsigned 4295032830)
+                              (tunsigned 4294967295)
+                     %a.4)
                    (safe-cast (tunsigned 4295032830) (tunsigned 65535) %n.5))))
             (safe-cast (tunsigned 4294967295) (tunsigned 0) 0)
             %v.3))
@@ -31769,7 +32183,7 @@ groups than for single tests.
                 (assert
                   (>= %t.10 %t.11)
                   "result of subtraction would be negative")
-                (- 32 %t.10 %t.11)))))))
+                (- (tunsigned 4294967295) %t.10 %t.11)))))))
     )
   (test
     '(
@@ -31934,7 +32348,7 @@ groups than for single tests.
                       [%b.4 (tboolean)]
                       [%n.5 (tfield (field-native))])
                  (tfield (field-native))
-              (if %b.4 (+ #f %a.3 %n.5) %a.3))
+              (if %b.4 (+ (tfield (field-native)) %a.3 %n.5) %a.3))
             (safe-cast (tfield (field-native)) (tunsigned 0) 0)
             %vb.1
             %vn.2))
@@ -35092,49 +35506,62 @@ groups than for single tests.
          "  auth_cell.set(StructExample {value: v.value + disclose(x.value)});"
          "  return v;"
          "}"))
-      (returns
-        (program
-          (kernel-declaration (%kernel.0 () (Kernel)))
-          (public-ledger-declaration
-            ((%auth_cell.1
-               (0)
-               (__compact_Cell
-                 (tcontract AuthCell
-                   (get #f () (tstruct StructExample (value (tfield (field-native)))))
-                   (set #f ((tstruct StructExample (value (tfield (field-native)))))
-                     (ttuple))))))
-            (constructor ([%auth_cell_param.2 (tcontract AuthCell
-                                                (get #f ()
-                                                  (tstruct StructExample
-                                                    (value (tfield (field-native)))))
-                                                (set #f ((tstruct StructExample
-                                                           (value (tfield (field-native)))))
-                                                  (ttuple)))])
-              (seq
-                (public-ledger %auth_cell.1 (0) write %auth_cell_param.2)
-                (tuple))))
-          (export-typedef StructExample ()
-            (tstruct StructExample (value (tfield (field-native)))))
-          (circuit %use_auth_cell.3 ([%x.4 (tstruct StructExample
-                                             (value (tfield (field-native))))])
-               (tstruct StructExample (value (tfield (field-native))))
-            (let* ([[%v.5 (tstruct StructExample (value (tfield (field-native))))]
-                    (contract-call get
-                         ((public-ledger %auth_cell.1 (0) read)
-                          (tcontract AuthCell
-                            (get #f () (tstruct StructExample (value (tfield (field-native)))))
-                            (set #f ((tstruct StructExample (value (tfield (field-native)))))
-                              (ttuple)))))])
-              (seq
-                (contract-call set
-                      ((public-ledger %auth_cell.1 (0) read)
-                       (tcontract AuthCell
-                         (get #f () (tstruct StructExample (value (tfield (field-native)))))
-                         (set #f ((tstruct StructExample (value (tfield (field-native)))))
-                           (ttuple))))
-                   (new (tstruct StructExample (value (tfield (field-native))))
-                     (+ #f (elt-ref %v.5 value 0) (elt-ref %x.4 value 0))))
-                 %v.5)))))
+     (returns
+       (program
+         (kernel-declaration (%kernel.2 () (Kernel)))
+         (public-ledger-declaration
+           ((%auth_cell.3
+              (0)
+              (__compact_Cell
+                (tcontract AuthCell
+                  (get #f ()
+                    (tstruct StructExample (value (tfield (field-native)))))
+                  (set #f ((tstruct StructExample
+                             (value (tfield (field-native)))))
+                    (ttuple))))))
+           (constructor ([%auth_cell_param.4 (tcontract AuthCell
+                                               (get #f ()
+                                                 (tstruct StructExample
+                                                   (value (tfield
+                                                            (field-native)))))
+                                               (set #f ((tstruct StructExample
+                                                          (value (tfield
+                                                                   (field-native)))))
+                                                 (ttuple)))])
+             (seq
+               (public-ledger %auth_cell.3 (0) write %auth_cell_param.4)
+               (tuple))))
+         (export-typedef StructExample ()
+           (tstruct StructExample (value (tfield (field-native)))))
+         (circuit %use_auth_cell.5 ([%x.6 (tstruct StructExample
+                                            (value (tfield (field-native))))])
+              (tstruct StructExample (value (tfield (field-native))))
+           (let* ([[%v.7 (tstruct StructExample
+                           (value (tfield (field-native))))]
+                   (contract-call get
+                        ((public-ledger %auth_cell.3 (0) read)
+                         (tcontract AuthCell
+                           (get #f ()
+                             (tstruct StructExample
+                               (value (tfield (field-native)))))
+                           (set #f ((tstruct StructExample
+                                      (value (tfield (field-native)))))
+                             (ttuple)))))])
+             (seq
+               (contract-call set
+                    ((public-ledger %auth_cell.3 (0) read)
+                     (tcontract AuthCell
+                       (get #f ()
+                         (tstruct StructExample
+                           (value (tfield (field-native)))))
+                       (set #f ((tstruct StructExample
+                                  (value (tfield (field-native)))))
+                         (ttuple))))
+                 (new (tstruct StructExample (value (tfield (field-native))))
+                   (+ (tfield (field-native))
+                      (elt-ref %v.7 value 0)
+                      (elt-ref %x.6 value 0))))
+               %v.7)))))
      ))
 
   (test-group
@@ -39588,40 +40015,48 @@ groups than for single tests.
       (program
         (public-ledger-declaration () (constructor () (tuple)))
         (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
-        (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
+        (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (let* ([[%w.4 (tvector 0 (tfield (field-native)))] %v.3])
             (flet [%circ.5
                    (circuit ([%x.6 (tfield (field-native))])
                         (tboolean)
-                     (let* ([[%y.7 (tfield (field-native))] (+ #f
-                                                %x.6
-                                                (safe-cast (tfield (field-native)) (tunsigned 1) 1))])
+                     (let* ([[%y.7 (tfield (field-native))]
+                             (+ (tfield (field-native))
+                                %x.6
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 1)
+                                  1))])
                        (call %foo.0 %y.7)))]
               (let* ([[%t.8 (tvector 0 (tfield (field-native)))] %w.4])
                 (tuple)))))
-        (circuit %Y$C.9 ([%v.10 (tvector 1 (tfield (field-native)))])
+        (circuit %C.9 ([%v.10 (tvector 1 (tfield (field-native)))])
              (tvector 1 (tboolean))
           (let* ([[%w.11 (tvector 1 (tfield (field-native)))] %v.10])
             (flet [%circ.12
                    (circuit ([%x.13 (tfield (field-native))])
                         (tboolean)
-                     (let* ([[%y.14 (tfield (field-native))] (+ #f
-                                                 %x.13
-                                                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))])
+                     (let* ([[%y.14 (tfield (field-native))]
+                             (+ (tfield (field-native))
+                                %x.13
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 1)
+                                  1))])
                        (call %foo.0 %y.14)))]
               (let* ([[%t.15 (tvector 1 (tfield (field-native)))] %w.11])
-                (tuple
-                  (call %circ.12 (tuple-ref %t.15 0)))))))
-        (circuit %Z$C.16 ([%v.17 (tvector 2 (tfield (field-native)))])
+                (tuple (call %circ.12 (tuple-ref %t.15 0)))))))
+        (circuit %C.16 ([%v.17 (tvector 2 (tfield (field-native)))])
              (tvector 2 (tboolean))
           (let* ([[%w.18 (tvector 2 (tfield (field-native)))] %v.17])
             (flet [%circ.19
                    (circuit ([%x.20 (tfield (field-native))])
                         (tboolean)
-                     (let* ([[%y.21 (tfield (field-native))] (+ #f
-                                                 %x.20
-                                                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))])
+                     (let* ([[%y.21 (tfield (field-native))]
+                             (+ (tfield (field-native))
+                                %x.20
+                                (safe-cast (tfield (field-native))
+                                           (tunsigned 1)
+                                  1))])
                        (call %foo.0 %y.21)))]
               (let* ([[%t.22 (tvector 2 (tfield (field-native)))] %w.18])
                 (tuple
@@ -40236,7 +40671,7 @@ groups than for single tests.
                 (tuple
                   (let* ([[%x.6 (tfield (field-native))] (tuple-ref %t.5 0)])
                     (let* ([[%y.7 (tfield (field-native))]
-                            (+ #f
+                            (+ (tfield (field-native))
                                %x.6
                                (safe-cast (tfield (field-native))
                                           (tunsigned 1)
@@ -40244,7 +40679,7 @@ groups than for single tests.
                       (call %foo.0 %y.7)))
                   (let* ([[%x.8 (tfield (field-native))] (tuple-ref %t.5 1)])
                     (let* ([[%y.9 (tfield (field-native))]
-                            (+ #f
+                            (+ (tfield (field-native))
                                %x.8
                                (safe-cast (tfield (field-native))
                                           (tunsigned 1)
@@ -40370,12 +40805,25 @@ groups than for single tests.
           (let* ([[%t.5 (tvector 3 (tfield (field-native)))] %v.3])
             (tuple
               (let* ([[%x.6 (tfield (field-native))] (tuple-ref %t.5 0)])
-                (if %b.4 (call %foo.0 (+ #f %x.6 (safe-cast (tfield (field-native)) (tunsigned 1) 1))) #f))
+                (if %b.4
+                    (call %foo.0
+                      (+ (tfield (field-native))
+                         %x.6
+                         (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                    #f))
               (let* ([[%x.7 (tfield (field-native))] (tuple-ref %t.5 1)])
-                (if %b.4 (call %foo.0 (+ #f %x.7 (safe-cast (tfield (field-native)) (tunsigned 1) 1))) #f))
+                (if %b.4
+                    (call %foo.0
+                      (+ (tfield (field-native))
+                         %x.7
+                         (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                    #f))
               (let* ([[%x.8 (tfield (field-native))] (tuple-ref %t.5 2)])
                 (if %b.4
-                    (call %foo.0 (+ #f %x.8 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                    (call %foo.0
+                      (+ (tfield (field-native))
+                         %x.8
+                         (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                     #f)))))))
     )
 
@@ -40549,7 +40997,7 @@ groups than for single tests.
         (public-ledger-declaration ())
         (circuit %foo.0 ([%x.1 (tfield (field-native))])
              (ttuple (tfield (field-native)) (tfield (field-native)))
-          (tuple 14 (+ #f %x.1 %x.1)))))
+          (tuple 14 (+ (tfield (field-native)) %x.1 %x.1)))))
     )
 
   (test
@@ -40566,7 +41014,9 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%a.1 (0) (__compact_Cell (tvector 3 (tfield (field-native)))))))
+          ((%a.1
+             (0)
+             (__compact_Cell (tvector 3 (tfield (field-native)))))))
         (circuit %foo.2 ([%v.3 (tvector 5 (tfield (field-native)))])
              (tvector 3 (tfield (field-native)))
           (seq
@@ -40579,15 +41029,21 @@ groups than for single tests.
                               (tuple-ref %v.3 1)
                               (tuple-ref %v.3 2))])
                       (tuple
-                        (let* ([[%x.7 (tfield (field-native))] (tuple-ref %t.5 0)]
-                               [[%y.8 (tfield (field-native))] (tuple-ref %t.6 0)])
-                          (+ #f %x.7 %y.8))
-                        (let* ([[%x.9 (tfield (field-native))] (tuple-ref %t.5 1)]
-                               [[%y.10 (tfield (field-native))] (tuple-ref %t.6 1)])
-                          (+ #f %x.9 %y.10))
-                        (let* ([[%x.11 (tfield (field-native))] (tuple-ref %t.5 2)]
-                               [[%y.12 (tfield (field-native))] (tuple-ref %t.6 2)])
-                          (+ #f %x.11 %y.12))))])
+                        (let* ([[%x.7 (tfield (field-native))]
+                                (tuple-ref %t.5 0)]
+                               [[%y.8 (tfield (field-native))]
+                                (tuple-ref %t.6 0)])
+                          (+ (tfield (field-native)) %x.7 %y.8))
+                        (let* ([[%x.9 (tfield (field-native))]
+                                (tuple-ref %t.5 1)]
+                               [[%y.10 (tfield (field-native))]
+                                (tuple-ref %t.6 1)])
+                          (+ (tfield (field-native)) %x.9 %y.10))
+                        (let* ([[%x.11 (tfield (field-native))]
+                                (tuple-ref %t.5 2)]
+                               [[%y.12 (tfield (field-native))]
+                                (tuple-ref %t.6 2)])
+                          (+ (tfield (field-native)) %x.11 %y.12))))])
               (public-ledger %a.1 (0) write %tmp.4))
             (public-ledger %a.1 (0) read)))))
     )
@@ -40606,7 +41062,9 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%a.1 (0) (__compact_Cell (tvector 3 (tfield (field-native)))))))
+          ((%a.1
+             (0)
+             (__compact_Cell (tvector 3 (tfield (field-native)))))))
         (circuit %foo.2 ([%v.3 (tvector 5 (tfield (field-native)))])
              (tvector 3 (tfield (field-native)))
           (seq
@@ -40619,15 +41077,21 @@ groups than for single tests.
                               (tuple-ref %v.3 1)
                               (tuple-ref %v.3 2))])
                       (tuple
-                        (let* ([[%x.7 (tfield (field-native))] (tuple-ref %t.5 0)]
-                               [[%y.8 (tfield (field-native))] (tuple-ref %t.6 0)])
-                          (+ #f %x.7 %y.8))
-                        (let* ([[%x.9 (tfield (field-native))] (tuple-ref %t.5 1)]
-                               [[%y.10 (tfield (field-native))] (tuple-ref %t.6 1)])
-                          (+ #f %x.9 %y.10))
-                        (let* ([[%x.11 (tfield (field-native))] (tuple-ref %t.5 2)]
-                               [[%y.12 (tfield (field-native))] (tuple-ref %t.6 2)])
-                          (+ #f %x.11 %y.12))))])
+                        (let* ([[%x.7 (tfield (field-native))]
+                                (tuple-ref %t.5 0)]
+                               [[%y.8 (tfield (field-native))]
+                                (tuple-ref %t.6 0)])
+                          (+ (tfield (field-native)) %x.7 %y.8))
+                        (let* ([[%x.9 (tfield (field-native))]
+                                (tuple-ref %t.5 1)]
+                               [[%y.10 (tfield (field-native))]
+                                (tuple-ref %t.6 1)])
+                          (+ (tfield (field-native)) %x.9 %y.10))
+                        (let* ([[%x.11 (tfield (field-native))]
+                                (tuple-ref %t.5 2)]
+                               [[%y.12 (tfield (field-native))]
+                                (tuple-ref %t.6 2)])
+                          (+ (tfield (field-native)) %x.11 %y.12))))])
               (public-ledger %a.1 (0) write %tmp.4))
             (public-ledger %a.1 (0) read)))))
     )
@@ -40688,13 +41152,16 @@ groups than for single tests.
                       (tuple
                         (let* ([[%x.7 (tunsigned 255)] (tuple-ref %t.5 0)]
                                [[%y.8 (tunsigned 255)] (tuple-ref %t.6 0)])
-                          (downcast-unsigned 510 255 (+ 9 %x.7 %y.8)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.7 %y.8)))
                         (let* ([[%x.9 (tunsigned 255)] (tuple-ref %t.5 1)]
                                [[%y.10 (tunsigned 255)] (tuple-ref %t.6 1)])
-                          (downcast-unsigned 510 255 (+ 9 %x.9 %y.10)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.9 %y.10)))
                         (let* ([[%x.11 (tunsigned 255)] (tuple-ref %t.5 2)]
                                [[%y.12 (tunsigned 255)] (tuple-ref %t.6 2)])
-                          (downcast-unsigned 510 255 (+ 9 %x.11 %y.12)))))])
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.11 %y.12)))))])
               (public-ledger %a.1 (0) write %tmp.4))
             (let* ([[%tmp.13 (tvector 3 (tunsigned 255))]
                     (let* ([[%t.14 (tvector 3 (tunsigned 255))]
@@ -40707,13 +41174,16 @@ groups than for single tests.
                       (tuple
                         (let* ([[%x.16 (tunsigned 255)] (tuple-ref %t.14 0)]
                                [[%y.17 (tunsigned 255)] (tuple-ref %t.15 0)])
-                          (downcast-unsigned 510 255 (+ 9 %x.16 %y.17)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.16 %y.17)))
                         (let* ([[%x.18 (tunsigned 255)] (tuple-ref %t.14 1)]
                                [[%y.19 (tunsigned 255)] (tuple-ref %t.15 1)])
-                          (downcast-unsigned 510 255 (+ 9 %x.18 %y.19)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.18 %y.19)))
                         (let* ([[%x.20 (tunsigned 255)] (tuple-ref %t.14 2)]
                                [[%y.21 (tunsigned 255)] (tuple-ref %t.15 2)])
-                          (downcast-unsigned 510 255 (+ 9 %x.20 %y.21)))))])
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.20 %y.21)))))])
               (public-ledger %a.1 (0) write %tmp.13))
             (public-ledger %a.1 (0) read)))))
     )
@@ -40733,18 +41203,27 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration ())
-        (witness %w.0 ([%x.1 (tfield (field-native))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 2 (tvector 2 (tfield (field-native))))])
+        (witness %w.0 ([%x.1 (tfield (field-native))])
+             (tfield (field-native)))
+        (circuit %foo.2 ([%v.3 (tvector
+                                 2
+                                 (tvector 2 (tfield (field-native))))])
              (tfield (field-native))
-          (* #f
-             (let* ([[%v.4 (tvector 2 (tfield (field-native)))] (tuple-ref %v.3 0)]
-                    [[%k1.5 (tfield (field-native))] (call %w.0 (tuple-ref %v.4 0))]
-                    [[%k2.6 (tfield (field-native))] (call %w.0 (tuple-ref %v.4 1))])
-               (+ #f %k1.5 %k2.6))
-             (let* ([[%v.7 (tvector 2 (tfield (field-native)))] (tuple-ref %v.3 1)]
-                    [[%k1.8 (tfield (field-native))] (call %w.0 (tuple-ref %v.7 0))]
-                    [[%k2.9 (tfield (field-native))] (call %w.0 (tuple-ref %v.7 1))])
-               (+ #f %k1.8 %k2.9))))))
+          (* (tfield (field-native))
+             (let* ([[%v.4 (tvector 2 (tfield (field-native)))]
+                     (tuple-ref %v.3 0)]
+                    [[%k1.5 (tfield (field-native))]
+                     (call %w.0 (tuple-ref %v.4 0))]
+                    [[%k2.6 (tfield (field-native))]
+                     (call %w.0 (tuple-ref %v.4 1))])
+               (+ (tfield (field-native)) %k1.5 %k2.6))
+             (let* ([[%v.7 (tvector 2 (tfield (field-native)))]
+                     (tuple-ref %v.3 1)]
+                    [[%k1.8 (tfield (field-native))]
+                     (call %w.0 (tuple-ref %v.7 0))]
+                    [[%k2.9 (tfield (field-native))]
+                     (call %w.0 (tuple-ref %v.7 1))])
+               (+ (tfield (field-native)) %k1.8 %k2.9))))))
     )
 
   (test
@@ -40764,19 +41243,24 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tfield (field-native))))))
-        (witness %w.2 ([%x.3 (tfield (field-native))]) (tfield (field-native)))
+        (witness %w.2 ([%x.3 (tfield (field-native))])
+             (tfield (field-native)))
         (circuit %foo.4 ([%v.5 (tvector 2 (tfield (field-native)))])
              (tfield (field-native))
           (seq
             (let* ([[%k1.6 (tfield (field-native))] (tuple-ref %v.5 0)]
                    [[%k2.7 (tfield (field-native))] (call %w.2 %k1.6)]
                    [[%tmp.8 (tfield (field-native))]
-                    (+ #f (public-ledger %X.1 (0) read) %k2.7)])
+                    (+ (tfield (field-native))
+                       (public-ledger %X.1 (0) read)
+                       %k2.7)])
               (public-ledger %X.1 (0) write %tmp.8))
             (let* ([[%k1.9 (tfield (field-native))] (tuple-ref %v.5 1)]
                    [[%k2.10 (tfield (field-native))] (call %w.2 %k1.9)]
                    [[%tmp.11 (tfield (field-native))]
-                    (+ #f (public-ledger %X.1 (0) read) %k2.10)])
+                    (+ (tfield (field-native))
+                       (public-ledger %X.1 (0) read)
+                       %k2.10)])
               (public-ledger %X.1 (0) write %tmp.11))
             (public-ledger %X.1 (0) read)))))
     )
@@ -40810,13 +41294,16 @@ groups than for single tests.
                       (tuple
                         (let* ([[%x.7 (tunsigned 255)] (tuple-ref %t.5 0)]
                                [[%y.8 (tunsigned 255)] (tuple-ref %t.6 0)])
-                          (downcast-unsigned 510 255 (+ 9 %x.7 %y.8)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.7 %y.8)))
                         (let* ([[%x.9 (tunsigned 255)] (tuple-ref %t.5 1)]
                                [[%y.10 (tunsigned 255)] (tuple-ref %t.6 1)])
-                          (downcast-unsigned 510 255 (+ 9 %x.9 %y.10)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.9 %y.10)))
                         (let* ([[%x.11 (tunsigned 255)] (tuple-ref %t.5 2)]
                                [[%y.12 (tunsigned 255)] (tuple-ref %t.6 2)])
-                          (downcast-unsigned 510 255 (+ 9 %x.11 %y.12)))))])
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.11 %y.12)))))])
               (public-ledger %a.1 (0) write %tmp.4))
             (let* ([[%tmp.13 (tvector 3 (tunsigned 255))]
                     (let* ([[%t.14 (tvector 3 (tunsigned 255))]
@@ -40829,13 +41316,16 @@ groups than for single tests.
                       (tuple
                         (let* ([[%x.16 (tunsigned 255)] (tuple-ref %t.14 0)]
                                [[%y.17 (tunsigned 255)] (tuple-ref %t.15 0)])
-                          (downcast-unsigned 510 255 (+ 9 %x.16 %y.17)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.16 %y.17)))
                         (let* ([[%x.18 (tunsigned 255)] (tuple-ref %t.14 1)]
                                [[%y.19 (tunsigned 255)] (tuple-ref %t.15 1)])
-                          (downcast-unsigned 510 255 (+ 9 %x.18 %y.19)))
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.18 %y.19)))
                         (let* ([[%x.20 (tunsigned 255)] (tuple-ref %t.14 2)]
                                [[%y.21 (tunsigned 255)] (tuple-ref %t.15 2)])
-                          (downcast-unsigned 510 255 (+ 9 %x.20 %y.21)))))])
+                          (downcast-unsigned 510 255
+                            (+ (tunsigned 510) %x.20 %y.21)))))])
               (public-ledger %a.1 (0) write %tmp.13))
             (public-ledger %a.1 (0) read)))))
     )
@@ -40854,13 +41344,27 @@ groups than for single tests.
       (program
         (public-ledger-declaration ())
         (circuit %foo.0 ([%x.1 (tfield (field-native))])
-             (tvector 5 (ttuple (tfield (field-native)) (tfield (field-native)) (tfield (field-native))))
+             (tvector
+               5
+               (ttuple
+                 (tfield (field-native))
+                 (tfield (field-native))
+                 (tfield (field-native))))
           (tuple
-            (tuple (+ #f %x.1 %x.1) 0 (* #f %x.1 %x.1))
+            (tuple
+              (+ (tfield (field-native)) %x.1 %x.1)
+              0
+              (* (tfield (field-native)) %x.1 %x.1))
             (tuple %x.1 %x.1 0)
-            (tuple %x.1 (- #f 0 %x.1) 0)
-            (tuple (+ #f 1 %x.1) (- #f 1 %x.1) %x.1)
-            (tuple (+ #f %x.1 1) (- #f %x.1 1) %x.1)))))
+            (tuple %x.1 (- (tfield (field-native)) 0 %x.1) 0)
+            (tuple
+              (+ (tfield (field-native)) 1 %x.1)
+              (- (tfield (field-native)) 1 %x.1)
+              %x.1)
+            (tuple
+              (+ (tfield (field-native)) %x.1 1)
+              (- (tfield (field-native)) %x.1 1)
+              %x.1)))))
     )
 
   (test
@@ -40933,38 +41437,60 @@ groups than for single tests.
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
           ((%F.1 (0) (__compact_Cell (tfield (field-native))))))
-        (circuit %foo.2 ([%v.3 (tvector 10 (tfield (field-native)))])
+        (circuit %foo.2 ([%v.3 (tvector
+                                 10
+                                 (tfield (field-native)))])
              (tfield (field-native))
           (seq
             (let* ([[%tmp.4 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 0))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 0))])
               (public-ledger %F.1 (0) write %tmp.4))
             (let* ([[%tmp.5 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 1))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 1))])
               (public-ledger %F.1 (0) write %tmp.5))
             (let* ([[%tmp.6 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 2))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 2))])
               (public-ledger %F.1 (0) write %tmp.6))
             (let* ([[%tmp.7 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 3))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 3))])
               (public-ledger %F.1 (0) write %tmp.7))
             (let* ([[%tmp.8 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 4))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 4))])
               (public-ledger %F.1 (0) write %tmp.8))
             (let* ([[%tmp.9 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 5))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 5))])
               (public-ledger %F.1 (0) write %tmp.9))
             (let* ([[%tmp.10 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 6))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 6))])
               (public-ledger %F.1 (0) write %tmp.10))
             (let* ([[%tmp.11 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 7))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 7))])
               (public-ledger %F.1 (0) write %tmp.11))
             (let* ([[%tmp.12 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 8))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 8))])
               (public-ledger %F.1 (0) write %tmp.12))
             (let* ([[%tmp.13 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) (tuple-ref %v.3 9))])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       (tuple-ref %v.3 9))])
               (public-ledger %F.1 (0) write %tmp.13))
             (public-ledger %F.1 (0) read)))))
     )
@@ -41019,15 +41545,15 @@ groups than for single tests.
         (public-ledger-declaration
           ((%F.1 (0) (__compact_Cell (tfield (field-native))))))
         (circuit %foo.2 ()
-             (ttuple ,@(map (lambda (n) `(tbytes ,n)) n*))
+             (ttuple (tbytes 0) (tbytes 1) (tbytes 10) (tbytes 31)
+               (tbytes 32) (tbytes 62))
           (seq
             (let* ([[%tmp.3 (tfield (field-native))]
-                    (+ #f (public-ledger %F.1 (0) read) 73)])
+                    (+ (tfield (field-native))
+                       (public-ledger %F.1 (0) read)
+                       73)])
               (public-ledger %F.1 (0) write %tmp.3))
-            (tuple
-              #vu8()
-              #vu8(0)
-              #vu8(0 1 2 3 4 5 6 7 8 9)
+            (tuple #vu8() #vu8(0) #vu8(0 1 2 3 4 5 6 7 8 9)
               #vu8(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
                    22 23 24 25 26 27 28 29 30)
               #vu8(0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21
@@ -41062,9 +41588,11 @@ groups than for single tests.
              (ttuple)
           (seq
             (let* ([[%k1.4 (tbytes 31)]
-                    (field->bytes 31 (field-native) (- #f %x.3 1))])
+                    (field->bytes 31 (field-native)
+                      (- (tfield (field-native)) %x.3 1))])
               (seq
-                (field->bytes 31 (field-native) (+ #f %x.3 1))
+                (field->bytes 31 (field-native)
+                  (+ (tfield (field-native)) %x.3 1))
                 (public-ledger %bv.1 (0) write %k1.4)))
             (tuple)))))
     )
@@ -41093,7 +41621,8 @@ groups than for single tests.
              (ttuple)
           (seq
             (let* ([[%k1.4 (tbytes 32)]
-                    (field->bytes 32 (field-native) (- #f %x.3 1))])
+                    (field->bytes 32 (field-native)
+                      (- (tfield (field-native)) %x.3 1))])
               (public-ledger %bv.1 (0) write %k1.4))
             (tuple)))))
     )
@@ -41123,7 +41652,9 @@ groups than for single tests.
              (ttuple)
           (seq
             (let* ([[%k1.5 (tfield (field-native))]
-                    (- #f (bytes->field (field-native) 31 %bv1.3) 1)])
+                    (- (tfield (field-native))
+                       (bytes->field (field-native) 31 %bv1.3)
+                       1)])
               (public-ledger %x.1 (0) write %k1.5))
             (tuple)))))
     )
@@ -41153,7 +41684,9 @@ groups than for single tests.
              (ttuple)
           (seq
             (let* ([[%k1.5 (tfield (field-native))]
-                    (- #f (bytes->field (field-native) 32 %bv1.3) 1)])
+                    (- (tfield (field-native))
+                       (bytes->field (field-native) 32 %bv1.3)
+                       1)])
               (seq
                 (bytes->field (field-native) 32 %bv2.4)
                 (public-ledger %x.1 (0) write %k1.5)))
@@ -41393,7 +41926,9 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.1 (0) (__compact_Cell (tfield (field-native))))))
+          ((%forceField.1
+             (0)
+             (__compact_Cell (tfield (field-native))))))
         (circuit %foo.2 ([%v.3 (tvector 7 (tfield (field-native)))]
                          [%b.4 (tbytes 7)])
              (tfield (field-native))
@@ -41407,12 +41942,12 @@ groups than for single tests.
         (circuit %foo.10 ([%x.11 (tfield (field-native))])
              (tfield (field-native))
           (= #t %t.12 (public-ledger %forceField.1 (0) write 7))
-          (= #t %t.13 (+ #f %x.11 1))
+          (= #t %t.13 (+ (tfield (field-native)) %x.11 1))
           %t.13)
         (circuit %bar.14 ([%x.15 (tfield (field-native))])
              (tfield (field-native))
           (= #t %t.16 (public-ledger %forceField.1 (0) write 7))
-          (= #t %t.17 (- #f %x.15 1))
+          (= #t %t.17 (- (tfield (field-native)) %x.15 1))
           %t.17)))
     )
 
@@ -41511,7 +42046,9 @@ groups than for single tests.
              (MerkleTree
                10
                (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
-           (%field6.7 (6) (HistoricMerkleTree 10 (tfield (field-native))))
+           (%field6.7
+             (6)
+             (HistoricMerkleTree 10 (tfield (field-native))))
            (%field7.8
              (7)
              (__compact_Cell
@@ -41577,18 +42114,18 @@ groups than for single tests.
           (assert %t.35 "oops 2c")
           (= #t %t.36 (tuple))
           (= #t %t.37 (public-ledger %field2.3 (2) insert %x.13))
-          (= #t %tmp.38 (+ #f %x.13 1))
+          (= #t %tmp.38 (+ (tfield (field-native)) %x.13 1))
           (= #t %t.39 (public-ledger %field2.3 (2) insert %tmp.38))
-          (= #t %tmp.40 (+ #f %x.13 2))
+          (= #t %tmp.40 (+ (tfield (field-native)) %x.13 2))
           (= #t %t.41 (public-ledger %field2.3 (2) insert %tmp.40))
-          (= #t %tmp.42 (+ #f %x.13 1))
+          (= #t %tmp.42 (+ (tfield (field-native)) %x.13 1))
           (= #t %t.43 (public-ledger %field2.3 (2) insert %tmp.42))
           (= #t %t.44 (public-ledger %field2.3 (2) size))
           (= #t %t.45 (== %t.44 3))
           (= #t %t.46 (select #t %t.45 #t))
           (assert %t.46 "oops 2d")
           (= #t %t.47 (tuple))
-          (= #t %tmp.48 (+ #f %x.13 1))
+          (= #t %tmp.48 (+ (tfield (field-native)) %x.13 1))
           (= #t %t.49 (public-ledger %field2.3 (2) remove %tmp.48))
           (= #t %t.50 (public-ledger %field2.3 (2) size))
           (= #t %t.51 (== %t.50 2))
@@ -41606,7 +42143,7 @@ groups than for single tests.
           (= #t %t.61 (select #t %t.60 #t))
           (assert %t.61 "oops 2g")
           (= #t %t.62 (tuple))
-          (= #t %tmp.63 (+ #f %x.13 1))
+          (= #t %tmp.63 (+ (tfield (field-native)) %x.13 1))
           (= #t %t.64 (public-ledger %field2.3 (2) member %tmp.63))
           (= #t %t.65 (select %t.64 #t #f))
           (= #t %t.66 (select %t.64 #f #t))
@@ -41614,7 +42151,7 @@ groups than for single tests.
           (= #t %t.68 (select #t %t.67 #t))
           (assert %t.68 "oops 2h")
           (= #t %t.69 (tuple))
-          (= #t %tmp.70 (+ #f %x.13 2))
+          (= #t %tmp.70 (+ (tfield (field-native)) %x.13 2))
           (= #t %t.71 (public-ledger %field2.3 (2) member %tmp.70))
           (= #t %t.72 (select #t %t.71 #t))
           (assert %t.72 "oops 2i")
@@ -43042,13 +43579,18 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ((argument
                            (%v.3 %v.4 %v.5 %v.6 %v.7 %v.8 %v.9)
                            (ty ((afield) (afield) (afield) (afield) (afield)
                                  (afield) (afield))
-                               ((tfield (field-native)) (tfield (field-native)) (tfield (field-native)) (tfield (field-native)) (tfield (field-native))
-                                 (tfield (field-native)) (tfield (field-native)))))
+                               ((tfield (field-native)) (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native)))))
                          (argument
                            (%b.10)
                            (ty ((abytes 7)) ((tunsigned 72057594037927935)))))
@@ -43068,14 +43610,16 @@ groups than for single tests.
                                  (abytes 1) (abytes 1) (abytes 1) (abytes 1)
                                  (abytes 1) (abytes 1) (abytes 1) (abytes 1)
                                  (abytes 1) (abytes 1))
-                                ((tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1))))
+                                ((tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1))))
                           (argument
                             (%b.42)
                             (ty ((abytes 30))
@@ -43089,14 +43633,14 @@ groups than for single tests.
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t.45 (+ #f %x.44 1))
+          (= 1 %t.45 (+ (tfield (field-native)) %x.44 1))
           (%t.45))
         (circuit %bar.46 ((argument
                             (%x.47)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t.48 (- #f %x.47 1))
+          (= 1 %t.48 (- (tfield (field-native)) %x.47 1))
           (%t.48))))
     )
 
@@ -43744,7 +44288,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (witness %foo.2 ((argument
                            (%x.3)
                            (ty ((abytes 1)) ((tunsigned 31)))))
@@ -43755,7 +44300,7 @@ groups than for single tests.
                          (argument (%b.6) (ty ((abytes 1)) ((tunsigned 15)))))
              (ty () ())
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 %t.7 (+ 5 %a.5 %b.6))
+          (= 1 %t.7 (+ (tunsigned 30) %a.5 %b.6))
           (= 1 () (call %foo.2 %t.7))
           ())))
     )
@@ -44831,7 +45376,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.8
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (witness %foo.9 ((argument
                            (%n.10)
                            (ty ((afield)) ((tfield (field-native))))))
@@ -44839,18 +45385,20 @@ groups than for single tests.
         (circuit %C.11 ((argument
                           (%v.1 %v.3 %v.5)
                           (ty ((afield) (afield) (afield))
-                              ((tfield (field-native)) (tfield (field-native)) (tfield (field-native)))))
+                              ((tfield (field-native))
+                                (tfield (field-native))
+                                (tfield (field-native)))))
                         (argument (%b.0) (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((abytes 1) (abytes 1) (abytes 1))
                  ((tunsigned 1) (tunsigned 1) (tunsigned 1)))
           (= 1 () (public-ledger %forceField.8 (0) write 7))
-          (= 1 %t.12 (+ #f %v.1 1))
+          (= 1 %t.12 (+ (tfield (field-native)) %v.1 1))
           (= %b.0 (%t.2) (call %foo.9 %t.12))
           (= 1 %t.13 (select %b.0 %t.2 0))
-          (= 1 %t.14 (+ #f %v.3 1))
+          (= 1 %t.14 (+ (tfield (field-native)) %v.3 1))
           (= %b.0 (%t.4) (call %foo.9 %t.14))
           (= 1 %t.15 (select %b.0 %t.4 0))
-          (= 1 %t.16 (+ #f %v.5 1))
+          (= 1 %t.16 (+ (tfield (field-native)) %v.5 1))
           (= %b.0 (%t.6) (call %foo.9 %t.16))
           (= 1 %t.17 (select %b.0 %t.6 0))
           (%t.13 %t.15 %t.17))))
@@ -44911,22 +45459,25 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.5 () (Kernel)))
+        (kernel-declaration (%kernel.6 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.6
+          ((%forceField.7
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (circuit %F.7 ((argument
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %F.8 ((argument
                          (%b.1)
                          (ty ((abytes 1)) ((tunsigned 1))))
-                       (argument (%n.0) (ty ((afield)) ((tfield (field-native))))))
+                       (argument
+                         (%n.0)
+                         (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
-          (= 1 () (public-ledger %forceField.6 (0) write 7))
-          (= 1 %m.2 (* #f %n.0 2))
-          (= 1 %t.4 (+ #f %m.2 1))
-          (= 1 %t.3 (+ #f %m.2 2))
-          (= 1 %t.8 (select %b.1 %t.4 %t.3))
-          (%t.8))))
+          (= 1 () (public-ledger %forceField.7 (0) write 7))
+          (= 1 %m.2 (* (tfield (field-native)) %n.0 2))
+          (= 1 %t.5 (+ (tfield (field-native)) %m.2 1))
+          (= 1 %t.4 (+ (tfield (field-native)) %m.2 2))
+          (= 1 %t.9 (select %b.1 %t.5 %t.4))
+          (%t.9))))
     )
 
   (test
@@ -44972,18 +45523,23 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.7
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %C.8 ((argument
                          (%u.1 %u.4)
-                         (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native)))))
+                         (ty ((afield) (afield))
+                             ((tfield (field-native))
+                               (tfield (field-native)))))
                        (argument
                          (%v.0 %v.3)
-                         (ty ((abytes 1) (abytes 1)) ((tunsigned 1) (tunsigned 1)))))
-             (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native))))
+                         (ty ((abytes 1) (abytes 1))
+                             ((tunsigned 1) (tunsigned 1)))))
+             (ty ((afield) (afield))
+                 ((tfield (field-native)) (tfield (field-native))))
           (= 1 () (public-ledger %forceField.7 (0) write 7))
-          (= 1 %t.2 (* #f 2 %u.1))
+          (= 1 %t.2 (* (tfield (field-native)) 2 %u.1))
           (= 1 %t.9 (select %v.0 %t.2 0))
-          (= 1 %t.5 (* #f 2 %u.4))
+          (= 1 %t.5 (* (tfield (field-native)) 2 %u.4))
           (= 1 %t.10 (select %v.3 %t.5 0))
           (%t.9 %t.10))))
     )
@@ -45267,13 +45823,18 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.3
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.4 ((argument
                            (%v.5 %v.6 %v.7 %v.8 %v.9 %v.10 %v.11)
                            (ty ((afield) (afield) (afield) (afield) (afield)
                                  (afield) (afield))
-                               ((tfield (field-native)) (tfield (field-native)) (tfield (field-native)) (tfield (field-native)) (tfield (field-native))
-                                 (tfield (field-native)) (tfield (field-native)))))
+                               ((tfield (field-native)) (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native))
+                                 (tfield (field-native)))))
                          (argument
                            (%b.12)
                            (ty ((abytes 7)) ((tunsigned 72057594037927935)))))
@@ -45293,14 +45854,16 @@ groups than for single tests.
                                  (abytes 1) (abytes 1) (abytes 1) (abytes 1)
                                  (abytes 1) (abytes 1) (abytes 1) (abytes 1)
                                  (abytes 1) (abytes 1))
-                                ((tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1) (tunsigned 1) (tunsigned 1)
-                                 (tunsigned 1) (tunsigned 1))))
+                                ((tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1)
+                                 (tunsigned 1) (tunsigned 1) (tunsigned 1))))
                           (argument
                             (%b.44)
                             (ty ((abytes 30))
@@ -45314,14 +45877,14 @@ groups than for single tests.
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.3 (0) write 7))
-          (= 1 %t.46 (+ #f %x.0 1))
+          (= 1 %t.46 (+ (tfield (field-native)) %x.0 1))
           (%t.46))
         (circuit %bar.47 ((argument
                             (%x.1)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.3 (0) write 7))
-          (= 1 %t.48 (- #f %x.1 1))
+          (= 1 %t.48 (- (tfield (field-native)) %x.1 1))
           (%t.48))))
     )
 
@@ -45417,21 +45980,24 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.6
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.7 ((argument
                            (%x.0)
                            (ty ((afield)) ((tfield (field-native)))))
-                         (argument (%y.3) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%y.2)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.6 (0) write 7))
-          (= 1 %t.1 (* #f %x.0 5))
-          (= 1 %t.2
-             (+ #f
+          (= 1 %t.1 (* (tfield (field-native)) %x.0 5))
+          (= 1 %t.3
+             (+ (tfield (field-native))
                 %t.1
                 99999999999999999999999999999999999999999999999999))
-          (= 1 %t.4 (== %t.2 %y.3))
+          (= 1 %t.4 (== %t.3 %y.2))
           (assert %t.4 "oops 2")
-          (%t.2))))
+          (%t.3))))
     )
 
   (test
@@ -46099,23 +46665,26 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.7
+          ((%forceField.8
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (circuit %foo.8 ((argument
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo.9 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tunsigned 1))))
-                         (argument (%x.0) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x.0)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
-          (= 1 () (public-ledger %forceField.7 (0) write 7))
-          (= 1 %b.2 (+ #f %x.0 1))
-          (= 1 %t.3 (- #f %b.2 1))
-          (= 1 %t.4 (+ #f %b.2 1))
-          (= 1 %t.5 (select %b.1 %t.4 %t.3))
-          (= 1 %t.9 (+ #f 1 %t.5))
-          (%t.9))))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 %b.2 (+ (tfield (field-native)) %x.0 1))
+          (= 1 %t.4 (- (tfield (field-native)) %b.2 1))
+          (= 1 %t.5 (+ (tfield (field-native)) %b.2 1))
+          (= 1 %t.6 (select %b.1 %t.5 %t.4))
+          (= 1 %t.10 (+ (tfield (field-native)) 1 %t.6))
+          (%t.10))))
     )
 
   (test
@@ -46128,23 +46697,26 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.6 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration
-          ((%forceField.7
+          ((%forceField.8
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (circuit %foo.8 ((argument
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo.9 ((argument
                            (%b.1)
                            (ty ((abytes 1)) ((tunsigned 1))))
-                         (argument (%x.0) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x.0)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
-          (= 1 () (public-ledger %forceField.7 (0) write 7))
-          (= 1 %b.2 (+ #f %x.0 1))
-          (= 1 %t.3 (- #f %b.2 1))
-          (= 1 %t.4 (+ #f %b.2 1))
-          (= 1 %t.5 (select %b.1 %t.4 %t.3))
-          (= 1 %t.9 (+ #f 1 %t.5))
-          (%t.9))))
+          (= 1 () (public-ledger %forceField.8 (0) write 7))
+          (= 1 %b.2 (+ (tfield (field-native)) %x.0 1))
+          (= 1 %t.4 (- (tfield (field-native)) %b.2 1))
+          (= 1 %t.5 (+ (tfield (field-native)) %b.2 1))
+          (= 1 %t.6 (select %b.1 %t.5 %t.4))
+          (= 1 %t.10 (+ (tfield (field-native)) 1 %t.6))
+          (%t.10))))
     )
 
   (test
@@ -46240,7 +46812,7 @@ groups than for single tests.
           (= 1 %t1.1 (== %arg.0 0))
           (assert %t1.1 "bytes value is too big to fit in a field")
           (= 1 %t.4 (bytes->field (field-native) 80 %arg.3 %arg.2))
-          (= 1 %t.8 (+ #f %t.4 %t.4))
+          (= 1 %t.8 (+ (tfield (field-native)) %t.4 %t.4))
           (%t.8))))
     )
 
@@ -46553,17 +47125,18 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.6
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.7 ((argument
                            (%x.0)
                            (ty ((abytes 1)) ((tunsigned 255)))))
              (ty ((abytes 1)) ((tunsigned 1)))
           (= 1 () (public-ledger %forceField.6 (0) write 7))
-          (= 1 %t.1 (+ 9 %x.0 %x.0))
+          (= 1 %t.1 (+ (tunsigned 510) %x.0 %x.0))
           (= 1 %t.2 (< 9 %t.1 %x.0))
           (= 1 %t.3 (select %t.2 0 1))
           (assert %t.3 "result of subtraction would be negative")
-          (= 1 %t.4 (- 9 %t.1 %x.0))
+          (= 1 %t.4 (- (tunsigned 510) %t.1 %x.0))
           (= 1 %t.8 (== %t.4 %x.0))
           (%t.8))))
     )
@@ -46638,12 +47211,13 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %foo.2 ()
              (ty ((abytes 1)) ((tunsigned 255)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
           (assert 0 "result of subtraction would be negative")
-          (= 1 %t.3 (- 4 12 13))
+          (= 1 %t.3 (- (tunsigned 12) 12 13))
           (%t.3))))
     )
 
@@ -47765,16 +48339,17 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.5
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (witness %W.6 () (ty ((abytes 1)) ((tunsigned 255))))
         (circuit %foo.7 ((argument
                            (%b.0)
                            (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((abytes 2)) ((tunsigned 65535)))
           (= 1 () (public-ledger %forceField.5 (0) write 7))
-          (= %b.0 (%t.1) (call %W.6))
           (= %b.0 (%t.2) (call %W.6))
-          (= 1 %t.3 (* 16 %t.1 %t.2))
+          (= %b.0 (%t.1) (call %W.6))
+          (= 1 %t.3 (* (tunsigned 65025) %t.2 %t.1))
           (= 1 %t.8 (select %b.0 %t.3 0))
           (%t.8))))
     )
@@ -47983,24 +48558,26 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.13 () (Kernel)))
+        (kernel-declaration (%kernel.4 () (Kernel)))
         (public-ledger-declaration
-          ((%m.6
+          ((%m.5
              (0)
              (Map (ty ((afield)) ((tfield (field-native))))
                   (ty ((abytes 1)) ((tunsigned 1)))))))
-        (circuit %foo.14 ((argument
-                            (%b0.9)
-                            (ty ((abytes 1)) ((tunsigned 1))))
-                          (argument (%x0.10) (ty ((afield)) ((tfield (field-native))))))
+        (circuit %foo.6 ((argument
+                           (%b0.0)
+                           (ty ((abytes 1)) ((tunsigned 1))))
+                         (argument
+                           (%x0.1)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty () ())
-          (= 1 %t.11 (select %b0.9 0 1))
-          (= 1 %tmp.3 (+ #f %x0.10 1))
-          (= %b0.9 () (public-ledger %m.6 (0) insert %tmp.3 1))
-          (= 1 %tmp.7 (- #f %x0.10 1))
-          (= %t.11 (%t.12) (public-ledger %m.6 (0) lookup %x0.10))
-          (= 1 %tmp.15 (select %t.12 0 1))
-          (= %t.11 () (public-ledger %m.6 (0) insert %tmp.7 %tmp.15))
+          (= 1 %t.2 (select %b0.0 0 1))
+          (= 1 %tmp.7 (+ (tfield (field-native)) %x0.1 1))
+          (= %b0.0 () (public-ledger %m.5 (0) insert %tmp.7 1))
+          (= 1 %tmp.8 (- (tfield (field-native)) %x0.1 1))
+          (= %t.2 (%t.3) (public-ledger %m.5 (0) lookup %x0.1))
+          (= 1 %tmp.9 (select %t.3 0 1))
+          (= %t.2 () (public-ledger %m.5 (0) insert %tmp.8 %tmp.9))
           ())))
     )
 
@@ -48033,18 +48610,22 @@ groups than for single tests.
         (circuit %foo.5 ((argument
                            (%b0.0)
                            (ty ((abytes 1)) ((tunsigned 1))))
-                         (argument (%x0.1) (ty ((afield)) ((tfield (field-native))))))
+                         (argument
+                           (%x0.1)
+                           (ty ((afield)) ((tfield (field-native))))))
              (ty () ())
           (= 1 %t.6 (select %b0.0 0 1))
-          (= 1 %tmp.7 (+ #f %x0.1 1))
+          (= 1 %tmp.7 (+ (tfield (field-native)) %x0.1 1))
           (= %t.6 (%t.2)
-             (public-ledger %m.4 (0 ((ty ((afield)) ((tfield (field-native)))) %x0.1))
-               lookup
+             (public-ledger %m.4 (0
+                                  ((ty ((afield)) ((tfield (field-native))))
+                                    %x0.1)) lookup
                %x0.1))
           (= 1 %tmp.8 (select %b0.0 1 %t.2))
           (= 1 ()
-             (public-ledger %m.4 (0 ((ty ((afield)) ((tfield (field-native)))) %x0.1))
-               insert
+             (public-ledger %m.4 (0
+                                  ((ty ((afield)) ((tfield (field-native))))
+                                    %x0.1)) insert
                %tmp.7
                %tmp.8))
           ())))
@@ -48508,7 +49089,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.73
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
         (circuit %test20.74 ((argument
                                (%param1.0 %param1.1)
                                (ty ((abytes 36))
@@ -48517,47 +49099,47 @@ groups than for single tests.
                                        452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.73 (0) write 7))
-          (= 1 (%t.63 %t.65 %t.67 %t.69 %t.71)
+          (= 1 (%t.62 %t.64 %t.66 %t.68 %t.70)
              (bytes->vector %param1.0))
-          (= 1 (%t.2 %t.3 %t.5 %t.7 %t.9 %t.11 %t.13 %t.15 %t.17 %t.19 %t.21
-              %t.23 %t.25 %t.27 %t.29 %t.31 %t.33 %t.35 %t.37 %t.39 %t.41
-              %t.43 %t.45 %t.47 %t.49 %t.51 %t.53 %t.55 %t.57 %t.59 %t.61)
+          (= 1 (%t.3 %t.2 %t.4 %t.6 %t.8 %t.10 %t.12 %t.14 %t.16 %t.18 %t.20
+                %t.22 %t.24 %t.26 %t.28 %t.30 %t.32 %t.34 %t.36 %t.38 %t.40
+                %t.42 %t.44 %t.46 %t.48 %t.50 %t.52 %t.54 %t.56 %t.58 %t.60)
              (bytes->vector %param1.1))
-          (= 1 %a.4 (+ #f %t.2 %t.3))
-          (= 1 %a.6 (+ #f %a.4 %t.5))
-          (= 1 %a.8 (+ #f %a.6 %t.7))
-          (= 1 %a.10 (+ #f %a.8 %t.9))
-          (= 1 %a.12 (+ #f %a.10 %t.11))
-          (= 1 %a.14 (+ #f %a.12 %t.13))
-          (= 1 %a.16 (+ #f %a.14 %t.15))
-          (= 1 %a.18 (+ #f %a.16 %t.17))
-          (= 1 %a.20 (+ #f %a.18 %t.19))
-          (= 1 %a.22 (+ #f %a.20 %t.21))
-          (= 1 %a.24 (+ #f %a.22 %t.23))
-          (= 1 %a.26 (+ #f %a.24 %t.25))
-          (= 1 %a.28 (+ #f %a.26 %t.27))
-          (= 1 %a.30 (+ #f %a.28 %t.29))
-          (= 1 %a.32 (+ #f %a.30 %t.31))
-          (= 1 %a.34 (+ #f %a.32 %t.33))
-          (= 1 %a.36 (+ #f %a.34 %t.35))
-          (= 1 %a.38 (+ #f %a.36 %t.37))
-          (= 1 %a.40 (+ #f %a.38 %t.39))
-          (= 1 %a.42 (+ #f %a.40 %t.41))
-          (= 1 %a.44 (+ #f %a.42 %t.43))
-          (= 1 %a.46 (+ #f %a.44 %t.45))
-          (= 1 %a.48 (+ #f %a.46 %t.47))
-          (= 1 %a.50 (+ #f %a.48 %t.49))
-          (= 1 %a.52 (+ #f %a.50 %t.51))
-          (= 1 %a.54 (+ #f %a.52 %t.53))
-          (= 1 %a.56 (+ #f %a.54 %t.55))
-          (= 1 %a.58 (+ #f %a.56 %t.57))
-          (= 1 %a.60 (+ #f %a.58 %t.59))
-          (= 1 %a.62 (+ #f %a.60 %t.61))
-          (= 1 %a.64 (+ #f %a.62 %t.63))
-          (= 1 %a.66 (+ #f %a.64 %t.65))
-          (= 1 %a.68 (+ #f %a.66 %t.67))
-          (= 1 %a.70 (+ #f %a.68 %t.69))
-          (= 1 %t.75 (+ #f %a.70 %t.71))
+          (= 1 %a.5 (+ (tfield (field-native)) %t.3 %t.2))
+          (= 1 %a.7 (+ (tfield (field-native)) %a.5 %t.4))
+          (= 1 %a.9 (+ (tfield (field-native)) %a.7 %t.6))
+          (= 1 %a.11 (+ (tfield (field-native)) %a.9 %t.8))
+          (= 1 %a.13 (+ (tfield (field-native)) %a.11 %t.10))
+          (= 1 %a.15 (+ (tfield (field-native)) %a.13 %t.12))
+          (= 1 %a.17 (+ (tfield (field-native)) %a.15 %t.14))
+          (= 1 %a.19 (+ (tfield (field-native)) %a.17 %t.16))
+          (= 1 %a.21 (+ (tfield (field-native)) %a.19 %t.18))
+          (= 1 %a.23 (+ (tfield (field-native)) %a.21 %t.20))
+          (= 1 %a.25 (+ (tfield (field-native)) %a.23 %t.22))
+          (= 1 %a.27 (+ (tfield (field-native)) %a.25 %t.24))
+          (= 1 %a.29 (+ (tfield (field-native)) %a.27 %t.26))
+          (= 1 %a.31 (+ (tfield (field-native)) %a.29 %t.28))
+          (= 1 %a.33 (+ (tfield (field-native)) %a.31 %t.30))
+          (= 1 %a.35 (+ (tfield (field-native)) %a.33 %t.32))
+          (= 1 %a.37 (+ (tfield (field-native)) %a.35 %t.34))
+          (= 1 %a.39 (+ (tfield (field-native)) %a.37 %t.36))
+          (= 1 %a.41 (+ (tfield (field-native)) %a.39 %t.38))
+          (= 1 %a.43 (+ (tfield (field-native)) %a.41 %t.40))
+          (= 1 %a.45 (+ (tfield (field-native)) %a.43 %t.42))
+          (= 1 %a.47 (+ (tfield (field-native)) %a.45 %t.44))
+          (= 1 %a.49 (+ (tfield (field-native)) %a.47 %t.46))
+          (= 1 %a.51 (+ (tfield (field-native)) %a.49 %t.48))
+          (= 1 %a.53 (+ (tfield (field-native)) %a.51 %t.50))
+          (= 1 %a.55 (+ (tfield (field-native)) %a.53 %t.52))
+          (= 1 %a.57 (+ (tfield (field-native)) %a.55 %t.54))
+          (= 1 %a.59 (+ (tfield (field-native)) %a.57 %t.56))
+          (= 1 %a.61 (+ (tfield (field-native)) %a.59 %t.58))
+          (= 1 %a.63 (+ (tfield (field-native)) %a.61 %t.60))
+          (= 1 %a.65 (+ (tfield (field-native)) %a.63 %t.62))
+          (= 1 %a.67 (+ (tfield (field-native)) %a.65 %t.64))
+          (= 1 %a.69 (+ (tfield (field-native)) %a.67 %t.66))
+          (= 1 %a.71 (+ (tfield (field-native)) %a.69 %t.68))
+          (= 1 %t.75 (+ (tfield (field-native)) %a.71 %t.70))
           (%t.75))))
     )
 
@@ -49736,7 +50318,7 @@ groups than for single tests.
                    (ttuple)
                 (seq
                   (seq
-                    (+ #f
+                    (+ (tfield (field-native))
                        %state.54
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                     (tuple))
@@ -49803,7 +50385,7 @@ groups than for single tests.
                      (ttuple)
                   (seq
                     (seq
-                      (+ #f
+                      (+ (tfield (field-native))
                          %state.54
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
@@ -59628,10 +60210,10 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.14 () (Kernel)))
-        (public-ledger-declaration ((%x.15 (0) (Counter))))
-        (circuit %foo.16 ((argument
-                            (%v.10 %v.0 %v.1 %v.4 %v.7)
+        (kernel-declaration (%kernel.10 () (Kernel)))
+        (public-ledger-declaration ((%x.11 (0) (Counter))))
+        (circuit %foo.12 ((argument
+                            (%v.13 %v.0 %v.1 %v.4 %v.7)
                             (ty ((abytes 2)
                                   (abytes 2)
                                   (abytes 2)
@@ -59646,18 +60228,18 @@ groups than for single tests.
           (= 1 %t.2 (< 16 %v.1 %v.0))
           (= 1 %t.3 (select %t.2 0 1))
           (assert %t.3 "result of subtraction would be negative")
-          (= 1 %tmp.11 (- 16 %v.1 %v.0))
-          (= 1 () (public-ledger %x.15 (0) increment %tmp.11))
+          (= 1 %tmp.14 (- (tunsigned 65535) %v.1 %v.0))
+          (= 1 () (public-ledger %x.11 (0) increment %tmp.14))
           (= 1 %t.5 (< 16 %v.4 %v.1))
           (= 1 %t.6 (select %t.5 0 1))
           (assert %t.6 "result of subtraction would be negative")
-          (= 1 %tmp.12 (- 16 %v.4 %v.1))
-          (= 1 () (public-ledger %x.15 (0) increment %tmp.12))
+          (= 1 %tmp.15 (- (tunsigned 65535) %v.4 %v.1))
+          (= 1 () (public-ledger %x.11 (0) increment %tmp.15))
           (= 1 %t.8 (< 16 %v.7 %v.4))
           (= 1 %t.9 (select %t.8 0 1))
           (assert %t.9 "result of subtraction would be negative")
-          (= 1 %tmp.13 (- 16 %v.7 %v.4))
-          (= 1 () (public-ledger %x.15 (0) increment %tmp.13))
+          (= 1 %tmp.16 (- (tunsigned 65535) %v.7 %v.4))
+          (= 1 () (public-ledger %x.11 (0) increment %tmp.16))
           ())))
     )
 
@@ -70215,7 +70797,35 @@ groups than for single tests.
         "  ]"
         "}"))
       )
+  )
 )
+
+(parameterize ([feature-zkir-v3 #t] [no-communications-commitment #t])
+(run-tests print-zkir-v3
+  (test
+    '(
+      "ledger forceProof: Boolean;"
+      "export circuit fisk(): [] {"
+      "  forceProof = true;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+      )
+  )
 )
 
 ; tests of code snippets in compact-reference
@@ -71735,27 +72345,37 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.45 (tfield (field-native)))
-          (%descriptor.46 (tboolean))
-          (%descriptor.47 (tunsigned 255))
-          (%descriptor.50 (tunsigned 4294967295))
-          (%descriptor.48 (tunsigned 18446744073709551615))
-          (%descriptor.49
-            (tunsigned 340282366920938463463374607431768211455)))
+          (%descriptor.0 (tfield (field-native)))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
+                           340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.10 ([%n.11 (tfield (field-native))])
+        (circuit %foo.6 ([%n.7 (tfield (field-native))])
              (tboolean)
           (seq
-            (const [%x.12 (tboolean)]
-              (not (== %n.11 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
+            (const [%x.8 (tboolean)]
+              (not (== %n.7
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
             (seq
-              (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.11 (safe-cast (tfield (field-native)) (tunsigned 0) 0))))))
-        (circuit %bar.14 ([%n.15 (tfield (field-native))])
+              (const [%x.9 (tboolean)] (not %x.8))
+              (and %x.9
+                   (== %n.7
+                       (safe-cast (tfield (field-native)) (tunsigned 0) 0))))))
+        (circuit %bar.10 ([%n.11 (tfield (field-native))])
              (tfield (field-native))
-          (if (call %foo.10 (+ #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-              (- #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-              (+ #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+          (if (call %foo.6
+                (+ (tfield (field-native))
+                   %n.11
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 %n.11
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+              (+ (tfield (field-native))
+                 %n.11
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -71819,27 +72439,37 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.7 (tfield (field-native)))
-          (%descriptor.8 (tboolean))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295))
-          (%descriptor.10 (tunsigned 18446744073709551615))
-          (%descriptor.6 (tunsigned
+          (%descriptor.0 (tfield (field-native)))
+          (%descriptor.1 (tboolean))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.11 ([%n.12 (tfield (field-native))])
+        (circuit %foo.6 ([%n.7 (tfield (field-native))])
              (tboolean)
           (seq
-            (const [%x.12 (tboolean)]
-              (!= %n.12 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+            (const [%x.8 (tboolean)]
+              (!= %n.7
+                  (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
             (seq
-              (const [%x.13 (tboolean)] (not %x.12))
-              (and %x.13 (== %n.12 (safe-cast (tfield (field-native)) (tunsigned 0) 0))))))
-        (circuit %bar.14 ([%n.15 (tfield (field-native))])
+              (const [%x.9 (tboolean)] (not %x.8))
+              (and %x.9
+                   (== %n.7
+                       (safe-cast (tfield (field-native)) (tunsigned 0) 0))))))
+        (circuit %bar.10 ([%n.11 (tfield (field-native))])
              (tfield (field-native))
-          (if (call %foo.11 (+ #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-              (- #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-              (+ #f %n.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
+          (if (call %foo.6
+                (+ (tfield (field-native))
+                   %n.11
+                   (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+              (- (tfield (field-native))
+                 %n.11
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+              (+ (tfield (field-native))
+                 %n.11
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -71926,17 +72556,23 @@ groups than for single tests.
                   (assert
                     (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                     "result of subtraction would be negative")
-                  (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))))
+                  (- (tunsigned 64)
+                     %n.11
+                     (safe-cast (tunsigned 64) (tunsigned 1) 1))))
               (seq
                 (assert
                   (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1))
                   "result of subtraction would be negative")
-                (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 1) 1)))
+                (- (tunsigned 64)
+                   %n.11
+                   (safe-cast (tunsigned 64) (tunsigned 1) 1)))
               (seq
                 (assert
                   (>= %n.11 (safe-cast (tunsigned 64) (tunsigned 2) 2))
                   "result of subtraction would be negative")
-                (- 7 %n.11 (safe-cast (tunsigned 64) (tunsigned 2) 2)))))))
+                (- (tunsigned 64)
+                   %n.11
+                   (safe-cast (tunsigned 64) (tunsigned 2) 2)))))))
     (output-file "compiler/testdir/contract/index.d.ts"
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
@@ -72031,7 +72667,7 @@ groups than for single tests.
                                    (tunsigned 1)
                           1))
                     "result of subtraction would be negative")
-                  (- 64
+                  (- (tunsigned 18446744073709551615)
                      %n.10
                      (safe-cast (tunsigned 18446744073709551615)
                                 (tunsigned 1)
@@ -72043,7 +72679,7 @@ groups than for single tests.
                                  (tunsigned 1)
                         1))
                   "result of subtraction would be negative")
-                (- 64
+                (- (tunsigned 18446744073709551615)
                    %n.10
                    (safe-cast (tunsigned 18446744073709551615)
                               (tunsigned 1)
@@ -72055,7 +72691,7 @@ groups than for single tests.
                                  (tunsigned 2)
                         2))
                   "result of subtraction would be negative")
-                (- 64
+                (- (tunsigned 18446744073709551615)
                    %n.10
                    (safe-cast (tunsigned 18446744073709551615)
                               (tunsigned 2)
@@ -72510,26 +73146,36 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.7 (tboolean))
-          (%descriptor.8 (tfield (field-native)))
-          (%descriptor.9 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295))
-          (%descriptor.10 (tunsigned 18446744073709551615))
-          (%descriptor.6 (tunsigned
+          (%descriptor.0 (tboolean))
+          (%descriptor.1 (tfield (field-native)))
+          (%descriptor.2 (tunsigned 255))
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %foo.12 ([%b.13 (tboolean)] [%x.14 (tfield (field-native))])
+        (circuit %foo.6 ([%b.7 (tboolean)]
+                         [%x.8 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (const ([%b.2 (tfield (field-native))] [%x.6 (tboolean)]))
-            (+ #f
+            (const ([%b.9 (tfield (field-native))] [%x.10 (tboolean)]))
+            (+ (tfield (field-native))
                (safe-cast (tfield (field-native)) (tunsigned 1) 1)
                (seq
-                 (= %b.2 (+ #f %x.14 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-                 (= %x.6 (not %b.13))
-                 (if %x.6
-                     (- #f %b.2 (safe-cast (tfield (field-native)) (tunsigned 1) 1))
-                     (+ #f %b.2 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))))))))
+                 (= %b.9
+                    (+ (tfield (field-native))
+                       %x.8
+                       (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+                 (= %x.10 (not %b.7))
+                 (if %x.10
+                     (- (tfield (field-native))
+                        %b.9
+                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
+                     (+ (tfield (field-native))
+                        %b.9
+                        (safe-cast (tfield (field-native))
+                                   (tunsigned 1)
+                          1)))))))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -73564,7 +74210,7 @@ groups than for single tests.
       "export circuit foo(arg: Field) : Bytes<5> { return arg as Bytes<5>; }"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 0x04030201n)).result).toEqual(new Uint8Array([ 1, 2, 3, 4, 0 ]));"
@@ -73586,7 +74232,7 @@ groups than for single tests.
       "export circuit foo(x: Field) : Vector<1, Field> { return foo(x == 0 as Field); }"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual([ 1n ]);"
@@ -73634,7 +74280,7 @@ groups than for single tests.
                      (tunsigned 18446744073709551615)
             (public-ledger %field1.10 (0) read)))))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
@@ -73661,7 +74307,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
@@ -73698,7 +74344,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
@@ -73760,7 +74406,7 @@ groups than for single tests.
                        (tunsigned 18446744073709551615)
               (public-ledger %field1.11 (0) read))))))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 91n);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).result).toEqual(91n);"
@@ -73791,7 +74437,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "const witnesses = { merkle_path_root(foo: any): any { return { field: 0n }; } };"
         "test('check 1a', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
@@ -73811,7 +74457,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
@@ -73826,7 +74472,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
@@ -73841,7 +74487,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
@@ -73856,7 +74502,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));"
@@ -73871,7 +74517,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));"
@@ -73887,7 +74533,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0);"
@@ -73902,7 +74548,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual('');"
@@ -73917,7 +74563,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]);"
@@ -73936,7 +74582,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ a: 0n, b: false });"
@@ -73959,7 +74605,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({a: [{a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}], c: false});"
@@ -73975,7 +74621,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
@@ -73991,7 +74637,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
@@ -74155,7 +74801,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: false})).result).toEqual(false);"
@@ -74190,7 +74836,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
@@ -74217,7 +74863,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
@@ -74303,7 +74949,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect(typeof(C.circuits)).toEqual('object');"
@@ -74315,7 +74961,7 @@ groups than for single tests.
   (test ;;FIXME uncomment composable contract
     "test-center/compact/test.compact"
     (stage-javascript
-      `(
+      '(
         "const witnesses = { C(a: any, b: any): Uint8Array { return new Uint8Array(10); }, W(a: any, b: any): undefined { return; }};"
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 20n);"
@@ -74339,7 +74985,7 @@ groups than for single tests.
       "}"
        )
     (stage-javascript
-      `(
+      '(
         "test('check', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  // @ts-expect-error"
@@ -74347,14 +74993,14 @@ groups than for single tests.
         "})")))
 
   (test
-    `(
+    '(
       "import CompactStandardLibrary;"
       "witness next_fib(): Field;"
       "export circuit fib() : Field{"
       "  return disclose(next_fib());"
       "}")
     (stage-javascript
-      `(
+      '(
         "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
         "const witnesses = { next_fib: w };"
         "test('check', async () => {"
@@ -74371,14 +75017,14 @@ groups than for single tests.
          )))
 
   (test
-    `(
+    '(
       "import CompactStandardLibrary;"
       "export circuit foo(): ZswapCoinPublicKey {"
       "  return ownPublicKey();"
       "}"
        )
     (stage-javascript
-      `(
+      '(
         "test('check', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  const R = await C.circuits.foo(Ctxt);"
@@ -74387,7 +75033,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "import CompactStandardLibrary;"
       "struct S { x: Field, y: ZswapCoinPublicKey }"
       "witness next_fib(): Field;"
@@ -74395,7 +75041,7 @@ groups than for single tests.
       "  return S{ x: disclose(next_fib()), y: ownPublicKey() };"
       "}")
     (stage-javascript
-      `(
+      '(
         "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
         "const witnesses = { next_fib: w };"
         "test('check', async () => {"
@@ -75065,7 +75711,7 @@ groups than for single tests.
   (test
     "examples/election.compact"
     (stage-javascript
-      `(
+      '(
         "const witnesses = {"
         "                  private$secret_key(): any { return; },"
         "                  private$state(): any { return; },"
@@ -75085,7 +75731,7 @@ groups than for single tests.
   (test
     "examples/zerocash.compact"
     (stage-javascript
-      `(
+      '(
         "const witnesses = {"
         "                    private$zk_secret_key(): any { return; },"
         "                    private$remove_coin(coin: any): any { return; },"
@@ -75105,7 +75751,7 @@ groups than for single tests.
   (test
    "test-center/test-contracts/micro-dao.compact"
    (stage-javascript
-     `(
+     '(
        "const witnesses = {"
        "                   local_secret_key(): any { return; },"
        "                   local_state(): any { return; },"
@@ -75125,7 +75771,7 @@ groups than for single tests.
   (test
    "test-center/test-contracts/bboard.compact"
    (stage-javascript
-     `(
+     '(
        "const witnesses = {"
        "                  local_secret_key(): any { return; }"
        "                  };"
@@ -75139,7 +75785,7 @@ groups than for single tests.
   (test
    "test-center/test-contracts/coracle.compact"
    (stage-javascript
-     `(
+     '(
        "const witnesses = {"
        "                   local_secret_key(): any { return; },"
        "                   local_board(): any { return; },"
@@ -75159,7 +75805,7 @@ groups than for single tests.
   (test ; just see if it succeeds
     "test-center/test-contracts/counter.compact"
     (stage-javascript
-     `(
+     '(
        "const witnesses = { private_increment(): any { return; } };"
        "test('check 1', async () => {"
        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
@@ -75171,7 +75817,7 @@ groups than for single tests.
   (test ; just see if it succeeds
     "test-center/test-contracts/welcome.compact"
     (stage-javascript
-     `(
+     '(
        "const witnesses = {"
        "                   set_local_id(participant: any): any { return; },"
        "                   local_sk(ps: any): any { return [ps, {is_some: true, value: new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}];}"
@@ -75196,7 +75842,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.bar(Ctxt, 0n)).result).toEqual({ x: 0n, y: 1n });"
@@ -75215,7 +75861,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "const witnesses = { bar(x: bigint): bigint { return 101n; } };"
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
@@ -75244,7 +75890,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: 3n })).result).toEqual(1);"
@@ -75292,7 +75938,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: [3n, 4n, 5n] })).result).toEqual(1);"
@@ -75340,7 +75986,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: [true, false, true], y: 53n, z: 'hola' })).result).toEqual(54n);"
@@ -75405,7 +76051,7 @@ groups than for single tests.
       "export { uno, dos, tres }"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
@@ -75516,7 +76162,7 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
@@ -75583,7 +76229,7 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
@@ -75643,7 +76289,7 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 'hola');"
         "  expect((await C.circuits.hello(Ctxt)).result).toEqual('hola');"
@@ -75735,7 +76381,7 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
     (stage-javascript
-      `(
+      '(
         "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 73n);"
@@ -75754,7 +76400,7 @@ groups than for single tests.
       "export circuit red_guess(my_guess: Field): Field { return my_guess - 1; }"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.red_guess(Ctxt, 11n)).result).toEqual(10n);"
@@ -77825,7 +78471,7 @@ groups than for single tests.
       "}"
        )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 75n);"
         "  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
@@ -78002,7 +78648,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "import CompactStandardLibrary;"
       "ledger ctr : Counter;"
       "constructor(x: Uint<16>) {"
@@ -78547,24 +79193,33 @@ groups than for single tests.
     (pass-returns print-typescript
       (program
         (type-descriptors
-          (%descriptor.10 (tfield (field-native)))
-          (%descriptor.11 (tunsigned 255))
-          (%descriptor.99999 (tunsigned 4294967295))
-          (%descriptor.12 (tunsigned 18446744073709551615))
-          (%descriptor.9 (tunsigned
+          (%descriptor.0 (tfield (field-native)))
+          (%descriptor.1 (tunsigned 255))
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.13 ([%x.14 (tfield (field-native))])
+        (circuit %bar.5 ([%x.6 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (assert (!= %x.14 (safe-cast (tfield (field-native)) (tunsigned 2) 2)) "oops")
-            %x.14))
-        (circuit %foo.14 ([%x.15 (tfield (field-native))])
+            (assert
+              (!= %x.6
+                  (safe-cast (tfield (field-native)) (tunsigned 2) 2))
+              "oops")
+            %x.6))
+        (circuit %foo.7 ([%x.8 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (call %bar.13 %x.15)
-            (call %bar.13 (- #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-            (call %bar.13 (- #f %x.15 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))))
+            (call %bar.5 %x.8)
+            (call %bar.5
+              (- (tfield (field-native))
+                 %x.8
+                 (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
+            (call %bar.5
+              (- (tfield (field-native))
+                 %x.8
+                 (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -78595,25 +79250,25 @@ groups than for single tests.
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tunsigned 255))
-          (%descriptor.99999 (tunsigned 4294967295))
-          (%descriptor.2 (tunsigned 18446744073709551615))
-          (%descriptor.3 (tunsigned
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.4 ([%x.5 (tfield (field-native))])
+        (circuit %bar.5 ([%x.6 (tfield (field-native))])
              (tfield (field-native))
-          %x.5)
-        (circuit %foo.6 ([%x.7 (tfield (field-native))])
+          %x.6)
+        (circuit %foo.7 ([%x.8 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (call %bar.4 %x.7)
-            (call %bar.4
-              (- #f
-                 %x.7
+            (call %bar.5 %x.8)
+            (call %bar.5
+              (- (tfield (field-native))
+                 %x.8
                  (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-            (call %bar.4
-              (- #f
-                 %x.7
+            (call %bar.5
+              (- (tfield (field-native))
+                 %x.8
                  (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))))
     (stage-javascript
       `(
@@ -78641,26 +79296,26 @@ groups than for single tests.
         (type-descriptors
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tunsigned 255))
-          (%descriptor.99999 (tunsigned 4294967295))
-          (%descriptor.2 (tunsigned 18446744073709551615))
-          (%descriptor.3 (tunsigned
+          (%descriptor.2 (tunsigned 4294967295))
+          (%descriptor.3 (tunsigned 18446744073709551615))
+          (%descriptor.4 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.4 ([%x.5 (tfield (field-native))])
+        (circuit %bar.5 ([%x.6 (tfield (field-native))])
              (tfield (field-native))
-          %x.5)
-        (circuit %foo.6 ([%x.7 (tfield (field-native))])
+          %x.6)
+        (circuit %foo.7 ([%x.8 (tfield (field-native))])
              (ttuple)
           (seq
             (seq
-              (call %bar.4 %x.7)
-              (call %bar.4
-                (- #f
-                   %x.7
+              (call %bar.5 %x.8)
+              (call %bar.5
+                (- (tfield (field-native))
+                   %x.8
                    (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-              (call %bar.4
-                (- #f
-                   %x.7
+              (call %bar.5
+                (- (tfield (field-native))
+                   %x.8
                    (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
             (tuple)))))
     (stage-javascript
@@ -78807,35 +79462,35 @@ groups than for single tests.
           (%descriptor.0 (tfield (field-native)))
           (%descriptor.1 (tvector 2 (tfield (field-native))))
           (%descriptor.2 (tunsigned 255))
-          (%descriptor.99999 (tunsigned 4294967295))
-          (%descriptor.3 (tunsigned 18446744073709551615))
-          (%descriptor.4 (tunsigned
+          (%descriptor.3 (tunsigned 4294967295))
+          (%descriptor.4 (tunsigned 18446744073709551615))
+          (%descriptor.5 (tunsigned
                            340282366920938463463374607431768211455)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.5 ([%x.6 (tfield (field-native))])
+        (circuit %bar.6 ([%x.7 (tfield (field-native))])
              (tfield (field-native))
           (seq
             (assert
-              (!= %x.6
+              (!= %x.7
                   (safe-cast (tfield (field-native)) (tunsigned 2) 2))
               "oops")
-            %x.6))
-        (circuit %foo.7 ([%v.8 (tvector 2 (tfield (field-native)))])
+            %x.7))
+        (circuit %foo.8 ([%v.9 (tvector 2 (tfield (field-native)))])
              (tvector 2 (tfield (field-native)))
           (map
-            (circuit ([%x.9 (tfield (field-native))])
+            (circuit ([%x.10 (tfield (field-native))])
                  (tfield (field-native))
               (seq
-                (call %bar.5 %x.9)
-                (call %bar.5
-                  (- #f
-                     %x.9
+                (call %bar.6 %x.10)
+                (call %bar.6
+                  (- (tfield (field-native))
+                     %x.10
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
-                (call %bar.5
-                  (- #f
-                     %x.9
+                (call %bar.6
+                  (- (tfield (field-native))
+                     %x.10
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)))))
-            %v.8))))
+            %v.9))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -79713,31 +80368,31 @@ groups than for single tests.
           (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
           (%descriptor.8 (tunsigned 255))
-          (%descriptor.16 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.9 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.10 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.10 ([%x.11 (tboolean)]
-                          [%y.12 (tfield (field-native))])
+        (circuit %bar.11 ([%x.12 (tboolean)]
+                          [%y.13 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
           (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
-            %y.12
-            %x.11))
-        (circuit %foo.13 ([%x.14 (tboolean)]
-                          [%y.15 (tfield (field-native))])
+            %y.13
+            %x.12))
+        (circuit %foo.14 ([%x.15 (tboolean)]
+                          [%y.16 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (const [%__compact_pattern_tmp1.16 (tstruct S
+            (const [%__compact_pattern_tmp1.17 (tstruct S
                                                  (a (tfield (field-native)))
                                                  (b (tboolean)))]
-              (call %bar.10 %x.14 %y.15))
+              (call %bar.11 %x.15 %y.16))
             (seq
-              (const [%b.17 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.16 b 1))
-              (if %b.17
-                  %y.15
-                  (* #f
+              (const [%b.18 (tboolean)]
+                (elt-ref %__compact_pattern_tmp1.17 b 1))
+              (if %b.18
+                  %y.16
+                  (* (tfield (field-native))
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)
-                     %y.15)))))))
+                     %y.16)))))))
     )
 
   (test
@@ -86133,39 +86788,39 @@ groups than for single tests.
       )
     (pass-returns infer-types
       (program
-        (public-ledger-declaration %kernel.7 (Kernel))
+        (public-ledger-declaration %kernel.0 (Kernel))
         (public-ledger-declaration
-          %F.8
+          %F.1
           (__compact_Cell (talias #t Q (tunsigned 255))))
-        (circuit %foo.9 ([%x.10 (talias #t Q (tunsigned 255))]
-                         [%y.11 (talias #t Q (tunsigned 255))])
+        (circuit %foo.2 ([%x.3 (talias #t Q (tunsigned 255))]
+                         [%y.4 (talias #t Q (tunsigned 255))])
              (ttuple (talias #t Q (tunsigned 255)) (talias #t Q (tunsigned 255))
                (talias #t Q (tunsigned 255)) (tboolean) (tboolean))
           (tuple
             (downcast-unsigned 510 255
-              (+ 9
+              (+ (tunsigned 510)
                  (safe-cast (tunsigned 510)
                             (talias #t Q (tunsigned 255))
-                   %x.10)
+                   %x.3)
                  (safe-cast (tunsigned 510)
                             (talias #t Q (tunsigned 255))
-                   %y.11)))
+                   %y.4)))
             (seq
               (assert
-                (>= %x.10 %y.11)
+                (>= %x.3 %y.4)
                 "result of subtraction would be negative")
-              (- 8 %x.10 %y.11))
+              (- (tunsigned 255) %x.3 %y.4))
             (downcast-unsigned 65025 255
-              (* 16
+              (* (tunsigned 65025)
                  (safe-cast (tunsigned 65025)
                             (talias #t Q (tunsigned 255))
-                   %x.10)
+                   %x.3)
                  (safe-cast (tunsigned 65025)
                             (talias #t Q (tunsigned 255))
-                   %y.11)))
-            (< %x.10 %y.11) (== %y.11 %x.10)))))
+                   %y.4)))
+            (< %x.3 %y.4) (== %y.4 %x.3)))))
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 17n, 11n)).result).toEqual([28n, 6n, 187n, false, false]);"
@@ -86177,7 +86832,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "new type Q = Field;"
       "ledger F: Q;"
       "export circuit foo(x: Q, y: Q): [Q, Q, Q] {"
@@ -86200,7 +86855,7 @@ groups than for single tests.
           (tuple
             (safe-cast (talias #t Q (tfield (field-native)))
                        (tfield (field-native))
-              (+ #f
+              (+ (tfield (field-native))
                  (safe-cast (tfield (field-native))
                             (talias #t Q (tfield (field-native)))
                    %x.3)
@@ -86209,7 +86864,7 @@ groups than for single tests.
                    %y.4)))
             (safe-cast (talias #t Q (tfield (field-native)))
                        (tfield (field-native))
-              (- #f
+              (- (tfield (field-native))
                  (safe-cast (tfield (field-native))
                             (talias #t Q (tfield (field-native)))
                    %x.3)
@@ -86218,7 +86873,7 @@ groups than for single tests.
                    %y.4)))
             (safe-cast (talias #t Q (tfield (field-native)))
                        (tfield (field-native))
-              (* #f
+              (* (tfield (field-native))
                  (safe-cast (tfield (field-native))
                             (talias #t Q (tfield (field-native)))
                    %x.3)
@@ -86468,7 +87123,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
@@ -86490,7 +87145,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
@@ -86512,7 +87167,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
@@ -86521,7 +87176,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "type U16 = Uint<16>;"
       "type T = S;"
       "struct S { x: U16 }"
@@ -86532,7 +87187,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
@@ -86542,7 +87197,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "new type U16 = Uint<16>;"
       "new type T = S;"
       "struct S { x: U16 }"
@@ -86553,7 +87208,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
@@ -86563,7 +87218,7 @@ groups than for single tests.
     )
 
   (test
-    `(
+    '(
       "export new type Bool = Boolean;"
       "ledger F: Bool;"
       "export circuit foo(x: Field): [] {"
@@ -86572,7 +87227,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  await expect(C.circuits.foo(Ctxt, 0n)).rejects.toThrow(runtime.CompactError);"
@@ -86591,7 +87246,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
@@ -86608,7 +87263,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
@@ -86625,7 +87280,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
@@ -86642,7 +87297,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
@@ -86663,7 +87318,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
@@ -86684,7 +87339,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
@@ -86705,7 +87360,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n)).result).toEqual([1, 0]);"
@@ -87026,7 +87681,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(14n);"
@@ -87036,7 +87691,7 @@ groups than for single tests.
 
   ; pm-20295
   (test
-    `(
+    '(
       "import CompactStandardLibrary;"
       "export ledger x: Counter;"
       "constructor(){"
@@ -87048,7 +87703,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
@@ -87069,7 +87724,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
@@ -87089,7 +87744,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
@@ -87111,7 +87766,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
@@ -87195,7 +87850,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
         "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
         "test('check 1', async () => {"
@@ -87242,7 +87897,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
@@ -87348,7 +88003,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3628800n);"
@@ -87379,7 +88034,7 @@ groups than for single tests.
       "}"
       )
     (stage-javascript
-      `(
+      '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([42n, 42n]);"
@@ -88096,7 +88751,7 @@ groups than for single tests.
      (stage-javascript C1 '()))
     ; TODO(201) this needs to be expanded to actually make a call to foo
     ((create-file "C2.compact"
-       `(
+       '(
          "module M {"
          "  export contract C1 {"
          "    circuit foo(x: Field): Boolean;"
@@ -89937,6 +90592,157 @@ groups than for single tests.
 
 ;;; Tests that are only run in ZKIR-v3 mode:
 (parameterize ([feature-zkir-v3 #t])
+(run-tests prepare-for-typescript
+  ;; Ensure casts appear where we expect them to.
+  (test
+    '(
+      "new type Base = Field;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-native)))]
+                          [%b1.2 (talias #t Base (tfield (field-native)))]
+                          [%b2.3 (talias #t Base (tfield (field-native)))])
+             (talias #t Base (tfield (field-native)))
+          (safe-cast (talias #t Base (tfield (field-native)))
+                     (tfield (field-native))
+            (+ (tfield (field-native))
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 %b0.1)
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 (safe-cast (talias #t Base (tfield (field-native)))
+                            (tfield (field-native))
+                   (* (tfield (field-native))
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b1.2)
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b2.3)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.4 (talias #t Base (tfield (field-native))))
+          (%descriptor.5 (tunsigned 255))
+          (%descriptor.6 (tunsigned 4294967295))
+          (%descriptor.7 (tunsigned 18446744073709551615))
+          (%descriptor.8 (tunsigned
+                           340282366920938463463374607431768211455)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-native)))]
+                          [%b1.2 (talias #t Base (tfield (field-native)))]
+                          [%b2.3 (talias #t Base (tfield (field-native)))])
+             (talias #t Base (tfield (field-native)))
+          (safe-cast (talias #t Base (tfield (field-native)))
+                     (tfield (field-native))
+            (+ (tfield (field-native))
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 %b0.1)
+               (safe-cast (tfield (field-native))
+                          (talias #t Base (tfield (field-native)))
+                 (safe-cast (talias #t Base (tfield (field-native)))
+                            (tfield (field-native))
+                   (* (tfield (field-native))
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b1.2)
+                      (safe-cast (tfield (field-native))
+                                 (talias #t Base (tfield (field-native)))
+                        %b2.3)))))))))
+    )
+
+  (test
+    '(
+      "new type Base = Secp256k1Base;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b1.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b2.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))])
+             (talias #t Base (tfield (field-base (curve-secp256k1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256k1))))
+                     (tfield (field-base (curve-secp256k1)))
+            (+ (tfield (field-base (curve-secp256k1)))
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 %b0.1)
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256k1))))
+                            (tfield (field-base (curve-secp256k1)))
+                   (* (tfield (field-base (curve-secp256k1)))
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b1.2)
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b2.3)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.4 (talias #t Base
+                           (tfield (field-base (curve-secp256k1)))))
+          (%descriptor.5 (tunsigned 255))
+          (%descriptor.6 (tunsigned 4294967295))
+          (%descriptor.7 (tunsigned 18446744073709551615))
+          (%descriptor.8 (tunsigned
+                           340282366920938463463374607431768211455)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.0 ([%b0.1 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b1.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))]
+                          [%b2.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))])
+             (talias #t Base (tfield (field-base (curve-secp256k1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256k1))))
+                     (tfield (field-base (curve-secp256k1)))
+            (+ (tfield (field-base (curve-secp256k1)))
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 %b0.1)
+               (safe-cast (tfield (field-base (curve-secp256k1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256k1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256k1))))
+                            (tfield (field-base (curve-secp256k1)))
+                   (* (tfield (field-base (curve-secp256k1)))
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b1.2)
+                      (safe-cast (tfield (field-base (curve-secp256k1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256k1))))
+                        %b2.3)))))))))
+    )
+)
+
+
 (run-tests save-manifest
   (test
     '(
@@ -90142,7 +90948,7 @@ groups than for single tests.
             %fld.11)
           (output %t.6))))
     (stage-javascript
-      `("test('Secp256k1Point round tripping through the ledger', async () => {"
+      '("test('Secp256k1Point round tripping through the ledger', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // The point at X=1."
         "  var pt = {"
@@ -90214,7 +91020,7 @@ groups than for single tests.
             %fld.23)
           (output %t.18))))
     (stage-javascript
-      `("test('Secp256k1Point coming from witnesses', async () => {"
+      '("test('Secp256k1Point coming from witnesses', async () => {"
         "  const witnesses = {"
         "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
         "      return ["
@@ -90328,7 +91134,7 @@ groups than for single tests.
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
           (impact 1 145))))
     (stage-javascript
-      `("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('Bytes to secp256k1 field casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -90435,7 +91241,7 @@ groups than for single tests.
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
     (stage-javascript
-      `("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('Bytes to secp256k1 field casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -90725,6 +91531,179 @@ groups than for single tests.
         "                 context, msg, sig, BigInt(recoveryId))).rejects.toThrow();"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit addb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(b0 + b1);"
+      "  return base;"
+      "}"
+      "export circuit subb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(b0 - b1);"
+      "  return base;"
+      "}"
+      "export circuit mulb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"
+      "  base = disclose(b0 * b1);"
+      "  return base;"
+      "}"
+      "export circuit adds(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(s0 + s1);"
+      "  return scalar;"
+      "}"
+      "export circuit subs(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(s0 - s1);"
+      "  return scalar;"
+      "}"
+      "export circuit muls(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
+      "  scalar = disclose(s0 * s1);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (addb) ((%b0.9 "Base<Secp256k1>")
+                         (%b1.8 "Base<Secp256k1>"))
+          ("Base<Secp256k1>")
+          (add %tmp.12 %b0.9 %b1.8)
+          (encode (%fld.13 %fld.14) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Base<Secp256k1>" %t.15)
+          (encode (%fld.16 %fld.17) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.16 %fld.17)
+          (output %t.15))
+        (circuit (subb) ((%b0.11 "Base<Secp256k1>")
+                         (%b1.10 "Base<Secp256k1>"))
+          ("Base<Secp256k1>")
+          (neg %neg.18 %b1.10)
+          (add %tmp.19 %b0.11 %neg.18)
+          (encode (%fld.20 %fld.21) %tmp.19)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.20 %fld.21)
+          (impact 1 145)
+          (public_input "Base<Secp256k1>" %t.22)
+          (encode (%fld.23 %fld.24) %t.22)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.23 %fld.24)
+          (output %t.22))
+        (circuit (mulb) ((%b0.5 "Base<Secp256k1>")
+                         (%b1.4 "Base<Secp256k1>"))
+          ("Base<Secp256k1>")
+          (mul %tmp.25 %b0.5 %b1.4)
+          (encode (%fld.26 %fld.27) %tmp.25)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.26 %fld.27)
+          (impact 1 145)
+          (public_input "Base<Secp256k1>" %t.28)
+          (encode (%fld.29 %fld.30) %t.28)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.29 %fld.30)
+          (output %t.28))
+        (circuit (adds) ((%s0.7 "Scalar<Secp256k1>")
+                         (%s1.6 "Scalar<Secp256k1>"))
+          ("Scalar<Secp256k1>")
+          (add %tmp.31 %s0.7 %s1.6)
+          (encode (%fld.32 %fld.33) %tmp.31)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.32 %fld.33)
+          (impact 1 145)
+          (public_input "Scalar<Secp256k1>" %t.34)
+          (encode (%fld.35 %fld.36) %t.34)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.35 %fld.36)
+          (output %t.34))
+        (circuit (subs) ((%s0.1 "Scalar<Secp256k1>")
+                         (%s1.0 "Scalar<Secp256k1>"))
+          ("Scalar<Secp256k1>")
+          (neg %neg.37 %s1.0)
+          (add %tmp.38 %s0.1 %neg.37)
+          (encode (%fld.39 %fld.40) %tmp.38)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.39 %fld.40)
+          (impact 1 145)
+          (public_input "Scalar<Secp256k1>" %t.41)
+          (encode (%fld.42 %fld.43) %t.41)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.42 %fld.43)
+          (output %t.41))
+        (circuit (muls) ((%s0.3 "Scalar<Secp256k1>")
+                         (%s1.2 "Scalar<Secp256k1>"))
+          ("Scalar<Secp256k1>")
+          (mul %tmp.44 %s0.3 %s1.2)
+          (encode (%fld.45 %fld.46) %tmp.44)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.45 %fld.46)
+          (impact 1 145)
+          (public_input "Scalar<Secp256k1>" %t.47)
+          (encode (%fld.48 %fld.49) %t.47)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.48 %fld.49)
+          (output %t.47))))
+    (stage-javascript
+      ;; Test against some random base and scalar values.
+      (let ([base0 46650258000037232366158629642678773672890852140699407265360345715536022899553]
+            [base1 49961613701950065613888640415520526451680684154063724245984978230985445785591]
+            [scalar0 13185332814719467048625289428055336956216913103903703707915286873163564687413]
+            [scalar1 96181917743701203273367767841317204335168468443275911828686980079872884046249]
+            [expect
+              (lambda (circuit left right result)
+                (format
+                  "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
+                  circuit left right result))])
+        `(
+          "test('secp256k1 field arithmetic', async () => {"
+          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          ,(expect 'addb base0 0 base0)
+          ,(expect 'addb base1 0 base1)
+          ,(expect 'addb base0 (max-secp256k1-base) (1- base0))
+          ,(expect 'addb base1 (max-secp256k1-base) (1- base1))
+          ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-secp256k1-base))))
+          ,(expect 'subb base0 0 base0)
+          ,(expect 'subb base1 0 base1)
+          ,(expect 'subb base0 (max-secp256k1-base) (1+ base0))
+          ,(expect 'subb base1 (max-secp256k1-base) (1+ base1))
+          ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-secp256k1-base))))
+          ,(expect 'mulb base0 0 0)
+          ,(expect 'mulb base1 0 0)
+          ,(expect 'mulb base0 1 base0)
+          ,(expect 'mulb base1 1 base1)
+          ,(expect 'mulb base0 (max-secp256k1-base)
+             (modulo (* base0 (max-secp256k1-base)) (1+ (max-secp256k1-base))))
+          ,(expect 'mulb base1 (max-secp256k1-base)
+             (modulo (* base1 (max-secp256k1-base)) (1+ (max-secp256k1-base))))
+          ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-secp256k1-base))))
+          ,(expect 'adds scalar0 0 scalar0)
+          ,(expect 'adds scalar1 0 scalar1)
+          ,(expect 'adds scalar0 (max-secp256k1-scalar) (1- scalar0))
+          ,(expect 'adds scalar1 (max-secp256k1-scalar) (1- scalar1))
+          ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-secp256k1-scalar))))
+          ,(expect 'subs scalar0 0 scalar0)
+          ,(expect 'subs scalar1 0 scalar1)
+          ,(expect 'subs scalar0 (max-secp256k1-scalar) (1+ scalar0))
+          ,(expect 'subs scalar1 (max-secp256k1-scalar) (1+ scalar1))
+          ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-secp256k1-scalar))))
+          ,(expect 'muls scalar0 0 0)
+          ,(expect 'muls scalar1 0 0)
+          ,(expect 'muls scalar0 1 scalar0)
+          ,(expect 'muls scalar1 1 scalar1)
+          ,(expect 'muls scalar0 (max-secp256k1-scalar)
+             (modulo (* scalar0 (max-secp256k1-scalar)) (1+ (max-secp256k1-scalar))))
+          ,(expect 'muls scalar1 (max-secp256k1-scalar)
+             (modulo (* scalar1 (max-secp256k1-scalar)) (1+ (max-secp256k1-scalar))))
+          ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256k1-scalar))))
+        "});"
+        )))
     )
   )
 

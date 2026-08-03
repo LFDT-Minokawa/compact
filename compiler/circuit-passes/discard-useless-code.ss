@@ -129,17 +129,17 @@
      (values
        `(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
        idset)]
-    [(+ ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
+    [(+ ,src ,[type] ,[Value : expr1 idset1] ,[Value : expr2 idset2])
      (values
-       `(+ ,src ,mbits ,expr1 ,expr2)
+       `(+ ,src ,type ,expr1 ,expr2)
        (idset-union idset1 idset2))]
-    [(- ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
+    [(- ,src ,[type] ,[Value : expr1 idset1] ,[Value : expr2 idset2])
      (values
-       `(- ,src ,mbits ,expr1 ,expr2)
+       `(- ,src ,type ,expr1 ,expr2)
        (idset-union idset1 idset2))]
-    [(* ,src ,mbits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
+    [(* ,src ,[type] ,[Value : expr1 idset1] ,[Value : expr2 idset2])
      (values
-       `(* ,src ,mbits ,expr1 ,expr2)
+       `(* ,src ,type ,expr1 ,expr2)
        (idset-union idset1 idset2))]
     [(< ,src ,bits ,[Value : expr1 idset1] ,[Value : expr2 idset2])
      (values
@@ -240,15 +240,15 @@
        (idset-union-all idset*))]
     [(elt-ref ,src ,expr ,elt-name)
      (Effect expr)]
-    [(+ ,src ,mbits ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
+    [(+ ,src ,type ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
      (values
        (make-seq #t src (list expr1) expr2)
        (idset-union idset1 idset2))]
-    [(- ,src ,mbits ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
+    [(- ,src ,type ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
      (values
        (make-seq #t src (list expr1) expr2)
        (idset-union idset1 idset2))]
-    [(* ,src ,mbits ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
+    [(* ,src ,type ,[Effect : expr1 idset1] ,[Effect : expr2 idset2])
      (values
        (make-seq #t src (list expr1) expr2)
        (idset-union idset1 idset2))]
