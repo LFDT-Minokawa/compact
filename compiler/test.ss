@@ -90354,9 +90354,11 @@ groups than for single tests.
         "test('argument type checks on JS opaque types', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  expect((await contract.circuits.test0(context, new Uint8Array(32))).result).toEqual([]);"
-        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow();"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow('type error: ');"
         "  expect((await contract.circuits.test1(context, 'Hello, Compact!')).result).toEqual([]);"
-        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow();"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow('type error: ');"
         "});"
         ))
     )
