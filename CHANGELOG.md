@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.112, language 0.25.104, runtime 0.18.103]
+## [Toolchain 0.33.113, language 0.25.104, runtime 0.18.103]
 
 ### Added/Changed
 
@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   will have that type.  There is a new runtime function to perform subtraction
   for these types.  The standard library circuits `add` and `mul` have been
   removed.
+
+## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+
+### Fixed
+
+- The ZKIR v3 printer now respects the --no-communications-commitment flag.
 
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 

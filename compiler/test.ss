@@ -71211,7 +71211,35 @@ groups than for single tests.
         "  ]"
         "}"))
       )
+  )
 )
+
+(parameterize ([feature-zkir-v3 #t] [no-communications-commitment #t])
+(run-tests print-zkir-v3
+  (test
+    '(
+      "ledger forceProof: Boolean;"
+      "export circuit fisk(): [] {"
+      "  forceProof = true;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/fisk.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": false,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+      )
+  )
 )
 
 ; tests of code snippets in compact-reference
