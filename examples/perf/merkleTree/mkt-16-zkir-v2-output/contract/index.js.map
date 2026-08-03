@@ -1,0 +1,8 @@
+{
+  "version": 3,
+  "file": "index.js",
+  "sourceRoot": "../../",
+  "sources": ["merkleTree/merkleTreePathRoot.compact", "compiler/standard-library.compact", "compiler/zkir-v3-library.compact"],
+  "names": [],
+  "mappings": ";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAeA;;;;;;;;;;;;;MAqBE,AAAA,gBAKC;;;;;cAL+B,MAAW;;;;;;;;;;;;;;;;;;yCAAX,MAAW;;;;;;;;;wDAAX,MAAW;;;;OAK1C;MAKD,MAAA,YAEC;;OAAA;;;;;;GAMF;EAvCD;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAOE;;;;;;;;;;;;;yEAAyC;;;;;;;GAgC1C;ECYD,AAAA,sBAAyC;;;;;;;oFAG8E;8BAChG;;EAIvB,AAAA,gCAAgD;;;;yDAGN;8BACnB;;EAIvB,AAAA,2BACE,mBACA;UAEM,SAAO,oBAAkB,oBAAkB;UAC3C,UAAQ;oBAAkB;oBAAsB;kCACd,QAAM;;ECxFhD,AAAA,iBAAA;oEAAA;;;EAAA,AAAA,kBAAA;oEAAA;;;EAAA,AAAA,sBAAA;yDAAA;;;EFyBE,AAAA,WAAwD,4BAAvC,MAAW;;0DAA5B,QAAwD;mEAAvC,MAAW;;;;;;;;;;;;;;GAA4B;EAWxD,AAAA,yBAKC,4BAL+B,MAAW;UACnC,MAAqB,+CAAL,MAAI;QACnB,KAAI;gEAAiD,MAAI;qDAAzD;;;;;;;;;;;;;;;;;;4KAAA,KAAI;;;;0HAAA;;4BACJ,MAAI,KAAI,MAAI;;;GAEpB;EAKD,AAAA,eAEC,CAF2B,MAAkC;gDACrB,MAAI;GAC5C;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAFD,AAAA,YAEC;;;;UAF2B,MAAkC;;;;;;;;0CAAlC,MAAkC;GAE7D;;;;;;;;"
+}
