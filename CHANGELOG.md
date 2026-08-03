@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+## [Toolchain 0.33.115, language 0.25.104, runtime 0.18.104]
 
 ### Changed
 
@@ -14,6 +14,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Before, we allowed any value at all to be passed or returned.  This is a
   **breaking change** for programs that relied on being able to store any random
   JS value as, say, an `Opaque<'string'>`.
+
+## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
+
+### Changed
+
+- Clean up the Compact runtime to reflect the intended structure: types and
+  descriptors needed by the generated code are in `compact-types.ts`, but not
+  redundant and unnecessary implementations; functions used by emitted code are
+  in `built-ins.ts`, but not helpful utility functions; those are in `utils.ts`.
+
+### Internal notes
+
+- This is a breaking change because some unused and unnecessary exported types
+  and descriptors have been deleted.
+
+## [Toolchain 0.33.113, language 0.25.104, runtime 0.18.103]
+
+### Added/Changed
+
+- The binary arithmetic operators `+`, `-`, and `*` now work for `Secp256k1Base`
+  and `Secp256k1Scalar`.  The operands must have the same type and the result
+  will have that type.  There is a new runtime function to perform subtraction
+  for these types.  The standard library circuits `add` and `mul` have been
+  removed.
+
+## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+
+### Fixed
+
+- The ZKIR v3 printer now respects the --no-communications-commitment flag.
 
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
