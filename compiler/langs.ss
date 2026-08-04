@@ -308,12 +308,7 @@
       (targ-type src type)                   => type
       )
     (Field-Type (ftype)
-      (field-native)
-      (field-base ctype)
-      (field-scalar ctype))
-    (Curve-Type (ctype)
-      (curve-jubjub)
-      (curve-secp256k1))
+      (field-native))
   )
 
   (define-language/pretty Lnoinclude (extends Lsrc)
@@ -456,6 +451,12 @@
          (deserialize src tsize type expr)    => (deserialize tsize type expr)))
     (Type (type)
       (+ (tpoint src ctype)                   => (tpoint ctype)))
+    (Field-Type (ftype)
+      (+ (field-base ctype))
+      (+ (field-scalar ctype)))
+    (Curve-Type (ctype)
+      (+ (curve-jubjub))
+      (+ (curve-secp256k1)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)

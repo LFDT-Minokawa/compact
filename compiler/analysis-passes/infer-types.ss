@@ -370,13 +370,16 @@
         (lambda (type)
           (T type
             [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]))))
-    (define (contains-secp256k1? type)
-      (type-contains? type
-        (lambda (type)
-          (T type
-            [(tfield ,src (field-base (curve-secp256k1))) #t]
-            [(tfield ,src (field-scalar (curve-secp256k1))) #t]
-            [(tpoint ,src (curve-secp256k1)) #t]))))
+    (define (check-secp256k1 type)
+      (define (contains-secp256k1? type)
+        (type-contains? type
+          (lambda (type)
+            (T type
+              [(tfield ,src (field-base (curve-secp256k1))) #t]
+              [(tfield ,src (field-scalar (curve-secp256k1))) #t]
+              [(tpoint ,src (curve-secp256k1)) #t]))))
+      (assertf (or (feature-zkir-v3) (not (contains-secp256k1? type)))
+               "secp256k1 fields and points should arise only via the zkir v3 standard library"))
     (define (do-call src fold? fun actual-type* build-call)
       (define compatible-args?
         (let ([nactual (length actual-type*)])
@@ -989,15 +992,13 @@
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      (build-function (native-entry-class native-entry) #t function-name arg* type)]
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
-       (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
+     (check-secp256k1 type)
      (build-function 'witness #f function-name arg* type)]
     [(public-ledger-declaration ,src ,ledger-field-name ,[type])
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
-     (when (and (not (feature-zkir-v3)) (contains-secp256k1? type))
-       (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
+     (check-secp256k1 type)
      (set-idtype! ledger-field-name (Idtype-Base type))]
     [else (void)])
   (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -1013,10 +1014,8 @@
        `(constructor ,src (,arg* ...) ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-     (when (and (not (feature-zkir-v3))
-                (or (contains-secp256k1? type)
-                    (ormap (lambda (arg) (contains-secp256k1? (arg->type arg))) arg*)))
-       (source-errorf src "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`"))
+     (for-each check-secp256k1 (map arg->type arg*))
+     (check-secp256k1 type)
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
        `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()

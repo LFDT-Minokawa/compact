@@ -11,16 +11,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The types `JubjubPoint` and `Secp256k1Point` are no longer defined as
   nominal type aliases for opaque types but rather standard-library names for
-  internally handled types, and they can no longer be exported from a contract's
+  internally handled types.  They can no longer be exported from a contract's
   top level.  This is a **breaking** change.
+
+- Similarly, the types `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar`
+  are no longer built-in types but rather standard-library names for
+  internally handled types.  This is a **breaking** change, since programs
+  must now import these types from CompactStandardLibrary to use them.
 
 ### Internal notes
 
 - Previously, there were builtin types `Opaque<'JubjubPoint'>` and
   `Opaque<'Secp256k1Point'>` and the standard library exported nominal type
   aliases `JubjuPoint` and `Secp256k1Point` for these.  The compiler now
-  injects definitions for these points into the standard library and expands
-  them into built-in types.
+  injects definitions for these points from midnight-natives.ss and
+  zkir-v3-natives.ss into the standard library and expands them into built-in types.
+  Similarly, it injects definitions for `JubjubScalar`, `Secp256k1Base`, and
+  `Secp256k1Scalar` from midnight-natives.ss and zkir-v3-natives.ss into the
+  standard lbirary and expands them into built-in types.
 
 ## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
 

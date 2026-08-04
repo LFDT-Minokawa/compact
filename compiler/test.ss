@@ -1647,16 +1647,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x17
-          (type-ref JubjubPoint))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -4626,16 +4618,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x17
-          (type-ref JubjubPoint))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9095,16 +9079,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x17
-          (type-ref JubjubPoint))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9700,16 +9676,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x17
-          (type-ref JubjubPoint))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10000,16 +9968,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x17
-          (type-ref JubjubPoint))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10459,37 +10419,31 @@ groups than for single tests.
           (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
         (public-ledger-declaration
           %x15.31
-          (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-        (public-ledger-declaration
-          %x16.32
-          (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-        (public-ledger-declaration
-          %x17.33
           (__compact_Cell (tpoint (curve-jubjub))))
         (public-ledger-declaration
-          %authority.35
+          %authority.32
           (__compact_Cell (tbytes 32)))
         (public-ledger-declaration
-          %state.36
+          %state.33
           (__compact_Cell
             (tenum PublicState setup commit reveal final)))
         (public-ledger-declaration
-          %topic.37
+          %topic.34
           (__compact_Cell
             (tstruct Maybe
               (is_some (tboolean))
               (value (topaque "string")))))
-        (public-ledger-declaration %tally_yes.38 (Counter))
+        (public-ledger-declaration %tally_yes.35 (Counter))
         (public-ledger-declaration
-          %committed_votes.39
+          %committed_votes.36
           (MerkleTree 10 (tbytes 32)))
-        (public-ledger-declaration %committed.40 (Set (tbytes 32)))
+        (public-ledger-declaration %committed.37 (Set (tbytes 32)))
         (public-ledger-declaration
-          %ciphertexts.41
+          %ciphertexts.38
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.42 (tfield (field-native))])
+        (constructor ([%state.39 (tfield (field-native))])
           (seq
-            (for %i.43 (tuple) (seq (+ %state.42 1) (tuple)))
+            (for %i.40 (tuple) (seq (+ %state.39 1) (tuple)))
             (tuple)))))
     )
 
@@ -50341,46 +50295,40 @@ groups than for single tests.
           (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
         (public-ledger-declaration
           %x15.43
-          (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-        (public-ledger-declaration
-          %x16.44
-          (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-        (public-ledger-declaration
-          %x17.45
           (__compact_Cell (tpoint (curve-jubjub))))
         (public-ledger-declaration
-          %authority.47
+          %authority.44
           (__compact_Cell (tbytes 32)))
         (public-ledger-declaration
-          %state.48
+          %state.45
           (__compact_Cell
             (tenum PublicState setup commit reveal final)))
         (public-ledger-declaration
-          %topic.49
+          %topic.46
           (__compact_Cell
             (tstruct Maybe
               (is_some (tboolean))
               (value (topaque "string")))))
-        (public-ledger-declaration %tally_yes.50 (Counter))
+        (public-ledger-declaration %tally_yes.47 (Counter))
         (public-ledger-declaration
-          %committed_votes.51
+          %committed_votes.48
           (MerkleTree 10 (tbytes 32)))
-        (public-ledger-declaration %committed.52 (Set (tbytes 32)))
+        (public-ledger-declaration %committed.49 (Set (tbytes 32)))
         (public-ledger-declaration
-          %ciphertexts.53
+          %ciphertexts.50
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.54 (tfield (field-native))])
+        (constructor ([%state.51 (tfield (field-native))])
           (seq
             (fold
-              (circuit ([%t.55 (ttuple)] [%i.56 (tunknown)])
+              (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
                     (+ (tfield (field-native))
-                       %state.54
+                       %state.51
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                     (tuple))
-                  %t.55))
+                  %t.52))
               (tuple)
               (tuple))
             (tuple)))))
@@ -50417,36 +50365,32 @@ groups than for single tests.
               (tstruct ContractAddress (bytes (tbytes 32)))))
           (%x14.42
             (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-          (%x15.43
-            (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-          (%x16.44
-            (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-          (%x17.45 (__compact_Cell (tpoint (curve-jubjub))))
-          (%authority.47 (__compact_Cell (tbytes 32)))
-          (%state.48
+          (%x15.43 (__compact_Cell (tpoint (curve-jubjub))))
+          (%authority.44 (__compact_Cell (tbytes 32)))
+          (%state.45
             (__compact_Cell
               (tenum PublicState setup commit reveal final)))
-          (%topic.49
+          (%topic.46
             (__compact_Cell
               (tstruct Maybe
                 (is_some (tboolean))
                 (value (topaque "string")))))
-          (%tally_yes.50 (Counter))
-          (%committed_votes.51 (MerkleTree 10 (tbytes 32)))
-          (%committed.52 (Set (tbytes 32)))
-          (%ciphertexts.53 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.54 (tfield (field-native))])
+          (%tally_yes.47 (Counter))
+          (%committed_votes.48 (MerkleTree 10 (tbytes 32)))
+          (%committed.49 (Set (tbytes 32)))
+          (%ciphertexts.50 (__compact_Cell (topaque "Uint8Array")))
+          (constructor ([%state.51 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.55 (ttuple)] [%i.56 (tunknown)])
+                (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ (tfield (field-native))
-                         %state.54
+                         %state.51
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.55))
+                    %t.52))
                 (tuple)
                 (tuple))
               (tuple))))
@@ -50526,28 +50470,29 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.32 (0 1) (Set (tfield (field-native))))
+          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native))))
+             (%x1.32 (0 1) (Set (tfield (field-native))))
              (%x2.33 (0 2) (Counter))
              (%x3.34 (0 3) (List (tfield (field-native))))
-             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean)))
-             (%x5.36 (0 5) (MerkleTree 32 (tfield (field-native))))
+             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean))))
+           ((%x5.36 (1 0) (MerkleTree 32 (tfield (field-native))))
              (%x6.37
-               (0 6)
-               (HistoricMerkleTree 10 (tfield (field-native)))))
-           ((%x7.38
-              (1 0)
-              (__compact_Cell
-                (tstruct ShieldedCoinInfo
-                  (nonce (tbytes 32))
-                  (color (tbytes 32))
-                  (value (tunsigned
-                           340282366920938463463374607431768211455)))))
-             (%x10.39
                (1 1)
+               (HistoricMerkleTree 10 (tfield (field-native))))
+             (%x7.38
+               (1 2)
+               (__compact_Cell
+                 (tstruct ShieldedCoinInfo
+                   (nonce (tbytes 32))
+                   (color (tbytes 32))
+                   (value (tunsigned
+                            340282366920938463463374607431768211455)))))
+             (%x10.39
+               (1 3)
                (__compact_Cell
                  (tstruct MerkleTreeDigest (field (tfield (field-native))))))
              (%x11.40
-               (1 2)
+               (1 4)
                (__compact_Cell
                  (tstruct QualifiedShieldedCoinInfo
                    (nonce (tbytes 32))
@@ -50555,54 +50500,48 @@ groups than for single tests.
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 3)
+               (1 5)
                (__compact_Cell
                  (tstruct ContractAddress (bytes (tbytes 32)))))
              (%x14.42
-               (1 4)
-               (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-             (%x15.43
-               (1 5)
-               (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-             (%x16.44
                (1 6)
-               (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-             (%x17.45 (1 7) (__compact_Cell (tpoint (curve-jubjub))))
-             (%authority.47 (1 8) (__compact_Cell (tbytes 32)))
-             (%state.48 (1 9) (__compact_Cell (tunsigned 3)))
-             (%topic.49
+               (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
+             (%x15.43 (1 7) (__compact_Cell (tpoint (curve-jubjub))))
+             (%authority.44 (1 8) (__compact_Cell (tbytes 32)))
+             (%state.45 (1 9) (__compact_Cell (tunsigned 3)))
+             (%topic.46
                (1 10)
                (__compact_Cell
                  (tstruct Maybe
                    (is_some (tboolean))
                    (value (topaque "string")))))
-             (%tally_yes.50 (1 11) (Counter))
-             (%committed_votes.51 (1 12) (MerkleTree 10 (tbytes 32)))
-             (%committed.52 (1 13) (Set (tbytes 32)))
-             (%ciphertexts.53
+             (%tally_yes.47 (1 11) (Counter))
+             (%committed_votes.48 (1 12) (MerkleTree 10 (tbytes 32)))
+             (%committed.49 (1 13) (Set (tbytes 32)))
+             (%ciphertexts.50
                (1 14)
                (__compact_Cell (topaque "Uint8Array"))))))
         (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (= #t %t.57 (select %a.17 #t #f))
-          (= #t %t.58 (select %a.17 #f #t))
-          (= %t.57 %t.59 (tuple))
-          (= #t %t.60 (select %b.18 %t.58 #f))
-          (= #t %t.61 (select %b.18 #f %t.58))
-          (= #t %t.62 (select %t.60 #f #t))
-          (assert %t.62 "a should be false")
-          (= %t.60 %t.63 (tuple))
-          (= %t.61 %t.64 (tuple))
-          (= #t %t.65 (public-ledger %kernel.12 () self))
-          (= #t %t.66 (public-ledger %kernel.12 () self))
-          (= #t %t.67 (== %t.65 %t.66))
-          (= #t %t.68 (select #t %t.67 #t))
-          (assert %t.68 "oops")
-          (= #t %t.69 (tuple))
-          (= #t %t.70 (public-ledger %x0.28 (0 0) read))
-          (= #t %t.71
-             (new (tstruct frob (q (tfield (field-native)))) %t.70))
-          %t.71)))
+          (= #t %t.54 (select %a.17 #t #f))
+          (= #t %t.55 (select %a.17 #f #t))
+          (= %t.54 %t.56 (tuple))
+          (= #t %t.57 (select %b.18 %t.55 #f))
+          (= #t %t.58 (select %b.18 #f %t.55))
+          (= #t %t.59 (select %t.57 #f #t))
+          (assert %t.59 "a should be false")
+          (= %t.57 %t.60 (tuple))
+          (= %t.58 %t.61 (tuple))
+          (= #t %t.62 (public-ledger %kernel.12 () self))
+          (= #t %t.63 (public-ledger %kernel.12 () self))
+          (= #t %t.64 (== %t.62 %t.63))
+          (= #t %t.65 (select #t %t.64 #t))
+          (assert %t.65 "oops")
+          (= #t %t.66 (tuple))
+          (= #t %t.67 (public-ledger %x0.28 (0 0) read))
+          (= #t %t.68
+             (new (tstruct frob (q (tfield (field-native)))) %t.67))
+          %t.68)))
     (returns
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
@@ -50620,31 +50559,31 @@ groups than for single tests.
              (%x4.35
                (0 4)
                (Map (ty ((afield)) ((tfield (field-native))))
-                    (ty ((abytes 1)) ((tunsigned 1)))))
-             (%x5.36
-               (0 5)
-               (MerkleTree 32 (ty ((afield)) ((tfield (field-native))))))
+                    (ty ((abytes 1)) ((tunsigned 1))))))
+           ((%x5.36
+              (1 0)
+              (MerkleTree 32 (ty ((afield)) ((tfield (field-native))))))
              (%x6.37
-               (0 6)
+               (1 1)
                (HistoricMerkleTree
                  10
-                 (ty ((afield)) ((tfield (field-native)))))))
-           ((%x7.38
-              (1 0)
-              (__compact_Cell
-                (ty ((abytes 32) (abytes 32) (abytes 16))
-                    ((tunsigned 255)
-                     (tunsigned
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                     (tunsigned 255)
-                     (tunsigned
-                       452312848583266388373324160190187140051835877600158453279131187530910662655)
-                     (tunsigned 340282366920938463463374607431768211455)))))
+                 (ty ((afield)) ((tfield (field-native))))))
+             (%x7.38
+               (1 2)
+               (__compact_Cell
+                 (ty ((abytes 32) (abytes 32) (abytes 16))
+                     ((tunsigned 255)
+                       (tunsigned
+                         452312848583266388373324160190187140051835877600158453279131187530910662655)
+                       (tunsigned 255)
+                       (tunsigned
+                         452312848583266388373324160190187140051835877600158453279131187530910662655)
+                       (tunsigned 340282366920938463463374607431768211455)))))
              (%x10.39
-               (1 1)
+               (1 3)
                (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
              (%x11.40
-               (1 2)
+               (1 4)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
                      ((tunsigned 255)
@@ -50656,48 +50595,38 @@ groups than for single tests.
                        (tunsigned 340282366920938463463374607431768211455)
                        (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 3)
+               (1 5)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (%x14.42
-               (1 4)
+               (1 6)
                (__compact_Cell
                  (ty ((anative "JubjubScalar"))
                      ((tfield (field-scalar (curve-jubjub)))))))
              (%x15.43
-               (1 5)
-               (__compact_Cell
-                 (ty ((anative "Secp256k1Base"))
-                     ((tfield (field-base (curve-secp256k1)))))))
-             (%x16.44
-               (1 6)
-               (__compact_Cell
-                 (ty ((anative "Secp256k1Scalar"))
-                     ((tfield (field-scalar (curve-secp256k1)))))))
-             (%x17.45
                (1 7)
                (__compact_Cell
                  (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
-             (%authority.47
+             (%authority.44
                (1 8)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%state.48
+             (%state.45
                (1 9)
                (__compact_Cell (ty ((abytes 1)) ((tunsigned 3)))))
-             (%topic.49
+             (%topic.46
                (1 10)
                (__compact_Cell
                  (ty ((abytes 1) (acompress))
                      ((tunsigned 1) (topaque "string")))))
-             (%tally_yes.50 (1 11) (Counter))
-             (%committed_votes.51
+             (%tally_yes.47 (1 11) (Counter))
+             (%committed_votes.48
                (1 12)
                (MerkleTree
                  10
@@ -50705,13 +50634,13 @@ groups than for single tests.
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%committed.52
+             (%committed.49
                (1 13)
                (Set (ty ((abytes 32))
                         ((tunsigned 255)
                           (tunsigned
                             452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%ciphertexts.53
+             (%ciphertexts.50
                (1 14)
                (__compact_Cell
                  (ty ((acompress)) ((topaque "Uint8Array"))))))))
@@ -50730,8 +50659,8 @@ groups than for single tests.
           (= 1 %t.9 (== %t.8 %t.7))
           (= 1 %t.11 (select %t.10 %t.9 0))
           (assert %t.11 "oops")
-          (= 1 (%t.72) (public-ledger %x0.28 (0 0) read))
-          (%t.72))))
+          (= 1 (%t.69) (public-ledger %x0.28 (0 0) read))
+          (%t.69))))
     )
 )
 )
@@ -61984,6 +61913,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -62214,7 +62144,6 @@ groups than for single tests.
         "}"))
     )
 
-  #| TODO(dyb) reenable with zkir v2 check is reinstated
   (test
     '(
       "ledger wantProof: Boolean;"
@@ -62229,28 +62158,37 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
-    '("circuit test(b: Secp256k1Base): [] { return; }")
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(b: Secp256k1Base): [] { return; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Base)))
     )
 
   (test
-    '("circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
-    '("ledger s: Secp256k1Scalar;")
+    '(
+      "import CompactStandardLibrary;"
+      "ledger s: Secp256k1Scalar;"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 11" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
@@ -62260,36 +62198,40 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
-    )
-
-  (test
-    '("witness w(): Secp256k1Scalar;")
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 39" "unbound identifier ~s" (Secp256k1Base)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "witness w(): Secp256k1Scalar;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "unbound identifier ~s" (Secp256k1Scalar)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "new type Nt = Secp256k1Scalar;"
       "export circuit test(n: Nt): [] { return; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 15" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "circuit foo<T>(x: T): [] { return; }"
       "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 3 char 33" "unbound identifier ~s" (Secp256k1Base)))
     )
-  |#
 
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
@@ -70177,6 +70119,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -70321,6 +70264,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test0(b: Secp256k1Base): Secp256k1Base {"
       "  wantProof = true;"
@@ -70333,14 +70277,13 @@ groups than for single tests.
       )
     (pass-returns parse-file
       (program
+        (import CompactStandardLibrary () "")
         (public-ledger-declaration #f #f wantProof (tboolean))
-        (circuit #t #f test0 () ([b (tfield
-                                      (field-base (curve-secp256k1)))])
-             (tfield (field-base (curve-secp256k1)))
+        (circuit #t #f test0 () ([b (type-ref Secp256k1Base)])
+             (type-ref Secp256k1Base)
           (block (= wantProof #t) (return b)))
-        (circuit #t #f test1 () ([s (tfield
-                                      (field-scalar (curve-secp256k1)))])
-             (tfield (field-scalar (curve-secp256k1)))
+        (circuit #t #f test1 () ([s (type-ref Secp256k1Scalar)])
+             (type-ref Secp256k1Scalar)
           (block (= wantProof #t) (return s)))))
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
@@ -70381,15 +70324,24 @@ groups than for single tests.
     )
 
   (test
-    '("circuit test(b: Secp256k1Base): [] { return; }")
+    '(
+      "import { Secp256k1Base } from CompactStandardLibrary;"
+      "circuit test(b: Secp256k1Base): [] { return; }"
+      )
     (succeeds))
 
   (test
-    '("circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }"
+      )
     (succeeds))
 
   (test
-    '("ledger s: Secp256k1Scalar;")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "ledger s: Secp256k1Scalar;"
+      )
     (succeeds))
 
   (test
@@ -70400,11 +70352,15 @@ groups than for single tests.
     (succeeds))
 
   (test
-    '("witness w(): Secp256k1Scalar;")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "witness w(): Secp256k1Scalar;"
+      )
     (succeeds))
 
   (test
     '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
       "new type Nt = Secp256k1Scalar;"
       "export circuit test(n: Nt): [] { return; }"
       )
@@ -70412,6 +70368,7 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256k1Base } from CompactStandardLibrary;"
       "circuit foo<T>(x: T): [] { return; }"
       "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
       )
@@ -70486,6 +70443,7 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
       "  wantProof = true;"
@@ -88466,6 +88424,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -88528,38 +88487,54 @@ groups than for single tests.
     )
 
   (test ; Arithmetic and comparisons involving JubjubScalar
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: Field): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: Field): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: Field, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Field, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export circuit equals(x: JubjubScalar, y: JubjubScalar): Boolean { return x == y; }"
       "export circuit notEquals(x: JubjubScalar, y: JubjubScalar): Boolean { return x != y; }"
       )
@@ -88590,64 +88565,94 @@ groups than for single tests.
     )
 
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x < y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x < y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x <= y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x <= y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x >= y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x >= y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x > y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x > y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
 
   ; cyclic external contract calls.

@@ -13,7 +13,8 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
-;; ==== Points
+;; ==== Non-native fields and curve points
+(declare-native-type JubjubScalar tfield (field-scalar (curve-jubjub)))
 (declare-native-type JubjubPoint tpoint (curve-jubjub))
 
 ;; ==== Transient (Poseidon) hashing
@@ -80,12 +81,12 @@
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
-   [b JubjubScalar (discloses "an elliptic curve product including")])
+   [b (TypeRef JubjubScalar) (discloses "an elliptic curve product including")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
-  ([b JubjubScalar (discloses "the product of the embedded group generator with")])
+  ([b (TypeRef JubjubScalar) (discloses "the product of the embedded group generator with")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit hashToCurve [A]
