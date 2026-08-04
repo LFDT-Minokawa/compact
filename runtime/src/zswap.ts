@@ -15,9 +15,27 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext } from './circuit-context.js';
-import { Bytes32Descriptor, ShieldedCoinInfoDescriptor, ShieldedCoinRecipientDescriptor, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
 import { CompactError } from './error.js';
+import { CompactTypeBoolean, CompactTypeBytes, CompactTypeUnsignedInteger } from './compact-types.js';
+
+/**
+ * The recipient of a coin produced by a circuit.
+ */
+export interface Recipient {
+  /**
+   * Whether the recipient is a user or a contract.
+   */
+  readonly is_left: boolean;
+  /**
+   * The recipient's public key, if the recipient is a user.
+   */
+  readonly left: ocrt.CoinPublicKey;
+  /**
+   * The recipient's contract address, if the recipient is a contract.
+   */
+  readonly right: ocrt.ContractAddress;
+}
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -222,6 +240,81 @@ export function createZswapInput(
   } as EncodedZswapLocalState;
   return [];
 }
+
+/**
+ * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
+ * consumption.
+ */
+
+const Bytes32Descriptor = new CompactTypeBytes(32);
+
+const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
+
+const ShieldedCoinInfoDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
+  },
+  fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
+    return {
+      nonce: Bytes32Descriptor.fromValue(value),
+      color: Bytes32Descriptor.fromValue(value),
+      value: MaxUint8Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.nonce).concat(
+      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
+    );
+  },
+};
+
+const ZswapCoinPublicKeyDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment();
+  },
+  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
+    return {
+      bytes: Bytes32Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { bytes: Uint8Array }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.bytes);
+  },
+};
+
+const ContractAddressDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment();
+  },
+  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
+    return {
+      bytes: Bytes32Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { bytes: Uint8Array }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.bytes);
+  },
+};
+
+const ShieldedCoinRecipientDescriptor = {
+  alignment(): ocrt.Alignment {
+    return CompactTypeBoolean.alignment().concat(
+      ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
+    );
+  },
+  fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
+    return {
+      is_left: CompactTypeBoolean.fromValue(value),
+      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
+      right: ContractAddressDescriptor.fromValue(value),
+    };
+  },
+  toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
+    return CompactTypeBoolean.toValue(value.is_left).concat(
+      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
+    );
+  },
+};
 
 /**
  * Creates a coin commitment from the given coin information and recipient represented as an Impact value.

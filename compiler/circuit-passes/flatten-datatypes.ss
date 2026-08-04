@@ -304,18 +304,19 @@
        (let-values ([(wump stmt*) (do-type type)])
          (hashtable-set! var-ht var-name wump)
          stmt*))]
-    [(+ ,mbits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
+    ;; The type for arithmetic operations should be a numeric type, so `Single-Type` can be used.
+    [(+ ,[Single-Type : primitive-type] ,[Single-Triv : triv1] ,[Single-Triv : triv2])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
-       (list `(= ,test ,var-name (+ ,mbits ,triv1 ,triv2))))]
-    [(- ,mbits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
+       (list `(= ,test ,var-name (+ ,primitive-type ,triv1 ,triv2))))]
+    [(- ,[Single-Type : primitive-type] ,[Single-Triv : triv1] ,[Single-Triv : triv2])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
-       (list `(= ,test ,var-name (- ,mbits ,triv1 ,triv2))))]
-    [(* ,mbits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
+       (list `(= ,test ,var-name (- ,primitive-type ,triv1 ,triv2))))]
+    [(* ,[Single-Type : primitive-type] ,[Single-Triv : triv1] ,[Single-Triv : triv2])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
-       (list `(= ,test ,var-name (* ,mbits ,triv1 ,triv2))))]
+       (list `(= ,test ,var-name (* ,primitive-type ,triv1 ,triv2))))]
     [(< ,bits ,[Single-Triv : triv1] ,[Single-Triv : triv2])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
