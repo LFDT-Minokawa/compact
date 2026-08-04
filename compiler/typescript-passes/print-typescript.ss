@@ -899,7 +899,7 @@
     (define (format-point-type ctype)
       (nanopass-case (Ltypescript Curve-Type) ctype
         [(curve-jubjub) "JubjubPoint"]
-        [(curve-secp256k1) "Secp256k1Scalar"]))
+        [(curve-secp256k1) "Secp256k1Point"]))
     (define (format-type type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tboolean ,src) "Boolean"]
@@ -2774,9 +2774,6 @@
            [(tboolean ,src) #t]
            [(tfield ,src ,ftype) #t]
            [(tunsigned ,src ,nat) #t]
-           [(topaque ,src ,opaque-type)
-            (and (not (string=? opaque-type "JubjubPoint"))
-                 (not (string=? opaque-type "Secp256k1Point")))]
            [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
            [else #f])
          (parenthesize level (precedence ==)
@@ -2800,9 +2797,6 @@
            [(tboolean ,src) #t]
            [(tfield ,src ,ftype) #t]
            [(tunsigned ,src ,nat) #t]
-           [(topaque ,src ,opaque-type)
-            (and (not (string=? opaque-type "JubjubPoint"))
-                 (not (string=? opaque-type "Secp256k1Point")))]
            [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
            [else #f])
          (parenthesize level (precedence ==)
@@ -3174,69 +3168,72 @@
              (nanopass-case (Ltypescript Type) ty clause ... [else #f])]))
         (let ([subst* (map (lambda (x) (cons x #f)) tvar-name*)])
           (and (let unify? ([type1 type1] [type2 type2])
-                 (T type1
-                    [,tvar-name1
-                     (cond
-                       [(assq tvar-name1 subst*) =>
-                        (lambda (a)
-                          (if (eq? (cdr a) #f)
-                              (begin (set-cdr! a type2) #t)
-                              (same-type? (cdr a) type2)))]
-                       [else
-                        ; can't happen at present, since type2 should not contain tvar refs
-                        (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
-                    [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
-                    [(tfield ,src ,ftype1)
-                     (T type2
-                       [(tfield ,src ,ftype2) #t]
-                       [(tunsigned ,src ,nat) #t])]
-                    [(tunsigned ,src ,nat1)
-                     (T type2
-                       [(tunsigned ,src ,nat2) #t]
-                       [(tfield ,src ,ftype) #t])]
-                    [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
-                    [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
-                    [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
-                    [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                     (T type2
-                        [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                         (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                           (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                                     (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                              (and (eq? elt-name1 elt-name2)
-                                                   (eq? pure-dcl1 pure-dcl2)
-                                                   (fx= (length type1*) (length type2*))
-                                                   (andmap unify? type1* type2*)
-                                                   (unify? type1 type2)))
-                                       elt-name1* pure-dcl1* type1** type1*))
-                             elt-name2* pure-dcl2* type2** type2*))
-                          (and (eq? contract-name1 contract-name2)
-                               (fx= (length elt-name1*) (length elt-name2*))
-                               (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-                    [(ttuple ,src ,type1* ...)
-                     (T type2
-                        [(ttuple ,src ,type2* ...)
-                         (and (fx= (length type1*) (length type2*))
-                              (andmap unify? type1* type2*))])]
-                    [(tstruct ,src ,struct-name1 (,elt-name1* ,type1*) ...)
-                     (T type2
-                        [(tstruct ,src ,struct-name2 (,elt-name2* ,type2*) ...)
-                         (and (eq? struct-name1 struct-name2)
+                 (nanopass-case (Ltypescript Type) type1
+                   [,tvar-name1
+                    (cond
+                      [(assq tvar-name1 subst*) =>
+                       (lambda (a)
+                         (if (eq? (cdr a) #f)
+                             (begin (set-cdr! a type2) #t)
+                             (same-type? (cdr a) type2)))]
+                      [else
+                       ; can't happen at present, since type2 should not contain tvar refs
+                       (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
+                   [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
+                   [(tfield ,src ,ftype1)
+                    (T type2
+                      [(tfield ,src ,ftype2) #t]
+                      [(tunsigned ,src ,nat) #t])]
+                   [(tunsigned ,src ,nat1)
+                    (T type2
+                      [(tunsigned ,src ,nat2) #t]
+                      [(tfield ,src ,ftype) #t])]
+                   [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
+                   [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
+                   [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
+                   [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                    (T type2
+                       [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                        (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
+                          (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
+                                    (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
+                                             (and (eq? elt-name1 elt-name2)
+                                                  (eq? pure-dcl1 pure-dcl2)
+                                                  (fx= (length type1*) (length type2*))
+                                                  (andmap unify? type1* type2*)
+                                                  (unify? type1 type2)))
+                                      elt-name1* pure-dcl1* type1** type1*))
+                            elt-name2* pure-dcl2* type2** type2*))
+                         (and (eq? contract-name1 contract-name2)
                               (fx= (length elt-name1*) (length elt-name2*))
-                              (andmap eq? elt-name1* elt-name2*)
-                              (andmap unify? type1* type2*))])]
-                    [(tenum ,src ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                     (T type2
-                        [(tenum ,src ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                         (and (eq? enum-name1 enum-name2)
-                              (eq? elt-name1 elt-name2)
-                              (fx= (length elt-name1*) (length elt-name2*))
-                              (andmap eq? elt-name1* elt-name2*))])]
-                    [(talias ,src1 ,nominal1? ,type-name1 ,type1)
-                     (T type2
-                        [(talias ,src2 ,nominal2? ,type-name2 ,type2)
-                         (and (eq? type-name1 type-name2)
-                              (unify? type1 type2))])]))
+                              (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+                   [(ttuple ,src ,type1* ...)
+                    (T type2
+                       [(ttuple ,src ,type2* ...)
+                        (and (fx= (length type1*) (length type2*))
+                             (andmap unify? type1* type2*))])]
+                   [(tstruct ,src ,struct-name1 (,elt-name1* ,type1*) ...)
+                    (T type2
+                       [(tstruct ,src ,struct-name2 (,elt-name2* ,type2*) ...)
+                        (and (eq? struct-name1 struct-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*)
+                             (andmap unify? type1* type2*))])]
+                   [(tenum ,src ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                    (T type2
+                       [(tenum ,src ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                        (and (eq? enum-name1 enum-name2)
+                             (eq? elt-name1 elt-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*))])]
+                   [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                    (T type2
+                       [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                        (and (eq? type-name1 type-name2)
+                             (unify? type1 type2))])]
+                   [else (internal-errorf 'print-typescript
+                                          "unhandled type ~a in same-type?"
+                                          type1)]))
                (map cdr subst*)))))
     [,tvar-name (symbol->string tvar-name)]
     [(tboolean ,src) "boolean"]

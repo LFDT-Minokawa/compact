@@ -164,139 +164,145 @@
       (define (sametype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
           (or (eq? type1 type2)
-              (T type1
-                 [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                 [(tfield ,src1 ,ftype1)
-                  (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
-                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-                 [(tpoint ,src1 ,ctype1)
-                  (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
-                 [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-                 [(topaque ,src1 ,opaque-type1)
-                  (T type2
-                     [(topaque ,src2 ,opaque-type2)
-                      (string=? opaque-type1 opaque-type2)])]
-                 [(tvector ,src1 ,len1 ,type1)
-                  (T type2
-                     [(tvector ,src2 ,len2 ,type2)
-                      (and (= len1 len2)
-                           (sametype? type1 type2))]
-                     [(ttuple ,src2 ,type2* ...)
-                      (and (= len1 (length type2*))
-                           (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
-                 [(ttuple ,src1 ,type1* ...)
-                  (T type2
-                     [(tvector ,src2 ,len2 ,type2)
-                      (and (= (length type1*) len2)
-                           (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
-                     [(ttuple ,src2 ,type2* ...)
-                      (and (= (length type1*) (length type2*))
-                           (andmap sametype? type1* type2*))])]
-                 [(tunknown) (T type2 [(tunknown) #t])]
-                 [(tundeclared) (T type2 [(tundeclared) #t])]
-                 [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                  (T type2
-                     [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                      (and (eq? contract-name1 contract-name2)
-                           (fx= (length elt-name1*) (length elt-name2*))
-                           (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-                 [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-                  (T type2
-                     [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                      ; include struct-name and elt-name tests for nominal typing; remove
-                      ; for structural typing.
-                      (and (eq? struct-name1 struct-name2)
-                           (fx= (length elt-name1*) (length elt-name2*))
-                           (andmap eq? elt-name1* elt-name2*)
-                           (andmap sametype? type1* type2*))])]
-                 [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                  (T type2
-                     [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                      (and (eq? enum-name1 enum-name2)
-                           (eq? elt-name1 elt-name2)
-                           (fx= (length elt-name1*) (length elt-name2*))
-                           (andmap eq? elt-name1* elt-name2*))])]
-                 [(talias ,src1 ,nominal1? ,type-name1 ,type1)
-                  (assert nominal1?)
-                  (T type2
-                     [(talias ,src2 ,nominal2? ,type-name2 ,type2)
-                      (assert nominal2?)
-                      (and (eq? type-name1 type-name2)
-                           (sametype? type1 type2))])]
-                 [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
-                  (T type2
-                     [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
-                      (and (eq? adt-name1 adt-name2)
-                           (fx= (length adt-arg1*) (length adt-arg2*))
-                           (andmap same-adt-arg? adt-arg1* adt-arg2*))])]))))
+              (nanopass-case (Ltypes Type) type1
+                [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+                [(tfield ,src1 ,ftype1)
+                 (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
+                [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+                [(tpoint ,src1 ,ctype1)
+                 (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+                [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+                [(topaque ,src1 ,opaque-type1)
+                 (T type2
+                    [(topaque ,src2 ,opaque-type2)
+                     (string=? opaque-type1 opaque-type2)])]
+                [(tvector ,src1 ,len1 ,type1)
+                 (T type2
+                    [(tvector ,src2 ,len2 ,type2)
+                     (and (= len1 len2)
+                          (sametype? type1 type2))]
+                    [(ttuple ,src2 ,type2* ...)
+                     (and (= len1 (length type2*))
+                          (andmap (lambda (type2) (sametype? type1 type2)) type2*))])]
+                [(ttuple ,src1 ,type1* ...)
+                 (T type2
+                    [(tvector ,src2 ,len2 ,type2)
+                     (and (= (length type1*) len2)
+                          (andmap (lambda (type1) (sametype? type1 type2)) type1*))]
+                    [(ttuple ,src2 ,type2* ...)
+                     (and (= (length type1*) (length type2*))
+                          (andmap sametype? type1* type2*))])]
+                [(tunknown) (T type2 [(tunknown) #t])]
+                [(tundeclared) (T type2 [(tundeclared) #t])]
+                [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                 (T type2
+                    [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                     (and (eq? contract-name1 contract-name2)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+                [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+                 (T type2
+                    [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                     ; include struct-name and elt-name tests for nominal typing; remove
+                     ; for structural typing.
+                     (and (eq? struct-name1 struct-name2)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*)
+                          (andmap sametype? type1* type2*))])]
+                [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                 (T type2
+                    [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                     (and (eq? enum-name1 enum-name2)
+                          (eq? elt-name1 elt-name2)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*))])]
+                [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                 (assert nominal1?)
+                 (T type2
+                    [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                     (assert nominal2?)
+                     (and (eq? type-name1 type-name2)
+                          (sametype? type1 type2))])]
+                [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+                 (T type2
+                    [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                     (and (eq? adt-name1 adt-name2)
+                          (fx= (length adt-arg1*) (length adt-arg2*))
+                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])]
+                [else (internal-errorf 'infer-types
+                                       "unhandled type ~a in sametype?"
+                                       type1)]))))
       (define (subtype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
           (or (eq? type1 type2)
-              (T type1
-                 [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-                 [(tfield ,src1 ,ftype1)
-                  (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
-                 [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
-                 [(tpoint ,src1 ,ctype1)
-                  (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
-                 [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-                 [(topaque ,src1 ,opaque-type1)
-                  (T type2
-                     [(topaque ,src2 ,opaque-type2)
-                      (string=? opaque-type1 opaque-type2)])]
-                 [(tvector ,src1 ,len1 ,type1)
-                  (T type2
-                     [(tvector ,src2 ,len2 ,type2)
-                      (and (= len1 len2)
-                           (subtype? type1 type2))]
-                     [(ttuple ,src2 ,type2* ...)
-                      (and (= len1 (length type2*))
-                           (andmap (lambda (type2) (subtype? type1 type2)) type2*))])]
-                 [(ttuple ,src1 ,type1* ...)
-                  (T type2
-                     [(tvector ,src2 ,len2 ,type2)
-                      (and (= (length type1*) len2)
-                           (andmap (lambda (type1) (subtype? type1 type2)) type1*))]
-                     [(ttuple ,src2 ,type2* ...)
-                      (and (= (length type1*) (length type2*))
-                           (andmap subtype? type1* type2*))])]
-                 [(tunknown) #t] ; tunknown values originate from empty-vector constants.
-                 [(tundeclared) (T type2 [(tundeclared) #t])]
-                 [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                  (T type2
-                     [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                      (and (eq? contract-name1 contract-name2)
-                           (fx>= (length elt-name1*) (length elt-name2*))
-                           (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-                 [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-                  (T type2
-                     [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                      ; include struct-name and elt-name tests for nominal typing; remove
-                      ; and change sametype? to subtype? for structural typing.
-                      (and (eq? struct-name1 struct-name2)
-                           (fx= (length elt-name1*) (length elt-name2*))
-                           (andmap eq? elt-name1* elt-name2*)
-                           (andmap sametype? type1* type2*))])]
-                 [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                  (T type2
-                     [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                      (and (eq? enum-name1 enum-name2)
-                           (eq? elt-name1 elt-name2)
-                           (fx= (length elt-name1*) (length elt-name2*))
-                           (andmap eq? elt-name1* elt-name2*))])]
-                 [(talias ,src1 ,nominal1? ,type-name1 ,type1)
-                  (assert nominal1?)
-                  (T type2
-                     [(talias ,src2 ,nominal2? ,type-name2 ,type2)
-                      (assert nominal2?)
-                      (and (eq? type-name1 type-name2)
-                           (sametype? type1 type2))])]
-                 [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
-                  (T type2
-                     [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
-                      (and (eq? adt-name1 adt-name2)
-                           (fx= (length adt-arg1*) (length adt-arg2*))
-                           (andmap same-adt-arg? adt-arg1* adt-arg2*))])])
+              (nanopass-case (Ltypes Type) type1
+                [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+                [(tfield ,src1 ,ftype1)
+                 (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
+                [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (<= nat1 nat2)])]
+                [(tpoint ,src1 ,ctype1)
+                 (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+                [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+                [(topaque ,src1 ,opaque-type1)
+                 (T type2
+                    [(topaque ,src2 ,opaque-type2)
+                     (string=? opaque-type1 opaque-type2)])]
+                [(tvector ,src1 ,len1 ,type1)
+                 (T type2
+                    [(tvector ,src2 ,len2 ,type2)
+                     (and (= len1 len2)
+                          (subtype? type1 type2))]
+                    [(ttuple ,src2 ,type2* ...)
+                     (and (= len1 (length type2*))
+                          (andmap (lambda (type2) (subtype? type1 type2)) type2*))])]
+                [(ttuple ,src1 ,type1* ...)
+                 (T type2
+                    [(tvector ,src2 ,len2 ,type2)
+                     (and (= (length type1*) len2)
+                          (andmap (lambda (type1) (subtype? type1 type2)) type1*))]
+                    [(ttuple ,src2 ,type2* ...)
+                     (and (= (length type1*) (length type2*))
+                          (andmap subtype? type1* type2*))])]
+                [(tunknown) #t] ; tunknown values originate from empty-vector constants.
+                [(tundeclared) (T type2 [(tundeclared) #t])]
+                [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                 (T type2
+                    [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                     (and (eq? contract-name1 contract-name2)
+                          (fx>= (length elt-name1*) (length elt-name2*))
+                          (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+                [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+                 (T type2
+                    [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                     ; include struct-name and elt-name tests for nominal typing; remove
+                     ; and change sametype? to subtype? for structural typing.
+                     (and (eq? struct-name1 struct-name2)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*)
+                          (andmap sametype? type1* type2*))])]
+                [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                 (T type2
+                    [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                     (and (eq? enum-name1 enum-name2)
+                          (eq? elt-name1 elt-name2)
+                          (fx= (length elt-name1*) (length elt-name2*))
+                          (andmap eq? elt-name1* elt-name2*))])]
+                [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                 (assert nominal1?)
+                 (T type2
+                    [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                     (assert nominal2?)
+                     (and (eq? type-name1 type-name2)
+                          (sametype? type1 type2))])]
+                [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+                 (T type2
+                    [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+                     (and (eq? adt-name1 adt-name2)
+                          (fx= (length adt-arg1*) (length adt-arg2*))
+                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])]
+                [else (internal-errorf 'infer-types
+                                       "unhandled type ~a in subtype?"
+                                       type1)])
               (T type2
                  [(tundeclared) #t])))))
     (define (public-adt? type)

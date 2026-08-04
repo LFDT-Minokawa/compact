@@ -28,6 +28,17 @@
     (define ndecl*)
     (define native-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
+    (define-syntax declare-native-type
+      (lambda (q)
+        (syntax-case q ()
+          [(_ name type-kind modifier ...)
+           #`(set! ndecl*
+               (cons
+                 (with-output-language (Lpreexpand Native-Type-Declaration)
+                   `(native-type ,native-src #t name
+                      (type-kind ,native-src modifier ...)))
+                 ndecl*))])))
+
     (define-syntax declare-native-entry
       (lambda (q)
         (define (f class name type-param* function argument-name* argument-type* disclosure* result-type)
@@ -35,16 +46,13 @@
             (define (convert-native-type type)
               (define (convert-native-targ targ)
                 #`(targ-type ,native-src #,(convert-native-type targ)))
-              (syntax-case type (TypeRef Boolean Bytes Field JubjubPoint JubjubScalar Secp256k1Base
-                                  Secp256k1Point Secp256k1Scalar Void)
+              (syntax-case type (TypeRef Boolean Bytes Field JubjubScalar Secp256k1Base Secp256k1Scalar Void)
                 [(TypeRef id targ ...) #`(type-ref ,native-src id #,@(map convert-native-targ #'(targ ...)))]
                 [Boolean #'(tboolean ,native-src)]
                 [(Bytes nat) (field? (datum nat)) #`(tbytes ,native-src (type-size ,native-src ,nat))]
                 [Field #'(tfield ,native-src (field-native))]
-                [JubjubPoint #'(tpoint ,native-src (curve-jubjub))]
                 [JubjubScalar #'(tfield ,native-src (field-scalar (curve-jubjub)))]
                 [Secp256k1Base #'(tfield ,native-src (field-base (curve-secp256k1)))]
-                [Secp256k1Point #'(tpoint ,native-src (curve-secp256k1))]
                 [Secp256k1Scalar #'(tfield ,native-src (field-scalar (curve-secp256k1)))]
                 [Void #`(ttuple ,native-src)]
                 [other (syntax-error #'other "unrecognized native type")]))

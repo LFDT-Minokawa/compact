@@ -1656,10 +1656,7 @@ groups than for single tests.
           (tfield (field-scalar (curve-secp256k1))))
         (public-ledger-declaration #f #f
           x17
-          (tpoint (curve-jubjub)))
-        (public-ledger-declaration #f #f
-          x18
-          (tpoint (curve-secp256k1)))
+          (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -4638,10 +4635,7 @@ groups than for single tests.
           (tfield (field-scalar (curve-secp256k1))))
         (public-ledger-declaration #f #f
           x17
-          (tpoint (curve-jubjub)))
-        (public-ledger-declaration #f #f
-          x18
-          (tpoint (curve-secp256k1)))
+          (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9110,10 +9104,7 @@ groups than for single tests.
           (tfield (field-scalar (curve-secp256k1))))
         (public-ledger-declaration #f #f
           x17
-          (tpoint (curve-jubjub)))
-        (public-ledger-declaration #f #f
-          x18
-          (tpoint (curve-secp256k1)))
+          (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9718,10 +9709,7 @@ groups than for single tests.
           (tfield (field-scalar (curve-secp256k1))))
         (public-ledger-declaration #f #f
           x17
-          (tpoint (curve-jubjub)))
-        (public-ledger-declaration #f #f
-          x18
-          (tpoint (curve-secp256k1)))
+          (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10021,10 +10009,7 @@ groups than for single tests.
           (tfield (field-scalar (curve-secp256k1))))
         (public-ledger-declaration #f #f
           x17
-          (tpoint (curve-jubjub)))
-        (public-ledger-declaration #f #f
-          x18
-          (tpoint (curve-secp256k1)))
+          (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10481,9 +10466,6 @@ groups than for single tests.
         (public-ledger-declaration
           %x17.33
           (__compact_Cell (tpoint (curve-jubjub))))
-        (public-ledger-declaration
-          %x18.34
-          (__compact_Cell (tpoint (curve-secp256k1))))
         (public-ledger-declaration
           %authority.35
           (__compact_Cell (tbytes 32)))
@@ -14905,6 +14887,73 @@ groups than for single tests.
              (tbytes 32)
           (call (fref ((%serialize.2))) %x.4))))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): T { return x; }"
+      "export circuit bar1(x: JubjubPoint): JubjubPoint { return foo<JubjubPoint>(x); }"
+      "export circuit bar2(x: JubjubPoint): JubjubPoint { return foo<JubjubPoint>(x); }"
+      )
+    (returns
+      (program ((bar1 %bar1.0) (bar2 %bar2.1))
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (circuit %foo.3 ([%x.4 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          %x.4)
+        (circuit %bar1.0 ([%x.5 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          (call (fref ((%foo.3))) %x.5))
+        (circuit %bar2.1 ([%x.6 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          (call (fref ((%foo.3))) %x.6))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Boolean };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"Boolean\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"}\""))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { JubjubPoint };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "cannot export standard-library type (~s) from the top level" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "export circuit foo(x: JubjubPoint): JubjubPoint { return x; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 23" "unbound identifier ~s" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  import CompactStandardLibrary;"
+      "  export { JubjubPoint };"
+      "}"
+      "import M;"
+      "export circuit foo(x: JubjubPoint): JubjubPoint { return x; }"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ([%x.2 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          %x.2)))
+    )
 )
 
 (run-tests infer-types
@@ -18290,6 +18339,18 @@ groups than for single tests.
   (test
     '(
       "import {ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(x, y);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 30" "unbound identifier ~s" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "import {ecAdd, JubjubPoint} from CompactStandardLibrary;"
       "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
@@ -50288,9 +50349,6 @@ groups than for single tests.
           %x17.45
           (__compact_Cell (tpoint (curve-jubjub))))
         (public-ledger-declaration
-          %x18.46
-          (__compact_Cell (tpoint (curve-secp256k1))))
-        (public-ledger-declaration
           %authority.47
           (__compact_Cell (tbytes 32)))
         (public-ledger-declaration
@@ -50364,7 +50422,6 @@ groups than for single tests.
           (%x16.44
             (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
           (%x17.45 (__compact_Cell (tpoint (curve-jubjub))))
-          (%x18.46 (__compact_Cell (tpoint (curve-secp256k1))))
           (%authority.47 (__compact_Cell (tbytes 32)))
           (%state.48
             (__compact_Cell
@@ -50476,21 +50533,21 @@ groups than for single tests.
              (%x5.36 (0 5) (MerkleTree 32 (tfield (field-native))))
              (%x6.37
                (0 6)
-               (HistoricMerkleTree 10 (tfield (field-native))))
-             (%x7.38
-               (0 7)
-               (__compact_Cell
-                 (tstruct ShieldedCoinInfo
-                   (nonce (tbytes 32))
-                   (color (tbytes 32))
-                   (value (tunsigned
-                            340282366920938463463374607431768211455))))))
-           ((%x10.39
+               (HistoricMerkleTree 10 (tfield (field-native)))))
+           ((%x7.38
               (1 0)
               (__compact_Cell
-                (tstruct MerkleTreeDigest (field (tfield (field-native))))))
-             (%x11.40
+                (tstruct ShieldedCoinInfo
+                  (nonce (tbytes 32))
+                  (color (tbytes 32))
+                  (value (tunsigned
+                           340282366920938463463374607431768211455)))))
+             (%x10.39
                (1 1)
+               (__compact_Cell
+                 (tstruct MerkleTreeDigest (field (tfield (field-native))))))
+             (%x11.40
+               (1 2)
                (__compact_Cell
                  (tstruct QualifiedShieldedCoinInfo
                    (nonce (tbytes 32))
@@ -50498,20 +50555,19 @@ groups than for single tests.
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 2)
+               (1 3)
                (__compact_Cell
                  (tstruct ContractAddress (bytes (tbytes 32)))))
              (%x14.42
-               (1 3)
+               (1 4)
                (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
              (%x15.43
-               (1 4)
+               (1 5)
                (__compact_Cell (tfield (field-base (curve-secp256k1)))))
              (%x16.44
-               (1 5)
+               (1 6)
                (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-             (%x17.45 (1 6) (__compact_Cell (tpoint (curve-jubjub))))
-             (%x18.46 (1 7) (__compact_Cell (tpoint (curve-secp256k1))))
+             (%x17.45 (1 7) (__compact_Cell (tpoint (curve-jubjub))))
              (%authority.47 (1 8) (__compact_Cell (tbytes 32)))
              (%state.48 (1 9) (__compact_Cell (tunsigned 3)))
              (%topic.49
@@ -50572,23 +50628,23 @@ groups than for single tests.
                (0 6)
                (HistoricMerkleTree
                  10
-                 (ty ((afield)) ((tfield (field-native))))))
-             (%x7.38
-               (0 7)
-               (__compact_Cell
-                 (ty ((abytes 32) (abytes 32) (abytes 16))
-                     ((tunsigned 255)
-                       (tunsigned
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tunsigned 255)
-                       (tunsigned
-                         452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tunsigned 340282366920938463463374607431768211455))))))
-           ((%x10.39
+                 (ty ((afield)) ((tfield (field-native)))))))
+           ((%x7.38
               (1 0)
-              (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
-             (%x11.40
+              (__compact_Cell
+                (ty ((abytes 32) (abytes 32) (abytes 16))
+                    ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)
+                     (tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)
+                     (tunsigned 340282366920938463463374607431768211455)))))
+             (%x10.39
                (1 1)
+               (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
+             (%x11.40
+               (1 2)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
                      ((tunsigned 255)
@@ -50600,36 +50656,31 @@ groups than for single tests.
                        (tunsigned 340282366920938463463374607431768211455)
                        (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 2)
+               (1 3)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (%x14.42
-               (1 3)
+               (1 4)
                (__compact_Cell
                  (ty ((anative "JubjubScalar"))
                      ((tfield (field-scalar (curve-jubjub)))))))
              (%x15.43
-               (1 4)
+               (1 5)
                (__compact_Cell
                  (ty ((anative "Secp256k1Base"))
                      ((tfield (field-base (curve-secp256k1)))))))
              (%x16.44
-               (1 5)
+               (1 6)
                (__compact_Cell
                  (ty ((anative "Secp256k1Scalar"))
                      ((tfield (field-scalar (curve-secp256k1)))))))
              (%x17.45
-               (1 6)
-               (__compact_Cell
-                 (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
-             (%x18.46
                (1 7)
                (__compact_Cell
-                 (ty ((anative "Secp256k1Point"))
-                     ((tpoint (curve-secp256k1))))))
+                 (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
              (%authority.47
                (1 8)
                (__compact_Cell

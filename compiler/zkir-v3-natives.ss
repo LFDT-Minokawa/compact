@@ -13,6 +13,9 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+;; ==== Points
+(declare-native-type Secp256k1Point tpoint (curve-secp256k1))
+
 ;; ==== Fields
 (declare-native-entry circuit neg
   "__compactRuntime.secp256k1ScalarNeg"
@@ -36,27 +39,27 @@
 
 (declare-native-entry circuit secp256k1PointX
   "__compactRuntime.secp256k1PointX"
-  ([pt Secp256k1Point (discloses "the X coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the X coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit secp256k1PointY
   "__compactRuntime.secp256k1PointY"
-  ([pt Secp256k1Point (discloses "the Y coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the Y coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit ecAdd
   "__compactRuntime.secp256k1Add"
-  ([a Secp256k1Point (discloses "an elliptic curve sum including")]
-   [b Secp256k1Point (discloses "an elliptic curve sum including")])
-  Secp256k1Point)
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]
+   [b (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")])
+  (TypeRef Secp256k1Point))
 
 (declare-native-entry circuit ecMul
   "__compactRuntime.secp256k1Mul"
-  ([a Secp256k1Point (discloses "an elliptic curve product including")]
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve product including")]
    [b Secp256k1Scalar (discloses "an elliptic curve product including")])
-  Secp256k1Point)
+  (TypeRef Secp256k1Point))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.secp256k1MulGenerator"
   ([b Secp256k1Scalar (discloses "the product of the embedded group generator with")])
-  Secp256k1Point)
+  (TypeRef Secp256k1Point))

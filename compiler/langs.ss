@@ -290,7 +290,6 @@
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src tsize)                  => (tunsigned tsize)        ; range from 0 to 2^{tsize}-1
       (tunsigned src tsize tsize^)           => (tunsigned tsize tsize^) ; range from tsize (inclusive) to tsize^ (exclusive)
-      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src tsize)                     => (tbytes tsize)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src tsize type)               => (tvector tsize type)
@@ -423,9 +422,13 @@
          (vm-code (vm-code))
          (native-entry (native-entry))))
     (Program-Element (pelt)
-      (+ ndecl
+      (+ ntdecl
+         ndecl
          adt-defn
          fixup-alias-defn))
+    (Native-Type-Declaration (ntdecl)
+      (+ (native-type src exported? type-name type) =>
+           (native-type type-name type)))
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
@@ -451,6 +454,8 @@
     (Expression (expr index)
       (+ (serialize src tsize type expr)      => (serialize tsize type expr)
          (deserialize src tsize type expr)    => (deserialize tsize type expr)))
+    (Type (type)
+      (+ (tpoint src ctype)                   => (tpoint ctype)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -517,9 +522,12 @@
          structdef
          enumdef
          tdefn
+         ntdecl
          adt-defn
          fixup-alias-defn)
       (+ export-tdefn))
+    (Native-Type-Declaration (ntdecl)
+      (- (native-type src exported? type-name type)))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Fixup-Alias-Definition (fixup-alias-defn)

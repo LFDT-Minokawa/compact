@@ -9,14 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The types `JubjubPoint` and `Secp256k1Point` are now builtin Compact types.
-  They do not need to be imported from the standard library.
+- The types `JubjubPoint` and `Secp256k1Point` are no longer defined as
+  nominal type aliases for opaque types but rather standard-library names for
+  internally handled types, and they can no longer be exported from a contract's
+  top level.  This is a **breaking** change.
 
 ### Internal notes
 
 - Previously, there were builtin types `Opaque<'JubjubPoint'>` and
   `Opaque<'Secp256k1Point'>` and the standard library exported nominal type
-  aliases `JubjuPoint` and `Secp256k1Point` for these.
+  aliases `JubjuPoint` and `Secp256k1Point` for these.  The compiler now
+  injects definitions for these points into the standard library and expands
+  them into built-in types.
 
 ## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
 

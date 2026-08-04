@@ -1356,16 +1356,10 @@
       [(tfield ,src ,kwd)
        (// src
            (make-Qtoken kwd))]
-      [(tjubjub-point ,src ,kwd)
-       (// src
-           (make-Qtoken kwd))]
       [(tjubjub-scalar ,src ,kwd)
        (// src
            (make-Qtoken kwd))]
       [(tsecp256k1-base ,src ,kwd)
-       (// src
-           (make-Qtoken kwd))]
-      [(tsecp256k1-point ,src ,kwd)
        (// src
            (make-Qtoken kwd))]
       [(tsecp256k1-scalar ,src ,kwd)
