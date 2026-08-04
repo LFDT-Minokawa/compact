@@ -36,12 +36,12 @@
 
 (declare-native-entry circuit secp256k1PointX
   "__compactRuntime.secp256k1PointX"
-  ([pt (TypeRef Secp256k1Point) (discloses "the X coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the x-coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit secp256k1PointY
   "__compactRuntime.secp256k1PointY"
-  ([pt (TypeRef Secp256k1Point) (discloses "the Y coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the y-coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit ecAdd
