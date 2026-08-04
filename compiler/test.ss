@@ -91104,7 +91104,67 @@ groups than for single tests.
         "});"
         ))
     )
-  )
+
+  (test
+    '(
+      "ledger flag: Boolean;"
+      "export circuit testEquals(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr0 == arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testNotEquals(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr0 != arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testEqualsDefault(arr: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr == default<Opaque<'Uint8Array'>>;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a0 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  const a1 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  // Different length."
+        "  const a2 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13, 21]);"
+        "  const a3 = new Uint8Array();"
+        "  // Different element."
+        "  const a4 = new Uint8Array([0, 1, 1, 2, 3, 1000000, 8, 13]);"
+        "  expect((await contract.circuits.testEquals(context, a0, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a0, a1)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a0, a2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a0, a3)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a0, a4)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.testEquals(context, a1, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a2, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a3, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a4, a0)).result).toEqual(false);"
+
+        "  expect((await contract.circuits.testNotEquals(context, a0, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a2)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a4)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a1, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a2, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a3, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a4, a0)).result).toEqual(true);"
+
+        "  expect((await contract.circuits.testEqualsDefault(context, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a4)).result).toEqual(false);"
+        "});"
+        ))
+    )
+)
 
 (run-javascript)
 )
