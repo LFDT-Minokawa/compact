@@ -13453,6 +13453,23 @@ groups than for single tests.
 
   (test
     '(
+      "circuit foo<#n>(x: Uint<n>): Uint<n> {"
+      "  return x;"
+      "}"
+      "export circuit bar(): Uint<0> {"
+      "  return foo<0>(0);"
+      "}"
+      )
+    (returns
+      (program ((bar %bar.0))
+        (circuit %foo.1 ([%x.2 (tunsigned 0)])
+             (tunsigned 0)
+          %x.2)
+        (circuit %bar.0 () (tunsigned 0) (call (fref ((%foo.1))) 0))))
+    )
+
+  (test
+    '(
       "struct S<#t> {"
       "  x: Uint<0..t>;"
       "  y: Uint<t>;"
@@ -18386,6 +18403,96 @@ groups than for single tests.
     )
 
   (test
+    '(
+      "export circuit foo(): Uint<0> {"
+      "  return default<Uint<0>>;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 () (tunsigned 0) (default (tunsigned 0)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  const x: Uint<0> = 1;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("Uint<1>" "Uint<0..1>")))
+    )
+
+  (test
+    '(
+      "export circuit foo(v: Vector<3, Uint<0>>): Uint<0> {"
+      "  return v[0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>): Uint<8> {"
+      "  return x;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>): Field {"
+      "  return x as Field;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the result of arithmetic on Uint<0> operands is itself a Uint<0>, i.e., the
+  ; type system guarantees the result is 0
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; but adding a nonzero literal widens the result beyond what Uint<0> can hold
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x + y + 1;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Uint<0..1>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x - y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x * y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+   (test
     `(
       ,(format "export circuit foo(b: Boolean): Uint<~d> {" (unsigned-bits))
       ,(format "  return b as Uint<~d>;" (unsigned-bits))
