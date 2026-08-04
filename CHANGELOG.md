@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.115, language 0.25.104, runtime 0.18.104]
+## [Toolchain 0.33.117, language 0.25.106, runtime 0.18.105]
 
 ### Changed
 
@@ -14,6 +14,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Before, we allowed any value at all to be passed or returned.  This is a
   **breaking change** for programs that relied on being able to store any random
   JS value as, say, an `Opaque<'string'>`.
+
+## [Toolchain 0.33.116, language 0.25.106, runtime 0.18.105]
+
+### Changed
+
+- Equality of `Opaque<'Uint8Array'>` is now (1) same length and (2) element-wise
+  strict equality (`===`).  It was formerly simple strict equality, which for
+  typed arrays is object reference equality.
+
+  This is a breaking change in the language, because `Uint8Arrays` that were
+  formerly not equal in Compact can now compare as equal.
+
+  This change brings the JS semantics more in line with the ZKIR semantics,
+  which uses equality of the Poseidon hash of the typed array's contents.
+
+## [Toolchain 0.33.115, language 0.25.105, runtime 0.18.105]
+
+### Changed
+
+- The JS implementation of the accessors secp256k1PointX and secp256k1PointY now
+  fail with a `CompactError` when passed the identity (`default`) point.  This
+  matches the ZKIR behavior, where these operations fail.
+
+  Before, these accessors returned whatever was stored in the x- or y-coordinate
+  of the JS object.  This was not a valid coordinate for this point, and not
+  even a sentinel value like 0 because we don't currently canonicalize identity
+  points.
+
+### Internal notes
+
+- This is a **breaking change** in the language.  Though it's a bug fix, the
+  language version is still correctly incremented.
 
 ## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
 
