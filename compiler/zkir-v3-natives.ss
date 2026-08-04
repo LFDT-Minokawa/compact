@@ -14,21 +14,9 @@
 ;;; limitations under the License.
 
 ;; ==== Fields
-(declare-native-entry circuit add
-  "__compactRuntime.secp256k1ScalarAdd"
-  ([x Secp256k1Scalar (discloses "a sum including")]
-   [y Secp256k1Scalar (discloses "a sum including")])
-  Secp256k1Scalar)
-
 (declare-native-entry circuit neg
   "__compactRuntime.secp256k1ScalarNeg"
   ([s Secp256k1Scalar (discloses "the negation of")])
-  Secp256k1Scalar)
-
-(declare-native-entry circuit mul
-  "__compactRuntime.secp256k1ScalarMul"
-  ([x Secp256k1Scalar (discloses "a product including")]
-   [y Secp256k1Scalar (discloses "a product including")])
   Secp256k1Scalar)
 
 (declare-native-entry circuit inv
@@ -36,21 +24,9 @@
   ([s Secp256k1Scalar (discloses "the inverse of")])
   Secp256k1Scalar)
 
-(declare-native-entry circuit add
-  "__compactRuntime.secp256k1BaseAdd"
-  ([x Secp256k1Base (discloses "a sum including")]
-   [y Secp256k1Base (discloses "a sum including")])
-  Secp256k1Base)
-
 (declare-native-entry circuit neg
   "__compactRuntime.secp256k1BaseNeg"
   ([s Secp256k1Base (discloses "the negation of")])
-  Secp256k1Base)
-
-(declare-native-entry circuit mul
-  "__compactRuntime.secp256k1BaseMul"
-  ([x Secp256k1Base (discloses "a product including")]
-   [y Secp256k1Base (discloses "a product including")])
   Secp256k1Base)
 
 (declare-native-entry circuit inv
@@ -60,12 +36,12 @@
 
 (declare-native-entry circuit secp256k1PointX
   "__compactRuntime.secp256k1PointX"
-  ([pt (TypeRef Secp256k1Point) (discloses "the X coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the x-coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit secp256k1PointY
   "__compactRuntime.secp256k1PointY"
-  ([pt (TypeRef Secp256k1Point) (discloses "the Y coordinate of")])
+  ([pt (TypeRef Secp256k1Point) (discloses "the y-coordinate of")])
   Secp256k1Base)
 
 (declare-native-entry circuit ecAdd
@@ -84,4 +60,3 @@
   "__compactRuntime.secp256k1MulGenerator"
   ([b Secp256k1Scalar (discloses "the product of the embedded group generator with")])
   (TypeRef Secp256k1Point))
-

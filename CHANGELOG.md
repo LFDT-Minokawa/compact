@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.112, language 0.25.104, runtime 0.18.102]
+## [Toolchain 0.33.116, language 0.25.106, runtime 0.18.105]
 
 ### Changed
 
@@ -18,6 +18,54 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   This change brings the JS semantics more in line with the ZKIR semantics,
   which uses equality of the Poseidon hash of the typed array's contents.
+
+## [Toolchain 0.33.115, language 0.25.105, runtime 0.18.105]
+
+### Changed
+
+- The JS implementation of the accessors secp256k1PointX and secp256k1PointY now
+  fail with a `CompactError` when passed the identity (`default`) point.  This
+  matches the ZKIR behavior, where these operations fail.
+
+  Before, these accessors returned whatever was stored in the x- or y-coordinate
+  of the JS object.  This was not a valid coordinate for this point, and not
+  even a sentinel value like 0 because we don't currently canonicalize identity
+  points.
+
+### Internal notes
+
+- This is a **breaking change** in the language.  Though it's a bug fix, the
+  language version is still correctly incremented.
+
+## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
+
+### Changed
+
+- Clean up the Compact runtime to reflect the intended structure: types and
+  descriptors needed by the generated code are in `compact-types.ts`, but not
+  redundant and unnecessary implementations; functions used by emitted code are
+  in `built-ins.ts`, but not helpful utility functions; those are in `utils.ts`.
+
+### Internal notes
+
+- This is a breaking change because some unused and unnecessary exported types
+  and descriptors have been deleted.
+
+## [Toolchain 0.33.113, language 0.25.104, runtime 0.18.103]
+
+### Added/Changed
+
+- The binary arithmetic operators `+`, `-`, and `*` now work for `Secp256k1Base`
+  and `Secp256k1Scalar`.  The operands must have the same type and the result
+  will have that type.  There is a new runtime function to perform subtraction
+  for these types.  The standard library circuits `add` and `mul` have been
+  removed.
+
+## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+
+### Fixed
+
+- The ZKIR v3 printer now respects the --no-communications-commitment flag.
 
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
