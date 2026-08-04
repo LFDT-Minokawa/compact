@@ -91158,10 +91158,18 @@ groups than for single tests.
       '(
         "test('Secp256k1Point accessors on the identity', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
-        "  const identity = { x: 0n, y: 0n, identity: true };"
-        "  await expect(contract.circuits.test0(context, identity)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(contract.circuits.test1(context, identity)).rejects.toThrow(runtime.CompactError);"
-        "  expect((await contract.circuits.test2(context, identity)).result).toEqual([0n, 0n]);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 3n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  await expect(contract.circuits.test0(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity0)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity1)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
         "});"
         ))
     )
