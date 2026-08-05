@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.118, language 0.25.107, runtime 0.18.105]
+
+### Changed
+
+- The types `JubjubPoint` and `Secp256k1Point` are no longer defined as
+  nominal type aliases for opaque types but rather standard-library names for
+  internally handled types.  They can no longer be exported from a contract's
+  top level.  This is a **breaking** change.
+
+- Similarly, the types `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar`
+  are no longer built-in types but rather standard-library names for
+  internally handled types.  This is a **breaking** change, since programs
+  must now import these types from CompactStandardLibrary to use them.
+
+### Internal notes
+
+- Previously, there were builtin types `Opaque<'JubjubPoint'>` and
+  `Opaque<'Secp256k1Point'>` and the standard library exported nominal type
+  aliases `JubjuPoint` and `Secp256k1Point` for these.  The compiler now
+  injects definitions for these points from midnight-natives.ss and
+  zkir-v3-natives.ss into the standard library and expands them into built-in types.
+  Similarly, it injects definitions for `JubjubScalar`, `Secp256k1Base`, and
+  `Secp256k1Scalar` from midnight-natives.ss and zkir-v3-natives.ss into the
+  standard lbirary and expands them into built-in types.
+
+## [Toolchain 0.33.117, language 0.25.106, runtime 0.18.105]
+
+### Changed
+
+- The generated JS code now has circuit argument and witness return value type
+  checks for the JS opaque types `Opaque<'string'>` and `Opaque<'Uint8Array'>`.
+  Before, we allowed any value at all to be passed or returned.  This is a
+  **breaking change** for programs that relied on being able to store any random
+  JS value as, say, an `Opaque<'string'>`.
+
 ## [Toolchain 0.33.116, language 0.25.106, runtime 0.18.105]
 
 ### Changed

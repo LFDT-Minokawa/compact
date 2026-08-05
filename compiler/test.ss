@@ -1647,13 +1647,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -4353,276 +4348,6 @@ groups than for single tests.
              (tfield (field-native))
           (block (return (call (fref A 12) x))))))
     )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
-      "  return constructNativePoint(CurvePoint, NativePoint);"
-      "}"
-      )
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary;"
-        ""
-        "export circuit foo(x: JubjubPoint): JubjubPoint {"
-        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
-        "  return constructJubjubPoint(CurvePoint, NativePoint);"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "")
-        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
-             (type-ref JubjubPoint)
-          (block
-            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
-                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
-            (return
-              (call constructJubjubPoint CurvePoint NativePoint))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
-      "}"
-      )
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary prefix std$;"
-        ""
-        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
-        "  const std$NativePoint = std$jubjubPointX(x), std$CurvePoint = std$jubjubPointY(x);"
-        "  return std$constructJubjubPoint(std$CurvePoint, std$NativePoint);"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "std$")
-        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
-             (type-ref std$JubjubPoint)
-          (block
-            (const ([std$NativePoint (tundeclared) (call std$jubjubPointX x)]
-                    [std$CurvePoint (tundeclared) (call std$jubjubPointY x)]))
-            (return
-              (call std$constructJubjubPoint std$CurvePoint std$NativePoint))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
-      "  const JubjubPoint = NativePoint;"
-      "  return constructNativePoint(CurvePoint, JubjubPoint);"
-      "}"
-      )
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary;"
-        ""
-        "export circuit foo(x: JubjubPoint): JubjubPoint {"
-        "  const NativePoint = jubjubPointX(x), CurvePoint = jubjubPointY(x);"
-        "  const JubjubPoint = NativePoint;"
-        "  return constructJubjubPoint(CurvePoint, JubjubPoint);"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "")
-        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
-             (type-ref JubjubPoint)
-          (block
-            (const ([NativePoint (tundeclared) (call jubjubPointX x)]
-                    [CurvePoint (tundeclared) (call jubjubPointY x)]))
-            (const ([JubjubPoint (tundeclared) NativePoint]))
-            (return
-              (call constructJubjubPoint CurvePoint JubjubPoint))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const JubjubPoint = NativePointY(x);"
-      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
-      "}"
-      )
-    (warning
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 49" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (NativePoint JubjubPoint)))
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary;"
-        ""
-        "export circuit foo(x: JubjubPoint): JubjubPoint {"
-        "  const JubjubPoint = jubjubPointY(x);"
-        "  return constructJubjubPoint(JubjubPoint, ((x: NativePoint) => jubjubPointX(x))(x));"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "")
-        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
-             (type-ref JubjubPoint)
-          (block
-            (const ([JubjubPoint (tundeclared) (call jubjubPointY x)]))
-            (return
-              (call constructJubjubPoint
-                JubjubPoint
-                (call (circuit ([x (type-ref NativePoint)])
-                           (tundeclared)
-                        (block (return (call jubjubPointX x))))
-                  x)))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const constructJubjubPoint = NativePointY(x);"
-      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
-      "}"
-      )
-    (warning
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "not renaming reference of ~s to ~s because ~1:*~s has other bindings in scope" (constructNativePoint constructJubjubPoint)))
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary;"
-        ""
-        "export circuit foo(x: JubjubPoint): JubjubPoint {"
-        "  const constructJubjubPoint = jubjubPointY(x);"
-        "  return constructNativePoint(constructJubjubPoint, ((x: JubjubPoint) => jubjubPointX(x))(x));"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "")
-        (circuit #t #f foo () ([x (type-ref JubjubPoint)])
-             (type-ref JubjubPoint)
-          (block
-            (const ([constructJubjubPoint (tundeclared) (call jubjubPointY x)]))
-            (return
-              (call constructNativePoint
-                constructJubjubPoint
-                (call (circuit ([x (type-ref JubjubPoint)])
-                           (tundeclared)
-                        (block (return (call jubjubPointX x))))
-                  x)))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const std$JubjubPoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
-      "}"
-      )
-    (warning
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 57" "not renaming reference of ~s to ~s because this would cause the reference to be captured by an existing local binding for ~:*~s" (std$NativePoint std$JubjubPoint)))
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary prefix std$;"
-        ""
-        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
-        "  const std$JubjubPoint = std$jubjubPointY(x);"
-        "  return std$constructJubjubPoint(std$JubjubPoint, ((x: std$NativePoint) => std$jubjubPointX(x))(x));"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "std$")
-        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
-             (type-ref std$JubjubPoint)
-          (block
-            (const ([std$JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
-            (return
-              (call std$constructJubjubPoint
-                std$JubjubPoint
-                (call (circuit ([x (type-ref std$NativePoint)])
-                           (tundeclared)
-                        (block (return (call std$jubjubPointX x))))
-                  x)))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const JubjubPoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
-      "}"
-      )
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary prefix std$;"
-        ""
-        "export circuit foo(x: std$JubjubPoint): std$JubjubPoint {"
-        "  const JubjubPoint = std$jubjubPointY(x);"
-        "  return std$constructJubjubPoint(JubjubPoint, ((x: std$JubjubPoint) => std$jubjubPointX(x))(x));"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "std$")
-        (circuit #t #f foo () ([x (type-ref std$JubjubPoint)])
-             (type-ref std$JubjubPoint)
-          (block
-            (const ([JubjubPoint (tundeclared) (call std$jubjubPointY x)]))
-            (return
-              (call std$constructJubjubPoint
-                JubjubPoint
-                (call (circuit ([x (type-ref std$JubjubPoint)])
-                           (tundeclared)
-                        (block (return (call std$jubjubPointX x))))
-                  x)))))))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit foo<T>(x: T): CurvePoint {"
-      "  const a = nativePointX(x), b = NativePointY(x);"
-      "  return constructNativePoint(a, b);"
-      "}"
-      "circuit bar(x: NativePoint): CurvePoint {"
-      "  return foo<NativePoint>(x);"
-      "}"
-      )
-    (output-file "compiler/testdir/fixup/testfile.compact"
-      '(
-        "import CompactStandardLibrary;"
-        ""
-        "circuit foo<T>(x: T): JubjubPoint {"
-        "  const a = jubjubPointX(x), b = jubjubPointY(x);"
-        "  return constructJubjubPoint(a, b);"
-        "}"
-        ""
-        "circuit bar(x: JubjubPoint): JubjubPoint {"
-        "  return foo<JubjubPoint>(x);"
-        "}"))
-    (returns
-      (program
-        (import CompactStandardLibrary () "")
-        (circuit #f #f foo (T) ([x (type-ref T)])
-             (type-ref JubjubPoint)
-          (block
-            (const ([a (tundeclared) (call jubjubPointX x)]
-                    [b (tundeclared) (call jubjubPointY x)]))
-            (return (call constructJubjubPoint a b))))
-        (circuit #f #f bar () ([x (type-ref JubjubPoint)])
-             (type-ref JubjubPoint)
-          (block
-            (return (call (fref foo (type-ref JubjubPoint)) x))))))
-    )
 )
 
 (parameterize ([(let () (import (fixup)) update-Uint-ranges) #t])
@@ -4893,13 +4618,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9359,13 +9079,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -9405,7 +9120,8 @@ groups than for single tests.
                   (!= x 10)))))
         (circuit #f #f emit_sth () ()
              (ttuple)
-          (block () (emit (new (type-ref ShieldedSpend) authority))))))
+          (block ()
+            (emit (new (type-ref ShieldedSpend) authority))))))
     )
 
   (test ; just see if it succeeds
@@ -9960,13 +9676,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10257,13 +9968,8 @@ groups than for single tests.
           (type-ref ContractAddress))
         (public-ledger-declaration #f #f
           x14
-          (tfield (field-scalar (curve-jubjub))))
-        (public-ledger-declaration #f #f
-          x15
-          (tfield (field-base (curve-secp256k1))))
-        (public-ledger-declaration #f #f
-          x16
-          (tfield (field-scalar (curve-secp256k1))))
+          (type-ref JubjubScalar))
+        (public-ledger-declaration #f #f x15 (type-ref JubjubPoint))
         (public-ledger-declaration #f #f authority (tbytes 32))
         (public-ledger-declaration #f #f
           state
@@ -10713,34 +10419,31 @@ groups than for single tests.
           (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
         (public-ledger-declaration
           %x15.31
-          (__compact_Cell (tfield (field-base (curve-secp256k1)))))
+          (__compact_Cell (tpoint (curve-jubjub))))
         (public-ledger-declaration
-          %x16.32
-          (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-        (public-ledger-declaration
-          %authority.33
+          %authority.32
           (__compact_Cell (tbytes 32)))
         (public-ledger-declaration
-          %state.34
+          %state.33
           (__compact_Cell
             (tenum PublicState setup commit reveal final)))
         (public-ledger-declaration
-          %topic.35
+          %topic.34
           (__compact_Cell
             (tstruct Maybe
               (is_some (tboolean))
               (value (topaque "string")))))
-        (public-ledger-declaration %tally_yes.36 (Counter))
+        (public-ledger-declaration %tally_yes.35 (Counter))
         (public-ledger-declaration
-          %committed_votes.37
+          %committed_votes.36
           (MerkleTree 10 (tbytes 32)))
-        (public-ledger-declaration %committed.38 (Set (tbytes 32)))
+        (public-ledger-declaration %committed.37 (Set (tbytes 32)))
         (public-ledger-declaration
-          %ciphertexts.39
+          %ciphertexts.38
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.40 (tfield (field-native))])
+        (constructor ([%state.39 (tfield (field-native))])
           (seq
-            (for %i.41 (tuple) (seq (+ %state.40 1) (tuple)))
+            (for %i.40 (tuple) (seq (+ %state.39 1) (tuple)))
             (tuple)))))
     )
 
@@ -14799,186 +14502,6 @@ groups than for single tests.
      ))
   )
 
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
-      "  return constructNativePoint(CurvePoint, NativePoint);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const std$NativePoint = std$nativePointX(x), std$CurvePoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(std$CurvePoint, std$NativePoint);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const NativePoint = nativePointX(x), CurvePoint = NativePointY(x);"
-      "  const JubjubPoint = NativePoint;"
-      "  return constructNativePoint(CurvePoint, JubjubPoint);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const JubjubPoint = NativePointY(x);"
-      "  return constructNativePoint(JubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 49" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 65" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(x: NativePoint): CurvePoint {"
-      "  const constructJubjubPoint = NativePointY(x);"
-      "  return constructNativePoint(constructJubjubPoint, ((x: NativePoint) => nativePointX(x))(x));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 37" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (CurvePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 32" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePointY jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (constructNativePoint constructJubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 58" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 74" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (nativePointX jubjubPointX)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const std$JubjubPoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(std$JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 27" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 57" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 77" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary prefix std$;"
-      "export circuit foo(x: std$NativePoint): std$CurvePoint {"
-      "  const JubjubPoint = std$NativePointY(x);"
-      "  return std$constructNativePoint(JubjubPoint, ((x: std$NativePoint) => std$nativePointX(x))(x));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 41" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$CurvePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 23" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePointY std$jubjubPointY))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$constructNativePoint std$constructJubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 53" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$NativePoint std$JubjubPoint))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 73" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (std$nativePointX std$jubjubPointX)))
-    )
-
-  ; issue 116
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit foo<T>(x: T): JubjubPoint {"
-      "  const a = jubjubPointX(x), b = jubjubPointY(x);"
-      "  return constructJubjubPoint(a, b);"
-      "}"
-      "circuit bar(x: JubjubPoint): JubjubPoint {"
-      "  return foo<NativePoint>(x);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 14" "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a" (NativePoint JubjubPoint)))
-    )
-
   (test
     '(
       "export circuit foo(): [] {"
@@ -15334,6 +14857,73 @@ groups than for single tests.
                                                      (nullifier (tbytes 32)))])
              (tbytes 32)
           (call (fref ((%serialize.2))) %x.4))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo<T>(x: T): T { return x; }"
+      "export circuit bar1(x: JubjubPoint): JubjubPoint { return foo<JubjubPoint>(x); }"
+      "export circuit bar2(x: JubjubPoint): JubjubPoint { return foo<JubjubPoint>(x); }"
+      )
+    (returns
+      (program ((bar1 %bar1.0) (bar2 %bar2.1))
+        (public-ledger-declaration %kernel.2 (Kernel))
+        (circuit %foo.3 ([%x.4 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          %x.4)
+        (circuit %bar1.0 ([%x.5 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          (call (fref ((%foo.3))) %x.5))
+        (circuit %bar2.1 ([%x.6 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          (call (fref ((%foo.3))) %x.6))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Boolean };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "parse error: found ~a looking for~?" ("keyword \"Boolean\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier" "\"}\""))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { JubjubPoint };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "cannot export standard-library type (~s) from the top level" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "export circuit foo(x: JubjubPoint): JubjubPoint { return x; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 23" "unbound identifier ~s" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  import CompactStandardLibrary;"
+      "  export { JubjubPoint };"
+      "}"
+      "import M;"
+      "export circuit foo(x: JubjubPoint): JubjubPoint { return x; }"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (public-ledger-declaration %kernel.1 (Kernel))
+        (circuit %foo.0 ([%x.2 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
+          %x.2)))
     )
 )
 
@@ -18809,7 +18399,19 @@ groups than for single tests.
 
   (test
     '(
-      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
+      "import {ecAdd} from CompactStandardLibrary;"
+      "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
+      "  return ecAdd(x, y);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 30" "unbound identifier ~s" (JubjubPoint)))
+    )
+
+  (test
+    '(
+      "import {ecAdd, JubjubPoint} from CompactStandardLibrary;"
       "circuit foo(x: Bytes<32>, y: JubjubPoint): JubjubPoint {"
       "  return ecAdd(x, y);"
       "}"
@@ -18817,22 +18419,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
-    )
-
-  (test
-    '(
-      "import {JubjubPoint, ecAdd} from CompactStandardLibrary;"
-      "export struct NonJubjubPoint {"
-      "  x: Field;"
-      "  y: Field;"
-      "}"
-      "circuit foo(x: NonJubjubPoint, y: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(x, y);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (struct NonJubjubPoint<x: Field, y: Field>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18845,22 +18431,18 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (native %ecAdd.1 ([%a.2 (talias #t JubjubPoint
-                                  (topaque "JubjubPoint"))]
-                          [%b.3 (talias #t JubjubPoint
-                                  (topaque "JubjubPoint"))])
-             (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (native %ecMul.7 ([%a.8 (talias #t JubjubPoint
-                                  (topaque "JubjubPoint"))]
-                          [%b.9 (tfield (field-scalar (curve-jubjub)))])
-             (talias #t JubjubPoint (topaque "JubjubPoint")))
-        (circuit %foo.13 ([%c.14 (talias #t JubjubPoint
-                                   (topaque "JubjubPoint"))])
-             (talias #t JubjubPoint (topaque "JubjubPoint"))
+        (native %ecAdd.1 ([%a.2 (tpoint (curve-jubjub))]
+                          [%b.3 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub)))
+        (native %ecMul.4 ([%a.5 (tpoint (curve-jubjub))]
+                          [%b.6 (tfield (field-scalar (curve-jubjub)))])
+             (tpoint (curve-jubjub)))
+        (circuit %foo.7 ([%c.8 (tpoint (curve-jubjub))])
+             (tpoint (curve-jubjub))
           (call %ecAdd.1
-            %c.14
-            (call %ecMul.7
-              %c.14
+            %c.8
+            (call %ecMul.4
+              %c.8
               (cast-to-field (field-scalar (curve-jubjub)) (tunsigned 3)
                 3))))))
     )
@@ -40918,6 +40500,72 @@ groups than for single tests.
     )
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests unroll-loops
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, JubjubPoint>, x: JubjubScalar): Vector<3, JubjubPoint> {"
+      "  return map((p) => ecMul(p, x), v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (native %ecMul.1 ([%a.2 (tpoint (curve-jubjub))]
+                          [%b.3 (tfield (field-scalar (curve-jubjub)))])
+             (tpoint (curve-jubjub)))
+        (circuit %foo.4 ([%v.5 (tvector 3 (tpoint (curve-jubjub)))]
+                         [%x.6 (tfield (field-scalar (curve-jubjub)))])
+             (tvector 3 (tpoint (curve-jubjub)))
+          (flet [%circ.7
+                 (circuit ([%p.8 (tpoint (curve-jubjub))])
+                      (tpoint (curve-jubjub))
+                   (call %ecMul.1 %p.8 %x.6))]
+            (let* ([[%t.9 (tvector 3 (tpoint (curve-jubjub)))] %v.5])
+              (tuple
+                (call %circ.7 (tuple-ref %t.9 0))
+                (call %circ.7 (tuple-ref %t.9 1))
+                (call %circ.7 (tuple-ref %t.9 2))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Secp256k1Scalar>, x: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-secp256k1))))]
+                         [%x.3 (tfield (field-scalar (curve-secp256k1)))])
+             (tfield (field-scalar (curve-secp256k1)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-secp256k1)))]
+                           [%x.6 (tfield (field-scalar (curve-secp256k1)))])
+                      (tfield (field-scalar (curve-secp256k1)))
+                   (* (tfield (field-scalar (curve-secp256k1))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-secp256k1)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-secp256k1))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
+  )
+)
+
 (run-tests inline-circuits
   (test
     `(
@@ -50820,43 +50468,40 @@ groups than for single tests.
           (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
         (public-ledger-declaration
           %x15.43
-          (__compact_Cell (tfield (field-base (curve-secp256k1)))))
+          (__compact_Cell (tpoint (curve-jubjub))))
         (public-ledger-declaration
-          %x16.44
-          (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-        (public-ledger-declaration
-          %authority.45
+          %authority.44
           (__compact_Cell (tbytes 32)))
         (public-ledger-declaration
-          %state.46
+          %state.45
           (__compact_Cell
             (tenum PublicState setup commit reveal final)))
         (public-ledger-declaration
-          %topic.47
+          %topic.46
           (__compact_Cell
             (tstruct Maybe
               (is_some (tboolean))
               (value (topaque "string")))))
-        (public-ledger-declaration %tally_yes.48 (Counter))
+        (public-ledger-declaration %tally_yes.47 (Counter))
         (public-ledger-declaration
-          %committed_votes.49
+          %committed_votes.48
           (MerkleTree 10 (tbytes 32)))
-        (public-ledger-declaration %committed.50 (Set (tbytes 32)))
+        (public-ledger-declaration %committed.49 (Set (tbytes 32)))
         (public-ledger-declaration
-          %ciphertexts.51
+          %ciphertexts.50
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.52 (tfield (field-native))])
+        (constructor ([%state.51 (tfield (field-native))])
           (seq
             (fold
-              (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
+              (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
                     (+ (tfield (field-native))
-                       %state.52
+                       %state.51
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                     (tuple))
-                  %t.53))
+                  %t.52))
               (tuple)
               (tuple))
             (tuple)))))
@@ -50893,35 +50538,32 @@ groups than for single tests.
               (tstruct ContractAddress (bytes (tbytes 32)))))
           (%x14.42
             (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-          (%x15.43
-            (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-          (%x16.44
-            (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-          (%authority.45 (__compact_Cell (tbytes 32)))
-          (%state.46
+          (%x15.43 (__compact_Cell (tpoint (curve-jubjub))))
+          (%authority.44 (__compact_Cell (tbytes 32)))
+          (%state.45
             (__compact_Cell
               (tenum PublicState setup commit reveal final)))
-          (%topic.47
+          (%topic.46
             (__compact_Cell
               (tstruct Maybe
                 (is_some (tboolean))
                 (value (topaque "string")))))
-          (%tally_yes.48 (Counter))
-          (%committed_votes.49 (MerkleTree 10 (tbytes 32)))
-          (%committed.50 (Set (tbytes 32)))
-          (%ciphertexts.51 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.52 (tfield (field-native))])
+          (%tally_yes.47 (Counter))
+          (%committed_votes.48 (MerkleTree 10 (tbytes 32)))
+          (%committed.49 (Set (tbytes 32)))
+          (%ciphertexts.50 (__compact_Cell (topaque "Uint8Array")))
+          (constructor ([%state.51 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
+                (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ (tfield (field-native))
-                         %state.52
+                         %state.51
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.53))
+                    %t.52))
                 (tuple)
                 (tuple))
               (tuple))))
@@ -51001,16 +50643,17 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native)))) (%x1.32 (0 1) (Set (tfield (field-native))))
+          (((%x0.28 (0 0) (__compact_Cell (tfield (field-native))))
+             (%x1.32 (0 1) (Set (tfield (field-native))))
              (%x2.33 (0 2) (Counter))
              (%x3.34 (0 3) (List (tfield (field-native))))
-             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean)))
-             (%x5.36 (0 5) (MerkleTree 32 (tfield (field-native)))))
-           ((%x6.37
-              (1 0)
-              (HistoricMerkleTree 10 (tfield (field-native))))
-             (%x7.38
+             (%x4.35 (0 4) (Map (tfield (field-native)) (tboolean))))
+           ((%x5.36 (1 0) (MerkleTree 32 (tfield (field-native))))
+             (%x6.37
                (1 1)
+               (HistoricMerkleTree 10 (tfield (field-native))))
+             (%x7.38
+               (1 2)
                (__compact_Cell
                  (tstruct ShieldedCoinInfo
                    (nonce (tbytes 32))
@@ -51018,11 +50661,11 @@ groups than for single tests.
                    (value (tunsigned
                             340282366920938463463374607431768211455)))))
              (%x10.39
-               (1 2)
+               (1 3)
                (__compact_Cell
                  (tstruct MerkleTreeDigest (field (tfield (field-native))))))
              (%x11.40
-               (1 3)
+               (1 4)
                (__compact_Cell
                  (tstruct QualifiedShieldedCoinInfo
                    (nonce (tbytes 32))
@@ -51030,53 +50673,48 @@ groups than for single tests.
                    (value (tunsigned 340282366920938463463374607431768211455))
                    (mt_index (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 4)
+               (1 5)
                (__compact_Cell
                  (tstruct ContractAddress (bytes (tbytes 32)))))
              (%x14.42
-               (1 5)
-               (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
-             (%x15.43
                (1 6)
-               (__compact_Cell (tfield (field-base (curve-secp256k1)))))
-             (%x16.44
-               (1 7)
-               (__compact_Cell (tfield (field-scalar (curve-secp256k1)))))
-             (%authority.45 (1 8) (__compact_Cell (tbytes 32)))
-             (%state.46 (1 9) (__compact_Cell (tunsigned 3)))
-             (%topic.47
+               (__compact_Cell (tfield (field-scalar (curve-jubjub)))))
+             (%x15.43 (1 7) (__compact_Cell (tpoint (curve-jubjub))))
+             (%authority.44 (1 8) (__compact_Cell (tbytes 32)))
+             (%state.45 (1 9) (__compact_Cell (tunsigned 3)))
+             (%topic.46
                (1 10)
                (__compact_Cell
                  (tstruct Maybe
                    (is_some (tboolean))
                    (value (topaque "string")))))
-             (%tally_yes.48 (1 11) (Counter))
-             (%committed_votes.49 (1 12) (MerkleTree 10 (tbytes 32)))
-             (%committed.50 (1 13) (Set (tbytes 32)))
-             (%ciphertexts.51
+             (%tally_yes.47 (1 11) (Counter))
+             (%committed_votes.48 (1 12) (MerkleTree 10 (tbytes 32)))
+             (%committed.49 (1 13) (Set (tbytes 32)))
+             (%ciphertexts.50
                (1 14)
                (__compact_Cell (topaque "Uint8Array"))))))
         (circuit %bar.16 ([%a.17 (tboolean)] [%b.18 (tboolean)])
              (tstruct frob (q (tfield (field-native))))
-          (= #t %t.55 (select %a.17 #t #f))
-          (= #t %t.56 (select %a.17 #f #t))
-          (= %t.55 %t.57 (tuple))
-          (= #t %t.58 (select %b.18 %t.56 #f))
-          (= #t %t.59 (select %b.18 #f %t.56))
-          (= #t %t.60 (select %t.58 #f #t))
-          (assert %t.60 "a should be false")
+          (= #t %t.54 (select %a.17 #t #f))
+          (= #t %t.55 (select %a.17 #f #t))
+          (= %t.54 %t.56 (tuple))
+          (= #t %t.57 (select %b.18 %t.55 #f))
+          (= #t %t.58 (select %b.18 #f %t.55))
+          (= #t %t.59 (select %t.57 #f #t))
+          (assert %t.59 "a should be false")
+          (= %t.57 %t.60 (tuple))
           (= %t.58 %t.61 (tuple))
-          (= %t.59 %t.62 (tuple))
+          (= #t %t.62 (public-ledger %kernel.12 () self))
           (= #t %t.63 (public-ledger %kernel.12 () self))
-          (= #t %t.64 (public-ledger %kernel.12 () self))
-          (= #t %t.65 (== %t.63 %t.64))
-          (= #t %t.66 (select #t %t.65 #t))
-          (assert %t.66 "oops")
-          (= #t %t.67 (tuple))
-          (= #t %t.68 (public-ledger %x0.28 (0 0) read))
-          (= #t %t.69
-             (new (tstruct frob (q (tfield (field-native)))) %t.68))
-          %t.69)))
+          (= #t %t.64 (== %t.62 %t.63))
+          (= #t %t.65 (select #t %t.64 #t))
+          (assert %t.65 "oops")
+          (= #t %t.66 (tuple))
+          (= #t %t.67 (public-ledger %x0.28 (0 0) read))
+          (= #t %t.68
+             (new (tstruct frob (q (tfield (field-native)))) %t.67))
+          %t.68)))
     (returns
       (program
         (kernel-declaration (%kernel.12 () (Kernel)))
@@ -51094,17 +50732,17 @@ groups than for single tests.
              (%x4.35
                (0 4)
                (Map (ty ((afield)) ((tfield (field-native))))
-                    (ty ((abytes 1)) ((tunsigned 1)))))
-             (%x5.36
-               (0 5)
-               (MerkleTree 32 (ty ((afield)) ((tfield (field-native)))))))
-           ((%x6.37
+                    (ty ((abytes 1)) ((tunsigned 1))))))
+           ((%x5.36
               (1 0)
-              (HistoricMerkleTree
-                10
-                (ty ((afield)) ((tfield (field-native))))))
-             (%x7.38
+              (MerkleTree 32 (ty ((afield)) ((tfield (field-native))))))
+             (%x6.37
                (1 1)
+               (HistoricMerkleTree
+                 10
+                 (ty ((afield)) ((tfield (field-native))))))
+             (%x7.38
+               (1 2)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16))
                      ((tunsigned 255)
@@ -51115,10 +50753,10 @@ groups than for single tests.
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 340282366920938463463374607431768211455)))))
              (%x10.39
-               (1 2)
+               (1 3)
                (__compact_Cell (ty ((afield)) ((tfield (field-native))))))
              (%x11.40
-               (1 3)
+               (1 4)
                (__compact_Cell
                  (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
                      ((tunsigned 255)
@@ -51130,44 +50768,38 @@ groups than for single tests.
                        (tunsigned 340282366920938463463374607431768211455)
                        (tunsigned 18446744073709551615)))))
              (%x13.41
-               (1 4)
+               (1 5)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (%x14.42
-               (1 5)
+               (1 6)
                (__compact_Cell
                  (ty ((anative "JubjubScalar"))
                      ((tfield (field-scalar (curve-jubjub)))))))
              (%x15.43
-               (1 6)
-               (__compact_Cell
-                 (ty ((anative "Secp256k1Base"))
-                     ((tfield (field-base (curve-secp256k1)))))))
-             (%x16.44
                (1 7)
                (__compact_Cell
-                 (ty ((anative "Secp256k1Scalar"))
-                     ((tfield (field-scalar (curve-secp256k1)))))))
-             (%authority.45
+                 (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
+             (%authority.44
                (1 8)
                (__compact_Cell
                  (ty ((abytes 32))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%state.46
+             (%state.45
                (1 9)
                (__compact_Cell (ty ((abytes 1)) ((tunsigned 3)))))
-             (%topic.47
+             (%topic.46
                (1 10)
                (__compact_Cell
                  (ty ((abytes 1) (acompress))
                      ((tunsigned 1) (topaque "string")))))
-             (%tally_yes.48 (1 11) (Counter))
-             (%committed_votes.49
+             (%tally_yes.47 (1 11) (Counter))
+             (%committed_votes.48
                (1 12)
                (MerkleTree
                  10
@@ -51175,13 +50807,13 @@ groups than for single tests.
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%committed.50
+             (%committed.49
                (1 13)
                (Set (ty ((abytes 32))
                         ((tunsigned 255)
                           (tunsigned
                             452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (%ciphertexts.51
+             (%ciphertexts.50
                (1 14)
                (__compact_Cell
                  (ty ((acompress)) ((topaque "Uint8Array"))))))))
@@ -51200,8 +50832,8 @@ groups than for single tests.
           (= 1 %t.9 (== %t.8 %t.7))
           (= 1 %t.11 (select %t.10 %t.9 0))
           (assert %t.11 "oops")
-          (= 1 (%t.70) (public-ledger %x0.28 (0 0) read))
-          (%t.70))))
+          (= 1 (%t.69) (public-ledger %x0.28 (0 0) read))
+          (%t.69))))
     )
 )
 )
@@ -62454,6 +62086,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -62684,7 +62317,6 @@ groups than for single tests.
         "}"))
     )
 
-  #| TODO(dyb) reenable with zkir v2 check is reinstated
   (test
     '(
       "ledger wantProof: Boolean;"
@@ -62699,28 +62331,37 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
-    '("circuit test(b: Secp256k1Base): [] { return; }")
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(b: Secp256k1Base): [] { return; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Base)))
     )
 
   (test
-    '("circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
-    '("ledger s: Secp256k1Scalar;")
+    '(
+      "import CompactStandardLibrary;"
+      "ledger s: Secp256k1Scalar;"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 11" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
@@ -62730,36 +62371,40 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
-    )
-
-  (test
-    '("witness w(): Secp256k1Scalar;")
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 39" "unbound identifier ~s" (Secp256k1Base)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "witness w(): Secp256k1Scalar;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "unbound identifier ~s" (Secp256k1Scalar)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "new type Nt = Secp256k1Scalar;"
       "export circuit test(n: Nt): [] { return; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 2 char 15" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "circuit foo<T>(x: T): [] { return; }"
       "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "secp256k1 is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`" ()))
+      irritants: '("testfile.compact line 3 char 33" "unbound identifier ~s" (Secp256k1Base)))
     )
-  |#
 
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
@@ -70647,6 +70292,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -70791,6 +70437,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test0(b: Secp256k1Base): Secp256k1Base {"
       "  wantProof = true;"
@@ -70803,14 +70450,13 @@ groups than for single tests.
       )
     (pass-returns parse-file
       (program
+        (import CompactStandardLibrary () "")
         (public-ledger-declaration #f #f wantProof (tboolean))
-        (circuit #t #f test0 () ([b (tfield
-                                      (field-base (curve-secp256k1)))])
-             (tfield (field-base (curve-secp256k1)))
+        (circuit #t #f test0 () ([b (type-ref Secp256k1Base)])
+             (type-ref Secp256k1Base)
           (block (= wantProof #t) (return b)))
-        (circuit #t #f test1 () ([s (tfield
-                                      (field-scalar (curve-secp256k1)))])
-             (tfield (field-scalar (curve-secp256k1)))
+        (circuit #t #f test1 () ([s (type-ref Secp256k1Scalar)])
+             (type-ref Secp256k1Scalar)
           (block (= wantProof #t) (return s)))))
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
@@ -70851,15 +70497,24 @@ groups than for single tests.
     )
 
   (test
-    '("circuit test(b: Secp256k1Base): [] { return; }")
+    '(
+      "import { Secp256k1Base } from CompactStandardLibrary;"
+      "circuit test(b: Secp256k1Base): [] { return; }"
+      )
     (succeeds))
 
   (test
-    '("circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }"
+      )
     (succeeds))
 
   (test
-    '("ledger s: Secp256k1Scalar;")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "ledger s: Secp256k1Scalar;"
+      )
     (succeeds))
 
   (test
@@ -70870,11 +70525,15 @@ groups than for single tests.
     (succeeds))
 
   (test
-    '("witness w(): Secp256k1Scalar;")
+    '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
+      "witness w(): Secp256k1Scalar;"
+      )
     (succeeds))
 
   (test
     '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
       "new type Nt = Secp256k1Scalar;"
       "export circuit test(n: Nt): [] { return; }"
       )
@@ -70882,6 +70541,7 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256k1Base } from CompactStandardLibrary;"
       "circuit foo<T>(x: T): [] { return; }"
       "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
       )
@@ -70956,6 +70616,7 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256k1Scalar } from CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test(s0: Secp256k1Scalar, s1: Secp256k1Scalar): Secp256k1Scalar {"
       "  wantProof = true;"
@@ -74114,7 +73775,8 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {a: 29, b: false})).result).toEqual([ { a: 29, b: false }, { a: 29, b: false } ]);"
+        "  expect((await C.circuits.foo(Ctxt, 'Hello, Compact!')).result)"
+        "      .toEqual([ 'Hello, Compact!', 'Hello, Compact!' ]);"
         "});"
         ))
     )
@@ -74130,21 +73792,21 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 1, {a: 91, b: true}, {a: 97, b: false})).result).toEqual(0n);"
+        "  expect((await C.circuits.foo(Ctxt, 1, 'Hello, Compact!', 'Goodbye')).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 97, b: false})).result).toEqual(1n);"
+        "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Goodbye')).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 0, {a: 91, b: true}, {a: 97, b: true})).result).toEqual(0n);"
+        "  expect((await C.circuits.foo(Ctxt, 0, 'Hello, Compact!', 'So long')).result).toEqual(0n);"
         "});"
         "test('check 4', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 91, b: true})).result).toEqual(1n);"
+        "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Hello, Compact!')).result).toEqual(3n);"
         "});"
-        "const x = {a: 91, b: true};"
+        "const x = 'Hello, Compact!';"
         "test('check 5', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 3, x, x)).result).toEqual(2n);"
@@ -74234,19 +73896,19 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar1(Ctxt, {a: 3, b: true}, 73n)).result).toEqual(true);"
+        "  expect((await C.circuits.bar1(Ctxt, 'Hello, Compact!', 73n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar2(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar2(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar3(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar3(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar4(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar4(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         ))
     )
@@ -88936,6 +88598,7 @@ groups than for single tests.
 
   (test ; Casts involving JubjubScalar.
     `(
+      "import CompactStandardLibrary;"
       ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
       "ledger fCell: Field;"
       "ledger jCell: JubjubScalar;"
@@ -88998,38 +88661,54 @@ groups than for single tests.
     )
 
   (test ; Arithmetic and comparisons involving JubjubScalar
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 61" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: Field): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: Field): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: Uint<64>): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "left" +)))
     )
   (test
-    '("export circuit test(x: Field, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Field, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 54" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export circuit equals(x: JubjubScalar, y: JubjubScalar): Boolean { return x == y; }"
       "export circuit notEquals(x: JubjubScalar, y: JubjubScalar): Boolean { return x != y; }"
       )
@@ -89060,64 +88739,94 @@ groups than for single tests.
     )
 
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x < y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x < y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x <= y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x <= y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x >= y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x >= y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x > y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: JubjubScalar, y: JubjubScalar): [] { x > y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
+      irritants: '("testfile.compact line 2 char 61" "incompatible combination of types ~a and ~a for relational operator" ("JubjubScalar" "JubjubScalar")))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
   (test
-    '("export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(x: Uint<64>, y: JubjubScalar): [] { x + y; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
+      irritants: '("testfile.compact line 2 char 57" "~a is an invalid ~a operand type for binary arithmetic operator ~a" ("JubjubScalar" "right" +)))
     )
 
   ; cyclic external contract calls.
@@ -91164,6 +90873,180 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "ledger flag: Boolean;"
+      "struct Payload {"
+      "  data: Opaque<'Uint8Array'>;"
+      "  tag: Field;"
+      "}"
+      "export circuit testEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a == b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testNotEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a != b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const mk = (bytes: number[], tag: bigint) => ({ data: new Uint8Array(bytes), tag });"
+        "  const v0 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Structurally identical to v0, but every Uint8Array is a distinct object."
+        "  const v1 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 0."
+        "  const v2 = [mk([0, 1, 1, 9], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 1."
+        "  const v3 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 99], 20n)];"
+        "  // Differs only in the opaque length of element 1."
+        "  const v4 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8], 20n)];"
+        "  // Differs only in the non-opaque sibling field of element 1."
+        "  const v5 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 21n)];"
+        "  // Empty opaque in element 1."
+        "  const v6 = [mk([0, 1, 1, 2], 10n), mk([], 20n)];"
+        "  expect((await contract.circuits.testEquals(context, v0, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v1)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v3)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v4)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v5)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v6)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.testEquals(context, v1, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v2, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v3, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v4, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v5, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v6, v0)).result).toEqual(false);"
+
+        "  expect((await contract.circuits.testNotEquals(context, v0, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v2)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v4)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v5)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v6)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "ledger flag: Boolean;"
+      "witness touch(arr: Opaque<'Uint8Array'>): [];"
+      "export circuit mutateBefore(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  touch(arr0);"
+      "  const result = arr0 == arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('witness mutation of an opaque argument before comparison', async () => {"
+        "  // The Opaque<'Uint8Array'> descriptor's toValue captures the Uint8Array by"
+        "  // reference and the encoding happens at proof finalization, so a mutation"
+        "  // performed by a witness is visible both to the JS comparison and to the"
+        "  // circuit's input.  The two targets must agree that the mutated arr0 equals"
+        "  // arr1."
+        "  const witnesses = {"
+        "    touch: (context: any, arr: Uint8Array): [number, []] => { arr[0] = 99; return [context.privateState, []]; }"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
+        "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
+        "  expect((await contract.circuits.mutateBefore(context, arr0, arr1)).result).toEqual(true);"
+        "  expect(Array.from(arr0)).toEqual([99, 2, 3, 4]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export circuit test0(arr: Opaque<'Uint8Array'>): [] { return; }"
+      "export circuit test1(srt: Opaque<'string'>): [] { return; }"
+      )
+    (stage-javascript
+      '(
+        "test('argument type checks on JS opaque types', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test0(context, new Uint8Array(32))).result).toEqual([]);"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow('type error: ');"
+        "  expect((await contract.circuits.test1(context, 'Hello, Compact!')).result).toEqual([]);"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import { JubjubScalar as nativeJubjubScalar,"
+      "         JubjubPoint as nativeJubjubPoint,"
+      "         ecMul as nativeEcMul }"
+      " from CompactStandardLibrary;"
+      ""
+      "export type JubjubScalar = nativeJubjubScalar;"
+      "export type JubjubPoint = nativeJubjubPoint;"
+      ""
+      "export pure circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint {"
+      "  return nativeEcMul(a, b);"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type JubjubScalar = bigint;"
+        ""
+        "export type JubjubPoint = __compactRuntime.JubjubPoint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "  ecMul(a_0: JubjubPoint, b_0: JubjubScalar): JubjubPoint;"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  ecMul(context: __compactRuntime.CircuitContext<PS>,"
+        "        a_0: JubjubPoint,"
+        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<PS, JubjubPoint>>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
+    )
 )
 
 (run-javascript)
@@ -91240,6 +91123,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "new type Base = Secp256k1Base;"
       "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
       "  return b0 + b1 * b2;"
@@ -91247,11 +91131,12 @@ groups than for single tests.
       )
     (pass-returns infer-types
       (program
-        (circuit %test.0 ([%b0.1 (talias #t Base
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %test.1 ([%b0.2 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b1.2 (talias #t Base
+                          [%b1.3 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b2.3 (talias #t Base
+                          [%b2.4 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))])
              (talias #t Base (tfield (field-base (curve-secp256k1))))
           (safe-cast (talias #t Base
@@ -91261,7 +91146,7 @@ groups than for single tests.
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
-                 %b0.1)
+                 %b0.2)
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
@@ -91272,27 +91157,36 @@ groups than for single tests.
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b1.2)
+                        %b1.3)
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b2.3)))))))))
+                        %b2.4)))))))))
     (returns
       (program
         (type-descriptors
-          (%descriptor.4 (talias #t Base
+          (%descriptor.5 (talias #t Base
                            (tfield (field-base (curve-secp256k1)))))
-          (%descriptor.5 (tunsigned 255))
-          (%descriptor.6 (tunsigned 4294967295))
-          (%descriptor.7 (tunsigned 18446744073709551615))
-          (%descriptor.8 (tunsigned
-                           340282366920938463463374607431768211455)))
+          (%descriptor.6 (tunsigned 18446744073709551615))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tbytes 32))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.10 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.11 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %test.0 ([%b0.1 (talias #t Base
+        (circuit %test.1 ([%b0.2 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b1.2 (talias #t Base
+                          [%b1.3 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b2.3 (talias #t Base
+                          [%b2.4 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))])
              (talias #t Base (tfield (field-base (curve-secp256k1))))
           (safe-cast (talias #t Base
@@ -91302,7 +91196,7 @@ groups than for single tests.
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
-                 %b0.1)
+                 %b0.2)
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
@@ -91313,11 +91207,11 @@ groups than for single tests.
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b1.2)
+                        %b1.3)
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b2.3)))))))))
+                        %b2.4)))))))))
     )
 )
 
@@ -91325,6 +91219,7 @@ groups than for single tests.
 (run-tests save-manifest
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
       "  base = disclose(b);"
@@ -91368,6 +91263,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "witness add1(b: Secp256k1Base): Secp256k1Base;"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
@@ -91413,6 +91309,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
       "  scalar = disclose(s);"
@@ -91456,6 +91353,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
       "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
@@ -91646,31 +91544,44 @@ groups than for single tests.
     )
 
   (test
-    '("export circuit test(b: Secp256k1Base): Bytes<31> { return b as Bytes<31>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(b: Secp256k1Base): Bytes<31> { return b as Bytes<31>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 59" "cannot cast from type ~a to type ~a" ("Secp256k1Base" "Bytes<31>"))))
+      irritants: '("testfile.compact line 2 char 59" "cannot cast from type ~a to type ~a" ("Secp256k1Base" "Bytes<31>"))))
 
   (test
-    '("export circuit test(s: Secp256k1Scalar): Bytes<33> { return s as Bytes<33>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(s: Secp256k1Scalar): Bytes<33> { return s as Bytes<33>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Bytes<33>"))))
+      irritants: '("testfile.compact line 2 char 61" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Bytes<33>"))))
 
   (test
-    '("export circuit test(bs: Bytes<33>): Secp256k1Base { return bs as Secp256k1Base; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<33>): Secp256k1Base { return bs as Secp256k1Base; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256k1Base"))))
+      irritants: '("testfile.compact line 2 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256k1Base"))))
 
   (test
-    '("export circuit test(bs: Bytes<31>): Secp256k1Scalar { return bs as Secp256k1Scalar; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<31>): Secp256k1Scalar { return bs as Secp256k1Scalar; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
+      irritants: '("testfile.compact line 2 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
 
   (test
-    '("import CompactStandardLibrary;"
+    '(
+      "import CompactStandardLibrary;"
       "ledger hash: Bytes<32>;"
       "export circuit test(s: Opaque<'string'>): [] {"
       "  hash = disclose(keccak256<Opaque<'string'>>(s));"
@@ -91682,6 +91593,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
@@ -91763,6 +91675,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Bytes<32>;"
       "export ledger scalar: Bytes<32>;"
       "export circuit test(b: Secp256k1Base, s: Secp256k1Scalar): [] {"
@@ -92114,6 +92027,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit addb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"
@@ -92317,6 +92231,131 @@ groups than for single tests.
         "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
         "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+
+  ;; impure circuit which generates zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export ledger y: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeX(): [] {"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      "export circuit storeY(): [] {"
+      "  y = secp256k1PointY(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on a ledger point', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A Secp256k1Point ledger cell starts out holding the identity, which"
+        "  // has no coordinates."
+        "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
+        "  // The point G, whose coordinates are available."
+        "  const G = {"
+        "    x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "    identity: false,"
+        "  };"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual(G);"
+        "  const withX = await contract.circuits.storeX(stored.context);"
+        "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const withY = await contract.circuits.storeY(withX.context);"
+        "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
+        "  expect(L.y).toEqual(G.y);"
+        "  // Storing the identity again makes the coordinates unavailable again."
+        "  const back = await contract.circuits.storePoint(withY.context,"
+        "                                                  { x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXOfGenerator(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMulGenerator(k)));"
+      "}"
+      "export circuit storeXOfMul(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMul(pt, k)));"
+      "}"
+      "export circuit storeXOfSum(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  x = disclose(secp256k1PointX(ecAdd(a, b)));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on an identity computed in circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const negG = runtime.secp256k1Mul(G, runtime.SECP256K1_SCALAR_MODULUS - 1n);"
+        "  expect(runtime.secp256k1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const twoG = runtime.secp256k1MulGenerator(2n);"
+        "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
+        "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
+        "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
+        "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXChecked(): [] {"
+      "  assert(pt != default<Secp256k1Point>, 'the identity has no coordinates');"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors guarded by an assert', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.storeXChecked(context))"
+        "      .rejects.toThrow(/the identity has no coordinates/);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  const checked = await contract.circuits.storeXChecked(stored.context);"
+        "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
         "});"
         ))
     )

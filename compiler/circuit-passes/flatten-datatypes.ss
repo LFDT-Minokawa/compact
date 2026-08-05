@@ -98,17 +98,16 @@
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
-              [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
-              [(topaque ,src ,opaque-type)
-               (case opaque-type
-                 [("JubjubPoint")
-                  (if (feature-zkir-v3)
-                      (cons `(anative ,opaque-type) a*)
-                      (cons* `(afield) `(afield) a*))]
-                 [("Secp256k1Point")
+              [(tpoint ,src ,ctype)
+               (nanopass-case (Lcircuit Curve-Type) ctype
+                 [(curve-jubjub) (if (feature-zkir-v3)
+                                     (cons `(anative "JubjubPoint") a*)
+                                     (cons* `(afield) `(afield) a*))]
+                 [(curve-secp256k1)
                   (assert (feature-zkir-v3))
-                  (cons `(anative ,opaque-type) a*)]
-                 [else (cons `(acompress) a*)])]
+                  (cons `(anative "Secp256k1Point") a*)])]
+              [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
+              [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
               [(tvector ,src ,len ,type)
                (let ([a^* (f type '())])
                  (do ([len len (- len 1)] [a* a* (append a^* a*)])
@@ -224,8 +223,7 @@
     [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
      (Wump-struct elt-name* wump*)]
     [(tunknown) (assert cannot-happen)]
-    [(topaque ,src ,opaque-type)
-     (guard (string=? opaque-type "JubjubPoint") (not (feature-zkir-v3)))
+    [(tpoint ,src (curve-jubjub)) (guard (not (feature-zkir-v3)))
      (Wump-bytes
        (with-output-language (Lflattened Primitive-Type)
          (list `(tfield (field-native)) `(tfield (field-native)))))]
@@ -236,6 +234,7 @@
     [(tboolean ,src) `(tunsigned 1)]
     [(tfield ,src ,[ftype]) `(tfield ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,nat)]
+    [(tpoint ,src ,[ctype]) `(tpoint ,ctype)]
     [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
      `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
@@ -258,30 +257,30 @@
                     [(tboolean ,src) (trivial (Wump-single 0))]
                     [(tfield ,src ,ftype) (trivial (Wump-single 0))]
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                    [(tpoint ,src ,ctype)
+                     (with-output-language (Lflattened Statement)
+                       (nanopass-case (Lcircuit Curve-Type) ctype
+                         [(curve-jubjub)
+                          (let ([t1 (make-new-id var-name)])
+                            (if (feature-zkir-v3)
+                                (values
+                                  (Wump-single t1)
+                                  (list `(= ,test (,t1) (default "JubjubPoint"))))
+                                (let ([t2 (make-new-id var-name)])
+                                  (values
+                                    (Wump-vector (list (Wump-single t1) (Wump-single t2)))
+                                    (list `(= ,test (,t1 ,t2) (default "JubjubPoint")))))))]
+                         [(curve-secp256k1)
+                          (let ([t1 (make-new-id var-name)])
+                            (values
+                              (Wump-single t1)
+                              (list `(= ,test (,t1) (default "Secp256k1Point")))))]))]
                     [(tbytes ,src ,len)
                      (trivial (Wump-bytes (bytes-default-limbs len)))]
                     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                      ; `default<C>` is the all-zero address.
                      (trivial (Wump-bytes (bytes-default-limbs 32)))]
-                    [(topaque ,src ,opaque-type)
-                     (with-output-language (Lflattened Statement)
-                       (case opaque-type
-                         [("JubjubPoint")
-                          (let ([t1 (make-new-id var-name)])
-                            (if (feature-zkir-v3)
-                                (values
-                                  (Wump-single t1)
-                                  (list `(= ,test (,t1) (default ,opaque-type))))
-                                (let ([t2 (make-new-id var-name)])
-                                  (values
-                                    (Wump-vector (list (Wump-single t1) (Wump-single t2)))
-                                    (list `(= ,test (,t1 ,t2) (default ,opaque-type)))))))]
-                         [("Secp256k1Point")
-                          (let ([t1 (make-new-id var-name)])
-                            (values
-                              (Wump-single t1)
-                              (list `(= ,test (,t1) (default ,opaque-type)))))]
-                         [else (trivial (Wump-single 0))]))]
+                    [(topaque ,src ,opaque-type) (trivial (Wump-single 0))]
                     [(tvector ,src ,len ,type)
                      (let-values ([(wump stmt*) (do-type type)])
                        (values (Wump-vector (make-list len wump)) stmt*))]
