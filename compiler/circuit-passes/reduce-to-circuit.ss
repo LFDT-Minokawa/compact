@@ -177,27 +177,27 @@
     [(default ,src ,[type])
      (k (with-output-language (Lcircuit Rhs)
           `(default ,type)))]
-    [(+ ,src ,mbits ,expr1 ,expr2)
+    [(+ ,src ,[type] ,expr1 ,expr2)
      (Triv expr1 test
        (lambda (triv1)
          (Triv expr2 test
            (lambda (triv2)
              (k (with-output-language (Lcircuit Rhs)
-               `(+ ,mbits ,triv1 ,triv2)))))))]
-    [(- ,src ,mbits ,expr1 ,expr2)
+               `(+ ,type ,triv1 ,triv2)))))))]
+    [(- ,src ,[type] ,expr1 ,expr2)
      (Triv expr1 test
        (lambda (triv1)
          (Triv expr2 test
            (lambda (triv2)
              (k (with-output-language (Lcircuit Rhs)
-                `(- ,mbits ,triv1 ,triv2)))))))]
-    [(* ,src ,mbits ,expr1 ,expr2)
+                `(- ,type ,triv1 ,triv2)))))))]
+    [(* ,src ,[type] ,expr1 ,expr2)
      (Triv expr1 test
        (lambda (triv1)
          (Triv expr2 test
            (lambda (triv2)
              (k (with-output-language (Lcircuit Rhs)
-                `(* ,mbits ,triv1 ,triv2)))))))]
+                `(* ,type ,triv1 ,triv2)))))))]
     [(< ,src ,bits ,expr1 ,expr2)
      (Triv expr1 test
        (lambda (triv1)

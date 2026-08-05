@@ -5,6 +5,103 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.118, language 0.25.107, runtime 0.18.105]
+
+### Changed
+
+- The types `JubjubPoint` and `Secp256k1Point` are no longer defined as
+  nominal type aliases for opaque types but rather standard-library names for
+  internally handled types.  They can no longer be exported from a contract's
+  top level.  This is a **breaking** change.
+
+- Similarly, the types `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar`
+  are no longer built-in types but rather standard-library names for
+  internally handled types.  This is a **breaking** change, since programs
+  must now import these types from CompactStandardLibrary to use them.
+
+### Internal notes
+
+- Previously, there were builtin types `Opaque<'JubjubPoint'>` and
+  `Opaque<'Secp256k1Point'>` and the standard library exported nominal type
+  aliases `JubjuPoint` and `Secp256k1Point` for these.  The compiler now
+  injects definitions for these points from midnight-natives.ss and
+  zkir-v3-natives.ss into the standard library and expands them into built-in types.
+  Similarly, it injects definitions for `JubjubScalar`, `Secp256k1Base`, and
+  `Secp256k1Scalar` from midnight-natives.ss and zkir-v3-natives.ss into the
+  standard lbirary and expands them into built-in types.
+
+## [Toolchain 0.33.117, language 0.25.106, runtime 0.18.105]
+
+### Changed
+
+- The generated JS code now has circuit argument and witness return value type
+  checks for the JS opaque types `Opaque<'string'>` and `Opaque<'Uint8Array'>`.
+  Before, we allowed any value at all to be passed or returned.  This is a
+  **breaking change** for programs that relied on being able to store any random
+  JS value as, say, an `Opaque<'string'>`.
+
+## [Toolchain 0.33.116, language 0.25.106, runtime 0.18.105]
+
+### Changed
+
+- Equality of `Opaque<'Uint8Array'>` is now (1) same length and (2) element-wise
+  strict equality (`===`).  It was formerly simple strict equality, which for
+  typed arrays is object reference equality.
+
+  This is a breaking change in the language, because `Uint8Arrays` that were
+  formerly not equal in Compact can now compare as equal.
+
+  This change brings the JS semantics more in line with the ZKIR semantics,
+  which uses equality of the Poseidon hash of the typed array's contents.
+
+## [Toolchain 0.33.115, language 0.25.105, runtime 0.18.105]
+
+### Changed
+
+- The JS implementation of the accessors secp256k1PointX and secp256k1PointY now
+  fail with a `CompactError` when passed the identity (`default`) point.  This
+  matches the ZKIR behavior, where these operations fail.
+
+  Before, these accessors returned whatever was stored in the x- or y-coordinate
+  of the JS object.  This was not a valid coordinate for this point, and not
+  even a sentinel value like 0 because we don't currently canonicalize identity
+  points.
+
+### Internal notes
+
+- This is a **breaking change** in the language.  Though it's a bug fix, the
+  language version is still correctly incremented.
+
+## [Toolchain 0.33.114, language 0.25.104, runtime 0.18.104]
+
+### Changed
+
+- Clean up the Compact runtime to reflect the intended structure: types and
+  descriptors needed by the generated code are in `compact-types.ts`, but not
+  redundant and unnecessary implementations; functions used by emitted code are
+  in `built-ins.ts`, but not helpful utility functions; those are in `utils.ts`.
+
+### Internal notes
+
+- This is a breaking change because some unused and unnecessary exported types
+  and descriptors have been deleted.
+
+## [Toolchain 0.33.113, language 0.25.104, runtime 0.18.103]
+
+### Added/Changed
+
+- The binary arithmetic operators `+`, `-`, and `*` now work for `Secp256k1Base`
+  and `Secp256k1Scalar`.  The operands must have the same type and the result
+  will have that type.  There is a new runtime function to perform subtraction
+  for these types.  The standard library circuits `add` and `mul` have been
+  removed.
+
+## [Toolchain 0.33.112, language 0.25.103, runtime 0.18.102]
+
+### Fixed
+
+- The ZKIR v3 printer now respects the --no-communications-commitment flag.
+
 ## [Toolchain 0.33.111, language 0.25.103, runtime 0.18.102]
 
 ### Changed

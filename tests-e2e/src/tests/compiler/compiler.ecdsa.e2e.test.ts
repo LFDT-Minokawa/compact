@@ -48,7 +48,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
     // ecrecover takes: the message hash, r, s, and the recovery id v.
     function recoverPk(digest: Uint8Array, sig: PkRecoverableSignature): runtime.Secp256k1Point {
         const p = new secp256k1.Signature(sig.r, sig.s, sig.recovery).recoverPublicKey(digest).toAffine();
-        return { x: p.x, y: p.y };
+        return { x: p.x, y: p.y, identity: false };
     }
 
     // Ethereum signs keccak256(msg); Bitcoin signs sha256(msg).

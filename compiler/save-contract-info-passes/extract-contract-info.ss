@@ -217,6 +217,11 @@
      (list
        (cons "type-name" "Uint")
        (cons "maxval" nat))]
+    [(tpoint ,src ,ctype)
+     (list (cons "type-name"
+             (nanopass-case (Lloweredemit Curve-Type) ctype
+               [(curve-jubjub) "JubjubPoint"]
+               [(curve-secp256k1) "Secp256k1Point"])))]
     [(tbytes ,src ,len)
      (list
        (cons "type-name" "Bytes")
