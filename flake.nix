@@ -93,6 +93,9 @@
           nodejs = final.nodejs_latest;
         });
         isDarwin = pkgs.lib.hasSuffix "-darwin" system;
+        libcrypto =
+          "${pkgs.openssl.out}/lib/libcrypto"
+          + (if isDarwin then ".dylib" else ".so");
         chez = if isDarwin then pkgs.chez.override {
           stdenv = pkgs.llvmPackages_18.stdenv;
         } else pkgs.chez;
@@ -239,6 +242,7 @@
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            COMPACT_LIBCRYPTO = libcrypto;
 
             NODE_PATH = "${packages.runtime.node-modules}/node_modules";
 
@@ -247,6 +251,7 @@
               pkgs.nodePackages.typescript
               packages.runtime.package
               packages.runtime.node-modules
+              pkgs.openssl
               chez
             ];
 
@@ -546,6 +551,7 @@
             shellHook = combined-shell-hook;
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            COMPACT_LIBCRYPTO = libcrypto;
             WASM_BINDGEN_WEAKREF = 1;
             WASM_BINDGEN_EXTERNREF = 1;
           };
@@ -567,6 +573,7 @@
             shellHook = combined-shell-hook;
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            COMPACT_LIBCRYPTO = libcrypto;
           };
 
           devShells.compiler = pkgs.mkShell {
@@ -580,6 +587,7 @@
             ];
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            COMPACT_LIBCRYPTO = libcrypto;
           };
           devShells.test-contracts = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
@@ -593,6 +601,7 @@
 
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            COMPACT_LIBCRYPTO = libcrypto;
           };
 
           devShells.runtime = packages.runtime.mkShell {

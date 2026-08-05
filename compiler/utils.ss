@@ -334,28 +334,99 @@
   ;; Lowercase 64-character hex SHA-256 of a file's raw bytes. This is the same definition the
   ;; midnight-js stack uses for verifier-key fingerprints (`hashVerifierKey` == sha256 of the bytes,
   ;; hex), so a hash produced here over a `.verifier` file matches the runtime's hash of the deployed
-  ;; verifier key byte-for-byte. Shells out to `shasum`.
-  (define (sha256-file pathname)
-    (define commands-to-try '("sha256sum -b" "shasum -a 256 -b"))
-    (define (hex-digit? c)
-      (or (char<=? #\0 c #\9)
-          (char<=? #\a c #\f)
-          (char<=? #\A c #\F)))
-    (let try ([command* commands-to-try]
-              [rfailure* '()])
-      (if (null? command*)
-          (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
-                           (reverse rfailure*))
-          (let ([command (car command*)] [command* (cdr command*)])
-            (let-values ([(stdout stderr) (shell (format "exec ~a '~a'" command pathname))])
-              (if (string=? stderr "")
-                  (if (>= (string-length stdout) 64)
-                      (let ([hash (substring stdout 0 64)])
-                        (if (andmap hex-digit? (string->list hash))
-                            (string-downcase hash)
-                            (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*))))
-                      (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
-                  (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
+  ;; verifier key byte-for-byte. In Nix compiler environments, hash in-process through OpenSSL's EVP
+  ;; interface. Retain the external-command implementation as a fallback for other environments.
+  (module (sha256-file)
+    (define (bytevector->hex bytes)
+      (define hex-digits "0123456789abcdef")
+      (let ([hash (make-string (* (bytevector-length bytes) 2))])
+        (do ([i 0 (+ i 1)])
+            ((= i (bytevector-length bytes)) hash)
+          (let ([byte (bytevector-u8-ref bytes i)])
+            (string-set! hash (* i 2)
+              (string-ref hex-digits (bitwise-arithmetic-shift-right byte 4)))
+            (string-set! hash (+ (* i 2) 1)
+              (string-ref hex-digits (bitwise-and byte #xf)))))))
+
+    (define (make-native-sha256-file libcrypto)
+      (guard (c [else
+                 (external-errorf "failed to initialize native SHA-256 via ~a: ~a"
+                   libcrypto
+                   (format-condition c))])
+        (load-shared-object libcrypto)
+        (let ([entry-name*
+                '("EVP_MD_CTX_new"
+                  "EVP_MD_CTX_free"
+                  "EVP_sha256"
+                  "EVP_DigestInit_ex"
+                  "EVP_DigestUpdate"
+                  "EVP_DigestFinal_ex")])
+          (unless (andmap foreign-entry? entry-name*)
+            (external-errorf "native SHA-256 library ~a is missing required EVP entries"
+              libcrypto))
+          (let ([make-context (foreign-procedure "EVP_MD_CTX_new" () void*)]
+                [free-context (foreign-procedure "EVP_MD_CTX_free" (void*) void)]
+                [sha256-method ((foreign-procedure "EVP_sha256" () void*))]
+                [digest-init (foreign-procedure "EVP_DigestInit_ex" (void* void* void*) int)]
+                [digest-update (foreign-procedure "EVP_DigestUpdate" (void* u8* size_t) int)]
+                [digest-final (foreign-procedure "EVP_DigestFinal_ex" (void* u8* u8*) int)])
+            (lambda (pathname)
+              (let ([context (make-context)])
+                (when (zero? context)
+                  (external-errorf "failed to allocate native SHA-256 context"))
+                (dynamic-wind
+                  (lambda () (void))
+                  (lambda ()
+                    (unless (= (digest-init context sha256-method 0) 1)
+                      (external-errorf "failed to initialize native SHA-256 context"))
+                    (call-with-port (open-file-input-port pathname)
+                      (lambda (ip)
+                        (let ([buffer (make-bytevector 65536)])
+                          (let loop ()
+                            (let ([n (get-bytevector-n! ip buffer 0 (bytevector-length buffer))])
+                              (unless (eof-object? n)
+                                (unless (= (digest-update context buffer n) 1)
+                                  (external-errorf "failed to update native SHA-256 digest"))
+                                (loop)))))))
+                    (let ([digest (make-bytevector 32)]
+                          [digest-length (make-bytevector 4)])
+                      (unless (= (digest-final context digest digest-length) 1)
+                        (external-errorf "failed to finalize native SHA-256 digest"))
+                      (bytevector->hex digest)))
+                  (lambda () (free-context context)))))))))
+
+    (define native-sha256-file*
+      (delay
+        (let ([libcrypto (getenv "COMPACT_LIBCRYPTO")])
+          (and libcrypto (make-native-sha256-file libcrypto)))))
+
+    (define (sha256-file/external pathname)
+      (define commands-to-try '("sha256sum -b" "shasum -a 256 -b"))
+      (define (hex-digit? c)
+        (or (char<=? #\0 c #\9)
+            (char<=? #\a c #\f)
+            (char<=? #\A c #\F)))
+      (let try ([command* commands-to-try]
+                [rfailure* '()])
+        (if (null? command*)
+            (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
+                             (reverse rfailure*))
+            (let ([command (car command*)] [command* (cdr command*)])
+              (let-values ([(stdout stderr) (shell (format "exec ~a '~a'" command pathname))])
+                (if (string=? stderr "")
+                    (if (>= (string-length stdout) 64)
+                        (let ([hash (substring stdout 0 64)])
+                          (if (andmap hex-digit? (string->list hash))
+                              (string-downcase hash)
+                              (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*))))
+                        (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
+                    (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
+
+    (define (sha256-file pathname)
+      (let ([native-sha256-file (force native-sha256-file*)])
+        (if native-sha256-file
+            (native-sha256-file pathname)
+            (sha256-file/external pathname)))))
 
   (define (string-prefix? prefix str)
     (let ([n (string-length prefix)])
