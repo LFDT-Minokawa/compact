@@ -2493,6 +2493,11 @@
             (lambda ()
               (let f ([type type] [i 0] [indent 4])
                 (nanopass-case (Ltypescript Type) (de-alias type)
+                  [(topaque ,src ,opaque-type) (guard (string=? opaque-type "Uint8Array"))
+                   (print-indent indent)
+                   (printf "if (x~s.length != y~:*~s.length) { return false; }\n" i)
+                   (print-indent indent)
+                   (printf "if (!x~s.every((x, i) => y~:*~s[i] === x)) { return false; }\n" i)]
                   [(tbytes ,src ,len)
                    (print-indent indent)
                    (printf "if (!x~s.every((x, i) => y~:*~s[i] === x)) { return false; }\n" i)]
@@ -2774,6 +2779,7 @@
            [(tboolean ,src) #t]
            [(tfield ,src ,ftype) #t]
            [(tunsigned ,src ,nat) #t]
+           [(topaque ,src ,opaque-type) (string=? opaque-type "string")]
            [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
            [else #f])
          (parenthesize level (precedence ==)
@@ -2797,6 +2803,7 @@
            [(tboolean ,src) #t]
            [(tfield ,src ,ftype) #t]
            [(tunsigned ,src ,nat) #t]
+           [(topaque ,src ,opaque-type) (string=? opaque-type "string")]
            [(tenum ,src ,enum-name ,elt-name ,elt-name* ...) #t]
            [else #f])
          (parenthesize level (precedence ==)

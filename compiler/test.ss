@@ -13156,6 +13156,23 @@ groups than for single tests.
 
   (test
     '(
+      "circuit foo<#n>(x: Uint<n>): Uint<n> {"
+      "  return x;"
+      "}"
+      "export circuit bar(): Uint<0> {"
+      "  return foo<0>(0);"
+      "}"
+      )
+    (returns
+      (program ((bar %bar.0))
+        (circuit %foo.1 ([%x.2 (tunsigned 0)])
+             (tunsigned 0)
+          %x.2)
+        (circuit %bar.0 () (tunsigned 0) (call (fref ((%foo.1))) 0))))
+    )
+
+  (test
+    '(
       "struct S<#t> {"
       "  x: Uint<0..t>;"
       "  y: Uint<t>;"
@@ -17976,6 +17993,96 @@ groups than for single tests.
     )
 
   (test
+    '(
+      "export circuit foo(): Uint<0> {"
+      "  return default<Uint<0>>;"
+      "}"
+      )
+    (returns
+      (program
+        (circuit %foo.0 () (tunsigned 0) (default (tunsigned 0)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): [] {"
+      "  const x: Uint<0> = 1;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("Uint<1>" "Uint<0..1>")))
+    )
+
+  (test
+    '(
+      "export circuit foo(v: Vector<3, Uint<0>>): Uint<0> {"
+      "  return v[0];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>): Uint<8> {"
+      "  return x;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>): Field {"
+      "  return x as Field;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the result of arithmetic on Uint<0> operands is itself a Uint<0>, i.e., the
+  ; type system guarantees the result is 0
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x + y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; but adding a nonzero literal widens the result beyond what Uint<0> can hold
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x + y + 1;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Uint<1>" "Uint<0..1>" "circuit foo")))
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x - y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(x: Uint<0>, y: Uint<0>): Uint<0> {"
+      "  return x * y;"
+      "}"
+      )
+    (succeeds)
+    )
+
+   (test
     `(
       ,(format "export circuit foo(b: Boolean): Uint<~d> {" (unsigned-bits))
       ,(format "  return b as Uint<~d>;" (unsigned-bits))
@@ -90708,6 +90815,66 @@ groups than for single tests.
 
   (test
     '(
+      "ledger flag: Boolean;"
+      "export circuit testEquals(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr0 == arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testNotEquals(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr0 != arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testEqualsDefault(arr: Opaque<'Uint8Array'>): Boolean {"
+      "  const result = arr == default<Opaque<'Uint8Array'>>;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a0 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  const a1 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
+        "  // Different length."
+        "  const a2 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13, 21]);"
+        "  const a3 = new Uint8Array();"
+        "  // Different element."
+        "  const a4 = new Uint8Array([0, 1, 1, 2, 3, 1000000, 8, 13]);"
+        "  expect((await contract.circuits.testEquals(context, a0, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a0, a1)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a0, a2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a0, a3)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a0, a4)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.testEquals(context, a1, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, a2, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a3, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, a4, a0)).result).toEqual(false);"
+
+        "  expect((await contract.circuits.testNotEquals(context, a0, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a2)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a0, a4)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a1, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, a2, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a3, a0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, a4, a0)).result).toEqual(true);"
+
+        "  expect((await contract.circuits.testEqualsDefault(context, a0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEqualsDefault(context, a4)).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "import { JubjubScalar as nativeJubjubScalar,"
       "         JubjubPoint as nativeJubjubPoint,"
       "         ecMul as nativeEcMul }"
@@ -90767,7 +90934,7 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
     )
-  )
+)
 
 (run-javascript)
 )
@@ -91918,7 +92085,43 @@ groups than for single tests.
         "});"
         )))
     )
-  )
+
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test0(pt: Secp256k1Point): Secp256k1Base {"
+      "  return secp256k1PointX(pt);"
+      "}"
+      "export circuit test1(pt: Secp256k1Point): Secp256k1Base {"
+      "  return secp256k1PointY(pt);"
+      "}"
+      "export circuit test2(pt: Secp256k1Point): [Secp256k1Base, Secp256k1Base] {"
+      "  return pt == default<Secp256k1Point>"
+      "      ? [default<Secp256k1Base>, default<Secp256k1Base>]"
+      "      : [secp256k1PointX(pt), secp256k1PointY(pt)];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on the identity', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 3n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  await expect(contract.circuits.test0(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity0)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity1)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+)
 
 (run-javascript)
 )
