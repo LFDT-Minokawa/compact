@@ -92202,13 +92202,13 @@ groups than for single tests.
       "  pt = disclose(p);"
       "}"
       "export circuit storeXOfGenerator(k: Secp256k1Scalar): [] {"
-      "  x = secp256k1PointX(ecMulGenerator(disclose(k)));"
+      "  x = disclose(secp256k1PointX(ecMulGenerator(k)));"
       "}"
       "export circuit storeXOfMul(k: Secp256k1Scalar): [] {"
-      "  x = secp256k1PointX(ecMul(pt, disclose(k)));"
+      "  x = disclose(secp256k1PointX(ecMul(pt, k)));"
       "}"
       "export circuit storeXOfSum(a: Secp256k1Point, b: Secp256k1Point): [] {"
-      "  x = secp256k1PointX(ecAdd(disclose(a), disclose(b)));"
+      "  x = disclose(secp256k1PointX(ecAdd(a, b)));"
       "}"
       )
     (stage-javascript
