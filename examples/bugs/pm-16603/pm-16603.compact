@@ -17,11 +17,11 @@ module M {
   export circuit blah(): [] { }
 
   export circuit boberto(): Field {
-    return 1;
+    return 1 as Field;
   }
 
   export circuit arnold(): [Field] {
-    return [1];
+    return [1 as Field];
   }
 }
 

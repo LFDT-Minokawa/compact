@@ -256,8 +256,8 @@ export circuit test31(): Vector<1, Uint<8>> {
 export ledger var32: Map<Field, Bytes<2>>;
 
 export circuit test32(): Bytes<2> {
-  var32.insert(1, default<Vector<2, Uint<8>>> as Bytes<2>);
-  return var32.lookup(1);
+  var32.insert(1 as Field, default<Vector<2, Uint<8>>> as Bytes<2>);
+  return var32.lookup(1 as Field);
 }
 
 // test33: different comparisons with conversions

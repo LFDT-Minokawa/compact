@@ -28,6 +28,14 @@ jobs:
         run: |
           nix build .#runtime.forPublish
 
+      - name: Setup .npmrc
+        run: |
+          cd ./debug-test
+          echo "
+          //npm.pkg.github.com/:_authToken=${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          @midnight-ntwrk:registry=https://npm.pkg.github.com/
+          " > .npmrc
+
       - name: Install dependencies
         run: |
           cd ./debug-test

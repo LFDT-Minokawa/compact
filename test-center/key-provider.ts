@@ -18,14 +18,14 @@ import {
   ProvingKeyMaterial,
   check as checkV2,
   jsonIrToBinary as jsonIrToBinaryV2
-} from '@midnight-ntwrk/zkir-v2';
+} from '@midnightntwrk/zkir-v2';
 import {
   KeyMaterialProvider as KeyMaterialProviderV3,
   check as checkV3,
   jsonIrToBinary as jsonIrToBinaryV3
-} from '@midnight-ntwrk/zkir-v3';
+} from '@midnightntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
-import { proofDataIntoSerializedPreimage } from '@midnight-ntwrk/onchain-runtime-v3';
+import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v4';
 import fs from 'fs/promises';
 import path from 'path';
 

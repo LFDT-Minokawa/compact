@@ -14,8 +14,8 @@
 // limitations under the License.
 
 import CompactStandardLibrary;
-module M { export circuit foo() : Field { return 10; } }
+module M { export circuit foo() : Field { return 10 as Field; } }
 import M;
 circuit foo() : Boolean { return true; }
 circuit foo(a: Field) : Field { return a; }
-export circuit bar(n: Field) : Field { return foo() ? foo(n) : 17; }
+export circuit bar(n: Field) : Field { return foo() ? foo(n) : 17 as Field; }

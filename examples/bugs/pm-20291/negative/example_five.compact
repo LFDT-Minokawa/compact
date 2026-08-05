@@ -22,9 +22,9 @@ module M18 {
   export circuit test18(n: Field): Status { return Status.Success; }
   export circuit test18(n: Field): Color { return Color.Red; }
   export circuit test18(n: Field): Direction { return Direction.North; }
-  export circuit call18a(): Status { return test18(1); }
-  export circuit call18b(): Color { return test18(1); }
-  export circuit call18c(): Direction { return test18(1); }
+  export circuit call18a(): Status { return test18(1 as Field); }
+  export circuit call18b(): Color { return test18(1 as Field); }
+  export circuit call18c(): Direction { return test18(1 as Field); }
 }
 
 import M18;

@@ -1,0 +1,5 @@
+node_modules/
+dist/
+src/version.ts
+package-lock.json
+*.ss

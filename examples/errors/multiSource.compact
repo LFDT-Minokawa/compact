@@ -17,11 +17,11 @@ import CompactStandardLibrary;
 export {sumVotingPower, sumVotingPower}
 
 circuit enabledPower(enabled: Boolean, power: Field): Field {
-    if (enabled) {
-       return power;  
-    } else {
-      return 0;
-    }
+  if (enabled) {
+    return power;  
+  } else {
+    return 0 as Field;
+  }
 }
     
 circuit sumVotingPower(v: Vector<10, Field>): Boolean {

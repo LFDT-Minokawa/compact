@@ -25,7 +25,7 @@ circuit test1a(): Boolean {
 
 export circuit test1b(vector1: Vector<1, Field>, vector2: Vector<1, Field>): [] {
   var1 = [...disclose(vector1), ...disclose(vector2)];
-  var1a = [...disclose(vector1), ...disclose(vector2), ...[1]];
+  var1a = [...disclose(vector1), ...disclose(vector2), ...[1 as Field]];
   const c = [[...var1], [...var1], [...var1a]];
   // const d: Vector<2, Field> = [...[1,2,3]];
   // const e: Vector<0, Field> = [...[1]];
@@ -53,7 +53,7 @@ enum var2b {
 
 export circuit test2(vector1: Vector<2, Uint<8>>, vector2: Vector<2, Uint<16>>): [] {
   const a = [1, 2, 3, 4, 5, ...disclose(vector1), ...disclose(vector2), 0];
-  var2.insert(1, a);
+  var2.insert(1 as Field, a);
 
   const b = [a[0], a[1], ...slice<7>(a, 2), ...[a[9]]];
   const c = [...default<Vector<1, Uint<16>>>, a[0], ...[a[1]], ...a];
@@ -77,7 +77,7 @@ export circuit test2(vector1: Vector<2, Uint<8>>, vector2: Vector<2, Uint<16>>):
     }
   }
 
-  for (const i of [...var2.lookup(1)]) {
+  for (const i of [...var2.lookup(1 as Field)]) {
     const a = i;
   }
 }
@@ -87,11 +87,11 @@ export ledger var3: Map<Field, Vector<8, Uint<32>>>;
 export ledger var3c: Counter;
 
 export circuit test3a(): Field {
-  return 1;
+  return 1 as Field;
 }
 
 export circuit test3b(): [Field] {
-  return [1];
+  return [1 as Field];
 }
 
 struct var3a {
@@ -111,12 +111,12 @@ export circuit test3c(vector: Vector<8, Uint<32>>): [] {
   const a = "abcde";
   const b = [...a as Vector<5, Uint<8>>, ...default<[]>];
   const c = disclose([...slice<4>(vector, 0), ...slice<4>(vector, 4)]);
-  var3.insert(1, c);
+  var3.insert(1 as Field, c);
 
   const d = 0;
 
   // mix of slice / spread and other things
-  const e = [b[d + 1], ...slice<1>(var3.lookup(d + 1), d + 1), ...[d + 1], ...default<Vector<1, Field>>, test3a(), ...test3b()];
+  const e = [b[d + 1], ...slice<1>(var3.lookup((d + 1) as Field), d + 1), ...[d + 1], ...default<Vector<1, Uint<32>>>, test3a() as Uint<32>, ...map((v) => v as Uint<32>, test3b())];
   const f = [b[2 + 2]];
   // const g = slice<0xffffffffffffffffffffffffffffffffffff>(default<Vector<0xffffffffffffffffffffffffffffffffffff, Field>>, 0);
   // const h = slice<0>(default<Vector<0x1000000, Field>>, 0x1000000);
@@ -152,7 +152,7 @@ export circuit test4(): [] {
   const c = ["a", "b", "c", ...b];
 
   for(const i of 0..100) {
-    var4.insert(i, i);
+    var4.insert(i as Field, i as Field);
     // const d = [...[var4.lookup(i + 1)], ...[], ...[var4.member(i)][0]];
     // const e = slice<1>([...var4b.increment(1), ...var4b += 1, ...var4b.resetToDefault(), 1], 0);
   }
@@ -179,7 +179,7 @@ export circuit test5(): [] {
   const b = [...map((x) => x - x, [...a])];
   const c = [...map((x) => [x[0] - 1], [[...a]])];
   const d = [...map((x) => [x[0] - 1], [slice<1>(a, 0)])];
-  const e = [...map((x, y) => x.b + y.b, [var5 { a: true, b: 1 }, var5 { a: false, b: 2 }], [var5 { a: true, b: 1 }, var5 { a: false, b: 2 }])];
+  const e = [...map((x, y) => x.b + y.b, [var5 { a: true, b: 1 as Field }, var5 { a: false, b: 2  as Field }], [var5 { a: true, b: 1 as Field }, var5 { a: false, b: 2 as Field }])];
   const f = [...[fold((x, y) => y as Field, 1 as Field, [1,2,3,4])]];
   const g = [...map((_) => _ + _, [1,2,3,4])];
 

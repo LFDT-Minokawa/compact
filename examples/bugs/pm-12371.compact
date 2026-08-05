@@ -17,6 +17,6 @@ import CompactStandardLibrary;
 
 ledger field1: Map<Field, Map<Field, Boolean>>;
 export circuit foo(n: Field): Boolean {
-  return field1.lookup(1).lookup(1);
+  return field1.lookup(1 as Field).lookup(1 as Field);
 }
-export circuit call_foo(n: Field) : Boolean { return foo(1); }
+export circuit call_foo(n: Field) : Boolean { return foo(1 as Field); }

@@ -149,18 +149,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 10 - Uint type with 0', async () => {
-            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_ten.compact';
-
-            const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-            expectCompilerResult(result).toBeFailure(
-                'Exception: example_ten.compact line 16 char 22: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
-                compilerDefaultOutput(),
-            );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
-        });
+        // Example 10 was a negative test for Uint<0> which is now allowed.
 
         test('example 11 - Uint type with range starting 0', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_eleven.compact';
@@ -175,18 +164,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             expectFiles(outputDir).thatNoFilesAreGenerated();
         });
 
-        test('example 12 - Uint type in struct, starting with 0', async () => {
-            const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_twelve.compact';
-
-            const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-            expectCompilerResult(result).toBeFailure(
-                'Exception: example_twelve.compact line 16 char 35: Uint width 0 is not between 1 and the maximum Uint width 248 (inclusive)',
-                compilerDefaultOutput(),
-            );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
-        });
+        // Example 12 was a negative test for Uint<0> which is now allowed.
 
         test('example 13 - Uint type with range in struct, starting with 0', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_thirteen.compact';
@@ -208,7 +186,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_fourteen.compact line 16 char 22: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_fourteen.compact line 16 char 22: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();
@@ -234,7 +212,7 @@ describe('[Types] [PM-19636] Define type aliases and new disjoint types for exis
             const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                'Exception: example_sixteen.compact line 16 char 35: Uint width 249 is not between 1 and the maximum Uint width 248 (inclusive)',
+                'Exception: example_sixteen.compact line 16 char 35: Uint width 249 exceeds the maximum Uint width 248',
                 compilerDefaultOutput(),
             );
             expectFiles(outputDir).thatNoFilesAreGenerated();

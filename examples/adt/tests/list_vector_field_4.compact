@@ -27,9 +27,9 @@ export circuit test(): [] {
   assert(c.head().is_some == true, "Head should exist");
   assert(c.head().value == default<Vector<4, Field>>, "Head should have value 0");
 
-  c.pushFront([3, 320, 4, 4]);
+  c.pushFront([3 as Field, 320 as Field, 4 as Field, 4 as Field]);
   assert(c.length() == 2, "Size should be 2");
-  assert(c.head().value == [3, 320, 4, 4], "Head should have value 1");
+  assert(c.head().value == [3 as Field, 320 as Field, 4 as Field, 4 as Field], "Head should have value 1");
 
   c.popFront();
   assert(c.length() == 1, "Size should be 1");

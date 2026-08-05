@@ -86,10 +86,12 @@
      default
      disclose
      else
+     emit
      enum
      fold
      for
      if
+     implements
      include
      ledger
      map
@@ -110,7 +112,10 @@
     (Boolean
      Bytes
      Field
+     JubjubScalar
      Opaque
+     Secp256k1Base
+     Secp256k1Scalar
      Uint
      Vector))
 
@@ -131,12 +136,10 @@
      extends
      finally
      function
-     implements
      in
      instanceof
      interface
      let
-     log
      null
      package
      private
@@ -399,6 +402,7 @@
       [program-element-struct-declaration :: struct-declaration => values]
       [program-element-enum-declaration :: enum-declaration => values]
       [program-element-contract-declaration :: contract-declaration => values]
+      [program-element-implements-declaration :: implements-declaration => values]
       [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
       [program-element-witness-declaration :: witness-declaration => values]
@@ -570,6 +574,11 @@
          (with-output-language (Lparser Enum-Definition)
            (let-values ([(elt-name+ sep*) (split-sep elt-name-sep+)])
              `(enum ,src ,kwd-export? ,kwd ,enum-name ,lbrace (,(car elt-name+) ,(cdr elt-name+) ...) (,sep* ...) ,rbrace ,semicolon?))))])
+    (Contract-Implements-declaration (implements-declaration)
+      [contract-implements-declaration :: src (KEYWORD contract) (KEYWORD implements) type #\; =>
+       (lambda (src kwd kwd-implements type semicolon)
+         (with-output-language (Lparser Contract-Implements-Declaration)
+           `(contract-implements ,src ,kwd ,kwd-implements ,type ,semicolon)))])
     (External-contract-declaration (contract-declaration)
       [contract-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD contract) contract-name #\{ (SEP* circuit-declaration #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd contract-name lbrace circuit-declaration-sep* rbrace semicolon?)
@@ -624,6 +633,18 @@
        (lambda (src kwd)
          (with-output-language (Lparser Type)
            `(tfield ,src ,kwd)))]
+      [type-jubjub-scalar :: src (KEYWORD JubjubScalar) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tjubjub-scalar ,src ,kwd)))]
+      [type-secp256k1-base :: src (KEYWORD Secp256k1Base) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tsecp256k1-base ,src ,kwd)))]
+      [type-secp256k1-scalar :: src (KEYWORD Secp256k1Scalar) =>
+        (lambda (src kwd)
+          (with-output-language (Lparser Type)
+            `(tsecp256k1-scalar ,src ,kwd)))]
       [type-unsigned-integer-bits :: src (KEYWORD Uint) #\< tsize #\> =>
        (lambda (src kwd langle tsize rangle)
          (with-output-language (Lparser Type)
@@ -838,6 +859,10 @@
        (lambda (src kwd lparen e comma str rparen)
          (with-output-language (Lparser Expression)
            `(assert ,src ,kwd ,lparen ,e ,comma ,str ,rparen)))]
+      [term-emit :: src (KEYWORD emit) #\( expr #\) =>
+       (lambda (src kwd lparen e rparen)
+         (with-output-language (Lparser Expression)
+           `(emit ,src ,kwd ,lparen ,e ,rparen)))]
       [term-disclose :: src (KEYWORD disclose) #\( expr #\) =>
        (lambda (src kwd lparen expr rparen)
          (with-output-language (Lparser Expression)

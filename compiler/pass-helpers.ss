@@ -18,8 +18,7 @@
 (library (pass-helpers)
   (export target-ports get-target-port target-directory source-directory source-file-name
           find-source-pathname
-          contract-ht
-          proof-circuit-names
+          proof-circuit-names verifier-key-hashes
           define-passes define-checker checkers
           passrec-name passrec-pass passrec-unparse passrec-pretty-formats)
   (import (except (chezscheme) errorf)
@@ -56,8 +55,13 @@
                 (cons (assert (relative-path)) (compact-path))))
           (err pathname))))
 
-  (define contract-ht (make-parameter #f))
   (define proof-circuit-names (make-parameter '()))
+
+  ;; Alist mapping each proof circuit's external name (string) to the lowercase hex SHA-256 of its
+  ;; compiled `keys/<name>.verifier` file. Populated in `passes.ss` after key generation and read by
+  ;; the TypeScript pass to emit the contract module's `expectedVk` fingerprints. Empty when keys are
+  ;; not generated (e.g. a `--skip-zk` build).
+  (define verifier-key-hashes (make-parameter '()))
 
   (define-record-type passrec
     (nongenerative)

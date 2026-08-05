@@ -13,13 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { keccak_256 } from '@noble/hashes/sha3.js';
-import { MAX_FIELD, JUBJUB_SCALAR_MODULUS } from './constants.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, JubjubSchnorrSignature } from './compact-types.js';
+import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { FIELD_MODULUS, SECP256K1_BASE_MODULUS, SECP256K1_SCALAR_MODULUS } from './constants.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  JubjubPoint,
+  Secp256k1Point,
+  toBinaryRepr,
+} from './compact-types.js';
+import { secp256k1FromProjective, secp256k1ToProjective } from './utils.js';
 import { CompactError } from './error.js';
-
-const FIELD_MODULUS: bigint = MAX_FIELD + 1n;
 
 /**
  * Field addition
@@ -44,7 +50,7 @@ export function subField(x: bigint, y: bigint): bigint {
   // (x - y) % FIELD_MODULUS would return an incorrect value for negative values of x - y.
   // also, any implementation involving % would likely be more expensive
   const t = x - y;
-  return t >= 0 ? t : t + FIELD_MODULUS;
+  return t >= 0n ? t : t + FIELD_MODULUS;
 }
 
 /**
@@ -171,25 +177,34 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
  * @throws If `rtType` encodes a type containing Compact 'Opaque' types
  */
 export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
-  const chunks = rtType.toValue(value);
-  const totalLength = chunks.reduce((acc, chunk) => acc + chunk.length, 0);
-  const bytes = new Uint8Array(totalLength);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.length;
-  }
-  return keccak_256(bytes);
+  return keccak_256(toBinaryRepr(rtType, value));
 }
 
+/**
+ * The Compact builtin `jubjubPointX` function
+ *
+ * This function extracts the x-coordinate of a Compact `JubjubPoint`.
+ */
 export function jubjubPointX(pt: JubjubPoint): bigint {
   return pt.x;
 }
 
+/**
+ * The Compact builtin `jubjubPointY` function
+ *
+ * This function extracts the y-coordinate of a Compact `JubjubPoint`.
+ */
 export function jubjubPointY(pt: JubjubPoint): bigint {
   return pt.y;
 }
 
+/**
+ * The Compact builtin `constructJubjubPoint` function
+ *
+ * This function constructs a Compact `JubjubPoint` from the x- and
+ * y-coordinates.  NOTE that it does not check that the coordinates represent a
+ * valid point on the Jubjub curve.
+ */
 export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
   return { x, y };
 }
@@ -221,6 +236,16 @@ export function ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint {
 }
 
 /**
+ * The Compact builtin `ecNeg` function
+ *
+ * This function negates an elliptic curve point. On the JubJub twisted
+ * Edwards curve, the negation of (x, y) is (-x, y).
+ */
+export function ecNeg(a: JubjubPoint): JubjubPoint {
+  return constructJubjubPoint(a.x === 0n ? 0n : FIELD_MODULUS - a.x, a.y);
+}
+
+/**
  * The Compact builtin `ecMul` function
  *
  * This function multiplies an elliptic curve point by a scalar (in
@@ -241,6 +266,176 @@ export function ecMulGenerator(b: bigint): JubjubPoint {
 }
 
 /**
+ * Secp256k1 scalar field addition
+ *
+
+ * This function returns x + y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarAdd(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  return t < SECP256K1_SCALAR_MODULUS ? t : t - SECP256K1_SCALAR_MODULUS;
+}
+
+/**
+ * Secp256k1 scalar field negation
+ *
+ * This function returns the negation of x in the secp256k1 scalar field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256K1_SCALAR_MODULUS).  x is
+ * assumed to be in the range [0, SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256K1_SCALAR_MODULUS - x;
+}
+
+/**
+ * Secp256k1 scalar field subtraction
+ *
+ * This function returns x - y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256K1_SCALAR_MODULUS;
+}
+
+/**
+ * Secp256k1 scalar field multiplication
+ *
+ * This function returns x * y in the secp256k1 scalar field (modulo
+ * SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256K1_SCALAR_MODULUS;
+}
+
+/**
+ * Secp256k1 scalar field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256k1 scalar
+ * field.  That is, a value y such that x * y = 1 (modulo
+ * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range
+ * (0, SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('Cannot compute inverse on input 0');
+  }
+  return secp256k1.Point.Fn.inv(x);
+}
+
+/**
+ * Secp256k1 base field addition
+ *
+ * This function returns x + y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  return t < SECP256K1_BASE_MODULUS ? t : t - SECP256K1_BASE_MODULUS;
+}
+
+/**
+ * Secp256k1 base field negation
+ *
+ * This function returns the negation of x in the secp256k1 base field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256K1_BASE_MODULUS).  x is
+ * assumed to be in the range [0, SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256K1_BASE_MODULUS - x;
+}
+
+/**
+ * Secp256k1 base field subtraction
+ *
+ * This function returns x - y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256K1_BASE_MODULUS;
+}
+
+/**
+ * Secp256k1 base field multiplication
+ *
+ * This function returns x * y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256K1_BASE_MODULUS;
+}
+
+/**
+ * Secp256k1 base field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256k1 base
+ * field.  That is, a value y such that x * y = 1 (modulo SECP256K1_BASE_MODULUS).
+ * x is assumed to be in the range (0, SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('secp256k1 scalar field has no inverse for 0');
+  }
+  return secp256k1.Point.Fp.inv(x);
+}
+
+/**
+ * The Compact builtin `secp256k1PointX` function
+ *
+ * This function extracts the affine x-coordinate of a Compact `Secp256k1Point`.
+ */
+export function secp256k1PointX(pt: Secp256k1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the x-coordinate of the secp256k1 identity point');
+  }
+  return pt.x;
+}
+
+/**
+ * The Compact builtin `secp256k1PointY` function
+ *
+ * This function extracts the affine y-coordinate of a Compact `Secp256k1Point`.
+ */
+export function secp256k1PointY(pt: Secp256k1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the y-coordinate of the secp256k1 identity point');
+  }
+  return pt.y;
+}
+/**
+ * The Compact builtin `ecAdd` function for secp256k1 points.
+ *
+ * This function adds two elliptic curve points.
+ */
+export function secp256k1Add(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1ToProjective(a).add(secp256k1ToProjective(b)));
+}
+
+/**
+ * The Compact builtin `ecMul` function for secp256k1 points.
+ *
+ * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
+ * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
+ * anyways.
+ */
+export function secp256k1Mul(a: Secp256k1Point, b: bigint): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1ToProjective(a).multiplyUnsafe(b));
+}
+
+/**
+ * The Compact builtin `ecMulGenerator` function for secp256k1 points.
+ *
+ * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
+ * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
+ * anyways.
+ */
+export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
+  return secp256k1FromProjective(secp256k1.Point.BASE.multiplyUnsafe(b));
+}
+
+/**
  * Concatenates multiple {@link AlignedValue}s
  * @internal
  */
@@ -251,99 +446,4 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
-}
-
-/**
- * Samples a random JubJub scalar.
- *
- * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
- */
-export function jubjubSampleScalar(): bigint {
-  return ocrt.valueToBigInt(ocrt.jubjubSampleScalar());
-}
-
-/**
- * Alias for {@link jubjubSampleScalar}. Samples a random JubJub Schnorr signing key.
- */
-export const sampleJubjubSchnorrSk = jubjubSampleScalar;
-
-/**
- * Reduce modulo the JubJub scalar field order.
- *
- * The returned value is in the range [0, JUBJUB_SCALAR_MODULUS).
- */
-export function reduceModJubjubOrder(value: bigint): bigint {
-  return value % JUBJUB_SCALAR_MODULUS;
-}
-
-/**
- * Derives the Schnorr verifying key (public key) from a signing key.
- *
- * Equivalent to {@link ecMulGenerator}(signingKey).
- */
-export function jubjubSchnorrVerifyingKey(signingKey: bigint): JubjubPoint {
-  return ecMulGenerator(reduceModJubjubOrder(signingKey));
-}
-
-/**
- * Produces a Schnorr signature over the JubJub curve.
- *
- * - `rtType` / `msg`: the message as a typed Compact value
- * - `sk`: signing key as a JubJub scalar (e.g. as returned by {@link jubjubSampleScalar})
- *
- * The signature scheme:
- * - Nonce `r` sampled uniformly at random
- * - Announcement `R = r·G`
- * - Challenge `c = PoseidonHash(R.x, R.y, pk.x, pk.y, msg...)`
- * - Response `s = r + c·sk` (in the JubJub scalar field)
- */
-export function jubjubSchnorrSign<A>(rtType: CompactType<A>, msg: A, signingKey: bigint): JubjubSchnorrSignature {
-  const r = jubjubSampleScalar();
-  const announcement = ecMulGenerator(r);
-  const verifyingKey = ecMulGenerator(signingKey);
-
-  const challengeAlignment: ocrt.Alignment = [
-    ...CompactTypeJubjubPoint.alignment(),
-    ...CompactTypeJubjubPoint.alignment(),
-    ...rtType.alignment(),
-  ];
-  const challengeValue: ocrt.Value = [
-    ...CompactTypeJubjubPoint.toValue(announcement),
-    ...CompactTypeJubjubPoint.toValue(verifyingKey),
-    ...rtType.toValue(msg),
-  ];
-  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
-
-  const response = reduceModJubjubOrder(r + c * signingKey);
-  return { announcement, response };
-}
-
-/**
- * Verifies a Schnorr signature over the JubJub curve.
- *
- * - `rtType` / `msg`: the message as a typed Compact value
- * - `pk`: verifying key (a JubJubPoint / EmbeddedGroupAffine)
- * - `sig`: signature as returned by {@link jubjubSchnorrSign}
- *
- * Returns `true` if the signature is valid (i.e. `s·G == R + c·pk`).
- */
-export function jubjubSchnorrVerify<A>(rtType: CompactType<A>, msg: A, verifyingKey: JubjubPoint, sig: JubjubSchnorrSignature): boolean {
-  const { announcement, response } = sig;
-
-  const challengeAlignment: ocrt.Alignment = [
-    ...CompactTypeJubjubPoint.alignment(),
-    ...CompactTypeJubjubPoint.alignment(),
-    ...rtType.alignment(),
-  ];
-  const challengeValue: ocrt.Value = [
-    ...CompactTypeJubjubPoint.toValue(announcement),
-    ...CompactTypeJubjubPoint.toValue(verifyingKey),
-    ...rtType.toValue(msg),
-  ];
-  const c = reduceModJubjubOrder(ocrt.valueToBigInt(ocrt.transientHash(challengeAlignment, challengeValue)));
-
-  const lhs = ecMulGenerator(response);
-  const rhs = ecAdd(announcement, ecMul(verifyingKey, c));
-
-  return lhs.x === rhs.x && lhs.y === rhs.y;
 }

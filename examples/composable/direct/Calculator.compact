@@ -18,11 +18,11 @@ import CompactStandardLibrary;
 ledger square: Map<Field, Field>;
 
 constructor() {
-    for (const i of 0..100) square.insert(i, i*i);
+  for (const i of 0..101) square.insert(i as Field, (i*i) as Field);
 }
 
 export circuit get_square(i: Field): Field {
-    return square.lookup(disclose(i));
+  return square.lookup(disclose(i));
 }
 
 export circuit get_cube(i: Field): Field {

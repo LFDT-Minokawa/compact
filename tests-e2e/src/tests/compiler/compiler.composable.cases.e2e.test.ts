@@ -48,6 +48,7 @@ describe('[Composable contracts] Compiler', () => {
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
 
+        /* Issue 201: this is no longer a static error
         test('when contracts have circular reference - A is main', async () => {
             copyFiles('../examples/composable/cases/circular-reference/*.compact', contractsDir);
 
@@ -58,7 +59,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}A`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when contracts have circular reference - B is main', async () => {
             copyFiles('../examples/composable/cases/circular-reference/*.compact', contractsDir);
 
@@ -69,6 +72,7 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}B`).thatNoFilesAreGenerated();
         });
+        */
 
         test('when you use dependent contract as variable in main contract constructor', async () => {
             copyFiles('../examples/composable/cases/contract-as-variable/*.compact', contractsDir);
@@ -130,6 +134,7 @@ describe('[Composable contracts] Compiler', () => {
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract circuit definition has invalid parameters', async () => {
             copyFiles('../examples/composable/cases/invalid-definition/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -141,7 +146,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract circuit definition has invalid return types', async () => {
             copyFiles('../examples/composable/cases/invalid-definition-return/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -153,7 +160,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract compilation order is invalid', async () => {
             copyFiles('../examples/composable/cases/invalid-order/*.compact', contractsDir);
 
@@ -171,19 +180,7 @@ describe('[Composable contracts] Compiler', () => {
                 true,
             );
         });
-
-        // FIXME: un-skip for CC
-        test.skip('when dependent contract is used as ledger ADT value', async () => {
-            copyFiles('../examples/composable/cases/ledger-adt-type/*.compact', contractsDir);
-            await compileQueue(contractsDir, ['A']);
-
-            const returnValue = await compileWithContractName('main', contractsDir);
-            expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 20 char 1:\n  contract types are not yet implemented`,
-                compilerDefaultOutput(),
-            );
-            expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
-        });
+        */
 
         test('when you define dependent contract in module', async () => {
             copyFiles('../examples/composable/cases/module-contract/*.compact', contractsDir);
@@ -209,6 +206,7 @@ describe('[Composable contracts] Compiler', () => {
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract definition has additional (non-existing) circuit added', async () => {
             copyFiles('../examples/composable/cases/non-existing-circuit/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -220,7 +218,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract does not exist (and it is not compiled)', async () => {
             copyFiles('../examples/composable/cases/non-existing-contract-impl/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A', 'B']);
@@ -232,7 +232,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract definition has just non-existing circuit', async () => {
             copyFiles('../examples/composable/cases/non-existing-definition/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -244,7 +246,9 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+        /* Issue 201: this is no longer a static error
         test('when dependent contract definition has non-exported circuit', async () => {
             copyFiles('../examples/composable/cases/not-exported-circuit/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
@@ -256,21 +260,21 @@ describe('[Composable contracts] Compiler', () => {
             );
             expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
         });
+        */
 
+    });
+
+    describe('should compile main contract', () => {
         test('when dependent contract is used as witness return value', async () => {
             copyFiles('../examples/composable/cases/witness-return/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);
 
             const returnValue = await compileWithContractName('main', contractsDir);
-            expectCompilerResult(returnValue).toBeFailure(
-                `Exception: main.compact line 25 char 1:\n  invalid type contract A<up(Uint<16>): [], down(Uint<16>): []> for witness bob return value:\n  witness return values cannot include contract values`,
-                compilerDefaultOutput(),
-            );
-            expectFiles(`${contractsDir}main`).thatNoFilesAreGenerated();
+            expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
+            expectFiles(`${contractsDir}main/`).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
-    });
 
-    describe('should compile main contract', () => {
+
         test('when dependent contract is empty', async () => {
             copyFiles('../examples/composable/cases/empty-contract/*.compact', contractsDir);
             await compileQueue(contractsDir, ['A']);

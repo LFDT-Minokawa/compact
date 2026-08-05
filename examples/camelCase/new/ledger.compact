@@ -61,17 +61,17 @@ constructor() {
   set.resetToDefault();
   set.size();
 
-  maps.insert(1, default<QualifiedShieldedCoinInfo>);
+  maps.insert(1 as Field, default<QualifiedShieldedCoinInfo>);
   maps.insertCoin(
-    1,
+    1 as Field,
     default<ShieldedCoinInfo>,
     default<Either<ZswapCoinPublicKey, ContractAddress>>
     );
-  maps.insertDefault(1);
+  maps.insertDefault(1 as Field);
   maps.isEmpty();
-  maps.lookup(1);
-  maps.member(1);
-  maps.remove(1);
+  maps.lookup(1 as Field);
+  maps.member(1 as Field);
+  maps.remove(1 as Field);
   maps.resetToDefault();
   maps.size();
 
@@ -87,19 +87,19 @@ constructor() {
   list.resetToDefault();
 
   mt.checkRoot(default<MerkleTreeDigest>);
-  mt.insert(1);
+  mt.insert(1 as Field);
   mt.insertHash(default<Bytes<32>>);
   mt.insertHashIndex(default<Bytes<32>>, 1);
-  mt.insertIndex(1, 1);
+  mt.insertIndex(1 as Field, 1);
   mt.insertIndexDefault(1);
   mt.isFull();
   mt.resetToDefault();
 
   hmt.checkRoot(default<MerkleTreeDigest>);
-  hmt.insert(1);
+  hmt.insert(1 as Field);
   hmt.insertHash(default<Bytes<32>>);
   hmt.insertHashIndex(default<Bytes<32>>, 1);
-  hmt.insertIndex(1, 1);
+  hmt.insertIndex(1 as Field, 1);
   hmt.insertIndexDefault(1);
   hmt.isFull();
   hmt.resetHistory();

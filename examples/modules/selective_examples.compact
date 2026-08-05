@@ -30,8 +30,8 @@ export { t, T$t };
 
 // usage
 export circuit test(): Field {
-  const result = t(0) + T$t(0);
-  assert(result == 0, "Result is 0");
+  const result = t(0 as Field) + T$t(0 as Field);
+  assert(result == 0 as Field, "Result is 0");
   return result;
 }
 
@@ -61,9 +61,9 @@ export { t1a, T1$t1b };
 
 // usage
 export circuit test1(): Field {
-  const result1 = t1a(1) + T1$t1b(1) + t1aa(1);
+  const result1 = t1a(1 as Field) + T1$t1b(1 as Field) + t1aa(1 as Field);
 
-  assert(result1 == 3, "Result is 3");
+  assert(result1 == 3 as Field, "Result is 3");
   return result1;
 }
 
@@ -149,7 +149,7 @@ export circuit test3(): Bytes<16> {
 // Test5: module export/import as weird names
 module Test4 {
   export circuit test4(): Field {
-    return 1;
+    return 1 as Field;
   }
 }
 
@@ -239,11 +239,11 @@ export { Pt, Dir, cp, gd };
 
 // usage
 export circuit test7(): Field {
-  const point = cp(5, 10);
+  const point = cp(5 as Field, 10 as Field);
   const dir = gd();
 
-  assert(point.x == 5, "Point x is 5");
-  assert(point.y == 10, "Point y is 10");
+  assert(point.x == 5 as Field, "Point x is 5");
+  assert(point.y == 10 as Field, "Point y is 10");
   assert(dir == Dir.North, "Direction is North");
 
   return point.x + point.y;
@@ -273,9 +273,9 @@ export circuit test8(): Uint<64> {
   const count1 = ic(5 as Uint<16>);
   const count2 = ic(3 as Uint<16>);
 
-  const added = an(42);
+  const added = an(42 as Field);
   assert(added, "Number was added");
-  assert(nums.member(42), "Number exists in set");
+  assert(nums.member(42 as Field), "Number exists in set");
 
   return count2;
 }
@@ -317,7 +317,7 @@ export { Cfg, St, pc, cs, lc, ls };
 
 // usage
 export circuit test9(): Boolean {
-  const config = Cfg { threshold: 100, enabled: true };
+  const config = Cfg { threshold: 100 as Field, enabled: true };
   const status = St.Active;
 
   const config_ok = pc(config);
@@ -327,7 +327,7 @@ export circuit test9(): Boolean {
   assert(status_ok, "Status is active");
 
   // Verify ledger state
-  assert(lc.threshold == 100, "Last config threshold is 100");
+  assert(lc.threshold == 100 as Field, "Last config threshold is 100");
   assert(lc.enabled == true, "Last config enabled is true");
   assert(ls == St.Active, "Last status is Active");
 
@@ -394,14 +394,14 @@ export { tf, mf, tr, mr, br };
 
 // usage
 export circuit test11(): Field {
-  const result1 = tf(5);    // (5 * 2 + 1) * 3 = 33
-  const result2 = mf(5);    // 5 * 2 + 1 = 11
+  const result1 = tf(5 as Field);    // (5 * 2 + 1) * 3 = 33
+  const result2 = mf(5 as Field);    // 5 * 2 + 1 = 11
 
-  assert(result1 == 33, "Result1 is 33");
-  assert(result2 == 11, "Result2 is 11");
-  assert(tr == 33, "Top result stored");
-  assert(mr == 11, "Middle result stored");
-  assert(br == 10, "Base result stored");
+  assert(result1 == 33 as Field, "Result1 is 33");
+  assert(result2 == 11 as Field, "Result2 is 11");
+  assert(tr == 33 as Field, "Top result stored");
+  assert(mr == 11 as Field, "Middle result stored");
+  assert(br == 10 as Field, "Base result stored");
 
   return result1 + result2; // 44
 }
@@ -425,11 +425,11 @@ export { process_a, process_b };
 
 // usage
 export circuit test12(): Field {
-  const result_a = process_a(5); // 5 + 10 = 15
-  const result_b = process_b(5); // 5 * 10 = 50
+  const result_a = process_a(5 as Field); // 5 + 10 = 15
+  const result_b = process_b(5 as Field); // 5 * 10 = 50
 
-  assert(result_a == 15, "Result_a is 15");
-  assert(result_b == 50, "Result_b is 50");
+  assert(result_a == 15 as Field, "Result_a is 15");
+  assert(result_b == 50 as Field, "Result_b is 50");
 
   return result_a + result_b; // 65
 }
@@ -460,8 +460,8 @@ export { w, o };
 
 // usage
 export circuit test13(): Field {
-  const result1 = w(50);  // Goes through wrapper with assertion
-  const result2 = o(50);  // Direct access to original
+  const result1 = w(50 as Field);  // Goes through wrapper with assertion
+  const result2 = o(50 as Field);  // Direct access to original
 
   assert(result1 == result2, "Results are equal");
   return result1 + result2; // 100
@@ -482,9 +482,9 @@ export { square, Prefix$calc, Another$fn };
 
 // usage
 export circuit test14(): Field {
-  const a = square(5);        // 25
-  const b = Prefix$calc(5);   // 25
-  const c = Another$fn(5);    // 25
+  const a = square(5 as Field);        // 25
+  const b = Prefix$calc(5 as Field);   // 25
+  const c = Another$fn(5 as Field);    // 25
 
   assert(a == b, "a equals b");
   assert(b == c, "b equals c");
@@ -538,18 +538,18 @@ export { MyData, cd, dd, td, sd, dbd, trd };
 
 // usage
 export circuit test15(): Field {
-  const data1 = cd(5);      // Data { value: 5 }
+  const data1 = cd(5 as Field);      // Data { value: 5 }
   const data2 = dd(data1);  // Data { value: 10 }
   const data3 = td(data2);  // Data { value: 30 }
 
-  assert(data1.value == 5, "data1 is 5");
-  assert(data2.value == 10, "data2 is 10");
-  assert(data3.value == 30, "data3 is 30");
+  assert(data1.value == 5 as Field, "data1 is 5");
+  assert(data2.value == 10 as Field, "data2 is 10");
+  assert(data3.value == 30 as Field, "data3 is 30");
 
   // Verify ledger state through re-exported variables
-  assert(sd.value == 5, "Stored data is 5");
-  assert(dbd.value == 10, "Doubled data is 10");
-  assert(trd.value == 30, "Tripled data is 30");
+  assert(sd.value == 5 as Field, "Stored data is 5");
+  assert(dbd.value == 10 as Field, "Doubled data is 10");
+  assert(trd.value == 30 as Field, "Tripled data is 30");
 
   return data3.value; // 30
 }
@@ -572,11 +572,11 @@ export { bob, Same$alice };
 
 // usage
 export circuit test16(): Field {
-  const result1 = bob(10);        // 10 + 1 = 11
-  const result2 = Same$alice(10); // 10 * 2 = 20
+  const result1 = bob(10 as Field);        // 10 + 1 = 11
+  const result2 = Same$alice(10 as Field); // 10 * 2 = 20
 
-  assert(result1 == 11, "Bob result is 11");
-  assert(result2 == 20, "Alice result is 20");
+  assert(result1 == 11 as Field, "Bob result is 11");
+  assert(result2 == 20 as Field, "Alice result is 20");
 
   return result1 + result2; // 31
 }

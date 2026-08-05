@@ -16,13 +16,13 @@
 import CompactStandardLibrary;
 
 circuit bob(): Field {
-  return 1;
+  return 1 as Field;
 }
 
 // Test: if with standard circuits
 export circuit test(a: Field): Either<Field, Boolean> {
   if (a as Uint<8> > 1) {
-    return left<Field, Boolean>(1);
+    return left<Field, Boolean>(1 as Field);
   } else {
     return right<Field, Boolean>(true);
   }
