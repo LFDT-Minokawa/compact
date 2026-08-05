@@ -90899,6 +90899,99 @@ groups than for single tests.
 
   (test
     '(
+      "ledger flag: Boolean;"
+      "struct Payload {"
+      "  data: Opaque<'Uint8Array'>;"
+      "  tag: Field;"
+      "}"
+      "export circuit testEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a == b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testNotEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a != b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const mk = (bytes: number[], tag: bigint) => ({ data: new Uint8Array(bytes), tag });"
+        "  const v0 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Structurally identical to v0, but every Uint8Array is a distinct object."
+        "  const v1 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 0."
+        "  const v2 = [mk([0, 1, 1, 9], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 1."
+        "  const v3 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 99], 20n)];"
+        "  // Differs only in the opaque length of element 1."
+        "  const v4 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8], 20n)];"
+        "  // Differs only in the non-opaque sibling field of element 1."
+        "  const v5 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 21n)];"
+        "  // Empty opaque in element 1."
+        "  const v6 = [mk([0, 1, 1, 2], 10n), mk([], 20n)];"
+        "  expect((await contract.circuits.testEquals(context, v0, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v1)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v3)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v4)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v5)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v6)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.testEquals(context, v1, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v2, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v3, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v4, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v5, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v6, v0)).result).toEqual(false);"
+
+        "  expect((await contract.circuits.testNotEquals(context, v0, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v2)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v4)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v5)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v6)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "ledger flag: Boolean;"
+      "witness touch(arr: Opaque<'Uint8Array'>): [];"
+      "export circuit mutateBefore(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  touch(arr0);"
+      "  const result = arr0 == arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('witness mutation of an opaque argument before comparison', async () => {"
+        "  // The Opaque<'Uint8Array'> descriptor's toValue captures the Uint8Array by"
+        "  // reference and the encoding happens at proof finalization, so a mutation"
+        "  // performed by a witness is visible both to the JS comparison and to the"
+        "  // circuit's input.  The two targets must agree that the mutated arr0 equals"
+        "  // arr1."
+        "  const witnesses = {"
+        "    touch: (context: any, arr: Uint8Array): [number, []] => { arr[0] = 99; return [context.privateState, []]; }"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
+        "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
+        "  expect((await contract.circuits.mutateBefore(context, arr0, arr1)).result).toEqual(true);"
+        "  expect(Array.from(arr0)).toEqual([99, 2, 3, 4]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "export circuit test0(arr: Opaque<'Uint8Array'>): [] { return; }"
       "export circuit test1(srt: Opaque<'string'>): [] { return; }"
       )
@@ -92161,6 +92254,131 @@ groups than for single tests.
         "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
         "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+
+  ;; impure circuit which generates zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export ledger y: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeX(): [] {"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      "export circuit storeY(): [] {"
+      "  y = secp256k1PointY(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on a ledger point', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A Secp256k1Point ledger cell starts out holding the identity, which"
+        "  // has no coordinates."
+        "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
+        "  // The point G, whose coordinates are available."
+        "  const G = {"
+        "    x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "    identity: false,"
+        "  };"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual(G);"
+        "  const withX = await contract.circuits.storeX(stored.context);"
+        "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const withY = await contract.circuits.storeY(withX.context);"
+        "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
+        "  expect(L.y).toEqual(G.y);"
+        "  // Storing the identity again makes the coordinates unavailable again."
+        "  const back = await contract.circuits.storePoint(withY.context,"
+        "                                                  { x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXOfGenerator(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMulGenerator(k)));"
+      "}"
+      "export circuit storeXOfMul(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMul(pt, k)));"
+      "}"
+      "export circuit storeXOfSum(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  x = disclose(secp256k1PointX(ecAdd(a, b)));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on an identity computed in circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const negG = runtime.secp256k1Mul(G, runtime.SECP256K1_SCALAR_MODULUS - 1n);"
+        "  expect(runtime.secp256k1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const twoG = runtime.secp256k1MulGenerator(2n);"
+        "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
+        "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
+        "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
+        "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXChecked(): [] {"
+      "  assert(pt != default<Secp256k1Point>, 'the identity has no coordinates');"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors guarded by an assert', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.storeXChecked(context))"
+        "      .rejects.toThrow(/the identity has no coordinates/);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  const checked = await contract.circuits.storeXChecked(stored.context);"
+        "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
         "});"
         ))
     )
