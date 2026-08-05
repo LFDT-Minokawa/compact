@@ -621,7 +621,7 @@
          (tunsigned src tsize tsize^)
          (tvector src tsize type)
          (tbytes src tsize))
-      (+ tvar-name
+      (+ tvar-name ; should appear only in external type declarations
          (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
@@ -786,7 +786,7 @@
       (fref src function-name)               => function-name
       (circuit src (arg* ...) type expr)     => (circuit (arg* 0 ...) 4 type #f expr))
     (Type (type)
-      tvar-name
+      tvar-name ; should appear only in external type declarations
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)

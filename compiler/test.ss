@@ -40393,6 +40393,72 @@ groups than for single tests.
     )
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests unroll-loops
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, JubjubPoint>, x: JubjubScalar): Vector<3, JubjubPoint> {"
+      "  return map((p) => ecMul(p, x), v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (native %ecMul.1 ([%a.2 (tpoint (curve-jubjub))]
+                          [%b.3 (tfield (field-scalar (curve-jubjub)))])
+             (tpoint (curve-jubjub)))
+        (circuit %foo.4 ([%v.5 (tvector 3 (tpoint (curve-jubjub)))]
+                         [%x.6 (tfield (field-scalar (curve-jubjub)))])
+             (tvector 3 (tpoint (curve-jubjub)))
+          (flet [%circ.7
+                 (circuit ([%p.8 (tpoint (curve-jubjub))])
+                      (tpoint (curve-jubjub))
+                   (call %ecMul.1 %p.8 %x.6))]
+            (let* ([[%t.9 (tvector 3 (tpoint (curve-jubjub)))] %v.5])
+              (tuple
+                (call %circ.7 (tuple-ref %t.9 0))
+                (call %circ.7 (tuple-ref %t.9 1))
+                (call %circ.7 (tuple-ref %t.9 2))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Secp256k1Scalar>, x: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-secp256k1))))]
+                         [%x.3 (tfield (field-scalar (curve-secp256k1)))])
+             (tfield (field-scalar (curve-secp256k1)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-secp256k1)))]
+                           [%x.6 (tfield (field-scalar (curve-secp256k1)))])
+                      (tfield (field-scalar (curve-secp256k1)))
+                   (* (tfield (field-scalar (curve-secp256k1))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-secp256k1)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-secp256k1))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
+  )
+)
+
 (run-tests inline-circuits
   (test
     `(
@@ -90639,12 +90705,72 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import { JubjubScalar as nativeJubjubScalar,"
+      "         JubjubPoint as nativeJubjubPoint,"
+      "         ecMul as nativeEcMul }"
+      " from CompactStandardLibrary;"
+      ""
+      "export type JubjubScalar = nativeJubjubScalar;"
+      "export type JubjubPoint = nativeJubjubPoint;"
+      ""
+      "export pure circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint {"
+      "  return nativeEcMul(a, b);"
+      "}"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type JubjubScalar = bigint;"
+        ""
+        "export type JubjubPoint = __compactRuntime.JubjubPoint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "  ecMul(a_0: JubjubPoint, b_0: JubjubScalar): JubjubPoint;"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "  ecMul(context: __compactRuntime.CircuitContext<PS>,"
+        "        a_0: JubjubPoint,"
+        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<PS, JubjubPoint>>;"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export type ContractReferenceLocations = any;"
+        ""
+        "export declare const contractReferenceLocations : ContractReferenceLocations;"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"))
+    )
   )
 
 (run-javascript)
 )
-
-#!eof
 
 ;;; Tests that are only run in ZKIR-v3 mode:
 (parameterize ([feature-zkir-v3 #t])
@@ -90717,6 +90843,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "new type Base = Secp256k1Base;"
       "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
       "  return b0 + b1 * b2;"
@@ -90724,11 +90851,12 @@ groups than for single tests.
       )
     (pass-returns infer-types
       (program
-        (circuit %test.0 ([%b0.1 (talias #t Base
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %test.1 ([%b0.2 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b1.2 (talias #t Base
+                          [%b1.3 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b2.3 (talias #t Base
+                          [%b2.4 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))])
              (talias #t Base (tfield (field-base (curve-secp256k1))))
           (safe-cast (talias #t Base
@@ -90738,7 +90866,7 @@ groups than for single tests.
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
-                 %b0.1)
+                 %b0.2)
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
@@ -90749,27 +90877,36 @@ groups than for single tests.
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b1.2)
+                        %b1.3)
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b2.3)))))))))
+                        %b2.4)))))))))
     (returns
       (program
         (type-descriptors
-          (%descriptor.4 (talias #t Base
+          (%descriptor.5 (talias #t Base
                            (tfield (field-base (curve-secp256k1)))))
-          (%descriptor.5 (tunsigned 255))
-          (%descriptor.6 (tunsigned 4294967295))
-          (%descriptor.7 (tunsigned 18446744073709551615))
-          (%descriptor.8 (tunsigned
-                           340282366920938463463374607431768211455)))
+          (%descriptor.6 (tunsigned 18446744073709551615))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tbytes 32))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.10 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.11 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %test.0 ([%b0.1 (talias #t Base
+        (circuit %test.1 ([%b0.2 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b1.2 (talias #t Base
+                          [%b1.3 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))]
-                          [%b2.3 (talias #t Base
+                          [%b2.4 (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))])
              (talias #t Base (tfield (field-base (curve-secp256k1))))
           (safe-cast (talias #t Base
@@ -90779,7 +90916,7 @@ groups than for single tests.
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
-                 %b0.1)
+                 %b0.2)
                (safe-cast (tfield (field-base (curve-secp256k1)))
                           (talias #t Base
                             (tfield (field-base (curve-secp256k1))))
@@ -90790,11 +90927,11 @@ groups than for single tests.
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b1.2)
+                        %b1.3)
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
-                        %b2.3)))))))))
+                        %b2.4)))))))))
     )
 )
 
@@ -90802,6 +90939,7 @@ groups than for single tests.
 (run-tests save-manifest
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
       "  base = disclose(b);"
@@ -90845,6 +90983,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "witness add1(b: Secp256k1Base): Secp256k1Base;"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
@@ -90890,6 +91029,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
       "  scalar = disclose(s);"
@@ -90933,6 +91073,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
       "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
@@ -91123,31 +91264,44 @@ groups than for single tests.
     )
 
   (test
-    '("export circuit test(b: Secp256k1Base): Bytes<31> { return b as Bytes<31>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(b: Secp256k1Base): Bytes<31> { return b as Bytes<31>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 59" "cannot cast from type ~a to type ~a" ("Secp256k1Base" "Bytes<31>"))))
+      irritants: '("testfile.compact line 2 char 59" "cannot cast from type ~a to type ~a" ("Secp256k1Base" "Bytes<31>"))))
 
   (test
-    '("export circuit test(s: Secp256k1Scalar): Bytes<33> { return s as Bytes<33>; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(s: Secp256k1Scalar): Bytes<33> { return s as Bytes<33>; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 61" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Bytes<33>"))))
+      irritants: '("testfile.compact line 2 char 61" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Bytes<33>"))))
 
   (test
-    '("export circuit test(bs: Bytes<33>): Secp256k1Base { return bs as Secp256k1Base; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<33>): Secp256k1Base { return bs as Secp256k1Base; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256k1Base"))))
+      irritants: '("testfile.compact line 2 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256k1Base"))))
 
   (test
-    '("export circuit test(bs: Bytes<31>): Secp256k1Scalar { return bs as Secp256k1Scalar; }")
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<31>): Secp256k1Scalar { return bs as Secp256k1Scalar; }"
+      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
+      irritants: '("testfile.compact line 2 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256k1Scalar"))))
 
   (test
-    '("import CompactStandardLibrary;"
+    '(
+      "import CompactStandardLibrary;"
       "ledger hash: Bytes<32>;"
       "export circuit test(s: Opaque<'string'>): [] {"
       "  hash = disclose(keccak256<Opaque<'string'>>(s));"
@@ -91159,6 +91313,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
@@ -91240,6 +91395,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Bytes<32>;"
       "export ledger scalar: Bytes<32>;"
       "export circuit test(b: Secp256k1Base, s: Secp256k1Scalar): [] {"
@@ -91591,6 +91747,7 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
       "export ledger scalar: Secp256k1Scalar;"
       "export circuit addb(b0: Secp256k1Base, b1: Secp256k1Base): Secp256k1Base {"

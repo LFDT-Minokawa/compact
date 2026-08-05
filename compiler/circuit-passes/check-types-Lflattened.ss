@@ -85,58 +85,67 @@
         (and (fx= (length primitive-type1*) (length primitive-type2*))
              (andmap sub-primitive-type? primitive-type1* primitive-type2*))))
     (define (sub-primitive-type? primitive-type1 primitive-type2)
-      (T primitive-type1
-         [(tfield (field-native))
-          (T primitive-type2
-            [(tfield (field-native)) #t]
-            [(tunsigned ,nat) (<= (max-field) nat)])]
-         [(tfield (field-scalar (curve-jubjub)))
-          (T primitive-type2
-            [(tfield (field-native)) #t]
-            [(tfield (field-scalar (curve-jubjub))) #t]
-            [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
-         [(tfield (field-base (curve-secp256k1)))
-          (T primitive-type2 [(tfield (field-base (curve-secp256k1))) #t])]
-         [(tfield (field-scalar (curve-secp256k1)))
-          (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])]
-         [(tunsigned ,nat1)
-          (T primitive-type2
-            [(tfield (field-native)) (<= nat1 (max-field))]
-            [(tfield (field-scalar (curve-jubjub))) (<= nat1 (max-jubjub-scalar))]
-            [(tunsigned ,nat2) (<= nat1 nat2)]
-            [(topaque ,opaque-type)
-             ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
-             (eqv? nat1 0)]
-            ;; default<public-adt> is the only value of type public-adt and is represented by 0
-            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-             (eqv? nat1 0)])]
-         [(tpoint (curve-jubjub)) (T primitive-type2 [(tpoint (curve-jubjub)) #t])]
-         [(tpoint (curve-secp256k1)) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])]
-         [(topaque ,opaque-type1)
-          (T primitive-type2
-             [(topaque ,opaque-type2)
-              (string=? opaque-type1 opaque-type2)])]
-         [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-          (T primitive-type2
-             [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-              (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                          (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                   (and (eq? elt-name1 elt-name2)
-                                        (eq? pure-dcl1 pure-dcl2)
-                                        (fx= (length type1*) (length type2*))
-                                        (andmap subtype? type1* type2*)
-                                        (subtype? type1 type2)))
-                                 elt-name1* pure-dcl1* type1** type1*))
-                        elt-name2* pure-dcl2* type2** type2*))
-              (and (eq? contract-name1 contract-name2)
-                   (fx= (length elt-name1*) (length elt-name2*))
-                   (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-         ; this should never presently happen, since no Triv has type public-adt
-         [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
-          (T primitive-type2
-             [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
-              #f])]))
+      (strict-nanopass-case (Lflattened Primitive-Type) primitive-type1
+        [(tfield ,ftype)
+         (strict-nanopass-case (Lflattened Field-Type) ftype
+           [(field-native)
+            (T primitive-type2
+               [(tfield (field-native)) #t]
+               [(tunsigned ,nat) (<= (max-field) nat)])]
+           [(field-scalar ,ctype)
+            (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-jubjub)
+               (T primitive-type2
+                  [(tfield (field-native)) #t]
+                  [(tfield (field-scalar (curve-jubjub))) #t]
+                  [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
+              [(curve-secp256k1)
+               (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])])]
+           [(field-base ,ctype)
+            (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-secp256k1)
+               (T primitive-type2 [(tfield (field-base (curve-secp256k1))) #t])]
+              [else (assert cannot-happen)])])]
+        [(tunsigned ,nat1)
+         (T primitive-type2
+           [(tfield (field-native)) (<= nat1 (max-field))]
+           [(tfield (field-scalar (curve-jubjub))) (<= nat1 (max-jubjub-scalar))]
+           [(tunsigned ,nat2) (<= nat1 nat2)]
+           [(topaque ,opaque-type)
+            ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
+            (eqv? nat1 0)]
+           ;; default<public-adt> is the only value of type public-adt and is represented by 0
+           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
+            (eqv? nat1 0)])]
+        [(tpoint ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-jubjub) (T primitive-type2 [(tpoint (curve-jubjub)) #t])]
+           [(curve-secp256k1) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])])]
+        [(topaque ,opaque-type1)
+         (T primitive-type2
+            [(topaque ,opaque-type2)
+             (string=? opaque-type1 opaque-type2)])]
+        [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+         (T primitive-type2
+            [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+             (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
+               (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
+                         (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
+                                  (and (eq? elt-name1 elt-name2)
+                                       (eq? pure-dcl1 pure-dcl2)
+                                       (fx= (length type1*) (length type2*))
+                                       (andmap subtype? type1* type2*)
+                                       (subtype? type1 type2)))
+                                elt-name1* pure-dcl1* type1** type1*))
+                       elt-name2* pure-dcl2* type2** type2*))
+             (and (eq? contract-name1 contract-name2)
+                  (fx= (length elt-name1*) (length elt-name2*))
+                  (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+        ; this should never presently happen, since no Triv has type public-adt
+        [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
+         (T primitive-type2
+            [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
+             #f])]))
     (define (type-error what declared-type type)
       (source-errorf program-src "mismatch between actual type ~a and expected type ~a for ~a"
         (format-primitive-type type)

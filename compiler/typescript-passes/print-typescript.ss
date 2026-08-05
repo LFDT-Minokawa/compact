@@ -3161,6 +3161,16 @@
     (definitions
       (define (same-type? type1 type2)
         (and (unify-type '() type1 type2) #t))
+      (define (curve-type=? ctype1 ctype2)
+        (nanopass-case (Ltypescript Curve-Type) ctype1
+          [(curve-jubjub)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]))
       (define (unify-type tvar-name* type1 type2)
         (define-syntax T
           (syntax-rules ()
@@ -3182,12 +3192,14 @@
                    [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
                    [(tfield ,src ,ftype1)
                     (T type2
-                      [(tfield ,src ,ftype2) #t]
-                      [(tunsigned ,src ,nat) #t])]
+                       [(tfield ,src ,ftype2) #t]
+                       [(tunsigned ,src ,nat) #t])]
                    [(tunsigned ,src ,nat1)
                     (T type2
-                      [(tunsigned ,src ,nat2) #t]
-                      [(tfield ,src ,ftype) #t])]
+                       [(tunsigned ,src ,nat2) #t]
+                       [(tfield ,src ,ftype) #t])]
+                   [(tpoint ,src1 ,ctype1)
+                    (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
                    [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                    [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                    [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]

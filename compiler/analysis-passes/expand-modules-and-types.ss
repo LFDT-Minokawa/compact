@@ -326,7 +326,8 @@
              [else #f])]))
       (define (sametype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
-          (nanopass-case (Lexpanded Type) type1
+          (strict-nanopass-case (Lexpanded Type) type1
+            [,tvar-name (assertf cannot-happen "sametype? should not be applied to external type declarations")]
             [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
             [(tfield ,src1 ,ftype1)
              (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
@@ -388,10 +389,7 @@
                 [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,generic-value2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                  (and (eq? adt-name1 adt-name2)
                       (fx= (length generic-value1*) (length generic-value2*))
-                      (andmap same-generic-value? generic-value1* generic-value2*))])]
-            [else (internal-errorf 'expand-modules-and-types
-                                   "unhandled type ~a in sametype?"
-                                   type1)]))))
+                      (andmap same-generic-value? generic-value1* generic-value2*))])]))))
     (define (cycle-checker what)
       (let ([ht (make-eq-hashtable)] [stack '()])
         (lambda (src key name th)

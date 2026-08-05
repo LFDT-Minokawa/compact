@@ -68,7 +68,8 @@
             (format-adt-arg (car adt-arg*)))
           (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))))
     (define (format-type type)
-      (nanopass-case (Ltypes Type) type
+      (strict-nanopass-case (Ltypes Type) type
+        [,tvar-name (assertf cannot-happen "format-type should not be applied to external type declarations")]
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat)
@@ -164,7 +165,8 @@
       (define (sametype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
           (or (eq? type1 type2)
-              (nanopass-case (Ltypes Type) type1
+              (strict-nanopass-case (Ltypes Type) type1
+                [,tvar-name (assertf cannot-happen "sametype? should not be applied to external type declarations")]
                 [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
                 [(tfield ,src1 ,ftype1)
                  (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
@@ -228,14 +230,12 @@
                     [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                      (and (eq? adt-name1 adt-name2)
                           (fx= (length adt-arg1*) (length adt-arg2*))
-                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])]
-                [else (internal-errorf 'infer-types
-                                       "unhandled type ~a in sametype?"
-                                       type1)]))))
+                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])]))))
       (define (subtype? type1 type2)
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
           (or (eq? type1 type2)
-              (nanopass-case (Ltypes Type) type1
+              (strict-nanopass-case (Ltypes Type) type1
+                [,tvar-name (assertf cannot-happen "subtype? should not be applied to external type declarations")]
                 [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
                 [(tfield ,src1 ,ftype1)
                  (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
@@ -299,10 +299,7 @@
                     [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
                      (and (eq? adt-name1 adt-name2)
                           (fx= (length adt-arg1*) (length adt-arg2*))
-                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])]
-                [else (internal-errorf 'infer-types
-                                       "unhandled type ~a in subtype?"
-                                       type1)])
+                          (andmap same-adt-arg? adt-arg1* adt-arg2*))])])
               (T type2
                  [(tundeclared) #t])))))
     (define (public-adt? type)
