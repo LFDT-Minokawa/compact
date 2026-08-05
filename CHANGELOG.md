@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.117, language 0.25.107, runtime 0.18.105]
+## [Toolchain 0.33.118, language 0.25.107, runtime 0.18.105]
 
 ### Changed
 
@@ -29,6 +29,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Similarly, it injects definitions for `JubjubScalar`, `Secp256k1Base`, and
   `Secp256k1Scalar` from midnight-natives.ss and zkir-v3-natives.ss into the
   standard lbirary and expands them into built-in types.
+
+## [Toolchain 0.33.117, language 0.25.106, runtime 0.18.105]
+
+### Changed
+
+- The generated JS code now has circuit argument and witness return value type
+  checks for the JS opaque types `Opaque<'string'>` and `Opaque<'Uint8Array'>`.
+  Before, we allowed any value at all to be passed or returned.  This is a
+  **breaking change** for programs that relied on being able to store any random
+  JS value as, say, an `Opaque<'string'>`.
 
 ## [Toolchain 0.33.116, language 0.25.106, runtime 0.18.105]
 

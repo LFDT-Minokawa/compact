@@ -73775,7 +73775,8 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, {a: 29, b: false})).result).toEqual([ { a: 29, b: false }, { a: 29, b: false } ]);"
+        "  expect((await C.circuits.foo(Ctxt, 'Hello, Compact!')).result)"
+        "      .toEqual([ 'Hello, Compact!', 'Hello, Compact!' ]);"
         "});"
         ))
     )
@@ -73791,21 +73792,21 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 1, {a: 91, b: true}, {a: 97, b: false})).result).toEqual(0n);"
+        "  expect((await C.circuits.foo(Ctxt, 1, 'Hello, Compact!', 'Goodbye')).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 97, b: false})).result).toEqual(1n);"
+        "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Goodbye')).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 0, {a: 91, b: true}, {a: 97, b: true})).result).toEqual(0n);"
+        "  expect((await C.circuits.foo(Ctxt, 0, 'Hello, Compact!', 'So long')).result).toEqual(0n);"
         "});"
         "test('check 4', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.foo(Ctxt, 2, {a: 91, b: true}, {a: 91, b: true})).result).toEqual(1n);"
+        "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Hello, Compact!')).result).toEqual(3n);"
         "});"
-        "const x = {a: 91, b: true};"
+        "const x = 'Hello, Compact!';"
         "test('check 5', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect((await C.circuits.foo(Ctxt, 3, x, x)).result).toEqual(2n);"
@@ -73895,19 +73896,19 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar1(Ctxt, {a: 3, b: true}, 73n)).result).toEqual(true);"
+        "  expect((await C.circuits.bar1(Ctxt, 'Hello, Compact!', 73n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar2(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar2(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar3(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar3(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  expect((await C.circuits.bar4(Ctxt, {a: 3, b: true})).result).toEqual(false);"
+        "  expect((await C.circuits.bar4(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         ))
     )
@@ -90869,6 +90870,25 @@ groups than for single tests.
         "  expect((await contract.circuits.testEqualsDefault(context, a2)).result).toEqual(false);"
         "  expect((await contract.circuits.testEqualsDefault(context, a3)).result).toEqual(true);"
         "  expect((await contract.circuits.testEqualsDefault(context, a4)).result).toEqual(false);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "export circuit test0(arr: Opaque<'Uint8Array'>): [] { return; }"
+      "export circuit test1(srt: Opaque<'string'>): [] { return; }"
+      )
+    (stage-javascript
+      '(
+        "test('argument type checks on JS opaque types', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.test0(context, new Uint8Array(32))).result).toEqual([]);"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow('type error: ');"
+        "  expect((await contract.circuits.test1(context, 'Hello, Compact!')).result).toEqual([]);"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow('type error: ');"
         "});"
         ))
     )
