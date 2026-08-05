@@ -90876,6 +90876,99 @@ groups than for single tests.
 
   (test
     '(
+      "ledger flag: Boolean;"
+      "struct Payload {"
+      "  data: Opaque<'Uint8Array'>;"
+      "  tag: Field;"
+      "}"
+      "export circuit testEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a == b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      "export circuit testNotEquals(a: Vector<2, Payload>, b: Vector<2, Payload>): Boolean {"
+      "  const result = a != b;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nested Uint8Array equality comparison', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const mk = (bytes: number[], tag: bigint) => ({ data: new Uint8Array(bytes), tag });"
+        "  const v0 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Structurally identical to v0, but every Uint8Array is a distinct object."
+        "  const v1 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 0."
+        "  const v2 = [mk([0, 1, 1, 9], 10n), mk([3, 5, 8, 13], 20n)];"
+        "  // Differs only in the opaque of element 1."
+        "  const v3 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 99], 20n)];"
+        "  // Differs only in the opaque length of element 1."
+        "  const v4 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8], 20n)];"
+        "  // Differs only in the non-opaque sibling field of element 1."
+        "  const v5 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 21n)];"
+        "  // Empty opaque in element 1."
+        "  const v6 = [mk([0, 1, 1, 2], 10n), mk([], 20n)];"
+        "  expect((await contract.circuits.testEquals(context, v0, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v1)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v0, v2)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v3)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v4)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v5)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v0, v6)).result).toEqual(false);"
+        "  // Commutative."
+        "  expect((await contract.circuits.testEquals(context, v1, v0)).result).toEqual(true);"
+        "  expect((await contract.circuits.testEquals(context, v2, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v3, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v4, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v5, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testEquals(context, v6, v0)).result).toEqual(false);"
+
+        "  expect((await contract.circuits.testNotEquals(context, v0, v0)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v1)).result).toEqual(false);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v2)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v3)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v4)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v5)).result).toEqual(true);"
+        "  expect((await contract.circuits.testNotEquals(context, v0, v6)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "ledger flag: Boolean;"
+      "witness touch(arr: Opaque<'Uint8Array'>): [];"
+      "export circuit mutateBefore(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
+      "  touch(arr0);"
+      "  const result = arr0 == arr1;"
+      "  flag = disclose(result);"
+      "  return flag;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('witness mutation of an opaque argument before comparison', async () => {"
+        "  // The Opaque<'Uint8Array'> descriptor's toValue captures the Uint8Array by"
+        "  // reference and the encoding happens at proof finalization, so a mutation"
+        "  // performed by a witness is visible both to the JS comparison and to the"
+        "  // circuit's input.  The two targets must agree that the mutated arr0 equals"
+        "  // arr1."
+        "  const witnesses = {"
+        "    touch: (context: any, arr: Uint8Array): [number, []] => { arr[0] = 99; return [context.privateState, []]; }"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
+        "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
+        "  expect((await contract.circuits.mutateBefore(context, arr0, arr1)).result).toEqual(true);"
+        "  expect(Array.from(arr0)).toEqual([99, 2, 3, 4]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "export circuit test0(arr: Opaque<'Uint8Array'>): [] { return; }"
       "export circuit test1(srt: Opaque<'string'>): [] { return; }"
       )
