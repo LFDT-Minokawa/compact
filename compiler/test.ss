@@ -92141,6 +92141,131 @@ groups than for single tests.
         "});"
         ))
     )
+
+  ;; impure circuit which generates zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export ledger y: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeX(): [] {"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      "export circuit storeY(): [] {"
+      "  y = secp256k1PointY(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on a ledger point', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A Secp256k1Point ledger cell starts out holding the identity, which"
+        "  // has no coordinates."
+        "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
+        "  // The point G, whose coordinates are available."
+        "  const G = {"
+        "    x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "    identity: false,"
+        "  };"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual(G);"
+        "  const withX = await contract.circuits.storeX(stored.context);"
+        "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const withY = await contract.circuits.storeY(withX.context);"
+        "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
+        "  expect(L.y).toEqual(G.y);"
+        "  // Storing the identity again makes the coordinates unavailable again."
+        "  const back = await contract.circuits.storePoint(withY.context,"
+        "                                                  { x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXOfGenerator(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMulGenerator(k)));"
+      "}"
+      "export circuit storeXOfMul(k: Secp256k1Scalar): [] {"
+      "  x = disclose(secp256k1PointX(ecMul(pt, k)));"
+      "}"
+      "export circuit storeXOfSum(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  x = disclose(secp256k1PointX(ecAdd(a, b)));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors on an identity computed in circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const negG = runtime.secp256k1Mul(G, runtime.SECP256K1_SCALAR_MODULUS - 1n);"
+        "  expect(runtime.secp256k1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const twoG = runtime.secp256k1MulGenerator(2n);"
+        "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
+        "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
+        "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
+        "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256k1Point;"
+      "export ledger x: Secp256k1Base;"
+      "export circuit storePoint(p: Secp256k1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXChecked(): [] {"
+      "  assert(pt != default<Secp256k1Point>, 'the identity has no coordinates');"
+      "  x = secp256k1PointX(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point accessors guarded by an assert', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.storeXChecked(context))"
+        "      .rejects.toThrow(/the identity has no coordinates/);"
+        "  const G = runtime.secp256k1MulGenerator(1n);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  const checked = await contract.circuits.storeXChecked(stored.context);"
+        "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
