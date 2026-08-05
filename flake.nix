@@ -32,7 +32,6 @@
       # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
       # version from this url.
       url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v2
-      inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v4 = {
       # dependency for compact-runtime release
@@ -41,22 +40,18 @@
       # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
       # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
       url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
-      inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
       url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
-      inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
       # zkir-v3 binary for v3 IR format
       url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
-      inputs.zkir.follows = "zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
       url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
-      inputs.zkir.follows = "zkir";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
