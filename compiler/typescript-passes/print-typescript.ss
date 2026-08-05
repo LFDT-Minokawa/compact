@@ -896,11 +896,16 @@
         [(field-scalar (curve-jubjub)) "JubjubScalar"]
         [(field-base (curve-secp256k1)) "Secp256k1Base"]
         [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+    (define (format-point-type ctype)
+      (nanopass-case (Ltypescript Curve-Type) ctype
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]))
     (define (format-type type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -1022,14 +1027,16 @@
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
+                [(tpoint ,src ,ctype)
+                 (nanopass-case (Ltypescript Curve-Type) ctype
+                   [(curve-jubjub) "__compactRuntime.CompactTypeJubjubPoint"]
+                   [(curve-secp256k1) "__compactRuntime.CompactTypeSecp256k1Point"])]
                 [(tbytes ,src ,len)
                  (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                 [(topaque ,src ,opaque-type)
                  (case opaque-type
                    [("string") "__compactRuntime.CompactTypeOpaqueString"]
                    [("Uint8Array") "__compactRuntime.CompactTypeOpaqueUint8Array"]
-                   [("JubjubPoint") "__compactRuntime.CompactTypeJubjubPoint"]
-                   [("Secp256k1Point") "__compactRuntime.CompactTypeSecp256k1Point"]
                    ; FIXME: what should happen with other opaque types?
                    [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
                 [(tvector ,src ,len ,type)
@@ -1117,13 +1124,21 @@
                              [(field-scalar (curve-secp256k1)) "SECP256K1_SCALAR"])])
                      (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
                        var field-name))]
-                  [(tunsigned ,src ,nat) (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
-                  [(tbytes ,src ,len) (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
+                  [(tunsigned ,src ,nat)
+                   (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
+                  [(tpoint ,src ,ctype)
+                   (nanopass-case (Ltypescript Curve-Type) ctype
+                     [(curve-jubjub)
+                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint'" var)]
+                     [(curve-secp256k1)
+                      ;; We could check for canonical identity points if we relied on them.
+                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint' && typeof(~:*~a.identity) == 'boolean'" var)])]
+                  [(tbytes ,src ,len)
+                   (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                   [(topaque ,src ,opaque-type)
                    (case opaque-type
                      [("string") (format "typeof (~a) === 'string'" var)]
                      [("Uint8Array") (format "~a instanceof Uint8Array" var)]
-                     [("JubjubPoint" "Secp256k1Point") "true"]
                      [else (assertf cannot-happen
                              "cannot insert runtime type check for Opaque<'~a'>"
                              opaque-type)])]
@@ -2531,16 +2546,14 @@
                        (printf "}\n"))
                      elt-name*
                      type*)]
-                  [(topaque ,src ,opaque-type)
-                   (guard (string=? opaque-type "JubjubPoint"))
+                  [(tpoint ,src (curve-jubjub))
                    (print-indent indent)
                    (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
                    (print-indent (fx+ indent 2))
                    (printf "return false;\n")
                    (print-indent indent)
                    (printf "}\n")]
-                  [(topaque ,src ,opaque-type)
-                   (guard (string=? opaque-type "Secp256k1Point"))
+                  [(tpoint ,src (curve-secp256k1))
                    (print-indent indent)
                    (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
                    (print-indent indent)
@@ -2579,6 +2592,10 @@
              [(tboolean ,src) "false"]
              [(tfield ,src ,ftype) "0n"]
              [(tunsigned ,src ,nat) "0n"]
+             [(tpoint ,src ,ctype)
+              (nanopass-case (Ltypescript Curve-Type) ctype
+                [(curve-jubjub) "({x: 0n, y: 1n})"]
+                [(curve-secp256k1) "({x: 0n, y: 0n, identity: true})"])]
              [(tbytes ,src ,len)
               (parenthesize level (precedence new)
                 (format "new Uint8Array(~d)" len))]
@@ -2586,8 +2603,6 @@
               (case opaque-type
                 [("string") "''"]
                 [("Uint8Array") "new Uint8Array(0)"]
-                [("JubjubPoint") "({x: 0n, y: 1n})"]
-                [("Secp256k1Point") "({x: 0n, y: 0n, identity: true})"]
                 ; FIXME: what should happen with other opaque types?
                 [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
              [(tvector ,src ,len ,type)
@@ -3157,6 +3172,16 @@
     (definitions
       (define (same-type? type1 type2)
         (and (unify-type '() type1 type2) #t))
+      (define (curve-type=? ctype1 ctype2)
+        (nanopass-case (Ltypescript Curve-Type) ctype1
+          [(curve-jubjub)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]))
       (define (unify-type tvar-name* type1 type2)
         (define-syntax T
           (syntax-rules ()
@@ -3164,80 +3189,87 @@
              (nanopass-case (Ltypescript Type) ty clause ... [else #f])]))
         (let ([subst* (map (lambda (x) (cons x #f)) tvar-name*)])
           (and (let unify? ([type1 type1] [type2 type2])
-                 (T type1
-                    [,tvar-name1
-                     (cond
-                       [(assq tvar-name1 subst*) =>
-                        (lambda (a)
-                          (if (eq? (cdr a) #f)
-                              (begin (set-cdr! a type2) #t)
-                              (same-type? (cdr a) type2)))]
-                       [else
-                        ; can't happen at present, since type2 should not contain tvar refs
-                        (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
-                    [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
-                    [(tfield ,src ,ftype1)
-                     (T type2
+                 (nanopass-case (Ltypescript Type) type1
+                   [,tvar-name1
+                    (cond
+                      [(assq tvar-name1 subst*) =>
+                       (lambda (a)
+                         (if (eq? (cdr a) #f)
+                             (begin (set-cdr! a type2) #t)
+                             (same-type? (cdr a) type2)))]
+                      [else
+                       ; can't happen at present, since type2 should not contain tvar refs
+                       (T type2 [,tvar-name2 (eq? tvar-name1 tvar-name2)])])]
+                   [(tboolean ,src) (T type2 [(tboolean ,src) #t])]
+                   [(tfield ,src ,ftype1)
+                    (T type2
                        [(tfield ,src ,ftype2) #t]
                        [(tunsigned ,src ,nat) #t])]
-                    [(tunsigned ,src ,nat1)
-                     (T type2
+                   [(tunsigned ,src ,nat1)
+                    (T type2
                        [(tunsigned ,src ,nat2) #t]
                        [(tfield ,src ,ftype) #t])]
-                    [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
-                    [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
-                    [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
-                    [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                     (T type2
-                        [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                         (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                           (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                                     (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                              (and (eq? elt-name1 elt-name2)
-                                                   (eq? pure-dcl1 pure-dcl2)
-                                                   (fx= (length type1*) (length type2*))
-                                                   (andmap unify? type1* type2*)
-                                                   (unify? type1 type2)))
-                                       elt-name1* pure-dcl1* type1** type1*))
-                             elt-name2* pure-dcl2* type2** type2*))
-                          (and (eq? contract-name1 contract-name2)
-                               (fx= (length elt-name1*) (length elt-name2*))
-                               (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-                    [(ttuple ,src ,type1* ...)
-                     (T type2
-                        [(ttuple ,src ,type2* ...)
-                         (and (fx= (length type1*) (length type2*))
-                              (andmap unify? type1* type2*))])]
-                    [(tstruct ,src ,struct-name1 (,elt-name1* ,type1*) ...)
-                     (T type2
-                        [(tstruct ,src ,struct-name2 (,elt-name2* ,type2*) ...)
-                         (and (eq? struct-name1 struct-name2)
+                   [(tpoint ,src1 ,ctype1)
+                    (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
+                   [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
+                   [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
+                   [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
+                   [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+                    (T type2
+                       [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+                        (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
+                          (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
+                                    (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
+                                             (and (eq? elt-name1 elt-name2)
+                                                  (eq? pure-dcl1 pure-dcl2)
+                                                  (fx= (length type1*) (length type2*))
+                                                  (andmap unify? type1* type2*)
+                                                  (unify? type1 type2)))
+                                      elt-name1* pure-dcl1* type1** type1*))
+                            elt-name2* pure-dcl2* type2** type2*))
+                         (and (eq? contract-name1 contract-name2)
                               (fx= (length elt-name1*) (length elt-name2*))
-                              (andmap eq? elt-name1* elt-name2*)
-                              (andmap unify? type1* type2*))])]
-                    [(tenum ,src ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                     (T type2
-                        [(tenum ,src ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                         (and (eq? enum-name1 enum-name2)
-                              (eq? elt-name1 elt-name2)
-                              (fx= (length elt-name1*) (length elt-name2*))
-                              (andmap eq? elt-name1* elt-name2*))])]
-                    [(talias ,src1 ,nominal1? ,type-name1 ,type1)
-                     (T type2
-                        [(talias ,src2 ,nominal2? ,type-name2 ,type2)
-                         (and (eq? type-name1 type-name2)
-                              (unify? type1 type2))])]))
+                              (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+                   [(ttuple ,src ,type1* ...)
+                    (T type2
+                       [(ttuple ,src ,type2* ...)
+                        (and (fx= (length type1*) (length type2*))
+                             (andmap unify? type1* type2*))])]
+                   [(tstruct ,src ,struct-name1 (,elt-name1* ,type1*) ...)
+                    (T type2
+                       [(tstruct ,src ,struct-name2 (,elt-name2* ,type2*) ...)
+                        (and (eq? struct-name1 struct-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*)
+                             (andmap unify? type1* type2*))])]
+                   [(tenum ,src ,enum-name1 ,elt-name1 ,elt-name1* ...)
+                    (T type2
+                       [(tenum ,src ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                        (and (eq? enum-name1 enum-name2)
+                             (eq? elt-name1 elt-name2)
+                             (fx= (length elt-name1*) (length elt-name2*))
+                             (andmap eq? elt-name1* elt-name2*))])]
+                   [(talias ,src1 ,nominal1? ,type-name1 ,type1)
+                    (T type2
+                       [(talias ,src2 ,nominal2? ,type-name2 ,type2)
+                        (and (eq? type-name1 type-name2)
+                             (unify? type1 type2))])]
+                   [else (internal-errorf 'print-typescript
+                                          "unhandled type ~a in same-type?"
+                                          type1)]))
                (map cdr subst*)))))
     [,tvar-name (symbol->string tvar-name)]
     [(tboolean ,src) "boolean"]
     [(tfield ,src ,ftype) "bigint"]
     [(tunsigned ,src ,nat) "bigint"]
+    [(tpoint ,src ,ctype)
+     (nanopass-case (Ltypescript Curve-Type) ctype
+       [(curve-jubjub) "__compactRuntime.JubjubPoint"]
+       [(curve-secp256k1) "__compactRuntime.Secp256k1Point"])]
     [(tbytes ,src ,len) "Uint8Array"]
     [(topaque ,src ,opaque-type)
      (case opaque-type
        [("string" "Uint8Array") opaque-type]
-       [("JubjubPoint") "__compactRuntime.JubjubPoint"]
-       [("Secp256k1Point") "__compactRuntime.Secp256k1Point"]
        ;; FIXME: what should happen with other opaque types?
        [else (source-errorf src "opaque type ~a is not supported" opaque-type)])]
     [(tvector ,src ,len ,[Type : type -> * type])
