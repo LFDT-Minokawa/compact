@@ -5,6 +5,27 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.119, language 0.25.107, runtime 0.18.105]
+
+### Changed
+
+- Pull in a version of the ledger with some ZKIR 3.1 features in it.
+
+### Internal notes
+
+- Update the ledger dependency (on `main`, the development branch) to pull in a
+  version of the ledger that has the ZKIR 3.x features secp256r1 and Curve25519.
+  The `zkir-v3` and `zkir-v3-wasm` dependencies are changed to include the new
+  features.  The `onchain-runtime-v4` dependency is changed to keep it in
+  lockstep with `zkir-v3` and `zkir-v3-wasm` (it could conceivably be left at
+  `9.1.0.0-rc.3`).  The `zkir` and `zkir-wasm` (that is, version 2) dependencies
+  are changed to keep them in lockstep with `onchain-runtime-v4`.
+  
+  The toolchain version is bumped (if nothing else, it reports a different
+  string for `--ledger-version` and `--feature-zkir-v3 --ledger-version`).  The
+  Compact runtime version is not changed, beacause its actual on-chain runtime
+  dependency (in `runtime/package.json`) is still `^4.0.0-rc.3`.
+
 ## [Toolchain 0.33.118, language 0.25.107, runtime 0.18.105]
 
 ### Changed
