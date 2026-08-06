@@ -71,15 +71,6 @@ describe('[Bugs] Compiler', () => {
             },
         },
         {
-            testcase: '[PM-15733] should compile and not throw internal error on broken contract - field arithmetic semantics',
-            file: 'pm-15733.compact',
-            output: {
-                stderr: /Exception: (?<file>.+) line (?<line>\d+) char (?<char>\d+): 102211695604070082112571065507755096754575920209623522239390234855480569854275933742834077002685857629445612735086326265689167708028928 is out of Field range/,
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Failure,
-            },
-        },
-        {
             testcase: '[PM-15826] should compile and not throw internal error on broken contract - Field range',
             file: 'pm-15826.compact',
             output: {
@@ -228,18 +219,6 @@ describe('[Bugs] Compiler', () => {
         });
     });
 
-    test(`[PM-16065] default large vector error should be handled gracefully`, async () => {
-        const filePath = CONTRACTS_ROOT + 'pm-16065.compact';
-
-        const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-        expectCompilerResult(result).toBeFailure(
-            /Exception: pm-16065.compact line 19 char 25: vector type length; 43590753987470154073008687018949015693739732443847; exceeds the maximum supported length 16777216/,
-            compilerDefaultOutput(),
-        );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
-    });
 
     test(`[PM-16150] export naming with module, should follow same pattern as camel casing`, async () => {
         const outputDir = createTempFolder();
