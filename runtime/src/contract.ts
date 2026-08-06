@@ -27,6 +27,7 @@ import {
   CommunicationCommitmentData,
 } from './circuit-context.js';
 import { assertDefined, assertUndefined } from './error.js';
+import { emptyZswapLocalState, EncodedCoinPublicKey } from './zswap.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
 import { CompactError, ContractInterfaceMismatchError } from './error.js';
 import { PartialProofData } from './proof-data.js';
@@ -201,15 +202,23 @@ const setupCallContext = (
   contractAddress: ocrt.ContractAddress,
   queryContext: ocrt.QueryContext,
   currentGasCost: ocrt.RunningCost,
+  callerCoinPublicKey: EncodedCoinPublicKey,
 ): void => {
   context.callContext.circuitId = circuitId;
   context.callContext.contractAddress = contractAddress;
   context.callContext.initialQueryContext = queryContext;
   context.callContext.currentQueryContext = queryContext;
   context.callContext.currentGasCost = currentGasCost;
-  // Undefined because these two should only be called for sub-calls, which do not support witnesses
+  // Undefined because sub-calls do not support witnesses, so a callee has no private state.
   context.callContext.currentPrivateState = undefined;
-  context.callContext.currentZswapLocalState = undefined;
+  // Shielded coin operations, by contrast, *are* supported in a callee, and the ledger relies on
+  // them: an output addressed to a contract is only credited if that contract claims the receive
+  // in the same transaction, which for a callee means running `receiveShielded` here. Each
+  // contract keeps its own state — created on first entry, reused on a later sequential call to
+  // the same address — sharing only the submitter's coin public key, since one wallet pays for
+  // the whole transaction.
+  context.callContext.currentZswapLocalState = context.zswapLocalStates[contractAddress] ??=
+    emptyZswapLocalState(callerCoinPublicKey);
 };
 
 /**
@@ -263,6 +272,7 @@ const restoreCircuitContext = (
   restoreCallContext(callerCircuitContext, callerCallContext);
   callerCircuitContext.queryContexts = calleeCircuitContext.queryContexts;
   callerCircuitContext.gasCosts = calleeCircuitContext.gasCosts;
+  callerCircuitContext.zswapLocalStates = calleeCircuitContext.zswapLocalStates;
   callerCircuitContext.contractStates = calleeCircuitContext.contractStates;
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
   // Take the callee's accumulated event list (callee-emitted events tagged with the callee's
@@ -270,9 +280,10 @@ const restoreCircuitContext = (
   // events are dropped with its discarded context.
   callerCircuitContext.events = calleeCircuitContext.events;
   // Re-point the caller's `currentQueryContext` at the threaded state for its own
-  // contract (advanced if the sub-call re-entered the caller).
+  // contract (advanced if the sub-call re-entered the caller). Same for the Zswap local state.
   const callerAddress = callerCircuitContext.callContext.contractAddress;
   callerCircuitContext.callContext.currentQueryContext = callerCircuitContext.queryContexts[callerAddress];
+  callerCircuitContext.callContext.currentZswapLocalState = callerCircuitContext.zswapLocalStates[callerAddress];
 };
 
 const Bytes32Descriptor = new CompactTypeBytes(32);
@@ -482,7 +493,18 @@ export const crossContractCall = async (
     const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress, calleeModule, calleeCircuitId);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
     const callerCallContext = copyCallContext(circuitContext.callContext);
-    setupCallContext(circuitContext, calleeCircuitId, calleeAddress, calleeQueryContext, calleeGasCosts);
+    // The callee inherits only the submitter's coin public key; everything else about its Zswap
+    // local state is its own.
+    const callerZswapLocalState = callerCallContext.currentZswapLocalState;
+    assertDefined(callerZswapLocalState, `Zswap local state for calling contract '${callerCallContext.contractAddress}'`);
+    setupCallContext(
+      circuitContext,
+      calleeCircuitId,
+      calleeAddress,
+      calleeQueryContext,
+      calleeGasCosts,
+      callerZswapLocalState.coinPublicKey,
+    );
     const circuitResult = await provableCircuit(circuitContext, ...args);
     restoreCircuitContext(circuitContext, callerCallContext, circuitResult.context);
 
