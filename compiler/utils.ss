@@ -354,51 +354,35 @@
                    libcrypto
                    (format-condition c))])
         (load-shared-object libcrypto)
-        (let ([entry-name*
-                '("EVP_MD_CTX_new"
-                  "EVP_MD_CTX_free"
-                  "EVP_sha256"
-                  "EVP_DigestInit_ex"
-                  "EVP_DigestUpdate"
-                  "EVP_DigestFinal_ex")])
-          (unless (andmap foreign-entry? entry-name*)
-            (external-errorf "native SHA-256 library ~a is missing required EVP entries"
-              libcrypto))
-          (let ([make-context (foreign-procedure "EVP_MD_CTX_new" () void*)]
-                [free-context (foreign-procedure "EVP_MD_CTX_free" (void*) void)]
-                [sha256-method ((foreign-procedure "EVP_sha256" () void*))]
-                [digest-init (foreign-procedure "EVP_DigestInit_ex" (void* void* void*) int)]
-                [digest-update (foreign-procedure "EVP_DigestUpdate" (void* u8* size_t) int)]
-                [digest-final (foreign-procedure "EVP_DigestFinal_ex" (void* u8* u8*) int)])
-            (lambda (pathname)
-              (let ([context (make-context)])
-                (when (zero? context)
-                  (external-errorf "failed to allocate native SHA-256 context"))
-                (dynamic-wind
-                  (lambda () (void))
-                  (lambda ()
-                    (unless (= (digest-init context sha256-method 0) 1)
-                      (external-errorf "failed to initialize native SHA-256 context"))
-                    (call-with-port (open-file-input-port pathname)
-                      (lambda (ip)
-                        (let ([buffer (make-bytevector 65536)])
-                          (let loop ()
-                            (let ([n (get-bytevector-n! ip buffer 0 (bytevector-length buffer))])
-                              (unless (eof-object? n)
-                                (unless (= (digest-update context buffer n) 1)
-                                  (external-errorf "failed to update native SHA-256 digest"))
-                                (loop)))))))
-                    (let ([digest (make-bytevector 32)]
-                          [digest-length (make-bytevector 4)])
-                      (unless (= (digest-final context digest digest-length) 1)
-                        (external-errorf "failed to finalize native SHA-256 digest"))
-                      (bytevector->hex digest)))
-                  (lambda () (free-context context)))))))))
-
-    (define native-sha256-file*
-      (delay
-        (let ([libcrypto (getenv "COMPACT_LIBCRYPTO")])
-          (and libcrypto (make-native-sha256-file libcrypto)))))
+        (let ([make-context (foreign-procedure "EVP_MD_CTX_new" () void*)]
+              [free-context (foreign-procedure "EVP_MD_CTX_free" (void*) void)]
+              [sha256-method ((foreign-procedure "EVP_sha256" () void*))]
+              [digest-init (foreign-procedure "EVP_DigestInit_ex" (void* void* void*) boolean)]
+              [digest-update (foreign-procedure "EVP_DigestUpdate" (void* u8* size_t) boolean)]
+              [digest-final (foreign-procedure "EVP_DigestFinal_ex" (void* u8* u32*) boolean)])
+          (lambda (pathname)
+            (let ([context (make-context)])
+              (when (zero? context)
+                (external-errorf "failed to allocate native SHA-256 context"))
+              (dynamic-wind
+                void
+                (lambda ()
+                  (unless (digest-init context sha256-method 0)
+                    (external-errorf "failed to initialize native SHA-256 context"))
+                  (call-with-port (open-file-input-port pathname)
+                    (lambda (ip)
+                      (let ([buffer (make-bytevector 65536)])
+                        (let loop ()
+                          (let ([n (get-bytevector-n! ip buffer 0 (bytevector-length buffer))])
+                            (unless (eof-object? n)
+                              (unless (digest-update context buffer n)
+                                (external-errorf "failed to update native SHA-256 digest"))
+                              (loop)))))))
+                  (let ([digest (make-bytevector 32)])
+                    (unless (digest-final context digest #f)
+                      (external-errorf "failed to finalize native SHA-256 digest"))
+                    (bytevector->hex digest)))
+                (lambda () (free-context context))))))))
 
     (define (sha256-file/external pathname)
       (define commands-to-try '("sha256sum -b" "shasum -a 256 -b"))
@@ -422,11 +406,15 @@
                         (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
                     (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
 
+    (define sha256-file-implementation
+      (delay
+        (let ([libcrypto (getenv "COMPACT_LIBCRYPTO")])
+          (if libcrypto
+              (make-native-sha256-file libcrypto)
+              sha256-file/external))))
+
     (define (sha256-file pathname)
-      (let ([native-sha256-file (force native-sha256-file*)])
-        (if native-sha256-file
-            (native-sha256-file pathname)
-            (sha256-file/external pathname)))))
+      ((force sha256-file-implementation) pathname)))
 
   (define (string-prefix? prefix str)
     (let ([n (string-length prefix)])
