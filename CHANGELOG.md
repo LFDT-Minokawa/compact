@@ -5,12 +5,40 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.33.119, language 0.25.107, runtime 0.18.105]
+## [Toolchain 0.33.120, language 0.25.107, runtime 0.18.106]
 
 ### Changed
 
 - The compiler now hashes manifest files in-process using OpenSSL's EVP API in
   configured Nix environments.
+
+## [Toolchain 0.33.119, language 0.25.107, runtime 0.18.106]
+
+### Changed
+
+- Cross-contract callees may now perform shielded (Zswap) coin operations.
+  Previously the runtime blanked a callee's Zswap local state before invoking
+  it, so `receiveShielded`, `sendShielded`, `mergeCoin` and friends failed with
+  "Zswap local state is undefined for contract". That blocked the pattern the
+  ledger actually requires: a shielded coin addressed to a contract is only
+  credited if that contract claims the receive in the same transaction, which
+  for a callee means running `receiveShielded` during the call.
+
+  `CircuitContext` now carries `zswapLocalStates`, a per-contract-address record
+  alongside `queryContexts` and `gasCosts`. Each contract in the call tree keeps
+  its own state — its own `currentIndex`, `inputs` and `outputs` — sharing only
+  the transaction submitter's coin public key. A callee's state is created on
+  first entry, threaded back to the caller on return, and recorded on the call's
+  `CallProofData` as `zswapLocalState` so transaction assembly can attribute
+  every contract-owned input and output to the contract that made it.
+
+  This covers all three Zswap natives — `ownPublicKey`, `createZswapInput` and
+  `createZswapOutput`. Note that `ownPublicKey()` always names the transaction submitter,
+  never the calling contract. A callee meaning to pay back its caller wants that caller's
+  `ContractAddress`, not `ownPublicKey()`.
+
+  Addresses [#658](https://github.com/LFDT-Minokawa/compact/issues/658); the
+  transaction-assembly half lives in `compact-js` and `midnight-js`.
 
 ## [Toolchain 0.33.118, language 0.25.107, runtime 0.18.105]
 
