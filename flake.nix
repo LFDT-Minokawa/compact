@@ -24,39 +24,24 @@
 
   inputs = {
     zkir = {
-      # dependency for compact-runtime release
-      # this is using a tag to pull in the correct zkir version from the ledger
-      # if for releasing the runtime, running nix flake update causes errors for authorization of cargo, use
-      # the commit hash instead of the tag for this.
-      # NOTE: if this is an internal release (uses -alpha, -beta, or -rc) do NOT update the package.json in runtime
-      # since npm can only access public releases. For the compact-runtime release nix will pull in the correct
-      # version from this url.
+      # zkir key-generation binary for ZKIR 2
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
-      inputs.zkir.follows = "zkir";
     };
     onchain-runtime-v4 = {
-      # dependency for compact-runtime release
-      # all notes for the zkir input applies to onchain-runtime input too.
-      # NOTE: ledger-9.1.0.0-rc.2 is the first tag packaging the wasm under the
-      # published npm scope `@midnightntwrk` (earlier tags used `@midnight-ntwrk`,
-      # which was never published); it builds onchain-runtime-v4@4.0.0-rc.2.
+      # dependency for Compact runtime release
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
-      inputs.zkir.follows = "zkir";
     };
     zkir-wasm = {
       # dependency for test-center
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
-      inputs.zkir.follows = "zkir";
     };
     zkir-v3 = {
-      # zkir-v3 binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412"; # zkir-v3
-      inputs.zkir.follows = "zkir";
+      # zkir-v3 key-generation binary for v3 IR format
+      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/b17df9d100812bfb2621a3e342108158e3c6b412";
-      inputs.zkir.follows = "zkir";
+      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -226,7 +211,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.33.119"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.33.120"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
