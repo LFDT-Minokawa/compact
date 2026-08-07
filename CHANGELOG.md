@@ -9,8 +9,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The compiler now hashes manifest files in-process using OpenSSL's EVP API in
-  configured Nix environments.
+- The compiler now hashes manifest files in-process using Common Crypto or
+  OpenSSL when available.
 
 ## [Toolchain 0.33.120, language 0.25.107, runtime 0.18.106]
 

@@ -78,9 +78,7 @@
           nodejs = final.nodejs_latest;
         });
         isDarwin = pkgs.lib.hasSuffix "-darwin" system;
-        libcrypto =
-          "${pkgs.openssl.out}/lib/libcrypto"
-          + (if isDarwin then ".dylib" else ".so");
+        libcrypto = if isDarwin then null else "${pkgs.openssl.out}/lib/libcrypto.so";
         chez = if isDarwin then pkgs.chez.override {
           stdenv = pkgs.llvmPackages_18.stdenv;
         } else pkgs.chez;
@@ -236,9 +234,8 @@
               pkgs.nodePackages.typescript
               packages.runtime.package
               packages.runtime.node-modules
-              pkgs.openssl
               chez
-            ];
+            ] ++ pkgs.lib.optional (!isDarwin) pkgs.openssl;
 
             buildPhase = ''
               mkdir -p obj/compiler

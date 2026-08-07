@@ -888,29 +888,17 @@ groups than for single tests.
 )
 
 (module ()
-  (define pathname (format "/tmp/compact-sha256-test.~d" (get-process-id)))
-  (define (cleanup) (delete-file pathname #f))
+  (define directory "test-center/sha256-test")
 
-  (define (check-sha256 bytes expected)
-    (dynamic-wind
-      cleanup
-      (lambda ()
-        (call-with-port (open-file-output-port pathname)
-          (lambda (op) (put-bytevector op bytes)))
-        (let ([actual (sha256-file pathname)])
-          (unless (string=? actual expected)
-            (error 'sha256-file "unexpected digest" expected actual))))
-      cleanup))
+  (define (check-sha256 filename)
+    (let* ([pathname (format "~a/~a" directory filename)]
+           [expected-pathname (format "~a.sha256" pathname)]
+           [expected (call-with-port (open-input-file expected-pathname) get-line)]
+           [actual (sha256-file pathname)])
+      (unless (string=? actual expected)
+        (error 'sha256-file "unexpected digest" filename expected actual))))
 
-  (check-sha256 (string->utf8 "")
-    "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-  (check-sha256 (string->utf8 "abc")
-    "ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad")
-  (check-sha256
-    (string->utf8 "abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq")
-    "248d6a61d20638b8e5c026930c3e6039a33ce45964ff2167f6ecedd419db06c1")
-  (check-sha256 (make-bytevector 1000000 (char->integer #\a))
-    "cdc76e5c9914fb9281a1c7e284d73e67f1809a48a497200e046d39ccc7112cd0")
+  (for-each check-sha256 '(empty abc multi-block))
 )
 
 (run-tests parse-file/format/reparse
