@@ -888,6 +888,8 @@
             (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
             (display-string "export declare const pureCircuits: PureCircuits;\n")
             (display-string "export declare const expectedVk: Record<string, string>;\n")
+            (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
+            (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
             ))))
 
     (define (format-field-type ftype)
@@ -2137,6 +2139,133 @@
              (newline)]
             [else (void)])))
 
+      (define (comma-separated s*)
+        (if (null? s*) "" (format "~a~{, ~a~}" (car s*) (cdr s*))))
+
+      ;; A non-empty sequence whose elements all encode alike is a Vector;
+      ;; anything else is a Tuple.  A zero-length sequence is a Tuple, because
+      ;; Vector<0,T> has no recoverable element type.
+      (define (format-sequence-type s*)
+        (cond
+          [(null? s*) "{tag: 'Tuple', types: []}"]
+          [(andmap (lambda (s) (string=? s (car s*))) (cdr s*))
+           (format "{tag: 'Vector', length: ~d, type: ~a}" (length s*) (car s*))]
+          [else (format "{tag: 'Tuple', types: [~a]}" (comma-separated s*))]))
+
+      ;; { <circuitName>: {pure, argumentTypes, resultType}, ... }
+      (define (format-interface-descriptor elt-name* pure-dcl* type** type*)
+        (format "{~a}"
+          (comma-separated
+            (map (lambda (elt-name pure-dcl arg-type* result-type)
+                   (format "~a: {pure: ~a, argumentTypes: [~a], resultType: ~a}"
+                     (format-javascript-string (symbol->string elt-name))
+                     (if pure-dcl "true" "false")
+                     (comma-separated (map format-compact-type arg-type*))
+                     (format-compact-type result-type)))
+                 elt-name* pure-dcl* type** type*))))
+
+      (define (format-compact-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tboolean ,src) "{tag: 'Boolean'}"]
+          [(tfield ,src ,ftype)
+           (format "{tag: ~a}" (format-javascript-string (format-field-type ftype)))]
+          [(tpoint ,src ,ctype)
+           (format "{tag: ~a}" (format-javascript-string (format-point-type ctype)))]
+          [(tunsigned ,src ,nat)
+           (format "{tag: 'Uint', maxval: ~a}"
+             (format-javascript-string (number->string nat)))]
+          [(tbytes ,src ,len) (format "{tag: 'Bytes', length: ~d}" len)]
+          [(topaque ,src ,opaque-type)
+           (format "{tag: 'Opaque', tsType: ~a}"
+             (format-javascript-string opaque-type))]
+          [(tvector ,src ,len ,type)
+           (format-sequence-type (make-list len (format-compact-type type)))]
+          [(ttuple ,src ,type* ...)
+           (format-sequence-type (map format-compact-type type*))]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "{tag: 'Struct', name: ~a, elements: [~a]}"
+             (format-javascript-string (symbol->string struct-name))
+             (comma-separated
+               (map (lambda (elt-name type)
+                      (format "{name: ~a, type: ~a}"
+                        (format-javascript-string (symbol->string elt-name))
+                        (format-compact-type type)))
+                    elt-name* type*)))]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           (format "{tag: 'Enum', name: ~a, elements: [~a]}"
+             (format-javascript-string (symbol->string enum-name))
+             (comma-separated
+               (map (lambda (n) (format-javascript-string (symbol->string n)))
+                    (cons elt-name elt-name*))))]
+          ;; A transparent alias is erased; only a `new type` survives as a node.
+          [(talias ,src ,nominal? ,type-name ,type)
+           (if nominal?
+               (format "{tag: 'Alias', name: ~a, type: ~a}"
+                 (format-javascript-string (symbol->string type-name))
+                 (format-compact-type type))
+               (format-compact-type type))]
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (format "{tag: 'Contract', name: ~a, circuits: ~a}"
+             (format-javascript-string (symbol->string contract-name))
+             (format-interface-descriptor elt-name* pure-dcl* type** type*))]
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (assert cannot-happen)]
+          [,tvar-name (assert cannot-happen)]
+          [(tunknown) (assert cannot-happen)]))
+
+      (define (format-argument-type arg)
+        (nanopass-case (Ltypescript Argument) arg
+          [(,var-name ,type) (format-compact-type type)]))
+
+      (define (print-table name entry*)
+        (if (null? entry*)
+            (printf "export const ~a = {};\n" name)
+            (begin
+              (printf "export const ~a = {\n" name)
+              (for-each (lambda (entry) (printf "  ~a,\n" entry)) entry*)
+              (display-string "};\n")))
+        (newline))
+
+      ;; One entry per external name, so a circuit exported under several names
+      ;; fans out as expectedVk and pureCircuits already do. `pure` is inferred
+      ;; purity; `provable` is membership in (proof-circuit-names).
+      (define (print-circuit-signatures xpelt*)
+        (print-table "circuitSignatures"
+          (fold-right
+            (lambda (xpelt entry*)
+              (XPelt-case xpelt
+                [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
+                 (fold-right
+                   (lambda (external-name entry*)
+                     (cons
+                       (format "~a: {pure: ~a, provable: ~a, argumentTypes: [~a], resultType: ~a}"
+                         (format-javascript-string external-name)
+                         (if pure? "true" "false")
+                         (if (memq (string->symbol external-name) (proof-circuit-names))
+                             "true"
+                             "false")
+                         (comma-separated (map format-argument-type arg*))
+                         (format-compact-type type))
+                       entry*))
+                   entry*
+                   external-name*)]
+                [else entry*]))
+            '()
+            xpelt*)))
+
+      ;; contract-type* holds exactly the contract types on which a call is
+      ;; made, which is the same set for which an import is emitted.
+      (define (print-declared-interfaces contract-type*)
+        (print-table "declaredInterfaces"
+          (map
+            (lambda (contract-type)
+              (nanopass-case (Ltypescript Contract-Type) contract-type
+                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                 (format "~a: ~a"
+                   (format-javascript-string (symbol->string contract-name))
+                   (format-interface-descriptor elt-name* pure-dcl* type** type*))]))
+            contract-type*)))
+
       ;; Emit the per-circuit verifier-key fingerprints computed in passes.ss after key
       ;; generation. A caller's cross-contract guard reads the callee module's `expectedVk` to
       ;; detect a contract deployed at the call target that does not match the implementation this
@@ -2168,6 +2297,8 @@
             (print-contract-class src xpelt* uname*)
             (for-each print-contract-reference-locations xpelt*)
             (print-expected-vk)
+            (print-circuit-signatures xpelt*)
+            (print-declared-interfaces contract-type*)
             (print-contract-footer)
             (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
             (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))
