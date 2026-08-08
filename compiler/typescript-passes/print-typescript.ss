@@ -872,10 +872,6 @@
             (for-each print-ledger-declaration xpelt* uname*)
             (display-string "}\n")
             (newline)
-            (display-string "export type ContractReferenceLocations = any;\n")
-            (newline)
-            (display-string "export declare const contractReferenceLocations : ContractReferenceLocations;\n")
-            (newline)
             (display-string "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {\n")
             (display-string "  witnesses: W;\n")
             (display-string "  circuits: Circuits<PS>;\n")
@@ -1966,165 +1962,6 @@
               [else (void)]))
           xpelt*))
 
-      (module (print-contract-reference-locations)
-        (define (do-type type)
-          (nanopass-case (Ltypescript Type) (de-alias type)
-            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-             (make-Qconcat
-               "{"
-               1 "tag: 'contractAddress'"
-               0 "}")]
-            [(tvector ,src ,len ,type)
-             (guard (not (= len 0)))
-             (let ([q (do-type type)])
-               (and q
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                         "tag: 'vector'"
-                         (make-Qconcat "sparseType: " q))
-                      0 "}")))]
-            [(ttuple ,src ,type* ...)
-             ; FIXME: need to teach the runtime about this.
-             ; tuple is like publicLedgerArray; consider replacing latter with former
-             (let ([q* (map do-type type*)] [i* (enumerate type*)])
-               (and (ormap values q*)
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                          "tag: 'tuple'"
-                          (make-Qconcat
-                            "indices: {"
-                            2 (apply (make-Qsep ",")
-                                (fold-right
-                                  (lambda (q i q*)
-                                    (if q
-                                        (cons
-                                          (make-Qconcat
-                                            (format "~d: " i)
-                                            q)
-                                          q*)
-                                        q*))
-                                  '()
-                                  q*
-                                  (enumerate type*)))
-                            0 "}"))
-                      0 "}")))]
-            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-             (let ([q* (map do-type type*)])
-               (and (ormap values q*)
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                         "tag: 'struct'"
-                         (make-Qconcat
-                           "elements: "
-                           2 (make-Qconcat
-                               "{"
-                               1 (apply (make-Qsep ",")
-                                   (fold-right
-                                     (lambda (elt-name q q*)
-                                       (if q
-                                           (cons
-                                             (make-Qconcat (format "~a: " elt-name) q)
-                                             q*)
-                                           q*))
-                                     '()
-                                     elt-name*
-                                     q*))
-                               0 "}")))
-                      0 "}")))]
-            [else #f]))
-        (define (do-adt-arg adt-arg)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
-            ; can't get a nat at present since only merkle trees have nat adt-args
-            ; and contract references cannot be retrieved from merkle trees
-            [,nat #f]
-            [,type
-             (if (public-adt? type)
-                 (do-public-adt type)
-                 (let ([q (do-type type)])
-                   (and q
-                        (make-Qconcat
-                          "{"
-                          1 ((make-Qsep ",")
-                             "tag: 'compactValue'"
-                             (make-Qconcat "descriptor: " (type->descriptor-name type))
-                             (make-Qconcat "sparseType: " q))
-                          0 "}"))))]))
-        (define (do-public-adt public-adt)
-          (nanopass-case (Ltypescript Type) (de-alias public-adt)
-            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-             ; FIXME: building in knowledge of the ledger here
-             ; contract references cannot be retreived from merkle trees
-             (and (not (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree)))
-                  (let ([maybe-q* (map do-adt-arg adt-arg*)])
-                    (and (ormap values maybe-q*)
-                         (make-Qconcat
-                           "{ "
-                           1 (apply (make-Qsep ",")
-                                    (format "tag: '~a'"
-                                      (if (eq? adt-name '__compact_Cell)
-                                          "cell"
-                                          (to-camel-case (symbol->string adt-name) #f)))
-                                    (fold-right
-                                      (lambda (adt-formal maybe-q q*)
-                                        (if maybe-q
-                                            (cons
-                                              (make-Qconcat
-                                                (format "~a: " (to-camel-case (symbol->string adt-formal) #f))
-                                                maybe-q)
-                                              q*)
-                                            q*))
-                                      '()
-                                      adt-formal*
-                                      maybe-q*))
-                           0 "}"))))]))
-        (define (do-public-binding public-binding)
-          (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-            [(,src ,ledger-field-name (,path-index* ...) ,type)
-             (do-public-adt type)]))
-        (define (do-pl-array-elt pl-array-elt)
-          (nanopass-case (Ltypescript Public-Ledger-Array-Element) pl-array-elt
-            [,pl-array (do-pl-array pl-array #f)]
-            [,public-binding (do-public-binding public-binding)]))
-        (define (do-pl-array pl-array even-if-empty?)
-          (nanopass-case (Ltypescript Public-Ledger-Array) pl-array
-            [(public-ledger-array ,pl-array-elt* ...)
-             (let ([maybe-q* (map do-pl-array-elt pl-array-elt*)])
-               (and (or even-if-empty? (ormap values maybe-q*))
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                          "tag: 'publicLedgerArray'"
-                          (make-Qconcat
-                            "indices: {"
-                            2 (apply (make-Qsep ",")
-                                (fold-right
-                                  (lambda (maybe-q i q*)
-                                    (if maybe-q
-                                        (cons
-                                          (make-Qconcat
-                                            (format "~d: " i)
-                                            maybe-q)
-                                          q*)
-                                        q*))
-                                  '()
-                                  maybe-q*
-                                  (enumerate pl-array-elt*)))
-                            0 "}"))
-                      0 "}")))]))
-        (define (print-contract-reference-locations xpelt)
-          (XPelt-case xpelt
-            [(XPelt-public-ledger pl-array ledger-constructor external-names)
-             (print-Q 0
-               (make-Qconcat
-                 "export const contractReferenceLocations ="
-                 2 (do-pl-array pl-array #t)
-                 ";"))
-             (newline)]
-            [else (void)])))
-
       (define (comma-separated s*)
         (if (null? s*) "" (format "~a~{, ~a~}" (car s*) (cdr s*))))
 
@@ -2281,7 +2118,6 @@
             (print-exported-types xpelt*)
             (print-contract-descriptors src descriptor-id* type*)
             (print-contract-class src xpelt* uname*)
-            (for-each print-contract-reference-locations xpelt*)
             (print-expected-vk)
             (print-circuit-signatures xpelt*)
             (print-declared-interfaces contract-type*)

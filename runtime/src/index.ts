@@ -24,7 +24,6 @@ export * from './constructor-context.js';
 export * from './circuit-context.js';
 export * from './proof-data.js';
 export * from './witness.js';
-export * from './contract-dependencies.js';
 export * from './utils.js';
 export * from './interface-descriptor.js';
 export * from './contract.js';
@@ -114,19 +113,3 @@ export {
   VmResults,
   VmStack,
 } from '@midnightntwrk/onchain-runtime-v4';
-
-export {
-  contractDependencies,
-  ContractReferenceLocations,
-  SparseCompactADT,
-  SparseCompactCellADT,
-  SparseCompactArrayLikeADT,
-  SparseCompactMapADT,
-  SparseCompactSetADT,
-  SparseCompactListADT,
-  SparseCompactValue,
-  SparseCompactType,
-  SparseCompactVector,
-  SparseCompactStruct,
-  SparseCompactContractAddress,
-} from './contract-dependencies.js';
