@@ -338,19 +338,10 @@
   ;; retaining the external-command implementation as a fallback.
   (module (sha256-file)
     (define (bytevector->hex bytes)
-      (define hex-digits "0123456789abcdef")
-      (let ([hash (make-string (* (bytevector-length bytes) 2))])
-        (do ([i 0 (+ i 1)])
-            ((= i (bytevector-length bytes)) hash)
-          (let ([byte (bytevector-u8-ref bytes i)])
-            (string-set! hash (* i 2)
-              (string-ref hex-digits (bitwise-arithmetic-shift-right byte 4)))
-            (string-set! hash (+ (* i 2) 1)
-              (string-ref hex-digits (bitwise-and byte #xf)))))))
+      (format "~(~{~2,'0x~}~)" (bytevector->u8-list bytes)))
 
     (define (read-bytevector pathname)
-      (let ([bytes (call-with-port (open-file-input-port pathname) get-bytevector-all)])
-        (if (eof-object? bytes) (make-bytevector 0) bytes)))
+      (call-with-port (open-file-input-port pathname) get-bytevector-all))
 
     (define (make-openssl-sha256-file libcrypto)
       (guard (c [else
@@ -368,23 +359,22 @@
             (let ([context (make-context)])
               (when (eqv? context 0)
                 (external-errorf "failed to allocate native SHA-256 context"))
-              (let ([hash
-                     (with-exception-handler
-                       (lambda (c)
-                         (free-context context)
-                         (raise-continuable c))
-                       (lambda ()
-                         (unless (digest-init context sha256-method 0)
-                           (external-errorf "failed to initialize native SHA-256 context"))
-                         (let ([bytes (read-bytevector pathname)])
-                           (unless (digest-update context bytes (bytevector-length bytes))
-                             (external-errorf "failed to update native SHA-256 digest")))
-                         (let ([digest (make-bytevector 32)])
-                           (unless (digest-final context digest #f)
-                             (external-errorf "failed to finalize native SHA-256 digest"))
-                           (bytevector->hex digest))))])
-                (free-context context)
-                hash))))))
+              (with-exception-handler
+                (lambda (c)
+                  (free-context context)
+                  (raise-continuable c))
+                (lambda ()
+                  (unless (digest-init context sha256-method 0)
+                    (external-errorf "failed to initialize native SHA-256 context"))
+                  (let ([bytes (read-bytevector pathname)])
+                    (unless (eof-object? bytes)
+                      (unless (digest-update context bytes (bytevector-length bytes))
+                        (external-errorf "failed to update native SHA-256 digest"))))
+                  (let ([digest (make-bytevector 32)])
+                    (unless (digest-final context digest #f)
+                      (external-errorf "failed to finalize native SHA-256 digest"))
+                    (free-context context)
+                    (bytevector->hex digest)))))))))
 
     ;; This path can be loadable from the macOS dyld shared cache even when it is not visible to
     ;; file-exists?.
@@ -399,6 +389,7 @@
         (let ([sha256 (foreign-procedure "CC_SHA256" (u8* unsigned-32 u8*) void*)])
           (lambda (pathname)
             (let* ([bytes (read-bytevector pathname)]
+                   [bytes (if (eof-object? bytes) #vu8() bytes)]
                    [digest (make-bytevector 32)])
               (when (eqv? (sha256 bytes (bytevector-length bytes) digest) 0)
                 (external-errorf "failed to compute native SHA-256 digest"))
@@ -452,7 +443,7 @@
     (define sha256-file-implementation
       (delay
         (let ([libcrypto (getenv "COMPACT_LIBCRYPTO")])
-          (if libcrypto
+          (if (and libcrypto (not (string=? libcrypto "")))
               (make-openssl-sha256-file libcrypto)
               (find-native-sha256-file)))))
 
