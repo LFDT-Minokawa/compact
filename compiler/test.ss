@@ -887,6 +887,20 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
+(module ()
+  (define directory "test-center/sha256-test")
+
+  (define (check-sha256 filename)
+    (let* ([pathname (format "~a/~a" directory filename)]
+           [expected-pathname (format "~a.sha256" pathname)]
+           [expected (call-with-port (open-input-file expected-pathname) get-line)]
+           [actual (sha256-file pathname)])
+      (unless (string=? actual expected)
+        (error 'sha256-file "unexpected digest" filename expected actual))))
+
+  (for-each check-sha256 '(empty abc multi-block))
+)
+
 (run-tests parse-file/format/reparse
   (test
     '(
