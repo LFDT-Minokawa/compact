@@ -29,7 +29,7 @@ Replaces: none
 
 ## Abstract
 
-The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a language-agnostic description of each circuit's body to `contract-info.json`, the machine-readable file the compiler already writes: a typed body per circuit (`ir`), the bodies of the helper circuits they call (`helpers`), and a format version. The bodies serialize from the compiler's analyzed form (`Lnodisclose`), so the whole compiler change stays inside the pass that already writes the file. With these, an SDK in any language can execute circuits locally with a small interpreter, instead of embedding a JavaScript engine. A reference emitter and a reference consumer (in Rust) already run the approach end to end. The emitter serializes the analyzed form; re-targeting the consumer to it is the main remaining work. This draft describes the design shape, to start the discussion.
+The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a language-agnostic description of each circuit's body to `contract-info.json`, the machine-readable file the compiler already writes: a typed body per circuit (`ir`), the bodies of the helper circuits they call (`helpers`), the writes a deployment applies (`constructor`), and a format version. The bodies serialize from the compiler's analyzed form (`Lnodisclose`), so the whole compiler change stays inside the pass that already writes the file. With these, an SDK in any language can execute circuits locally with a small interpreter, instead of embedding a JavaScript engine. A reference emitter and a reference consumer (in Rust) run the approach end to end: the consumer executes the bodies and a differential harness compares its transcripts with the ones the canonical TypeScript runtime produces. This draft describes the design, to start the discussion. The appendix states the exact schema.
 
 ## Motivation
 
@@ -62,14 +62,15 @@ Off-chain execution is half of every contract call. Before an SDK can prove anyt
 
 ## Specification
 
-This section fixes the design shape. The full field-level schema (each op's fields, the type encoding, the ledger-op encoding) lives in the reference implementation and becomes a normative appendix after the community agrees on the shape.
+This section describes the design. The appendix at the end states the schema field by field, and is normative.
 
-An SDK that executes a circuit locally needs four things:
+An SDK that deploys a contract and calls its circuits needs five things:
 
 1. The body of each exported circuit, with witness calls and ledger operations explicit.
 2. The Compact types, because the byte encoding of a value depends on its type.
 3. The ledger layout, to find each field in the contract state.
-4. A format version, to detect compatibility.
+4. The constructor, for the writes a deployment applies over the default state.
+5. A format version, to detect compatibility.
 
 `contract-info.json` already carries the signatures and the ledger layout, but without a documented schema. This CoIP documents that schema and adds the missing parts:
 
@@ -80,10 +81,11 @@ An SDK that executes a circuit locally needs four things:
   "language-version": "0.23.104",
   "runtime-version": "0.16.101",      // the on-chain runtime the ledger ops target
   "circuits":  [ ... ],               // signatures, plus a NEW per-circuit "ir" body
-  "helpers":   [ ... ],               // NEW: bodies of the helper circuits the exported bodies call
+  "helpers":   [ ... ],               // NEW: bodies of the circuits the exported bodies call
   "witnesses": [ ... ],               // signatures only; a witness stays a callback the SDK provides
   "contracts": [ ... ],               // imported contract names
-  "ledger":    [ ... ]                // one entry per ledger field
+  "ledger":    [ ... ],               // one entry per ledger field
+  "constructor": { ... }              // NEW: the writes a deployment applies, or null
 }
 ```
 
@@ -92,31 +94,37 @@ An SDK that executes a circuit locally needs four things:
 Each exported circuit keeps its signature (`name`, `pure`, `proof`, `arguments`, `result-type`) and gains one field:
 
 ```
-"ir": { "body": Stmt, "result": null }
+"ir": { "body": Stmt }
 ```
 
-The `result` field is reserved for a future use; the emitter always writes `null` today, and the circuit's return value is the value of the body's final expression statement. Every exported circuit carries a body, pure and impure alike. The compiler serializes it from the analyzed form (`Lnodisclose`), the stage where it already writes `contract-info.json` and generates the TypeScript. This is a design constraint of the CoIP: the whole compiler change stays inside the `save-contract-info` pass, and the compilation pipeline does not change.
+Every exported circuit carries a body, pure and impure alike. The compiler serializes it from the analyzed form (`Lnodisclose`), the stage where it already writes `contract-info.json` and generates the TypeScript. This is a design constraint of the CoIP: the whole compiler change stays inside the `save-contract-info` pass, and the compilation pipeline does not change. The circuit's return value is the value of the body's final expression statement.
 
 The body is a tree of statements and expressions. Each node is a JSON object tagged by `op`. The vocabulary covers:
 
 - values and bindings
-- logic, arithmetic, and comparison
-- control, including the bounded loops (`map` and `fold`)
+- arithmetic and comparison
+- control: conditionals, assertions, and the bounded loops (`map` and `fold`)
 - data construction and access: structs, tuples, vectors, and slices
 - casts
 - effects: witness calls, helper-circuit calls, ledger operations, and cross-contract calls
 
-Enum members and helper circuits stay by name; nothing is unrolled or inlined. The shared core keeps the node shapes the reference emitter already produces (`var`, `lit`, `assert`, `if-expr`, `eq`, `new`, `call-witness`, `ledger-query`, `contract-call`, and so on), and the analyzed level adds the loop, slice, helper-call, and named-enum forms. The exact op set is fixed in the field-level schema.
+Enum members and helper circuits stay by name; nothing is unrolled or inlined. The example below shows the node shapes (`var`, `lit`, `assert`, `eq`, `tuple`, `new`, `enum-member`, `call-pure`, `call-witness`, `ledger-query`, and so on). The appendix lists every one.
 
-A `ledger-query` holds the ordered Impact VM ops (`idx`, `push`, `addi`, `ins`, `popeq`, and so on) that the compiler already expands for one ledger ADT operation. Their encoding tracks the on-chain runtime named by `runtime-version`.
+A `ledger-query` holds the ordered Impact VM ops (`idx`, `push`, `addi`, `ins`, `popeq`, and so on) that the compiler already expands for one ledger ADT operation. Their encoding tracks the on-chain runtime named by `runtime-version`. The appendix defines each operation and its operand kinds.
 
 ### Types
 
-One encoding, keyed on `type-name`, serves the whole file: structs inline their fields, and enums list their members. A consumer derives each value's byte layout from its type. The reference emitter's default mode still writes a second, post-lowering encoding (keyed on `type`) inside bodies, plus a `structs` side table of monomorphized layouts; its analyzed mode implements the selected design and needs neither.
+One encoding, keyed on `type-name`, serves the whole file: structs inline their fields, and enums list their members. A consumer derives each value's byte layout from its type, so the format needs no side table of struct layouts. A `Uint` carries its `maxval` as a JSON number, which is also what the compiler itself reads when one contract imports another. The bound reaches 2^248-1, the largest integer that fits in the field's 31 full bytes. A consumer must parse it with arbitrary precision; a parser that reads every JSON number as a double corrupts it silently.
 
 ### The ledger layout
 
-Each `ledger` entry describes one field of the contract state: its `name`, its `index` in the state, whether it is `exported`, its ledger ADT kind (`Cell`, `Counter`, `Map`, `Set`, `List`, `MerkleTree`, or `HistoricMerkleTree`), and the kind's element types in the type encoding. The example below lists four.
+Each `ledger` entry describes one field of the contract state: its `name`, its `index` in the state, whether it is `exported`, its ledger ADT kind (`Cell`, `Counter`, `Map`, `Set`, `List`, `MerkleTree`, or `HistoricMerkleTree`), and the kind's element types in the type encoding.
+
+### The constructor
+
+A deployment starts from the default value of every ledger field, which a consumer derives from the layout above. `constructor` carries what the source writes on top of that: the statements, in the same tree the circuits use, and the deploy-time `arguments` the caller supplies. It is a set of writes, not the whole initial state, and it touches only the fields the source assigns. A consumer must apply both, in that order.
+
+`constructor` is `null` when the source writes no constructor, because a constructor that takes nothing and writes nothing would say only what its absence already says.
 
 ### Versioning
 
@@ -169,23 +177,7 @@ export circuit public_key(sk: Bytes<32>, instance: Bytes<32>): Bytes<32> {
 }
 ```
 
-All JSON below is real output of the reference emitter's analyzed mode, which serializes the selected form (see Reference implementation). One type encoding appears throughout, enum members stay by name, and helper circuits stay calls.
-
-The four `ledger` entries use the type encoding. The enum keeps its members, and `Maybe` inlines its fields:
-
-```json
-[
-  { "name": "state", "index": 0, "exported": true, "storage": "Cell",
-    "type": { "type-name": "Enum", "name": "STATE", "elements": ["vacant", "occupied"] } },
-  { "name": "message", "index": 1, "exported": true, "storage": "Cell",
-    "type": { "type-name": "Struct", "name": "Maybe", "elements": [
-      { "name": "is_some", "type": { "type-name": "Boolean" } },
-      { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ] } },
-  { "name": "instance", "index": 2, "exported": true, "storage": "Counter" },
-  { "name": "poster", "index": 3, "exported": true, "storage": "Cell",
-    "type": { "type-name": "Bytes", "length": 32 } }
-]
-```
+All JSON below is real output of the reference emitter. One type encoding appears throughout, enum members stay by name, and helper circuits stay calls.
 
 The witness is a signature only, because the SDK provides the callback at run time:
 
@@ -198,13 +190,14 @@ The `helpers` array carries the bodies of the called circuits: `none`, `public_k
 ```json
 { "name": "some",
   "params": [ { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ],
-  "body": { "op": "seq", "stmts": [] },
-  "result": { "op": "new",
-              "type": { "type-name": "Struct", "name": "Maybe", "elements": [
-                { "name": "is_some", "type": { "type-name": "Boolean" } },
-                { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ] },
-              "elements": [ { "op": "lit", "type": { "type-name": "Boolean" }, "value": "true" },
-                            { "op": "var", "name": "value" } ] } }
+  "body": { "op": "seq", "stmts": [
+    { "op": "expr-stmt",
+      "expr": { "op": "new",
+                "type": { "type-name": "Struct", "name": "Maybe", "elements": [
+                  { "name": "is_some", "type": { "type-name": "Boolean" } },
+                  { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ] },
+                "elements": [ { "op": "lit", "type": { "type-name": "Boolean" }, "value": "true" },
+                              { "op": "var", "name": "value" } ] } } ] } }
 ```
 
 The pure circuit `public_key` keeps its signature, with `pure` true and `proof` false: there is no proof to build for a pure call. Its body is a single `persistentHash` call. The parser folds `pad(32, "bboard:pk:")` to a `Bytes<32>` constant, so even the analyzed form carries the literal:
@@ -230,8 +223,7 @@ The pure circuit `public_key` keeps its signature, with `pure` true and `proof` 
                   { "op": "var", "name": "instance" },
                   { "op": "var", "name": "sk" } ] } ],
             "result-type": { "type-name": "Bytes", "length": 32 } } } ]
-    },
-    "result": null
+    }
   }
 }
 ```
@@ -246,7 +238,7 @@ The impure circuit `take_down` carries a body of three statements: two asserts a
         "ops": [ { "op": "dup", "n": 0 },
                  { "op": "idx", "cached": false, "push-path": false,
                    "path": [ { "tag": "value", "value": "0",
-                               "type": { "type-name": "Uint", "maxval": "255" } } ] },
+                               "type": { "type-name": "Uint", "maxval": 255 } } ] },
                  { "op": "popeq", "cached": false } ],
         "result-type": { "type-name": "Enum", "name": "STATE",
                          "elements": ["vacant", "occupied"] } },
@@ -269,7 +261,7 @@ and the write `state = STATE.vacant`, whose Impact VM ops push the named member 
 { "op": "ledger-query",
   "ops": [ { "op": "push", "storage": false,
              "value": { "tag": "value", "value": "0",
-                        "type": { "type-name": "Uint", "maxval": "255" } } },
+                        "type": { "type-name": "Uint", "maxval": 255 } } },
            { "op": "push", "storage": true,
              "value": { "op": "enum-member",
                         "type": { "type-name": "Enum", "name": "STATE",
@@ -291,13 +283,15 @@ Why the analyzed form (`Lnodisclose`). It is the compiler's existing branch poin
 
 ## Backwards Compatibility
 
-The change is additive. The TypeScript pipeline does not read the new fields, and tools that ignore unknown keys see no change. One caveat: fields that never had a documented schema get one, so a consumer that keyed on an incidental spelling must move to the canonical one. Example: the witness return type is `result-type`, hyphenated, like every other result type in the file.
+The change is additive. Every field this CoIP adds is new, no existing field changes its name, its shape or its meaning, and the TypeScript pipeline reads none of them. A tool that ignores unknown keys sees no difference, including the compiler itself, which reads this file when one contract imports another.
+
+Staying additive is a deliberate constraint, and it is why the new keys follow the spelling of the ones beside them rather than a tidier one (see Open Questions). One caveat remains: fields that never had a documented schema get one, so a consumer that keyed on an incidental spelling must move to the canonical one. The witness return type, for instance, is `result-type`, matching every other result type in the file.
 
 ## Reference implementation
 
-Reference emitter: the [`feat/contract-info-extensions`](https://github.com/RomarQ/compact/tree/feat/contract-info-extensions) branch of `RomarQ/compact`. Its analyzed mode serializes bodies from `Lnodisclose` with the diff confined to [`save-contract-info-passes.ss`](https://github.com/RomarQ/compact/blob/feat/contract-info-extensions/compiler/save-contract-info-passes.ss), as the design requires; the example above is its output. Its default mode still serializes the lowered form (`Lnovectorref`) that the current consumer executes.
+Reference emitter: the [`rp/coip-003`](https://github.com/RomarQ/compact/tree/rp/coip-003) branch of `RomarQ/compact`, whose output the example above is. The change is one rewritten pass, [`save-contract-info-passes.ss`](https://github.com/RomarQ/compact/blob/rp/coip-003/compiler/save-contract-info-passes.ss), and nothing else: the pass list and every other file in the compiler are byte-identical to the commit it branches from.
 
-Reference consumer: the `compact-codegen` (schema), `compact-runtime` (values, builtins, witnesses), and `compact-interpreter` (tree walk and ledger-op driver) crates in [`Moonsong-Labs/midnight-rs`](https://github.com/Moonsong-Labs/midnight-rs). A differential conformance harness runs the interpreter and the generated TypeScript on the same contracts and compares the resulting transcripts. Re-targeting adds loop, helper-call, and named-enum execution to the interpreter; its schema already carries the helper and enum definitions.
+Reference consumer: the `compact-codegen` (schema), `compact-runtime` (values, builtins, witnesses), and `compact-interpreter` (tree walk and ledger-op driver) crates in [`Moonsong-Labs/midnight-rs`](https://github.com/Moonsong-Labs/midnight-rs). It executes every node this format defines. A differential conformance harness runs the interpreter and the generated TypeScript over the same contracts and compares the resulting transcripts, so the corpus covers the loops, the slices, the named enums and the helper calls rather than only parsing them.
 
 This consumer shows what the format buys an SDK. Its `contract!` macro reads `contract-info.json` and generates typed bindings, and the interpreter executes the bodies for deploys and circuit calls. The contract behind the quick start, [`counter.compact`](https://github.com/Moonsong-Labs/midnight-rs/blob/main/devnet/contracts/counter/counter.compact):
 
@@ -367,19 +361,165 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 }
 ```
 
-Remaining work before submission:
+## Open Questions
 
-- Re-target the consumer and the conformance corpus to the analyzed bodies, then make the analyzed mode the emitter default.
-- Emit `contract-info-version` and bump it per the Versioning rules.
-- Rebase the emitter branch onto upstream `main`.
-- Add golden tests in the compiler repo for representative contracts.
-- Write the field-level schema appendix.
-
+**Key naming.** The file mixes three conventions: `type-name` and `result-type` in kebab-case, `tsType` in camelCase, and `maxval` and `elements` as bare words. Five of the eight kebab-case keys predate this proposal, the compiler itself reads them when one contract imports another, and its own tests assert on them, so renaming them is a breaking change to a published format rather than a matter of style. This CoIP therefore follows the existing spelling and stays additive. If the project wants one convention, the coherent move is to normalize every key at once, including `tsType`, and to say so with a major version, which is what `contract-info-version` exists to signal. That is a decision about the whole file, not about adding a body to it, so it belongs to the project rather than to this proposal.
 ## References
 
 - MPS-0022, Language-Agnostic Representation of Compiled Compact Contracts (the problem statement): [midnightntwrk/midnight-improvement-proposals#188](https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0022-standard-contract-representation.md)
-- Reference implementation: https://github.com/RomarQ/compact/tree/feat/contract-info-extensions
+- Reference implementation: https://github.com/RomarQ/compact/tree/rp/coip-003
 - Reference consumer: https://github.com/Moonsong-Labs/midnight-rs (`crates/compact/`)
+
+## Appendix: the schema
+
+This appendix is normative. Every shape below is what the reference emitter produces; the example above is one instance of it.
+
+A consumer must reject a document whose `contract-info-version` has a major it does not implement, and must reject an `op`, a `type-name` or a `tag` it does not recognize, rather than guess. The ledger operation names are the exception: that set is open, and the rule for an unrecognized one is given with them.
+
+### The file
+
+| Field | Type | Meaning |
+|---|---|---|
+| `contract-info-version` | string | Semantic version of this format. The compatibility contract. |
+| `compiler-version` | string | Provenance. Not a compatibility contract. |
+| `language-version` | string | Provenance. |
+| `runtime-version` | string | The on-chain runtime the ledger operations target. |
+| `circuits` | array | One entry per exported circuit. |
+| `helpers` | array | One entry per circuit an exported body calls. |
+| `witnesses` | array | Signature only. The SDK supplies the callback. |
+| `contracts` | array of string | Names of imported contracts. |
+| `ledger` | array | One entry per ledger field. |
+| `constructor` | object or null | The writes a deployment applies. Null when the source writes no constructor. |
+
+A circuit is `{ name, pure, proof, arguments, result-type, ir }`. `arguments` is an array of `{ name, type }`. `ir` is `{ body }`, where `body` is a statement.
+
+A helper is `{ name, params, body }`. `params` matches `arguments`, and `body` matches a circuit's. A consumer evaluates a helper's body for its effects as well as its value, because a called circuit can write the ledger.
+
+A witness is `{ name, arguments, result-type }`.
+
+The constructor is `{ arguments, body }`.
+
+### Statements
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `seq` | `stmts`: array | Execute in order. |
+| `expr-stmt` | `expr` | Evaluate and discard. The value of a body's last one is the circuit's return value. |
+
+### Expressions
+
+Every node is an object whose `op` names it. `expr`, `left`, `right`, `cond`, `then`, `else`, `body`, `init`, `value` and `index` hold expressions unless stated otherwise.
+
+Values and bindings:
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `var` | `name`: string | Read a binding. |
+| `lit` | `type`, `value`: string | Literal. `value` is decimal for a number, `true`/`false` for a Boolean, uppercase hex without a prefix for Bytes. |
+| `default` | `type` | That type's default value. |
+| `enum-member` | `type`, `member`: string | The member's index in the variant list its type carries. |
+| `let-expr` | `bindings`: array of `let`, `body` | Bind in order, then evaluate the body. |
+| `let` | `name`: string, `value` | A binding. Appears in `bindings` and as a statement. |
+
+Arithmetic and comparison, each taking `left` and `right`: `add`, `sub`, `mul`, `eq`, `neq`, `lt`, `le`, `gt`, `ge`.
+
+Control:
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `if-expr` | `cond`, `then`, `else` | Evaluate the condition, then only the branch taken. |
+| `assert` | `expr`, `message`: string | Abort with the message when the value is false. |
+| `map` | `length`: number, `fun`, `args`: array | Evaluate each argument once, then build a tuple of `length` applications of `fun` to element `i` of each. |
+| `fold` | `length`: number, `fun`, `init`, `args`: array | As `map`, threading an accumulator that starts at `init` and is `fun`'s first argument. Iterates from element 0. |
+
+A `fun` is `{ call: string }`, naming an entry in `helpers`, or `{ params, body }`, an inline function whose parameters shadow the enclosing bindings rather than replacing them.
+
+Data:
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `new` | `type`, `elements`: array | Struct literal, in declaration order. |
+| `tuple` | `elements`: array | Tuple or vector literal. Empty is the unit value. |
+| `spread` | `length`: number, `expr` | Splice `length` elements into the surrounding `tuple`. Valid only there. |
+| `field` | `expr`, `name`: string | Struct field. |
+| `index` | `expr`, `index`: number | Tuple or vector element at a constant position. |
+| `vector-index` | `expr`, `index` | Vector element at a computed position. |
+| `bytes-index` | `expr`, `index` | One byte. |
+| `tuple-slice` | `expr`, `index`: number, `length`: number, `type` | `length` elements from a constant offset. `type` is the operand's type, so the offset and length apply to it. |
+| `vector-slice` | `expr`, `index`, `length`: number, `type` | As `tuple-slice`, with a computed offset. The operand is evaluated first. |
+| `bytes-slice` | `expr`, `index`, `length`: number | `length` bytes. The result is `Bytes<length>`. |
+
+Casts, each carrying `expr`:
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `cast` | `from`, `to` | Reinterpret between numeric types and enums. The value is unchanged; the types give the encoding widths. |
+| `field-to-bytes` | `length`: number | A field element as `Bytes<length>`. |
+| `bytes-to-vector` | `length`: number | Bytes as a vector of bytes. |
+| `vector-to-bytes` | `length`: number | The inverse. |
+
+Effects:
+
+| `op` | Fields | Meaning |
+|---|---|---|
+| `call-pure` | `name`: string, `args`: array, `result-type` | A native builtin, or a circuit in `helpers`. A consumer resolves the name against both. |
+| `call-witness` | `name`: string, `args`: array, `result-type` | The application's private-state callback. |
+| `ledger-query` | `ops`: array, `result-type` | Run the operations below against the contract state. |
+| `contract-call` | `circuit`: string, `contract`, `contract-type`, `args`: array | Invoke a circuit on another contract. |
+
+### Types
+
+One encoding, tagged `type-name`, used everywhere a type appears.
+
+| `type-name` | Fields | Meaning |
+|---|---|---|
+| `Boolean` | | |
+| `Field` | | A field element. |
+| `Uint` | `maxval`: number | Inclusive upper bound. Reaches 2^248-1, so parse with arbitrary precision. |
+| `Bytes` | `length`: number | |
+| `Opaque` | `tsType`: string | A value the contract does not interpret. |
+| `Vector` | `length`: number, `type` | |
+| `Tuple` | `types`: array | The empty tuple is the unit type. |
+| `Struct` | `name`: string, `elements`: array of `{ name, type }` | Carries its own layout: a name does not determine one, because two instantiations of a generic struct share a name and differ in shape. |
+| `Enum` | `name`: string, `elements`: array of string | Variants in declaration order. The value is the index. |
+| `Alias` | `name`: string, `type` | A nominal alias. Transparent ones are already resolved. |
+| `Contract` | `name`: string | A handle to another contract. |
+
+A ledger field's type is its storage kind, `Cell`, `Counter`, `Map`, `Set`, `List`, `MerkleTree` or `HistoricMerkleTree`, under `type-name` when it appears as a type and under `storage` in a `ledger` entry. `Cell`, `Set` and `List` carry `type`; `Map` carries `key` and `value`; the trees carry `depth` and `type`; `Counter` carries nothing.
+
+### Ledger operations
+
+The entries of a `ledger-query`'s `ops`, in order, as the compiler expands one ledger operation. Their encoding tracks `runtime-version`.
+
+| `op` | Fields |
+|---|---|
+| `idx` | `cached`: bool, `push-path`: bool, `path`: array of path element |
+| `ins` | `cached`: bool, `n`: number |
+| `rem` | `cached`: bool |
+| `popeq` | `cached`: bool |
+| `push` | `storage`: bool, `value`: operand |
+| `addi` | `immediate`: operand |
+| `dup` | `n`: number |
+| `noop` | `n`: number |
+| `member`, `root`, `eq`, `ckpt` | none |
+
+This set is open. Any other operation of the on-chain runtime appears under its own name with its arguments as given, so a consumer that does not recognize one must refuse the document rather than skip the operation: an omitted operation is a different program.
+
+A path element is one of:
+
+| `tag` | Fields | Meaning |
+|---|---|---|
+| `value` | `value`: string, `type` | A constant. |
+| `var` | `name`: string | The value of a binding. |
+| `expr` | `expr` | A computed index. |
+| `stack` | | The value already on the stack. |
+
+An operand of `push` or `addi` is one of four kinds, each with its own key so a consumer can tell them apart without context: a path element (`tag`), an expression to evaluate (`op`), a structured state value (`state`, which is what resetting a field to its default pushes), or a value to compute (`vm`).
+
+| Key | Values |
+|---|---|
+| `state` | `array` with `values`; `map` with `entries` of `{ key, value }`; `merkle-tree` with `depth` and `entries` |
+| `vm` | `add` with `left` and `right`; `aligned-concat` with `values`; `null`, `max-sizeof`, `leaf-hash` each with `value`; `coin-commit` with `coin` and `recipient` |
 
 ## Copyright
 
