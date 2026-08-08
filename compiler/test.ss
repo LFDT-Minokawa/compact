@@ -72612,7 +72612,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -72706,7 +72708,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -72809,7 +72813,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -72932,7 +72938,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -75381,7 +75389,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -75892,6 +75902,15 @@ groups than for single tests.
         "  { tag: 'publicLedgerArray', indices: { } };"
         "export const expectedVk = {};"
         ""
+        "export const circuitSignatures = {"
+        "  'set': {pure: false, provable: true, argumentTypes: [{tag: 'Field'}], resultType: {tag: 'Tuple', types: []}},"
+        "  'get': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Struct', name: 'Maybe', elements: [{name: 'is_some', type: {tag: 'Boolean'}}, {name: 'value', type: {tag: 'Field'}}]}},"
+        "  'clear': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Tuple', types: []}},"
+        "  'public_key': {pure: true, provable: false, argumentTypes: [{tag: 'Bytes', length: 32}], resultType: {tag: 'Bytes', length: 32}},"
+        "};"
+        ""
+        "export const declaredInterfaces = {};"
+        ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -75901,7 +75920,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;\""        "}"
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;\""        "}"
         ))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -76358,7 +76377,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -76425,7 +76446,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -76485,7 +76508,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -76577,7 +76602,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
@@ -77331,7 +77358,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 
   (test
@@ -77639,7 +77668,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 
   (test
@@ -78324,7 +78355,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 
   (test
@@ -79244,7 +79277,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86589,7 +86624,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86652,7 +86689,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86715,7 +86754,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86775,7 +86816,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86841,7 +86884,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -86930,7 +86975,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88026,7 +88073,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 
   (test
@@ -89336,7 +89385,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -89525,6 +89576,12 @@ groups than for single tests.
         "export const contractReferenceLocations ="
         "  { tag: 'publicLedgerArray', indices: { } };"
         "export const expectedVk = {};"
+        ""
+        "export const circuitSignatures = {"
+        "  'foo': {pure: false, provable: true, argumentTypes: [], resultType: {tag: 'Tuple', types: []}},"
+        "};"
+        ""
+        "export const declaredInterfaces = {};"
         ""
         "//# sourceMappingURL=index.js.map"))
     )
@@ -91060,7 +91117,9 @@ groups than for single tests.
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
-        "export declare const expectedVk: Record<string, string>;"))
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
 )
 
@@ -92461,6 +92520,232 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger n: Uint<64>;"
+      "witness w(): Field;"
+      "export circuit impureProvable(b: Boolean, f: Field, u: Uint<128>, y: Bytes<32>): [] {"
+      "  n = disclose(1 as Uint<64>);"
+      "}"
+      "export pure circuit pureNotProvable(): Field { return 0 as Field; }"
+      "export circuit witnessOnly(): Field { return disclose(w()); }"
+      "export circuit noArgs(): [] { n = disclose(2 as Uint<64>); }"
+      "circuit helper(): Uint<64> { return 3 as Uint<64>; }"
+      "export circuit usesHelper(): [] { n = disclose(helper()); }"
+      )
+    (stage-javascript
+      '(
+        "test('circuitSignatures covers exactly the exported circuits', () => {"
+        "  const s = contractCode.circuitSignatures;"
+        "  expect(Object.keys(s).sort()).toEqual("
+        "    ['impureProvable', 'noArgs', 'pureNotProvable', 'usesHelper', 'witnessOnly']);"
+        "  expect(s.helper).toBeUndefined();"
+        "});"
+        "test('pure and provable are independent', () => {"
+        "  const s = contractCode.circuitSignatures;"
+        "  expect([s.impureProvable.pure, s.impureProvable.provable]).toEqual([false, true]);"
+        "  expect([s.pureNotProvable.pure, s.pureNotProvable.provable]).toEqual([true, false]);"
+        "  expect([s.witnessOnly.pure, s.witnessOnly.provable]).toEqual([false, false]);"
+        "});"
+        "test('primitive tags and the empty argument list', () => {"
+        "  const s = contractCode.circuitSignatures;"
+        "  expect(s.impureProvable.argumentTypes).toEqual(["
+        "    {tag: 'Boolean'},"
+        "    {tag: 'Field'},"
+        "    {tag: 'Uint', maxval: (2n ** 128n - 1n).toString()},"
+        "    {tag: 'Bytes', length: 32}]);"
+        "  expect(s.noArgs.argumentTypes).toEqual([]);"
+        "  expect(s.noArgs.resultType).toEqual({tag: 'Tuple', types: []});"
+        "});"
+        "test('Uint bounds are exact decimal strings', () => {"
+        "  const u = contractCode.circuitSignatures.impureProvable.argumentTypes[2];"
+        "  if (u.tag !== 'Uint') throw new Error(`expected a Uint, got ${u.tag}`);"
+        "  expect(typeof u.maxval).toEqual('string');"
+        "  expect(u.maxval).toEqual('340282366920938463463374607431768211455');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit curves(a: JubjubScalar,"
+      "                           b: JubjubPoint,"
+      "                           c: Secp256k1Base,"
+      "                           d: Secp256k1Scalar,"
+      "                           e: Secp256k1Point): [] { }"
+      )
+    (stage-javascript curveCode
+      '(
+        "test('curve leaf tags', () => {"
+        "  expect(curveCode.circuitSignatures.curves.argumentTypes).toEqual(["
+        "    {tag: 'JubjubScalar'},"
+        "    {tag: 'JubjubPoint'},"
+        "    {tag: 'Secp256k1Base'},"
+        "    {tag: 'Secp256k1Scalar'},"
+        "    {tag: 'Secp256k1Point'}]);"
+        "});"
+        "test('an absent declaredInterfaces is an empty object', () => {"
+        "  expect(curveCode.declaredInterfaces).toEqual({});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export struct Inner { f: Field }"
+      "export struct Outer { i: Inner, b: Boolean }"
+      "export enum Color { red, green, blue }"
+      "export new type Nominal = Bytes<8>;"
+      "export type Transparent = Field;"
+      "export pure circuit composites(o: Outer,"
+      "                               c: Color,"
+      "                               nm: Nominal,"
+      "                               tr: Transparent): Inner {"
+      "  return Inner { f: 0 as Field };"
+      "}"
+      "export pure circuit aliasInStruct(v: Vector<2, Nominal>): [] { }"
+      )
+    (stage-javascript structCode
+      '(
+        "test('struct nesting', () => {"
+        "  const s = structCode.circuitSignatures;"
+        "  expect(s.composites.argumentTypes[0]).toEqual({"
+        "    tag: 'Struct', name: 'Outer', elements: ["
+        "      {name: 'i', type: {tag: 'Struct', name: 'Inner',"
+        "                         elements: [{name: 'f', type: {tag: 'Field'}}]}},"
+        "      {name: 'b', type: {tag: 'Boolean'}}]});"
+        "  expect(s.composites.resultType).toEqual({"
+        "    tag: 'Struct', name: 'Inner',"
+        "    elements: [{name: 'f', type: {tag: 'Field'}}]});"
+        "});"
+        "test('enum encoding preserves declaration order', () => {"
+        "  expect(structCode.circuitSignatures.composites.argumentTypes[1]).toEqual({"
+        "    tag: 'Enum', name: 'Color', elements: ['red', 'green', 'blue']});"
+        "});"
+        "test('a nominal alias survives, a transparent one is erased', () => {"
+        "  const s = structCode.circuitSignatures;"
+        "  expect(s.composites.argumentTypes[2]).toEqual({"
+        "    tag: 'Alias', name: 'Nominal', type: {tag: 'Bytes', length: 8}});"
+        "  expect(s.composites.argumentTypes[3]).toEqual({tag: 'Field'});"
+        "});"
+        "test('a nominal alias nests', () => {"
+        "  expect(structCode.circuitSignatures.aliasInStruct.argumentTypes[0]).toEqual({"
+        "    tag: 'Vector', length: 2,"
+        "    type: {tag: 'Alias', name: 'Nominal', type: {tag: 'Bytes', length: 8}}});"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit same(v: Vector<3, Field>, t: [Field, Field, Field]): [] { }"
+      "export pure circuit hetero(h: [Field, Boolean]): [] { }"
+      "export pure circuit ones(v: Vector<1, Boolean>, t: [Boolean]): [] { }"
+      "export pure circuit nested(v: Vector<2, Vector<2, Field>>,"
+      "                           t: [[Field, Field], [Field, Field]]): [] { }"
+      "export pure circuit mixed(m: Vector<2, [Field, Boolean]>): [] { }"
+      "export pure circuit zeros(zf: Vector<0, Field>, zb: Vector<0, Boolean>): [] { }"
+      "export pure circuit unit(u: []): [] { }"
+      )
+    (stage-javascript vecCode
+      '(
+        "test('a vector and an equivalent tuple encode alike', () => {"
+        "  const s = vecCode.circuitSignatures;"
+        "  const canonical = {tag: 'Vector', length: 3, type: {tag: 'Field'}};"
+        "  expect(s.same.argumentTypes[0]).toEqual(canonical);"
+        "  expect(s.same.argumentTypes[1]).toEqual(canonical);"
+        "});"
+        "test('a heterogeneous tuple stays a Tuple', () => {"
+        "  expect(vecCode.circuitSignatures.hetero.argumentTypes[0]).toEqual({"
+        "    tag: 'Tuple', types: [{tag: 'Field'}, {tag: 'Boolean'}]});"
+        "});"
+        "test('canonicalization applies at length one', () => {"
+        "  const s = vecCode.circuitSignatures;"
+        "  const canonical = {tag: 'Vector', length: 1, type: {tag: 'Boolean'}};"
+        "  expect(s.ones.argumentTypes[0]).toEqual(canonical);"
+        "  expect(s.ones.argumentTypes[1]).toEqual(canonical);"
+        "});"
+        "test('canonicalization is applied recursively', () => {"
+        "  const s = vecCode.circuitSignatures;"
+        "  const inner = {tag: 'Vector', length: 2, type: {tag: 'Field'}};"
+        "  const outer = {tag: 'Vector', length: 2, type: inner};"
+        "  expect(s.nested.argumentTypes[0]).toEqual(outer);"
+        "  expect(s.nested.argumentTypes[1]).toEqual(outer);"
+        "  expect(s.mixed.argumentTypes[0]).toEqual({"
+        "    tag: 'Vector', length: 2,"
+        "    type: {tag: 'Tuple', types: [{tag: 'Field'}, {tag: 'Boolean'}]}});"
+        "});"
+        "test('zero-length sequences all encode as the empty tuple', () => {"
+        "  const s = vecCode.circuitSignatures;"
+        "  const empty = {tag: 'Tuple', types: []};"
+        "  expect(s.unit.argumentTypes[0]).toEqual(empty);"
+        "  expect(s.zeros.argumentTypes[0]).toEqual(empty);"
+        "  expect(s.zeros.argumentTypes[1]).toEqual(empty);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit op(s: Opaque<'string'>): [] { }"
+      )
+    (stage-javascript opaqueCode
+      '(
+        "test('Opaque carries its TypeScript type name', () => {"
+        "  const t = opaqueCode.circuitSignatures.op.argumentTypes[0];"
+        "  if (t.tag !== 'Opaque') throw new Error(`expected an Opaque, got ${t.tag}`);"
+        "  expect(typeof t.tsType).toEqual('string');"
+        "  expect(t.tsType).toContain('string');"
+        "});"
+        ))
+    )
+
+  (test-group
+    ((create-file "Adder.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit addTo(n: Uint<64>): Uint<64> { return n; }"
+         ))
+     (stage-javascript Adder '()))
+    ((create-file "testfile.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "contract Adder {"
+         "  circuit addTo(n: Uint<64>): Uint<64>;"
+         "  pure circuit peek(): Field;"
+         "}"
+         "ledger a: Adder;"
+         "constructor(x: Adder) { a = disclose(x); }"
+         "export circuit useAdder(): Uint<64> { return a.addTo(1 as Uint<64>); }"
+         "export pure circuit takesAdder(z: Adder): [] { }"
+         ))
+     (stage-javascript
+       '(
+         "test('declaredInterfaces records the contract types called through', () => {"
+         "  const d = contractCode.declaredInterfaces;"
+         "  expect(Object.keys(d)).toEqual(['Adder']);"
+         "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
+         "  expect(d.Adder.addTo.pure).toEqual(false);"
+         "  expect(d.Adder.peek.pure).toEqual(true);"
+         "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
+         "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
+         "  expect(d.Adder.addTo.resultType).toEqual(u64);"
+         "  expect(d.Adder.peek.argumentTypes).toEqual([]);"
+         "});"
+         "test('a contract type in argument position', () => {"
+         "  const c = contractCode.circuitSignatures.takesAdder.argumentTypes[0];"
+         "  if (c.tag !== 'Contract') throw new Error(`expected a Contract, got ${c.tag}`);"
+         "  expect(c.name).toEqual('Adder');"
+         "  expect(c.circuits).toEqual(contractCode.declaredInterfaces.Adder);"
+         "});"
+         ))))
+
 )
 
 (run-javascript)
