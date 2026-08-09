@@ -33,7 +33,7 @@ The Compact compiler emits the off-chain half of a compiled contract only as gen
 
 ## Motivation
 
-The only first-class way to use a compiled contract today is the generated TypeScript plus `@midnight-ntwrk/compact-runtime`. An SDK in another language must embed a JavaScript engine, or reimplement the TypeScript backend and track compiler internals release after release. Both are workarounds for the same gap: no language-neutral artifact describes what a circuit does off-chain.
+The only first-class way to use a compiled contract today is the generated TypeScript plus `@midnight-ntwrk/compact-runtime`. An SDK in another language must embed a JavaScript engine.
 
 Off-chain execution is half of every contract call. Before an SDK can prove anything, it must run the circuit body locally: apply the ledger operations to the contract state, call witnesses (the application's private-state callbacks), and record the public transcript (the ledger reads and writes the transaction declares). That run also produces the proof preimage, the input the prover feeds to ZKIR. ZKIR is already versioned and language-neutral, but it sits after this step: it consumes the preimage, and it does not build transcripts, call witnesses, or read contract state.
 
@@ -108,27 +108,27 @@ The body is a tree of statements and expressions. Each node is a JSON object tag
 - casts
 - effects: witness calls, helper-circuit calls, ledger operations, and cross-contract calls
 
-Enum members and helper circuits stay by name; nothing is unrolled or inlined. The example below shows the node shapes (`var`, `lit`, `assert`, `eq`, `tuple`, `new`, `enum-member`, `call-pure`, `call-witness`, `ledger-query`, and so on). The appendix lists every one.
+Enum members and helper circuits stay by name; nothing is unrolled or inlined. The example below shows the node shapes (`var`, `lit`, `assert`, `eq`, `tuple`, `enum-member`, `call-pure`, `call-witness`, `ledger-query`, and so on). The appendix lists every one.
 
 A `ledger-query` holds the ordered Impact VM ops (`idx`, `push`, `addi`, `ins`, `popeq`, and so on) that the compiler already expands for one ledger ADT operation. Their encoding tracks the on-chain runtime named by `runtime-version`. The appendix defines each operation and its operand kinds.
 
 ### Types
 
-One encoding, keyed on `type-name`, serves the whole file: structs inline their fields, and enums list their members. A consumer derives each value's byte layout from its type, so the format needs no side table of struct layouts. A `Uint` carries its `maxval` as a JSON number, which is also what the compiler itself reads when one contract imports another. The bound reaches 2^248-1, the largest integer that fits in the field's 31 full bytes. A consumer must parse it with arbitrary precision; a parser that reads every JSON number as a double corrupts it silently.
+One encoding, keyed on `type-name`, serves the whole file: structs inline their fields, and enums list their members.
 
 ### The ledger layout
 
-Each `ledger` entry describes one field of the contract state: its `name`, its `index` in the state, whether it is `exported`, its ledger ADT kind (`Cell`, `Counter`, `Map`, `Set`, `List`, `MerkleTree`, or `HistoricMerkleTree`), and the kind's element types in the type encoding.
+Each `ledger` entry describes one field of the contract state: its `name`, its `index` in the state, whether it is `exported`, its ledger ADT kind (`Cell`, `Counter`, `Map`, `Set`, `List`, `MerkleTree`, or `HistoricMerkleTree`), and the kind's element types.
 
 ### The constructor
 
 A deployment starts from the default value of every ledger field, which a consumer derives from the layout above. `constructor` carries what the source writes on top of that: the statements, in the same tree the circuits use, and the deploy-time `arguments` the caller supplies. It is a set of writes, not the whole initial state, and it touches only the fields the source assigns. A consumer must apply both, in that order.
 
-`constructor` is `null` when the source writes no constructor, because a constructor that takes nothing and writes nothing would say only what its absence already says.
+`constructor` is `null` when the source writes no constructor.
 
 ### Versioning
 
-`contract-info-version` is a semantic version of this format, and it starts at `0.1.0`. An additive change (a new op, a new optional field) bumps minor. A change that removes or repurposes anything, or changes the meaning of an existing op, bumps major. A consumer refuses an unknown major and fails closed on an unknown `op`. The field is independent of `compiler-version`: a compiler release that does not touch the schema does not bump it. While the version stays at `0.x`, a minor bump can still break.
+`contract-info-version` is a semantic version of this format, and it starts at `0.1.0`. An additive change (a new op, a new optional field) bumps minor. A change that removes or repurposes anything, or changes the meaning of an existing op, bumps major. A consumer refuses an unknown major and fails closed on an unknown `op`.
 
 ### Example: the bulletin-board contract
 
@@ -177,7 +177,7 @@ export circuit public_key(sk: Bytes<32>, instance: Bytes<32>): Bytes<32> {
 }
 ```
 
-All JSON below is real output of the reference emitter. One type encoding appears throughout, enum members stay by name, and helper circuits stay calls.
+All JSON below is real output of the reference emitter.
 
 The witness is a signature only, because the SDK provides the callback at run time:
 
@@ -185,20 +185,7 @@ The witness is a signature only, because the SDK provides the callback at run ti
 { "name": "local_secret_key", "arguments": [], "result-type": { "type-name": "Bytes", "length": 32 } }
 ```
 
-The `helpers` array carries the bodies of the called circuits: `none`, `public_key`, and `some` here. The `some` entry shows one in full, with the `Maybe` construction the interpreter evaluates when `post` stores a message:
-
-```json
-{ "name": "some",
-  "params": [ { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ],
-  "body": { "op": "seq", "stmts": [
-    { "op": "expr-stmt",
-      "expr": { "op": "new",
-                "type": { "type-name": "Struct", "name": "Maybe", "elements": [
-                  { "name": "is_some", "type": { "type-name": "Boolean" } },
-                  { "name": "value", "type": { "type-name": "Opaque", "tsType": "string" } } ] },
-                "elements": [ { "op": "lit", "type": { "type-name": "Boolean" }, "value": "true" },
-                              { "op": "var", "name": "value" } ] } } ] } }
-```
+The `helpers` array carries the bodies of the called circuits: `public_key` here.
 
 The pure circuit `public_key` keeps its signature, with `pure` true and `proof` false: there is no proof to build for a pure call. Its body is a single `persistentHash` call. The parser folds `pad(32, "bboard:pk:")` to a `Bytes<32>` constant, so even the analyzed form carries the literal:
 
@@ -275,25 +262,33 @@ An interpreter walks the body, runs each `ledger-query` against the contract sta
 
 ## Rationale
 
-Why not ZKIR. Both run off-chain. The difference is altitude, as the diagram in Motivation shows: this format produces the transcript and the preimage, and ZKIR consumes the preimage to prove. ZKIR is also flattened to field-level operations and untyped at the Compact level, so interpreting it to rebuild transcript-level semantics is strictly harder than interpreting the structured body. The two stay decoupled: the compiler takes the `ir` before the flattening passes that feed ZKIR, so a ZKIR release does not touch this format.
+- **Why not ZKIR? Both run off-chain.**
 
-Why inside `contract-info.json`. The file already exists, and it already carries the signatures and the ledger layout an interpreter needs next to the body. A second artifact would force consumers to correlate two files and two version numbers.
+  The difference is altitude, as the diagram in Motivation shows: this format produces the transcript and the preimage, and ZKIR consumes the preimage to prove.
 
-Why the analyzed form (`Lnodisclose`). It is the compiler's existing branch point: `contract-info.json` is already written there, and the TypeScript backend generates from there. So the emitter change stays inside the `save-contract-info` pass, and the compilation pipeline does not change. One type encoding serves the whole file, and bodies stay near source size. The semantics an interpreter must implement (loops, helper calls, enums, casts) is the one the generated TypeScript already executes, so the canonical behavior is well defined, and a differential harness checks an interpreter against it. The alternative is the lowered form one stage down (`Lnovectorref`), which makes each interpreter smaller because the compiler has already unrolled loops, inlined helpers, and resolved enums. But exposing that form means the compiler restructures its circuit pipeline, and the unrolled bodies grow large. The reference implementation started there; this CoIP selects the analyzed form to keep the compiler ask minimal.
+- **Why inside `contract-info.json`?**
+
+  The file already exists, and it already carries the signatures and the ledger layout an interpreter needs next to the body. A second artifact would force consumers to correlate two files and two version numbers.
+
+- **Why the analyzed form (`Lnodisclose`)?**
+  
+  It is the compiler's existing branch point: `contract-info.json` is already written there, and the TypeScript backend generates from there. So the emitter change stays inside the `save-contract-info` pass, and the compilation pipeline does not change.
 
 ## Backwards Compatibility
 
-The change is additive. Every field this CoIP adds is new, no existing field changes its name, its shape or its meaning, and the TypeScript pipeline reads none of them. A tool that ignores unknown keys sees no difference, including the compiler itself, which reads this file when one contract imports another.
-
-Staying additive is a deliberate constraint, and it is why the new keys follow the spelling of the ones beside them rather than a tidier one (see Open Questions). One caveat remains: fields that never had a documented schema get one, so a consumer that keyed on an incidental spelling must move to the canonical one. The witness return type, for instance, is `result-type`, matching every other result type in the file.
+The change is additive. Every field this CoIP adds is new, no existing field changes its name, its shape or its meaning, and the TypeScript pipeline reads none of them.
 
 ## Reference implementation
 
 Reference emitter: the [`rp/coip-003`](https://github.com/RomarQ/compact/tree/rp/coip-003) branch of `RomarQ/compact`, whose output the example above is. The change is one rewritten pass, [`save-contract-info-passes.ss`](https://github.com/RomarQ/compact/blob/rp/coip-003/compiler/save-contract-info-passes.ss), and nothing else: the pass list and every other file in the compiler are byte-identical to the commit it branches from.
 
-Reference consumer: the `compact-codegen` (schema), `compact-runtime` (values, builtins, witnesses), and `compact-interpreter` (tree walk and ledger-op driver) crates in [`Moonsong-Labs/midnight-rs`](https://github.com/Moonsong-Labs/midnight-rs). It executes every node this format defines. A differential conformance harness runs the interpreter and the generated TypeScript over the same contracts and compares the resulting transcripts, so the corpus covers the loops, the slices, the named enums and the helper calls rather than only parsing them.
+Reference consumer: [`Moonsong-Labs/midnight-rs`](https://github.com/Moonsong-Labs/midnight-rs) provides crates for consuming the `contract-info.json` artifact and allow Rust applications to deploy and call Compact contracts.
 
-This consumer shows what the format buys an SDK. Its `contract!` macro reads `contract-info.json` and generates typed bindings, and the interpreter executes the bodies for deploys and circuit calls. The contract behind the quick start, [`counter.compact`](https://github.com/Moonsong-Labs/midnight-rs/blob/main/devnet/contracts/counter/counter.compact):
+- `compact-codegen` (schema);
+- `compact-runtime` (values, builtins, witnesses)
+- `compact-interpreter` (tree walk and ledger-op driver)
+
+The quick start contract, [`counter.compact`](https://github.com/Moonsong-Labs/midnight-rs/blob/main/devnet/contracts/counter/counter.compact):
 
 ```compact
 import CompactStandardLibrary;
@@ -363,7 +358,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
 ## Open Questions
 
-**Key naming.** The file mixes three conventions: `type-name` and `result-type` in kebab-case, `tsType` in camelCase, and `maxval` and `elements` as bare words. Five of the eight kebab-case keys predate this proposal, the compiler itself reads them when one contract imports another, and its own tests assert on them, so renaming them is a breaking change to a published format rather than a matter of style. This CoIP therefore follows the existing spelling and stays additive. If the project wants one convention, the coherent move is to normalize every key at once, including `tsType`, and to say so with a major version, which is what `contract-info-version` exists to signal. That is a decision about the whole file, not about adding a body to it, so it belongs to the project rather than to this proposal.
+**Key naming.** The file mixes three conventions: `type-name` and `result-type` in kebab-case and `tsType` in camelCase. Five of the eight kebab-case keys predate this proposal, the compiler itself reads them when one contract imports another, and its own tests assert on them, so renaming them is a breaking change to a published format rather than a matter of style. This CoIP therefore follows the existing spelling and stays additive. Should every key use `snake_case` or `camelCase` instead, since it is a better JSON format?
+
 ## References
 
 - MPS-0022, Language-Agnostic Representation of Compiled Compact Contracts (the problem statement): [midnightntwrk/midnight-improvement-proposals#188](https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0022-standard-contract-representation.md)
@@ -462,7 +458,7 @@ Effects:
 
 | `op` | Fields | Meaning |
 |---|---|---|
-| `call-pure` | `name`: string, `args`: array, `result-type` | A native builtin, or a circuit in `helpers`. A consumer resolves the name against both. |
+| `call-pure` | `name`: string, `args`: array, `result-type` | A circuit in `helpers`, or a native builtin. A name in `helpers` wins, so a circuit that shadows a builtin resolves to the circuit. |
 | `call-witness` | `name`: string, `args`: array, `result-type` | The application's private-state callback. |
 | `ledger-query` | `ops`: array, `result-type` | Run the operations below against the contract state. |
 | `contract-call` | `circuit`: string, `contract`, `contract-type`, `args`: array | Invoke a circuit on another contract. |
