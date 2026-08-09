@@ -29,7 +29,9 @@ Replaces: none
 
 ## Abstract
 
-The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a language-agnostic description of each circuit's body to `contract-info.json`, the machine-readable file the compiler already writes: a typed body per circuit (`ir`), the bodies of the helper circuits they call (`helpers`), the writes a deployment applies (`constructor`), and a format version. The bodies serialize from the compiler's analyzed form (`Lnodisclose`), so the whole compiler change stays inside the pass that already writes the file. With these, an SDK in any language can execute circuits locally with a small interpreter, instead of embedding a JavaScript engine. A reference emitter and a reference consumer (in Rust) run the approach end to end: the consumer executes the bodies and a differential harness compares its transcripts with the ones the canonical TypeScript runtime produces. This draft describes the design, to start the discussion. The appendix states the exact schema.
+The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a language-agnostic description of each circuit's body to `contract-info.json`, the machine-readable file the compiler already writes: a typed body per circuit and a format version. The bodies serialize from the compiler's analyzed form (`Lnodisclose`), so the whole compiler change stays inside the pass that already writes the file. With these, an SDK in any language can execute circuits locally with a small interpreter, instead of embedding a JavaScript engine. 
+
+This draft describes the design, to start the discussion. The [appendix](#appendix-the-schema) states the exact schema.
 
 ## Motivation
 
