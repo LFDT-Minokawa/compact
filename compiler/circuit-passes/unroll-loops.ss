@@ -18,7 +18,11 @@
 (define-pass unroll-loops : Lnoenums (ir) -> Lunrolled ()
   (definitions
     (define (same-curve-type? ctype1 ctype2)
-      (nanopass-case (Lunrolled Curve-Type) ctype1
+      (strict-nanopass-case (Lunrolled Curve-Type) ctype1
+        [(curve-curve25519)
+         (nanopass-case (Lunrolled Curve-Type) ctype2
+           [(curve-curve25519) #t]
+           [else #f])]
         [(curve-jubjub)
          (nanopass-case (Lunrolled Curve-Type) ctype2
            [(curve-jubjub) #t]
@@ -26,9 +30,13 @@
         [(curve-secp256k1)
          (nanopass-case (Lunrolled Curve-Type) ctype2
            [(curve-secp256k1) #t]
+           [else #f])]
+        [(curve-secp256r1)
+         (nanopass-case (Lunrolled Curve-Type) ctype2
+           [(curve-secp256r1) #t]
            [else #f])]))
     (define (same-field-type? ftype1 ftype2)
-      (nanopass-case (Lunrolled Field-Type) ftype1
+      (strict-nanopass-case (Lunrolled Field-Type) ftype1
         [(field-native)
          (nanopass-case (Lunrolled Field-Type) ftype2
            [(field-native) #t]

@@ -902,6 +902,314 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests unroll-loops
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Secp256r1Scalar>, x: Secp256r1Scalar): Secp256r1Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-secp256r1))))]
+                         [%x.3 (tfield (field-scalar (curve-secp256r1)))])
+             (tfield (field-scalar (curve-secp256r1)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-secp256r1)))]
+                           [%x.6 (tfield (field-scalar (curve-secp256r1)))])
+                      (tfield (field-scalar (curve-secp256r1)))
+                   (* (tfield (field-scalar (curve-secp256r1))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-secp256r1)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-secp256r1))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
+  )
+
+(run-tests print-zkir-v3
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test0(b: Secp256r1Base): Secp256r1Base {"
+      "  wantProof = true;"
+      "  return b;"
+      "}"
+      "export circuit test1(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  wantProof = true;"
+      "  return s;"
+      "}"
+      )
+    (pass-returns parse-file
+      (program
+        (import CompactStandardLibrary () "")
+        (public-ledger-declaration #f #f wantProof (tboolean))
+        (circuit #t #f test0 () ([b (type-ref Secp256r1Base)])
+             (type-ref Secp256r1Base)
+          (block (= wantProof #t) (return b)))
+        (circuit #t #f test1 () ([s (type-ref Secp256r1Scalar)])
+             (type-ref Secp256r1Scalar)
+          (block (= wantProof #t) (return s)))))
+    (output-file "compiler/testdir/zkir/test0.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%b.0\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/test1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%s.0\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; (test
+  ;;   '(
+  ;;     "import CompactStandardLibrary;"
+  ;;     "ledger wantProof: Boolean;"
+  ;;     "export circuit test(s: Secp256r1Scalar): [Secp256r1Scalar, Secp256r1Scalar] {"
+  ;;     "  wantProof = true;"
+  ;;     "  return [neg(s), inv(s)];"
+  ;;     "}"
+  ;;     )
+  ;;   (output-file "compiler/testdir/zkir/test.zkir"
+  ;;     '(
+  ;;       "{"
+  ;;       "  \"version\": { \"major\": 3, \"minor\": 0 },"
+  ;;       "  \"do_communications_commitment\": true,"
+  ;;       "  \"inputs\": ["
+  ;;       "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
+  ;;       "  ],"
+  ;;       "  \"outputs\": ["
+  ;;       "    \"Scalar<Secp256r1>\","
+  ;;       "    \"Scalar<Secp256r1>\""
+  ;;       "  ],"
+  ;;       "  \"instructions\": ["
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+  ;;       "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+  ;;       "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+  ;;       "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+  ;;       "  ]"
+  ;;       "}"))
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "import { Secp256r1Scalar } from CompactStandardLibrary;"
+  ;;     "ledger wantProof: Boolean;"
+  ;;     "export circuit test(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+  ;;     "  wantProof = true;"
+  ;;     "  return s0 * s1;"
+  ;;     "}"
+  ;;     )
+  ;;   (output-file "compiler/testdir/zkir/test.zkir"
+  ;;     '(
+  ;;       "{"
+  ;;       "  \"version\": { \"major\": 3, \"minor\": 0 },"
+  ;;       "  \"do_communications_commitment\": true,"
+  ;;       "  \"inputs\": ["
+  ;;       "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256r1>\" },"
+  ;;       "    { \"name\": \"%s1.1\", \"type\": \"Scalar<Secp256r1>\" }"
+  ;;       "  ],"
+  ;;       "  \"outputs\": ["
+  ;;       "    \"Scalar<Secp256r1>\""
+  ;;       "  ],"
+  ;;       "  \"instructions\": ["
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+  ;;       "    { \"op\": \"mul\", \"output\": \"%t.2\", \"a\": \"%s0.0\", \"b\": \"%s1.1\" },"
+  ;;       "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+  ;;       "  ]"
+  ;;       "}"))
+  ;;   )
+
+  ;; (test
+  ;;   '(
+  ;;     "import CompactStandardLibrary;"
+  ;;     "ledger wantProof: Boolean;"
+  ;;     "export circuit test(r: Secp256r1Scalar, s: Secp256r1Scalar,"
+  ;;     "                    z: Secp256r1Scalar,"
+  ;;     "                    pk: Secp256r1Point)"
+  ;;     "    : Secp256r1Point {"
+  ;;     "  wantProof = true;"
+  ;;     "  const w = inv(s);"
+  ;;     "  const u1 = z * w;"
+  ;;     "  const u2 = r * w;"
+  ;;     "  return ecAdd(ecMulGenerator(u1), ecMul(pk, u2));"
+  ;;     "}"
+  ;;     )
+  ;;   (output-file "compiler/testdir/zkir/test.zkir"
+  ;;     '(
+  ;;       "{"
+  ;;       "  \"version\": { \"major\": 3, \"minor\": 0 },"
+  ;;       "  \"do_communications_commitment\": true,"
+  ;;       "  \"inputs\": ["
+  ;;       "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256r1>\" },"
+  ;;       "    { \"name\": \"%s.1\", \"type\": \"Scalar<Secp256r1>\" },"
+  ;;       "    { \"name\": \"%z.2\", \"type\": \"Scalar<Secp256r1>\" },"
+  ;;       "    { \"name\": \"%pk.3\", \"type\": \"Point<Secp256r1>\" }"
+  ;;       "  ],"
+  ;;       "  \"outputs\": ["
+  ;;       "    \"Point<Secp256r1>\""
+  ;;       "  ],"
+  ;;       "  \"instructions\": ["
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+  ;;       "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+  ;;       "    { \"op\": \"inv\", \"output\": \"%w.4\", \"a\": \"%s.1\" },"
+  ;;       "    { \"op\": \"mul\", \"output\": \"%u1.5\", \"a\": \"%z.2\", \"b\": \"%w.4\" },"
+  ;;       "    { \"op\": \"mul\", \"output\": \"%u2.6\", \"a\": \"%r.0\", \"b\": \"%w.4\" },"
+  ;;       "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.7\", \"scalar\": \"%u1.5\" },"
+  ;;       "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%pk.3\", \"scalar\": \"%u2.6\" },"
+  ;;       "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+  ;;       "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
+  ;;       "  ]"
+  ;;       "}"))
+  ;;   )
+  )
+
+;; (run-tests prepare-for-typescript
+;;   (test
+;;     '(
+;;       "import CompactStandardLibrary;"
+;;       "new type Base = Secp256r1Base;"
+;;       "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+;;       "  return b0 + b1 * b2;"
+;;       "}"
+;;       )
+;;     (pass-returns infer-types
+;;       (program
+;;         (public-ledger-declaration %kernel.0 (Kernel))
+;;         (circuit %test.1 ([%b0.2 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))]
+;;                           [%b1.3 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))]
+;;                           [%b2.4 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))])
+;;              (talias #t Base (tfield (field-base (curve-secp256r1))))
+;;           (safe-cast (talias #t Base
+;;                        (tfield (field-base (curve-secp256r1))))
+;;                      (tfield (field-base (curve-secp256r1)))
+;;             (+ (tfield (field-base (curve-secp256r1)))
+;;                (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                           (talias #t Base
+;;                             (tfield (field-base (curve-secp256r1))))
+;;                  %b0.2)
+;;                (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                           (talias #t Base
+;;                             (tfield (field-base (curve-secp256r1))))
+;;                  (safe-cast (talias #t Base
+;;                               (tfield (field-base (curve-secp256r1))))
+;;                             (tfield (field-base (curve-secp256r1)))
+;;                    (* (tfield (field-base (curve-secp256r1)))
+;;                       (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                                  (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))
+;;                         %b1.3)
+;;                       (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                                  (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))
+;;                         %b2.4)))))))))
+;;     (returns
+;;       (program
+;;         (type-descriptors
+;;           (%descriptor.5 (talias #t Base
+;;                            (tfield (field-base (curve-secp256r1)))))
+;;           (%descriptor.6 (tunsigned 18446744073709551615))
+;;           (%descriptor.7 (tboolean))
+;;           (%descriptor.8 (tbytes 32))
+;;           (%descriptor.9 (tstruct Either
+;;                            (is_left (tboolean))
+;;                            (left (tbytes 32))
+;;                            (right (tbytes 32))))
+;;           (%descriptor.10 (tunsigned
+;;                             340282366920938463463374607431768211455))
+;;           (%descriptor.11 (tstruct ContractAddress
+;;                             (bytes (tbytes 32))))
+;;           (%descriptor.12 (tunsigned 255))
+;;           (%descriptor.13 (tunsigned 4294967295)))
+;;         (kernel-declaration (%kernel.0 () (Kernel)))
+;;         (public-ledger-declaration () (constructor () (tuple)))
+;;         (circuit %test.1 ([%b0.2 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))]
+;;                           [%b1.3 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))]
+;;                           [%b2.4 (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))])
+;;              (talias #t Base (tfield (field-base (curve-secp256r1))))
+;;           (safe-cast (talias #t Base
+;;                        (tfield (field-base (curve-secp256r1))))
+;;                      (tfield (field-base (curve-secp256r1)))
+;;             (+ (tfield (field-base (curve-secp256r1)))
+;;                (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                           (talias #t Base
+;;                             (tfield (field-base (curve-secp256r1))))
+;;                  %b0.2)
+;;                (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                           (talias #t Base
+;;                             (tfield (field-base (curve-secp256r1))))
+;;                  (safe-cast (talias #t Base
+;;                               (tfield (field-base (curve-secp256r1))))
+;;                             (tfield (field-base (curve-secp256r1)))
+;;                    (* (tfield (field-base (curve-secp256r1)))
+;;                       (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                                  (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))
+;;                         %b1.3)
+;;                       (safe-cast (tfield (field-base (curve-secp256r1)))
+;;                                  (talias #t Base
+;;                                    (tfield (field-base (curve-secp256r1))))
+;;                         %b2.4)))))))))
+;;     )
+;;   )
+
+(run-javascript)
+)
+
+
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

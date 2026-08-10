@@ -208,20 +208,33 @@
        (cons "type-name" "Boolean"))]
     [(tfield ,src ,ftype)
      (list (cons "type-name"
-             (nanopass-case (Lloweredemit Field-Type) ftype
+             (strict-nanopass-case (Lloweredemit Field-Type) ftype
                [(field-native) "Field"]
-               [(field-scalar (curve-jubjub)) "JubjubScalar"]
-               [(field-base (curve-secp256k1)) "Secp256k1Base"]
-               [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"])))]
+               [(field-base ,ctype)
+                (strict-nanopass-case (Lloweredemit Curve-Type) ctype
+                  [(curve-curve25519) "Curve25519Base"]
+                  [(curve-jubjub)
+                   (assertf cannot-happen
+                     "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+                  [(curve-secp256k1) "Secp256k1Base"]
+                  [(curve-secp256r1) "Secp256r1Base"])]
+               [(field-scalar ,ctype)
+                (strict-nanopass-case (Lloweredemit Curve-Type) ctype
+                  [(curve-curve25519) "Curve25519Scalar"]
+                  [(curve-jubjub) "JubjubScalar"]
+                  [(curve-secp256k1) "Secp256k1Scalar"]
+                  [(curve-secp256r1) "Secp256r1Scalar"])])))]
     [(tunsigned ,src ,nat)
      (list
        (cons "type-name" "Uint")
        (cons "maxval" nat))]
     [(tpoint ,src ,ctype)
      (list (cons "type-name"
-             (nanopass-case (Lloweredemit Curve-Type) ctype
+             (strict-nanopass-case (Lloweredemit Curve-Type) ctype
+               [(curve-curve25519) "Curve25519Point"]
                [(curve-jubjub) "JubjubPoint"]
-               [(curve-secp256k1) "Secp256k1Point"])))]
+               [(curve-secp256k1) "Secp256k1Point"]
+               [(curve-secp256r1) "Secp256r1Point"])))]
     [(tbytes ,src ,len)
      (list
        (cons "type-name" "Bytes")

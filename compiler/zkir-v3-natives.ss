@@ -14,9 +14,17 @@
 ;;; limitations under the License.
 
 ;; ==== Non-native fields and curve points
+(declare-native-type Curve25519Base tfield (field-base (curve-curve25519)))
+(declare-native-type Curve25519Scalar tfield (field-scalar (curve-curve25519)))
+(declare-native-type Curve25519Point tpoint (curve-curve25519))
+
 (declare-native-type Secp256k1Base tfield (field-base (curve-secp256k1)))
 (declare-native-type Secp256k1Scalar tfield (field-scalar (curve-secp256k1)))
 (declare-native-type Secp256k1Point tpoint (curve-secp256k1))
+
+(declare-native-type Secp256r1Base tfield (field-base (curve-secp256r1)))
+(declare-native-type Secp256r1Scalar tfield (field-scalar (curve-secp256r1)))
+(declare-native-type Secp256r1Point tpoint (curve-secp256r1))
 
 ;; ==== Fields
 (declare-native-entry circuit neg
