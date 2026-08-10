@@ -139,13 +139,13 @@ describe('__compact.convertBytesToUint for Field', () => {
 describe('__compact.convertBytesToUint for Uint<0..256>', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0xff, 0]);
-    const x = compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
+    const x = compactRuntime.convertBytesToUint(255n, a.length, a, 'Uint<0..256>', 'source');
     expect(x).toBe(255n);
   });
 
   const f = () => {
     const a = new Uint8Array([0, 1]);
-    compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
+    compactRuntime.convertBytesToUint(255n, a.length, a, 'Uint<0..256>', 'source');
   };
 
   test('check for error type', () => {

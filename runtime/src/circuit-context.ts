@@ -23,7 +23,7 @@ import {
 } from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
-import { ContractStateProvider } from './providers.js';
+import { ContractModuleProvider, ContractStateProvider } from './providers.js';
 
 export type CircuitId = string;
 
@@ -176,6 +176,12 @@ export interface CircuitContext<PS = any> {
    */
   stateProvider?: ContractStateProvider;
   /**
+   * Resolves a cross-contract callee's address to the module implementing the contract deployed
+   * there. Absent on a context belonging to a contract that makes no cross-contract call; if one
+   * reaches {@link crossContractCall} anyway that is a `ModuleProviderAbsent` failure.
+   */
+  moduleProvider?: ContractModuleProvider;
+  /**
    * When `true`, {@link crossContractCall} refuses to enter a contract that is
    * already executing on the current call stack — i.e. a re-entrant cross-contract
    * call (`A -> A`, or `A -> B -> A`) — and throws instead. On by default (the
@@ -235,6 +241,7 @@ export const createCircuitContext = <PS>(
   time?: number,
   parentBlockHash?: string,
   reentrancyGuard?: boolean,
+  moduleProvider?: ContractModuleProvider,
 ): CircuitContext<PS> => {
   const callContext = createCallContext(
     circuitId,
@@ -260,6 +267,7 @@ export const createCircuitContext = <PS>(
     callProofDataTrace: [],
     gasLimit,
     stateProvider,
+    moduleProvider,
     reentrancyGuard: reentrancyGuard ?? true,
     activeContracts: new Set([contractAddress]),
     events: [],
