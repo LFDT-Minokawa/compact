@@ -14,100 +14,186 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
-import { sha256 } from '@noble/hashes/sha2.js';
-import { bytesToHex } from '@noble/hashes/utils.js';
 import {
   CircuitId,
   CallContext,
   CircuitContext,
-  CircuitResults,
   createInitialQueryContext,
   emptyRunningCost,
   queryLedgerState,
   CommunicationCommitmentData,
 } from './circuit-context.js';
-import { assertDefined, assertUndefined } from './error.js';
+import { assertDefined } from './error.js';
+import { checkConformance } from './conformance.js';
+import { InterfaceDescriptor } from './interface-descriptor.js';
+import { ModuleResolutionContext, ModuleResolutionError, ModuleResolutionFailure } from './module-resolution.js';
+import { ContractModuleProvider, ModuleThunk } from './providers.js';
+import { Module } from './module.js';
+import { VerifierKeyHash, isVerifierKeyHash, verifierKeyHashOf } from './verifier-key-hash.js';
 import { emptyZswapLocalState, EncodedCoinPublicKey } from './zswap.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
-import { CompactError, ContractInterfaceMismatchError } from './error.js';
+import { CompactError } from './error.js';
 import { PartialProofData } from './proof-data.js';
 import { CompactTypeBytes, CompactTypeField, CompactTypeUnsignedInteger } from './compact-types.js';
 import { alignedConcat } from './built-ins.js';
 
 /**
- * @internal
- */
-type ProvableCircuit = (context: CircuitContext, ...args: any[]) => Promise<CircuitResults>;
-
-/**
- * @internal
- */
-type ProvableCircuits = Record<CircuitId, ProvableCircuit>;
-
-/**
- * @internal
- */
-type PureCircuit = (...args: any[]) => any;
-
-/**
- * @internal
- */
-type PureCircuits = Record<CircuitId, PureCircuit>;
-
-/**
- * @internal
- */
-type Contract = {
-  provableCircuits: ProvableCircuits;
-};
-
-/**
- * @internal
- */
-type ContractCtor = new (witnesses: Record<string, never>) => Contract;
-
-/**
- * @internal
- */
-type Module = {
-  Contract: ContractCtor;
-  pureCircuits: PureCircuits;
-  /**
-   * Per-circuit verifier-key fingerprints (lowercase SHA-256 hex of the compiled `.verifier`),
-   * emitted into the generated contract module by `compactc`. Keyed by external circuit name. Used
-   * by the cross-contract implementation-binding guard to detect when the contract deployed at a
-   * call target does not match the implementation this module was compiled against.
-   */
-  expectedVk: Record<string, string>;
-};
-
-/**
- * Asserts that the contract deployed at `calleeAddress` is the implementation `calleeModule` was
- * compiled against, by hashing the deployed verifier key for `calleeCircuitId` and comparing it to
- * the fingerprint the compiler recorded on the module (`expectedVk`). Both sides are the lowercase
- * SHA-256 hex of the same `.verifier` bytes — the compiler emits `sha256sum`(verifier file) and the
- * deployed `operation.verifierKey` is byte-identical to that file — so an honest match is exact and
- * a substituted contract is rejected here rather than at the proof server.
+ * Raises a resolution failure. Annotated `never` so that a call to it narrows at the use site.
  *
  * @internal
  */
-const assertImplementationMatches = (
-  contractState: ocrt.ContractState,
+const failResolution: (context: ModuleResolutionContext, failure: ModuleResolutionFailure) => never = (
+  context,
+  failure,
+) => {
+  throw new ModuleResolutionError(context, failure);
+};
+
+/**
+ * Checks that the module resolved for `calleeAddress` is the code deployed there, by
+ * comparing verifier key fingerprints.
+ *
+ * The called circuit's fingerprint is mandatory and must match. Every other circuit present on both
+ * sides must agree too — one circuit's key is too weak a check, because two versions of a contract
+ * agree on every circuit they didn't change, while requiring the module's whole set to be deployed
+ * is too strong, since removing an entry point would make the callee unusable for every other
+ * circuit.
+ *
+ * @internal
+ */
+const checkImplementation = (
+  deployedState: ocrt.ContractState,
   calleeModule: Module,
   calleeCircuitId: CircuitId,
-  calleeAddress: ocrt.ContractAddress,
+  resolutionContext: ModuleResolutionContext,
 ): void => {
-  const operation = contractState.operation(calleeCircuitId);
-  const deployedVerifierKey = operation?.verifierKey;
-  // No deployed verifier key means the circuit carries no proof obligation at this address.
-  if (deployedVerifierKey === undefined || deployedVerifierKey.length === 0) {
-    return;
+  const deployedHash = (circuitId: CircuitId): VerifierKeyHash | undefined => {
+    const key = deployedState.operation(circuitId)?.verifierKey;
+    return key === undefined || key.length === 0 ? undefined : verifierKeyHashOf(key);
+  };
+  const recordedHash = (circuitId: CircuitId, recorded: string): VerifierKeyHash => {
+    if (!isVerifierKeyHash(recorded)) {
+      failResolution(resolutionContext, {
+        kind: 'MalformedVerifierKeyHash',
+        circuitId,
+        recorded,
+      });
+    }
+    return recorded;
+  };
+
+  // Nothing on the chain to fingerprint: either the address holds a contract with no such
+  // entry point, or its operation was deployed without a key. Either way is an error.
+  const deployed = deployedHash(calleeCircuitId);
+  if (deployed === undefined) {
+    failResolution(resolutionContext, { kind: 'OperationAbsent' });
   }
-  const expected = calleeModule.expectedVk?.[calleeCircuitId];
-  assertDefined(expected, `verifier-key fingerprint for circuit '${calleeCircuitId}' on the callee module`);
-  const actual = bytesToHex(sha256(deployedVerifierKey));
-  if (actual !== expected) {
-    throw new ContractInterfaceMismatchError(calleeAddress, calleeCircuitId, expected, actual);
+
+  const recorded = calleeModule.expectedVk?.[calleeCircuitId];
+  if (recorded === undefined) {
+    failResolution(resolutionContext, {
+      kind: 'ImplementationMismatch',
+      circuitId: calleeCircuitId,
+      actual: deployed,
+    });
+  }
+  const expected = recordedHash(calleeCircuitId, recorded);
+  if (expected !== deployed) {
+    failResolution(resolutionContext, {
+      kind: 'ImplementationMismatch',
+      circuitId: calleeCircuitId,
+      expected,
+      actual: deployed,
+    });
+  }
+
+  for (const circuitId of Object.keys(calleeModule.expectedVk)) {
+    if (circuitId === calleeCircuitId) {
+      continue;
+    }
+    const otherDeployed = deployedHash(circuitId);
+    // Absent on the chain side means the circuit is not in the overlap, not that it disagrees.
+    if (otherDeployed === undefined) {
+      continue;
+    }
+    const otherExpected = recordedHash(circuitId, calleeModule.expectedVk[circuitId]);
+    if (otherExpected !== otherDeployed) {
+      failResolution(resolutionContext, {
+        kind: 'ImplementationMismatch',
+        circuitId,
+        expected: otherExpected,
+        actual: otherDeployed,
+      });
+    }
+  }
+};
+
+/**
+ * Checks the resolved module against the contract type the caller declared.
+ *
+ * @internal
+ */
+const checkModuleConformance = (
+  declaration: InterfaceDescriptor,
+  calleeModule: Module,
+  resolutionContext: ModuleResolutionContext,
+): void => {
+  const conformance = checkConformance(declaration, calleeModule.circuitSignatures);
+  switch (conformance.outcome) {
+    case 'Conformant':
+      return;
+    case 'Violation':
+      failResolution(resolutionContext, {
+        kind: 'NonconformantImplementation',
+        circuitId: conformance.circuitId,
+        check: conformance.check,
+        argumentIndex: conformance.argumentIndex,
+      });
+      break;
+    case 'Unreadable':
+      failResolution(resolutionContext, {
+        kind: 'UnreadableModule',
+        circuitId: conformance.circuitId,
+        unreadableTag: conformance.unreadableTag,
+        argumentIndex: conformance.argumentIndex,
+      });
+      break;
+    default: {
+      const exhaustive: never = conformance;
+      throw new CompactError(`unhandled conformance outcome ${JSON.stringify(exhaustive)}`);
+    }
+  }
+};
+
+/**
+ * Asks the provider for the callee's module and loads it.
+ *
+ * Everything a provider can do wrong is classified here, so that an
+ * application sees one vocabulary of failures.
+ *
+ * @internal
+ */
+const resolveModule = async (
+  provider: ContractModuleProvider,
+  calleeAddress: ocrt.ContractAddress,
+  resolutionContext: ModuleResolutionContext,
+): Promise<Module> => {
+  let thunk: ModuleThunk | undefined;
+  try {
+    thunk = provider.resolve(calleeAddress);
+  } catch (cause) {
+    failResolution(resolutionContext, { kind: 'ProviderThrew', cause });
+  }
+  if (thunk === undefined) {
+    failResolution(resolutionContext, { kind: 'UnsupportedImplementation' });
+  }
+  if (typeof thunk !== 'function') {
+    failResolution(resolutionContext, { kind: 'ProviderThrew', cause: thunk });
+  }
+  try {
+    return await thunk();
+  } catch (cause) {
+    failResolution(resolutionContext, { kind: 'ModuleLoadRejected', cause });
   }
 };
 
@@ -117,8 +203,6 @@ const assertImplementationMatches = (
 const resolveQueryContext = async (
   context: CircuitContext,
   callee: ocrt.ContractAddress,
-  calleeModule: Module,
-  calleeCircuitId: CircuitId,
 ): Promise<ocrt.QueryContext> => {
   const caller: ocrt.PublicAddress = { tag: 'contract', address: context.callContext.contractAddress };
   let queryContext: ocrt.QueryContext;
@@ -133,8 +217,8 @@ const resolveQueryContext = async (
     const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
     assertDefined(contractState, `contract state for callee '${callee}'`);
     // Retain the full deployed state. The cached query context keeps only ledger data, not the
-    // operations' verifier keys, so stashing it here is what lets the implementation-binding guard
-    // below run on every call — including a later call to a *different* circuit of this same callee.
+    // operations' verifier keys, so stashing it here is what lets {@link checkImplementation} run on
+    // every call — including a later call to a *different* circuit of this same callee.
     (context.contractStates ??= {})[callee] = contractState;
     queryContext = createInitialQueryContext(
       contractState,
@@ -146,9 +230,6 @@ const resolveQueryContext = async (
     context.queryContexts[callee] = queryContext;
     context.gasCosts[callee] = emptyRunningCost();
   }
-  const deployedState = context.contractStates?.[callee];
-  assertDefined(deployedState, `deployed contract state for callee '${callee}'`);
-  assertImplementationMatches(deployedState, calleeModule, calleeCircuitId, callee);
   return queryContext;
 };
 
@@ -398,21 +479,6 @@ const assertNotDefaultContractAddress = (address: ocrt.ContractAddress): void =>
   }
 };
 
-const assertPurityMatches = (
-  module: Module,
-  calleeCircuitId: CircuitId,
-  calleeAddress: ocrt.ContractAddress,
-  calleeIsPure: boolean,
-): void => {
-  const pureCircuit = module.pureCircuits[calleeCircuitId];
-  const errMsg = `pure circuit '${calleeCircuitId}' for callee '${calleeAddress}'`;
-  if (calleeIsPure) {
-    assertDefined(pureCircuit, errMsg);
-  } else {
-    assertUndefined(pureCircuit, errMsg);
-  }
-};
-
 /**
  * Enforces the re-entrancy guard for a cross-contract call and records the callee as
  * active on the call stack. When {@link CircuitContext.reentrancyGuard} is set, throws
@@ -462,35 +528,90 @@ const forbiddenCalleeWitnesses = (calleeAddress: ocrt.ContractAddress): Record<s
   ) as Record<string, never>;
 
 /**
- * Calls a circuit defined in another contract from the currently executing contract and returns the result.
+ * The call site's side of a cross-contract call, as emitted by `compactc`.
+ */
+export type CrossContractCallOptions = {
+  /** The caller's circuit context. Mutated in place for the duration of the sub-call. */
+  readonly context: CircuitContext;
+  /** The caller's local name for the contract type. Names the declaration, for diagnostics. */
+  readonly interfaceName: string;
+  /** The caller's `declaredInterfaces[interfaceName]`. Also where the callee's declared purity is. */
+  readonly declaration: InterfaceDescriptor;
+  /** String identifier of the circuit being called.*/
+  readonly calleeCircuitId: CircuitId;
+  /** On-chain address of contract being called.*/
+  readonly calleeAddress: ocrt.ContractAddress;
+  /** The proof data created when the caller's circuit was initialized. */
+  readonly partialProofData: PartialProofData;
+  /** Arguments to the circuit being called.*/
+  readonly args: readonly any[];
+};
+
+/**
+ * Calls a circuit defined in another contract from the currently executing contract and returns the
+ * result.
  *
- * @param circuitContext The current circuit context.
- * @param calleeModule The callee module containing TS executables.
- * @param calleeCircuitId The name of the circuit to be called in the contract to be called.
- * @param calleeAddress The address of the contract to be called.
- * @param calleeIsPure A flag indicating whether the circuit being called is pure.
- * @param callerProofData The proof data instance created when the caller circuit was initialized.
- * @param args The arguments to the circuit to be called.
+ * Everything before the `try` establishes that the call can be made at all. Everything inside it
+ * binds the call to an implementation and runs it.
  *
  * @internal
  */
-export const crossContractCall = async (
-  circuitContext: CircuitContext,
-  calleeModule: Module,
-  calleeCircuitId: CircuitId,
-  calleeAddress: ocrt.ContractAddress,
-  calleeIsPure: boolean,
-  callerProofData: PartialProofData,
-  ...args: any[]
-): Promise<any> => {
+export const crossContractCall = async ({
+  context: circuitContext,
+  interfaceName,
+  declaration,
+  calleeCircuitId,
+  calleeAddress,
+  partialProofData: callerProofData,
+  args,
+}: CrossContractCallOptions): Promise<any> => {
+  const resolutionContext: ModuleResolutionContext = {
+    calleeAddress,
+    calleeCircuitId,
+    interfaceName,
+    callerAddress: circuitContext.callContext.contractAddress,
+  };
+
+  // 1. A circuit the contract type declares `pure` has no verifier key and is never a deployed
+  //    operation, so there is nothing to call into.
+  const declared = Object.hasOwn(declaration, calleeCircuitId)
+    ? declaration[calleeCircuitId]
+    : undefined;
+  assertDefined(declared, `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`);
+  if (declared.pure) {
+    failResolution(resolutionContext, { kind: 'PureInterfaceCircuit' });
+  }
+
+  // 2. Address checks, then the provider itself.
   assertIsContractAddress(calleeAddress);
   assertNotDefaultContractAddress(calleeAddress);
-  assertPurityMatches(calleeModule, calleeCircuitId, calleeAddress, calleeIsPure);
+  const moduleProvider = circuitContext.moduleProvider;
+  if (moduleProvider === undefined) {
+    failResolution(resolutionContext, { kind: 'ModuleProviderAbsent' });
+  }
+
+  // 3. Re-entrancy guard. Must stay last before the `try`; the `finally` is its removal.
   assertNoReentrancy(circuitContext, calleeAddress);
   try {
+    // 4. Deployed state at the pinned parent block, memoized by address.
+    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
+    const deployedState = circuitContext.contractStates?.[calleeAddress];
+    assertDefined(deployedState, `deployed contract state for callee '${calleeAddress}'`);
+
+    // 6. The module, from the provider.
+    const calleeModule = await resolveModule(moduleProvider, calleeAddress, resolutionContext);
+
+    // 7. Check conformance before checking keys. A non-conformant module is a mistake in the application, and a key
+    //    mismatch is the code and the chain having drifted. Checking in this order keeps one from
+    //    being diagnosed as the other.
+    checkModuleConformance(declaration, calleeModule, resolutionContext);
+
+    // 5 and 8. The operation exists and carries a key, and its fingerprint agrees.
+    checkImplementation(deployedState, calleeModule, calleeCircuitId, resolutionContext);
+
+    // 9. Construct the callee and proceed as before.
     const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];
     assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
-    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress, calleeModule, calleeCircuitId);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
     const callerCallContext = copyCallContext(circuitContext.callContext);
     // The callee inherits only the submitter's coin public key; everything else about its Zswap

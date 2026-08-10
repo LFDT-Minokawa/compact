@@ -25,31 +25,18 @@ export class CompactError extends Error {
     super(msg);
     this.name = 'CompactError';
   }
-}
 
-/**
- * Thrown when a cross-contract call targets a contract whose deployed verifier key for the
- * called circuit does not match the verifier key of the implementation the caller was compiled
- * against. Under the current model every `contract T` interface resolves to exactly one
- * implementation (its `T.compact`), and the caller's compiled bundle records that implementation's
- * verifier-key fingerprint (`expectedVk`). A mismatch means the address passed for the `T` argument
- * points at a different contract than the one the caller was linked to.
- */
-export class ContractInterfaceMismatchError extends CompactError {
-  constructor(
-    readonly calleeAddress: string,
-    readonly circuitId: string,
-    readonly expectedVerifierKeyHash: string,
-    readonly actualVerifierKeyHash: string,
-  ) {
-    super(
-      `Cross-contract call to '${calleeAddress}': the contract deployed there does not match the ` +
-        `implementation the caller was compiled against for circuit '${circuitId}'. Expected verifier ` +
-        `key '${expectedVerifierKeyHash}', but the deployed contract's '${circuitId}' has verifier key ` +
-        `'${actualVerifierKeyHash}'. The address likely points to a different contract than the one this ` +
-        `interface resolves to.`,
-    );
-    this.name = 'ContractInterfaceMismatchError';
+  /**
+   * Recognizes instances across copies of this package, where `instanceof` would not, including
+   * instances of subclasses. The single check for "did this come from the runtime".
+   *
+   * Two copies in one tree is ordinary rather than a misinstall. A generated contract module imports
+   * `@midnight-ntwrk/compact-runtime` by bare specifier, resolved from its own location, so the copy
+   * that constructs and throws is whichever the contract resolves, while an application catches
+   * with whichever it resolves.
+   */
+  static is(u: unknown): u is CompactError {
+    return typeof u === 'object' && u !== null && (u as { isCompactError?: unknown }).isCompactError === true;
   }
 }
 

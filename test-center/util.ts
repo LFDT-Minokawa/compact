@@ -22,7 +22,8 @@ import {
   WitnessContext,
   ConstructorContext,
   CircuitResults,
-  ConstructorResult
+  ConstructorResult,
+  Module as RuntimeModule
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 
@@ -31,10 +32,16 @@ export type Witnesses<PS> = Record<string, Witness<PS>>;
 export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => Promise<CircuitResults<PS, any>>;
 export type Circuits<PS> = Record<string, Circuit<PS>>;
 
+/**
+ * An instance of a generated `Contract` class, as a test uses one. Wider than the runtime's
+ * `ContractInstance`, which needs only `provableCircuits` because a cross-contract callee is entered
+ * through nothing else. A test also constructs the contract and calls its circuits directly.
+ */
 export type Contract<PS, W extends Witnesses<PS>> = {
   witnesses: W;
   impureCircuits: Circuits<PS>;
   circuits: Circuits<PS>;
+  provableCircuits: Circuits<PS>;
   initialState(ctx: ConstructorContext<PS>, ...args: any[]): Promise<ConstructorResult<PS>>;
 };
 
@@ -42,7 +49,11 @@ export type InitialStateParams<
   C extends Contract<any, any>
 > = C['initialState'] extends (c: ConstructorContext, ...a: infer A) => any ? A : never;
 
-export type Module<C, W> = {
+/**
+ * A generated contract module as `stage-javascript` hands it to a test: everything the runtime
+ * resolves a cross-contract callee to, plus where the compiled output was staged.
+ */
+export type Module<C, W> = Omit<RuntimeModule, 'Contract'> & {
   Contract: new (witnesses: W) => C;
   contractDir: string;
 };
@@ -51,25 +62,14 @@ export type Module<C, W> = {
 const pending = new Set<Promise<void>>();
 
 /**
- * Maximum time a single proof check (e.g. the zkir-v3 `check`/preprocess pass)
- * may run before it is treated as a failure rather than being allowed to hang
- * the whole suite. A wasm trap across the async boundary can leave the check's
- * promise permanently unsettled; without a bound, `flushProofChecks`'
- * `Promise.allSettled` would wait forever and vitest's timers never fire,
- * because control has already returned to JS after the trap.
- *
- * Must stay below vitest's `hookTimeout` (see vitest.config.ts) so this
- * check-level bound fires first with a precise message, instead of the hook
- * timing out generically. A legitimate `check`/preprocess pass is off-circuit
- * and finishes in well under a second, so this leaves a wide margin.
+ * How long one proof check may run before it counts as a failure. A wasm trap can leave its promise
+ * permanently unsettled, and `Promise.allSettled` would then wait forever. Keep it under vitest's
+ * `hookTimeout` so this fires first, with a precise message; a real check finishes in well under a
+ * second.
  */
 const PROOF_CHECK_TIMEOUT_MS = 10_000;
 
-/**
- * Race `p` against a timeout so a check that never settles becomes a concrete
- * rejection instead of an indefinite hang. The timer is always cleared once
- * the race settles, so it never keeps the Node event loop alive on its own.
- */
+/** Races `p` against a timeout, so a check that never settles rejects instead of hanging. */
 const withTimeout = (p: Promise<void>, ms: number): Promise<void> => {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<void>((_, reject) => {
@@ -82,10 +82,8 @@ const withTimeout = (p: Promise<void>, ms: number): Promise<void> => {
 };
 
 /**
- * Register a proof-check promise so we can fail a test at a controlled boundary.
- * Attaches handlers immediately to avoid unhandled-rejection noise and
- * auto-removes the promise from the queue upon settlement. The check is bounded
- * by `PROOF_CHECK_TIMEOUT_MS` so a hung check surfaces as a test failure.
+ * Queues a proof check to be reported by {@link flushProofChecks}. Handlers are attached now, so a
+ * rejection is never unhandled, and the promise drops out of the queue once it settles.
  */
 export const registerProofCheck = (p: Promise<void>): void => {
   const guarded = withTimeout(p, PROOF_CHECK_TIMEOUT_MS);
@@ -155,6 +153,8 @@ export const startContract = async <
   // Pure circuits go through as-is (no validation).
   const wrappedCircuits = { ...contract.circuits, ...wrappedImpureCircuits } as C['circuits'];
 
+  // `provableCircuits` is left unwrapped: a cross-contract callee is entered through it, and those
+  // are checked through `TestChain`.
   Object.assign(contract, {
     impureCircuits: wrappedImpureCircuits,
     circuits: wrappedCircuits,
