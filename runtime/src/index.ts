@@ -26,6 +26,10 @@ export * from './proof-data.js';
 export * from './witness.js';
 export * from './utils.js';
 export * from './interface-descriptor.js';
+export * from './verifier-key-hash.js';
+export * from './module.js';
+export * from './conformance.js';
+export * from './module-resolution.js';
 export * from './contract.js';
 export * from './providers.js';
 

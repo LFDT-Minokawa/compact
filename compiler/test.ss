@@ -750,12 +750,18 @@ groups than for single tests.
       (define javascript-dir "compiler/javascript-code")
       (define javascript-counter 0)
       (define javascript-op #f)
+      ;; This used to read through a textual port with `get-string-all`, which
+      ;; decodes UTF-8 and silently substitutes U+FFFD for every invalid byte. That is harmless for
+      ;; the generated `.js`, `.d.ts` and `.zkir`, and fatal for the binary verifier and prover keys:
+      ;; the ASCII `midnight:verifier-key[vN]:` header survives, so the file still looks right, but
+      ;; the SCALE length prefix immediately after it is mangled and the ledger rejects the key with
+      ;; `out of range for u32`.
       (define (copy-file ifn ofn)
-        (call-with-port
-          (open-output-file ofn)
-          (lambda (op)
-            (let ([x (call-with-port (open-input-file ifn) get-string-all)])
-              (unless (eof-object? x) (put-string op x))))))
+        (let ([bv (call-with-port (open-file-input-port ifn) get-bytevector-all)])
+          (call-with-port
+            (open-file-output-port ofn (file-options replace))
+            (lambda (op)
+              (unless (eof-object? bv) (put-bytevector op bv))))))
       (define (copy-dir src dst)
         (when (file-directory? src)
           (mkdir-p dst)
@@ -75282,6 +75288,12 @@ groups than for single tests.
      (stage-javascript innerCode '()))
     ((source-file "test-center/composable/Basic/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/basic.ts")))
+
+  (test-group
+    ((source-file "test-center/composable/Basic/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Basic/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/key-agreement.ts")))
 
   (test-group
     ((source-file "test-center/composable/Storage/Inner.compact")

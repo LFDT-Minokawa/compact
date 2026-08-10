@@ -194,14 +194,6 @@
         (assert descriptor-table)
         (format-id-reference (assertf (hashtable-ref descriptor-table type #f) "unregistered type descriptor for ~s" type))))
 
-    (define (contract-import-binding contract-name)
-      (format "__compactContractsImport_~a" contract-name))
-
-    (define (contract-import-path contract-name)
-      (if (string=? (print-contract-name contract-name) (get-self-contract-name))
-          "."
-          (format "../../~a/contract/index.js" contract-name)))
-
     (define (pl-array->public-bindings pl-array)
       (let f ([pl-array pl-array] [pb* '()])
         (nanopass-case (Ltypescript Public-Ledger-Array) pl-array
@@ -528,13 +520,6 @@
       (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
         [(,src ,ledger-field-name (,path-index* ...) ,type)
          (id-exported? ledger-field-name)]))
-    (define (get-self-contract-name)
-      (source-file-name))
-    (define (print-contract-name contract-name)
-        (if (symbol? contract-name)
-            (symbol->string contract-name)
-            contract-name))
-
     (define (subst-tcontract type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -930,17 +915,8 @@
          (assert cannot-happen)]))
 
     (module (print-contract.js)
-      (define (print-contract-header contract-type*)
+      (define (print-contract-header)
         (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
-        (for-each
-          (lambda (contract-type)
-            (let ([contract-name (nanopass-case (Ltypescript Contract-Type) contract-type
-                                   [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                                    contract-name])])
-              (printf "import * as ~a from '~a';\n"
-                (contract-import-binding contract-name)
-                (contract-import-path contract-name))))
-          contract-type*)
         (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
         (display-string "\n"))
 
@@ -2114,7 +2090,7 @@
       (define (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)
         (parameterize ([current-output-port (get-target-port 'contract.js)])
           (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-            (print-contract-header contract-type*)
+            (print-contract-header)
             (print-exported-types xpelt*)
             (print-contract-descriptors src descriptor-id* type*)
             (print-contract-class src xpelt* uname*)
@@ -3074,27 +3050,29 @@
                 q)))])]
     [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      ;; Lower a cross-contract call to:
-     ;;   await __compactRuntime.crossContractCall(
+     ;;   await __compactRuntime.crossContractCall({
      ;;     context,                                     // caller CircuitContext
-     ;;     <import-binding>,                            // callee Module (Contract + pureCircuits)
-     ;;     '<elt-name>',                                // callee CircuitId
-     ;;     <receiver-expr>,                             // callee address from the ledger
-     ;;     <callee-is-pure>,                            // declared purity of the callee circuit
+     ;;     interfaceName: '<contract-name>',            // caller's local name for the contract type
+     ;;     declaration: declaredInterfaces['<name>'],   // what the caller declared it requires
+     ;;     calleeCircuitId: '<elt-name>',
+     ;;     calleeAddress: <receiver-expr>,              // from the ledger, at run time
      ;;     partialProofData,                            // caller PartialProofData
-     ;;     <args>...)
+     ;;     args: [<args>...]})
+     ;;
+     ;; The runtime resolves the callee's module from the address through the circuit context's module
+     ;; provider, and checks it against `declaration`.
      (when outer-pure?
        (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-        (let ([callee-is-pure
-               (let loop ([names elt-name*] [pures pure-dcl*])
-                 (cond
-                   [(null? names)
-                    (internal-errorf 'print-typescript
-                      "contract-call references unknown circuit ~s on contract ~s"
-                      elt-name contract-name)]
-                   [(eq? (car names) elt-name) (car pures)]
-                   [else (loop (cdr names) (cdr pures))]))]
+        ;; Type checking has already established this. Re-checked here because the
+        ;; alternative is emitting a call to a circuit the declaration lacks, which
+        ;; the runtime would only discover as a conformance failure at run time.
+        (unless (memq elt-name elt-name*)
+          (internal-errorf 'print-typescript
+            "contract-call references unknown circuit ~s on contract ~s"
+            elt-name contract-name))
+        (let ([interface-name (format-javascript-string (symbol->string contract-name))]
               [callee-address
                (make-Qconcat
                  (format "~a((" (compact-stdlib "decodeContractAddress"))
@@ -3102,16 +3080,16 @@
                  ").bytes)")])
           (parenthesize level (precedence not)
             (make-Qconcat
-              (format "await ~a(" (compact-stdlib "crossContractCall"))
-              (apply (make-Qsep ",")
-                (cons* "context"
-                       (format "~a" (contract-import-binding contract-name))
-                       (format "'~a'" elt-name)
-                       callee-address
-                       (if callee-is-pure "true" "false")
-                       "partialProofData"
-                       expr*))
-              ")")))]
+              (format "await ~a({" (compact-stdlib "crossContractCall"))
+              1 ((make-Qsep ",")
+                 "context"
+                 (format "interfaceName: ~a" interface-name)
+                 (format "declaration: declaredInterfaces[~a]" interface-name)
+                 (format "calleeCircuitId: ~a" (format-javascript-string (symbol->string elt-name)))
+                 (make-Qconcat "calleeAddress: " callee-address)
+                 "partialProofData"
+                 (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
+              0 "})")))]
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
