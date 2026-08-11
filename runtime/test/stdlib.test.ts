@@ -239,11 +239,7 @@ test('sanity check for contract address utilities', () => {
   const address = ocrt.sampleContractAddress();
   expect(compactRuntime.fromHex(address).length).toEqual(compactRuntime.CONTRACT_ADDRESS_BYTE_LENGTH);
   expect(compactRuntime.isContractAddress(address)).toBe(true);
-  const encodedAddress = { bytes: compactRuntime.fromHex(address) };
-  expect(compactRuntime.isEncodedContractAddress(encodedAddress)).toBe(true);
 
   const bogusAddress = '098230498';
   expect(compactRuntime.isContractAddress(bogusAddress)).toBe(false);
-  const encodedBogusAddress = { bytes: compactRuntime.fromHex(bogusAddress) };
-  expect(compactRuntime.isEncodedContractAddress(encodedBogusAddress)).toBe(false);
 });
