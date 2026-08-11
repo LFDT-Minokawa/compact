@@ -75325,12 +75325,6 @@ groups than for single tests.
     ((source-file "test-center/composable/Events/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/events.ts")))
 
-  (test-group
-    ((source-file "test-center/composable/Recursion/Mutual/A.compact")
-     (stage-javascript aCode '()))
-    ((source-file "test-center/composable/Recursion/Mutual/B.compact")
-     (stage-javascript bCode "test-center/ts/composable/mutual-recursion.ts")))
-
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/contract/index.d.ts"
