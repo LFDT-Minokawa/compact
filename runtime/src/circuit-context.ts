@@ -156,7 +156,9 @@ export interface CircuitContext<PS = any> {
    * the first time a callee is reached. Retained — unlike the cached query context, which keeps only
    * ledger data — so the implementation-binding guard can read a callee's deployed verifier key for
    * *any* of its circuits on *every* call, including later calls to a different circuit of an
-   * already-resolved callee. The entry contract is not recorded here; only fetched callees are.
+   * already-resolved callee. Unlike {@link queryContexts}, this is *not* seeded with the entry
+   * contract, and does not need to be: the entry contract is always on the call stack, so
+   * {@link crossContractCall}'s re-entrancy guard means it is never itself a callee.
    */
   contractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
   /**
@@ -182,20 +184,11 @@ export interface CircuitContext<PS = any> {
    */
   moduleProvider?: ContractModuleProvider;
   /**
-   * When `true`, {@link crossContractCall} refuses to enter a contract that is
-   * already executing on the current call stack — i.e. a re-entrant cross-contract
-   * call (`A -> A`, or `A -> B -> A`) — and throws instead. On by default (the
-   * upstream ledger can mis-apply transcripts on re-entry). Pass `false` to
-   * {@link createCircuitContext} to opt out, e.g. for tests that deliberately
-   * exercise recursion.
-   */
-  reentrancyGuard?: boolean;
-  /**
    * The set of contract addresses currently executing on the cross-contract call
    * stack: the entry contract plus every callee whose call has not yet returned.
    * Maintained by {@link crossContractCall} and shared by reference across the call
-   * tree (via {@link copyCircuitContext}). Only consulted when {@link reentrancyGuard}
-   * is set.
+   * tree (via {@link copyCircuitContext}), which is what lets it reject a re-entrant
+   * call (`A -> A`, or `A -> B -> A`) from any depth.
    */
   activeContracts?: Set<ocrt.ContractAddress>;
   /**
@@ -215,11 +208,6 @@ export type CrossContractInputs = {
   readonly stateProvider: ContractStateProvider;
   /** Resolves a callee's address to the module implementing what is deployed there. */
   readonly moduleProvider: ContractModuleProvider;
-  /**
-   * When `true`, a call that re-enters a contract already executing on the stack (`A -> A`, or
-   * `A -> B -> A`) throws instead of running. Defaults to `true`.
-   */
-  readonly reentrancyGuard?: boolean;
 };
 
 /** The inputs to {@link createCircuitContext}. */
@@ -295,7 +283,6 @@ export const createCircuitContext = <PS>({
     gasLimit,
     stateProvider: crossContract?.stateProvider,
     moduleProvider: crossContract?.moduleProvider,
-    reentrancyGuard: crossContract?.reentrancyGuard ?? true,
     activeContracts: new Set([contractAddress]),
     events: [],
   };
@@ -305,10 +292,9 @@ export const createCircuitContext = <PS>({
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
-  // `reentrancyGuard` and `activeContracts` fall through the spread: the guard
-  // flag is copied by value and the active-contract set is intentionally shared
-  // *by reference* across the whole call tree so `crossContractCall` sees one
-  // coherent call stack. Do not deep-copy `activeContracts` here.
+  // `activeContracts` falls through the spread: the set is intentionally shared *by reference*
+  // across the whole call tree so `crossContractCall` sees one coherent call stack. Do not
+  // deep-copy it here.
   ...context,
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },
