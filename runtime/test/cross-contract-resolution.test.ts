@@ -207,4 +207,29 @@ describe('crossContractCall failure classification', () => {
     }
     expect(error.context).toEqual({ calleeAddress, calleeCircuitId: CIRCUIT_ID, interfaceName: 'Inner', callerAddress });
   });
+
+  test('re-entry is refused before the callee is resolved, not after', async () => {
+    const self = ocrt.sampleContractAddress();
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: self,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(self), moduleProvider: { resolve: () => undefined } },
+    });
+    await expect(
+      crossContractCall({
+        context,
+        interfaceName: 'Inner',
+        declaration: DECLARATION,
+        calleeCircuitId: CIRCUIT_ID,
+        calleeAddress: self,
+        partialProofData: emptyProofData(),
+        args: [1n],
+      }),
+    ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
+  });
 });
