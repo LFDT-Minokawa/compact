@@ -25,10 +25,19 @@ type Signature = { r: bigint; s: bigint };
 // Ethereum-style recoverable signature: r, s, and the recovery id v.
 type PkRecoverableSignature = Signature & { recovery: number };
 
+/** The circuits this file calls. Written out because the module is imported from a path built at
+ *  runtime, so nothing types it for us. */
+type EcdsaPureCircuits = {
+    proveEthereumSignature(msg: Uint8Array, sig: Signature, pk: runtime.Secp256k1Point): boolean;
+    proveBitcoinSignature(msg: Uint8Array, sig: Signature, pk: runtime.Secp256k1Point): boolean;
+    secp256k1EthereumAddress(pk: runtime.Secp256k1Point): Uint8Array;
+    scalarMul(x: bigint, y: bigint): bigint;
+};
+
 const EXAMPLE = buildPathTo('ecdsa/example_one.compact');
 
 describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
-    let pureCircuits;
+    let pureCircuits: EcdsaPureCircuits;
 
     // A single key pair, reused across the cases.
     const sk = secp256k1.utils.randomSecretKey();
@@ -64,7 +73,9 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
         const outputDir = createTempFolder();
         const result = await compile([Arguments.FEATURE_V3, EXAMPLE, outputDir]);
         expectCompilerResult(result).toCompileWithoutErrors();
-        ({ pureCircuits } = (await import(`${outputDir}contract/index.js`)) as { pureCircuits });
+        ({ pureCircuits } = (await import(`${outputDir}contract/index.js`)) as {
+            pureCircuits: EcdsaPureCircuits;
+        });
     }, 180_000);
 
     test('proveEthereumSignature accepts a valid signature [WIP gates]', () => {
