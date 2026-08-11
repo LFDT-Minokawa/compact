@@ -67,20 +67,19 @@ const failureFrom = async (options: {
   declaration?: InterfaceDescriptor;
 }): Promise<ModuleResolutionError['failure']> => {
   const calleeAddress = ocrt.sampleContractAddress();
-  const context: CircuitContext = createCircuitContext(
-    'caller',
-    ocrt.sampleContractAddress(),
-    COIN_PUBLIC_KEY,
-    new ocrt.ContractState(),
-    0,
-    stateProviderFor(calleeAddress),
-    undefined,
-    undefined,
-    0,
-    PARENT_BLOCK_HASH,
-    true,
-    options.moduleProvider,
-  );
+  const context: CircuitContext = createCircuitContext({
+    circuitId: 'caller',
+    contractAddress: ocrt.sampleContractAddress(),
+    coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+    contractState: new ocrt.ContractState(),
+    privateState: 0,
+    time: 0,
+    parentBlockHash: PARENT_BLOCK_HASH,
+    crossContract:
+      options.moduleProvider === undefined
+        ? undefined
+        : { stateProvider: stateProviderFor(calleeAddress), moduleProvider: options.moduleProvider },
+  });
   try {
     await crossContractCall({
       context,
@@ -181,20 +180,16 @@ describe('crossContractCall failure classification', () => {
   test('every failure names the call it could not bind', async () => {
     const calleeAddress = ocrt.sampleContractAddress();
     const callerAddress = ocrt.sampleContractAddress();
-    const context: CircuitContext = createCircuitContext(
-      'caller',
-      callerAddress,
-      COIN_PUBLIC_KEY,
-      new ocrt.ContractState(),
-      0,
-      stateProviderFor(calleeAddress),
-      undefined,
-      undefined,
-      0,
-      PARENT_BLOCK_HASH,
-      true,
-      { resolve: () => undefined },
-    );
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: callerAddress,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(calleeAddress), moduleProvider: { resolve: () => undefined } },
+    });
     const error = await crossContractCall({
       context,
       interfaceName: 'Inner',
