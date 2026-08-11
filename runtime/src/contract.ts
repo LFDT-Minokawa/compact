@@ -480,27 +480,22 @@ const assertNotDefaultContractAddress = (address: ocrt.ContractAddress): void =>
 };
 
 /**
- * Enforces the re-entrancy guard for a cross-contract call and records the callee as
- * active on the call stack. When {@link CircuitContext.reentrancyGuard} is set, throws
- * if `calleeAddress` is already executing (a re-entrant call such as `A -> A` or
- * `A -> B -> A`); otherwise it adds the callee to {@link CircuitContext.activeContracts}
- * so a deeper sub-call can detect re-entry. The matching removal happens once the call
- * returns — see the `finally` in {@link crossContractCall}.
+ * Rejects a re-entrant cross-contract call — one whose callee is already executing on the call
+ * stack, such as `A -> A` or `A -> B -> A` — and otherwise records the callee as active so a deeper
+ * sub-call can detect re-entry into it. The matching removal happens once the call returns; see the
+ * `finally` in {@link crossContractCall}.
  *
  * @internal
  */
 const assertNoReentrancy = (circuitContext: CircuitContext, calleeAddress: ocrt.ContractAddress): void => {
-  const guardReentrancy = circuitContext.reentrancyGuard === true;
-  if (guardReentrancy) {
-    assertDefined(circuitContext.activeContracts, 'active-contract set for the re-entrancy guard');
-    if (circuitContext.activeContracts.has(calleeAddress)) {
-      throw new CompactError(
-        `Contract re-entrancy detected: '${calleeAddress}' is already executing on the call stack; ` +
-          `re-entrant cross-contract calls are not yet supported`,
-      );
-    }
-    circuitContext.activeContracts.add(calleeAddress);
+  assertDefined(circuitContext.activeContracts, 'active-contract set for the re-entrancy guard');
+  if (circuitContext.activeContracts.has(calleeAddress)) {
+    throw new CompactError(
+      `Contract re-entrancy detected: '${calleeAddress}' is already executing on the call stack; ` +
+        `re-entrant cross-contract calls are not yet supported`,
+    );
   }
+  circuitContext.activeContracts.add(calleeAddress);
 };
 
 /**
@@ -641,8 +636,6 @@ export const crossContractCall = async ({
   } finally {
     // Pop the callee off the active stack once its call returns (or throws), so a
     // later *sequential* call to the same contract is permitted.
-    if (circuitContext.reentrancyGuard === true) {
-      circuitContext.activeContracts?.delete(calleeAddress);
-    }
+    circuitContext.activeContracts?.delete(calleeAddress);
   }
 };
