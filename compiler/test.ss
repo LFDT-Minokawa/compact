@@ -898,7 +898,8 @@ groups than for single tests.
       (unless (string=? actual expected)
         (error 'sha256-file "unexpected digest" filename expected actual))))
 
-  (for-each check-sha256 '(empty abc multi-block))
+  (for-each check-sha256
+    '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
 (run-tests parse-file/format/reparse
