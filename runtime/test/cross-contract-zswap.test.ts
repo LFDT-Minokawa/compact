@@ -42,7 +42,13 @@ const contractRecipient = (address: ocrt.ContractAddress) => ({
 });
 
 const makeContext = (address: ocrt.ContractAddress) =>
-  compactRuntime.createCircuitContext('test', address, COIN_PUBLIC_KEY, new ocrt.ContractState(), undefined);
+  compactRuntime.createCircuitContext({
+    circuitId: 'test',
+    contractAddress: address,
+    coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+    contractState: new ocrt.ContractState(),
+    privateState: undefined,
+  });
 
 describe('per-contract Zswap local state', () => {
   test('createCircuitContext keys the entry contract into zswapLocalStates', () => {

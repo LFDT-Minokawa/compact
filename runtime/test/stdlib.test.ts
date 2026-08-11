@@ -19,13 +19,13 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 describe('createCoinCommitment', () => {
   test('Check for success', () => {
-    const context = compactRuntime.createCircuitContext(
-      'test',
-      ocrt.sampleContractAddress(),
-      '0'.repeat(64),
-      new ocrt.ContractState(),
-      undefined,
-    );
+    const context = compactRuntime.createCircuitContext({
+      circuitId: 'test',
+      contractAddress: ocrt.sampleContractAddress(),
+      coinPublicKeyOrZswapState: '0'.repeat(64),
+      contractState: new ocrt.ContractState(),
+      privateState: undefined,
+    });
     const coinInfo = {
       tag: 'shielded',
       type: ocrt.sampleRawTokenType(),

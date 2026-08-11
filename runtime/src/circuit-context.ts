@@ -208,41 +208,68 @@ export interface CircuitContext<PS = any> {
 }
 
 /**
- * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always use this
- * function to set up the initial circuit context.
- *
- * @param circuitId The name of the circuit being executed.
- * @param contractAddress The address of the contract defining the circuit being executed.
- * @param coinPublicKeyOrZswapState The initial Zswap local state information - used for tracking shielded coin transfers.
- * @param contractState The initial ledger state to execute the contract again - most often a snapshot fetched from the chain.
- * @param privateState The initial witness / private state to execute the contract again - most often a snapshot fetched
- *                     from local storage.
- * @param stateProvider The provider to use to dynamically fetch on-chain contract state. This is only used to execute
- *                      cross-contract calls, and is not needed if the circuit being executed does not perform any
- *                      cross-contract calls.
- * @param gasLimit The maximum gas this contract should consume.
- * @param costModel The model capturing how much ledger operations cost.
- * @param time The current time. Used to execute the block time related kernel operations.
- * @param parentBlockHash The hash of the block the transaction is being built on. Also passed to {@link ContractStateProvider}
- *                        to fetch the correct contract states when executing cross-contract calls.
- * @param reentrancyGuard When `true`, cross-contract calls that re-enter a contract already executing on the call
- *                        stack (`A -> A`, or `A -> B -> A`) throw instead of running. On by default; pass `false`
- *                        to opt out.
+ * The inputs that let an execution make cross-contract calls.
  */
-export const createCircuitContext = <PS>(
-  circuitId: CircuitId,
-  contractAddress: ocrt.ContractAddress,
-  coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
-  contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
-  privateState: PS,
-  stateProvider?: ContractStateProvider,
-  gasLimit?: ocrt.RunningCost,
-  costModel?: ocrt.CostModel,
-  time?: number,
-  parentBlockHash?: string,
-  reentrancyGuard?: boolean,
-  moduleProvider?: ContractModuleProvider,
-): CircuitContext<PS> => {
+export type CrossContractInputs = {
+  /** Fetches a callee's deployed state at {@link CircuitContextOptions.parentBlockHash}. */
+  readonly stateProvider: ContractStateProvider;
+  /** Resolves a callee's address to the module implementing what is deployed there. */
+  readonly moduleProvider: ContractModuleProvider;
+  /**
+   * When `true`, a call that re-enters a contract already executing on the stack (`A -> A`, or
+   * `A -> B -> A`) throws instead of running. Defaults to `true`.
+   */
+  readonly reentrancyGuard?: boolean;
+};
+
+/** The inputs to {@link createCircuitContext}. */
+export type CircuitContextOptions<PS = any> = {
+  /** The name of the circuit being executed. */
+  readonly circuitId: CircuitId;
+  /** The address of the contract defining the circuit being executed. */
+  readonly contractAddress: ocrt.ContractAddress;
+  /** The initial Zswap local state, for tracking shielded coin transfers. */
+  readonly coinPublicKeyOrZswapState:
+    | ocrt.CoinPublicKey
+    | EncodedCoinPublicKey
+    | ZswapLocalState
+    | EncodedZswapLocalState;
+  /** The ledger state to execute against — most often a snapshot fetched from the chain. */
+  readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
+  /** The witness / private state — most often a snapshot from local storage. */
+  readonly privateState: PS;
+  /** The maximum gas this contract should consume. */
+  readonly gasLimit?: ocrt.RunningCost;
+  /** The model capturing how much ledger operations cost. */
+  readonly costModel?: ocrt.CostModel;
+  /** The current time, for the block-time kernel operations. Defaults to now. */
+  readonly time?: number;
+  /**
+   * The hash of the block this transaction is being built on. Reaches the VM's block context, and
+   * is the block a cross-contract callee's state is fetched at — so it is needed for those, but is
+   * not only for those, which is why it does not live in {@link crossContract}.
+   */
+  readonly parentBlockHash?: string;
+  /** Present exactly when this execution may make cross-contract calls. */
+  readonly crossContract?: CrossContractInputs;
+};
+
+/**
+ * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always
+ * use this function to set up the initial circuit context.
+ */
+export const createCircuitContext = <PS>({
+  circuitId,
+  contractAddress,
+  coinPublicKeyOrZswapState,
+  contractState,
+  privateState,
+  gasLimit,
+  costModel,
+  time,
+  parentBlockHash,
+  crossContract,
+}: CircuitContextOptions<PS>): CircuitContext<PS> => {
   const callContext = createCallContext(
     circuitId,
     contractAddress,
@@ -266,9 +293,9 @@ export const createCircuitContext = <PS>(
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
-    stateProvider,
-    moduleProvider,
-    reentrancyGuard: reentrancyGuard ?? true,
+    stateProvider: crossContract?.stateProvider,
+    moduleProvider: crossContract?.moduleProvider,
+    reentrancyGuard: crossContract?.reentrancyGuard ?? true,
     activeContracts: new Set([contractAddress]),
     events: [],
   };
