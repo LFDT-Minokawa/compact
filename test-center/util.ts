@@ -122,13 +122,13 @@ export const startContract = async <
   const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
   const constructorResult = await contract.initialState(constructorContext, ...args);
 
-  const circuitContext = createCircuitContext(
-    'constructor',
-    ocrt.sampleContractAddress(),
-    constructorResult.currentZswapLocalState.coinPublicKey,
-    constructorResult.currentContractState,
-    constructorResult.currentPrivateState,
-  );
+  const circuitContext = createCircuitContext({
+    circuitId: 'constructor',
+    contractAddress: ocrt.sampleContractAddress(),
+    coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
+    contractState: constructorResult.currentContractState,
+    privateState: constructorResult.currentPrivateState,
+  });
 
   const wrappedImpureCircuits = {} as C['impureCircuits'];
 

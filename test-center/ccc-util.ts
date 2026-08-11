@@ -298,20 +298,18 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
     const contract = new tx.module.Contract(tx.witnesses);
 
     const now = tx.time ?? Math.floor(Date.now() / 1_000);
-    const context = createCircuitContext(
-      tx.circuitId,
-      tx.address,
-      tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
-      entryState,
-      tx.privateState,
-      this,
-      tx.gasLimit,
-      tx.costModel,
-      now,
-      tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
-      true,
-      this,
-    ) as CircuitContext<PS>;
+    const context = createCircuitContext({
+      circuitId: tx.circuitId,
+      contractAddress: tx.address,
+      coinPublicKeyOrZswapState: tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
+      contractState: entryState,
+      privateState: tx.privateState,
+      gasLimit: tx.gasLimit,
+      costModel: tx.costModel,
+      time: now,
+      parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: this, moduleProvider: this },
+    }) as CircuitContext<PS>;
 
     const circuits = contract.circuits as Circuits<PS>;
     const impureCircuits = contract.impureCircuits as Circuits<PS>;
