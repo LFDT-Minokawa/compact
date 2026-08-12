@@ -89,7 +89,10 @@ const checkImplementation = (
     failResolution(resolutionContext, { kind: 'OperationAbsent' });
   }
 
-  const recorded = calleeModule.expectedVk?.[calleeCircuitId];
+  // Own properties only: `toString` and `constructor` are legal circuit names, so a bare index
+  // would find `Object.prototype`'s and report a function as a malformed fingerprint.
+  const expectedVk = calleeModule.expectedVk;
+  const recorded = expectedVk !== undefined && Object.hasOwn(expectedVk, calleeCircuitId) ? expectedVk[calleeCircuitId] : undefined;
   if (recorded === undefined) {
     failResolution(resolutionContext, {
       kind: 'ImplementationMismatch',
@@ -333,15 +336,9 @@ const restoreCallContext = (
 };
 
 /**
- * Restores the caller's circuit context after a cross-contract sub-call returns.
- * Circuit contexts are copied when a function is invoked to keep the JS interfaces immutable, so we must
- * copy the top-level values (`queryContexts`, `gasCosts`, `contractStates`, `callProofDataTrace`,
- * `events`) explicitly from the callee. The caller's `callContext` is otherwise reset to its pre-call snapshot — except for its
- * `currentQueryContext`, which we re-point at the (possibly advanced) threaded state for the caller's
- * own contract. That matters when the sub-call re-entered the caller's contract (direct self-recursion,
- * or indirect A -> B -> A): the caller's remaining ops — notably the kernel `claimContractCall` emitted
- * by `crossContractCall` — must build on the re-entrant writes rather than the pre-call snapshot, which
- * would otherwise be written back over the deeper turns' writes on commit.
+ * Restores the caller's circuit context after a cross-contract sub-call returns. Contexts are copied
+ * on invocation to keep the JS interfaces immutable, so the per-address maps the callee advanced are
+ * copied back explicitly and the caller's `callContext` is reset to its pre-call snapshot.
  *
  * @internal
  */
@@ -360,11 +357,9 @@ const restoreCircuitContext = (
   // address are appended in order). Only runs on a successful return, so a reverted sub-call's
   // events are dropped with its discarded context.
   callerCircuitContext.events = calleeCircuitContext.events;
-  // Re-point the caller's `currentQueryContext` at the threaded state for its own
-  // contract (advanced if the sub-call re-entered the caller). Same for the Zswap local state.
-  const callerAddress = callerCircuitContext.callContext.contractAddress;
-  callerCircuitContext.callContext.currentQueryContext = callerCircuitContext.queryContexts[callerAddress];
-  callerCircuitContext.callContext.currentZswapLocalState = callerCircuitContext.zswapLocalStates[callerAddress];
+  // The caller's own cells are not re-pointed from the per-address maps. Nothing can advance them
+  // during a sub-call — the guard refuses re-entry — so the snapshot is already current, and reading
+  // the map back would rewind any write that reached the live cell first.
 };
 
 const Bytes32Descriptor = new CompactTypeBytes(32);
