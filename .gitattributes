@@ -1,2 +1,5 @@
 docs/**/* linguist-generated=true
 * text=auto
+/test-center/sha256-test/multiline-lf text eol=lf
+/test-center/sha256-test/multiline-crlf -text
+/test-center/sha256-test/random-binary binary
