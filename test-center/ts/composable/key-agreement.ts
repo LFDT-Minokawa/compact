@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The module a call resolves to has to be the code deployed at that address.
-//
-// Both sides of every comparison here are the harness's. This suite compiles with `skip-zk`, so
-// `compactc` writes no keys and every module's own `expectedVk` is `{}`; `TestChain.deploy` installs
-// a key of its own on each operation and computes the module's fingerprints over the same bytes.
+// The module a call resolves to has to be the code deployed at that address. Both sides of every
+// comparison here are the harness's: this suite compiles with `skip-zk`, so `TestChain.deploy`
+// installs the keys and computes the fingerprints over the same bytes.
 
 /** Invoke a circuit on an Outer contract as a call transaction. */
 const callOuter = (
@@ -102,9 +100,8 @@ describe('cross-contract key agreement', () => {
       initialPrivateState: 0,
     });
 
-    // Outer satisfies `contract Inner` — it also has `add(Field): Field` — so it clears conformance
-    // and only the keys can tell it apart from the Inner deployed at that address. Nothing is
-    // forged. A real module is returned for a real, different contract, just returned for the wrong address.
+    // Outer also has `add(Field): Field`, so it clears conformance and only the keys can tell it
+    // apart from the Inner deployed at that address.
     expect(outer.module.expectedVk['add']).not.toEqual(inner.module.expectedVk['add']);
     chain.overrideModule(inner.address, outer.module);
 
@@ -143,7 +140,6 @@ describe('cross-contract key agreement', () => {
     if (error.failure.kind !== 'ImplementationMismatch') {
       throw new Error(`expected ImplementationMismatch, got ${error.failure.kind}`);
     }
-    // The failure names the circuit that disagreed.
     expect(error.context.calleeCircuitId).toEqual('add');
     expect(error.failure.circuitId).toEqual('setInner');
     expect(error.failure.actual).toEqual(callee.module.expectedVk['setInner']);
@@ -179,7 +175,7 @@ describe('cross-contract key agreement', () => {
       initialPrivateState: 0,
     });
 
-    // Not a mismatch. Nothing disagreed, there was nothing comparable to disagree with.
+    // Not a mismatch: there was nothing comparable to disagree with.
     chain.overrideModule(inner.address, {
       ...inner.module,
       expectedVk: { ...inner.module.expectedVk, add: 'not-a-digest' },

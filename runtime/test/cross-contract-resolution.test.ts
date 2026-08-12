@@ -13,14 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// How `crossContractCall` classifies everything that can go wrong before a callee is entered.
-//
-// `module-resolution.test.ts` covers the failure payloads as values — what they carry, how they
-// read. This covers the code that decides which one to raise, which is only reachable by making the
-// call. It is the one place in this suite that does.
-//
-// Nothing here needs a conformant module or a deployed key: every case below fails before the
-// module is in hand. The cases past that point are `test-center`'s, against generated modules.
+// Which failure `crossContractCall` raises for each way a call can break before the callee is
+// entered. `module-resolution.test.ts` covers the failure values themselves; anything needing a
+// real module or a deployed key is `test-center`'s.
 
 import { describe, expect, test } from 'vitest';
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
@@ -140,9 +135,7 @@ describe('crossContractCall failure classification', () => {
   });
 
   test('the provider returns something that is not a thunk', async () => {
-    // A provider is application code and may be untyped at the boundary. Returning the module itself
-    // rather than a thunk for it is the easy mistake, and it is the provider's defect, not a load
-    // failure.
+    // Returning the module instead of a thunk for it is the provider's defect, not a load failure.
     const notAThunk = { Contract: class {} } as unknown as ModuleThunk;
     const failure = await failureFrom({ moduleProvider: { resolve: () => notAThunk } });
     if (failure.kind !== 'ProviderThrew') {

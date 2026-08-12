@@ -27,13 +27,9 @@ export class CompactError extends Error {
   }
 
   /**
-   * Recognizes instances across copies of this package, where `instanceof` would not, including
-   * instances of subclasses. The single check for "did this come from the runtime".
-   *
-   * Two copies in one tree is ordinary rather than a misinstall. A generated contract module imports
-   * `@midnight-ntwrk/compact-runtime` by bare specifier, resolved from its own location, so the copy
-   * that constructs and throws is whichever the contract resolves, while an application catches
-   * with whichever it resolves.
+   * Recognizes instances across copies of this package, subclasses included, where `instanceof`
+   * would not: a generated contract module resolves the runtime from its own location, so the copy
+   * that throws is not the copy an application catches with.
    */
   static is(u: unknown): u is CompactError {
     return typeof u === 'object' && u !== null && (u as { isCompactError?: unknown }).isCompactError === true;
