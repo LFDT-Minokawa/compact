@@ -34,9 +34,6 @@
     ;; The `anative` alignment atom is a "pseudo-alignment" that the ledger does no know about.
     ;; We translate each occurrence into a sequence of real ledger alignment atoms.  This
     ;; translation mirrors the alignment defined in `runtime/src/compact-types.ts`.
-    ;;
-    ;; TODO (kmillikin): there is duplicated, but lower-level, handling of these types for the
-    ;; Impact `push` and `popeq` instructions.  Try to find a way to share this code.
     (define (circuit-alignment-for src alignment* triv* instr*)
       (let loop ([alignment* alignment*] [triv* triv*] [instr* instr*]
                  [new-alignment* '()] [new-triv* '()])
@@ -319,11 +316,9 @@
                          (zkir-val-input* rand)
                          (zkir-instr*))])
            (zkir-instr* instr*)
-           (let ([code* (fold-left (lambda (code* a)
-                                     (cons (assemble-alignment-atom a) code*))
-                          (cons (length alignment*) code*)
-                          alignment*)])
-             (fold-left (lambda (code* var) (cons var code*)) code* var*)))]
+           (append (reverse var*)
+                   (reverse (map assemble-alignment-atom alignment*))
+                   (cons (length alignment*) code*)))]
         [(not (VMop? rand)) (cons rand code*)]
         [else
           (VMop-case rand
@@ -525,13 +520,14 @@
            ;; them.
            (assertf (= (length var-name*) (length primitive-type*))
              "mismatched lists of public input names and types")
-           (let loop ([var-name* var-name*] [primitive-type* primitive-type*])
-             (unless (null? var-name*)
+           (for-each
+             (lambda (var-name primitive-type)
                (zkir-instr*
                  (cons
-                   (make-public-input test-val (car var-name*) (type->string (car primitive-type*)))
-                   (zkir-instr*)))
-               (loop (cdr var-name*) (cdr primitive-type*))))
+                   (make-public-input test-val var-name (type->string primitive-type))
+                   (zkir-instr*))))
+             var-name*
+             primitive-type*)
            (let-values ([(alignment* var-name* instr*)
                          (circuit-alignment-for default-src alignment* var-name* (zkir-instr*))])
              (zkir-instr* instr*)
