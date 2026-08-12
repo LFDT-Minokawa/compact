@@ -149,6 +149,27 @@ describe('cross-contract key agreement', () => {
     expect(error.failure.actual).toEqual(callee.module.expectedVk['setInner']);
   });
 
+  test('a module recording no fingerprint at all is rejected', async () => {
+    const chain = new TestChain();
+    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const outer = await chain.deploy({
+      module: outerCode,
+      args: [inner.encodedAddress],
+      initialPrivateState: 0,
+    });
+
+    // The shape a module compiled with `skip-zk` has. There is a key on chain and nothing to
+    // compare it against, so the module cannot be shown to be the deployed code.
+    chain.overrideModule(inner.address, { ...inner.module, expectedVk: {} });
+
+    const error = await rejection(callOuter(chain, outer.address, 'add', 7n));
+    if (error.failure.kind !== 'ImplementationMismatch') {
+      throw new Error(`expected ImplementationMismatch, got ${error.failure.kind}`);
+    }
+    expect(error.failure.expected).toBeUndefined();
+    expect(error.failure.actual).toEqual(inner.module.expectedVk['add']);
+  });
+
   test('a recorded fingerprint that is not a digest is its own failure', async () => {
     const chain = new TestChain();
     const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
