@@ -170,11 +170,8 @@
         [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
         [(XPelt-public-ledger pl-array lconstructor external-names) #f]
         [(XPelt-ledger-kernel) #f]))
-    ;; Tracks which functions have async wrappers in the generated JS.
-    ;; Only impure circuits are async (because their bodies
-    ;; may contain `await __compactRuntime.crossContractCall(...)`). Witnesses,
-    ;; native circuits, and native witnesses all have synchronous wrappers, so
-    ;; their call sites don't need `await`.
+    ;; Which functions have async wrappers in the generated JS. Only impure circuits, since their
+    ;; bodies may `await` a cross-contract call; everything else is synchronous.
     (define function-async-ht (make-eq-hashtable))
     (define (mark-function-async! function-name)
       (eq-hashtable-set! function-async-ht function-name #t))
@@ -1409,7 +1406,7 @@
                      (with-local-unique-names
                        (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
                          (append
-                           ;; Pure circuit wrappers on `this.circuits` are still declared async
+                           ;; Async for a uniform call shape, though nothing here awaits.
                            (map (lambda (external-name)
                                   (make-Qconcat/src src
                                     "async "
@@ -1965,7 +1962,6 @@
            (format "{tag: 'Vector', length: ~d, type: ~a}" (length s*) (car s*))]
           [else (format "{tag: 'Tuple', types: [~a]}" (comma-separated s*))]))
 
-      ;; { <circuitName>: {pure, argumentTypes, resultType}, ... }
       (define (format-interface-descriptor elt-name* pure-dcl* type** type*)
         (format "{~a}"
           (comma-separated
@@ -2039,9 +2035,8 @@
               (display-string "};\n")))
         (newline))
 
-      ;; One entry per external name, so a circuit exported under several names
-      ;; fans out as expectedVk and pureCircuits already do. `pure` is inferred
-      ;; purity; `provable` is membership in (proof-circuit-names).
+      ;; One entry per external name, so a circuit exported under several fans out, as expectedVk
+      ;; and pureCircuits already do.
       (define (print-circuit-signatures xpelt*)
         (print-table "circuitSignatures"
           (fold-right
@@ -2066,8 +2061,7 @@
             '()
             xpelt*)))
 
-      ;; contract-type* holds exactly the contract types on which a call is
-      ;; made, which is the same set for which an import is emitted.
+      ;; contract-type* holds exactly the contract types a call is made on.
       (define (print-declared-interfaces contract-type*)
         (print-table "declaredInterfaces"
           (map
@@ -2079,10 +2073,8 @@
                    (format-interface-descriptor elt-name* pure-dcl* type** type*))]))
             contract-type*)))
 
-      ;; Emit the per-circuit verifier-key fingerprints computed in passes.ss after key
-      ;; generation. A caller's cross-contract guard reads the callee module's `expectedVk` to
-      ;; detect a contract deployed at the call target that does not match the implementation this
-      ;; module was compiled against. Empty (`{}`) for builds that generate no keys (e.g. --skip-zk).
+      ;; The per-circuit fingerprints computed in passes.ss after key generation. Empty for a build
+      ;; that generates no keys, such as --skip-zk.
       (define (print-expected-vk)
         (let ([vk* (verifier-key-hashes)])
           (if (null? vk*)
@@ -3065,23 +3057,19 @@
     [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      ;; Lower a cross-contract call to:
      ;;   await __compactRuntime.crossContractCall({
-     ;;     context,                                     // caller CircuitContext
-     ;;     interfaceName: '<contract-name>',            // caller's local name for the contract type
-     ;;     declaration: declaredInterfaces['<name>'],   // what the caller declared it requires
+     ;;     context,
+     ;;     interfaceName: '<contract-name>',
+     ;;     declaration: declaredInterfaces['<contract-name>'],
      ;;     calleeCircuitId: '<elt-name>',
-     ;;     calleeAddress: <receiver-expr>,              // from the ledger, at run time
-     ;;     partialProofData,                            // caller PartialProofData
+     ;;     calleeAddress: <receiver-expr>,
+     ;;     partialProofData,
      ;;     args: [<args>...]})
-     ;;
-     ;; The runtime resolves the callee's module from the address through the circuit context's module
-     ;; provider, and checks it against `declaration`.
      (when outer-pure?
        (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-        ;; Type checking has already established this. Re-checked here because the
-        ;; alternative is emitting a call to a circuit the declaration lacks, which
-        ;; the runtime would only discover as a conformance failure at run time.
+        ;; Type checking already established this; re-checked so a declaration missing the circuit
+        ;; fails here rather than as a run-time conformance failure.
         (unless (memq elt-name elt-name*)
           (internal-errorf 'print-typescript
             "contract-call references unknown circuit ~s on contract ~s"

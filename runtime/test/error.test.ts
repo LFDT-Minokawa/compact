@@ -28,7 +28,7 @@ describe('CompactError.is', () => {
     expect(CompactError.is(new CompactError('nope'))).toEqual(true);
   });
 
-  test('recognizes a subclass, so one check catches anything from the runtime', () => {
+  test('recognizes a subclass', () => {
     expect(CompactError.is(new ModuleResolutionError(CONTEXT, { kind: 'OperationAbsent' }))).toEqual(true);
   });
 

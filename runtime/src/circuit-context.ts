@@ -56,10 +56,8 @@ export interface CallProofData extends ProofData {
    */
   finalQueryContext: ocrt.QueryContext;
   /**
-   * The Zswap local state this contract accumulated during the call — the shielded coins it
-   * consumed and produced. Recorded per call, not just for the root, so transaction assembly can
-   * build one offer contribution per call and bind each contract-owned input and output to the
-   * contract that actually made it.
+   * The shielded coins this contract consumed and produced. Recorded per call, not just for the
+   * root, so an input or output can be attributed to the contract that made it.
    */
   zswapLocalState: EncodedZswapLocalState;
   /**
@@ -140,25 +138,17 @@ export interface CircuitContext<PS = any> {
    */
   gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
   /**
-   * The current Zswap local state of every contract in the call tree — the shielded-coin
-   * counterpart of {@link queryContexts} and {@link gasCosts}, and keyed the same way.
-   *
-   * Each contract keeps its own state, with its own `currentIndex`, `inputs` and `outputs`;
-   * only the transaction submitter's `coinPublicKey` is shared, since one wallet pays for the
-   * whole transaction. Threaded across cross-contract calls (see `restoreCircuitContext`) so a
-   * callee's coin operations survive its return, and mirrored onto each {@link CallProofData}
-   * so transaction assembly can attribute every input and output to the contract that made it.
+   * The current Zswap local state of every contract in the call tree, keyed like
+   * {@link queryContexts}. Each contract has its own `currentIndex`, `inputs` and `outputs`; only
+   * the submitter's `coinPublicKey` is shared, since one wallet pays for the transaction.
    */
   zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
   /**
-   * The deployed {@link ocrt.ContractState} of every cross-contract callee resolved during the
-   * execution, keyed by address. Populated by {@link crossContractCall} (via the state provider)
-   * the first time a callee is reached. Retained — unlike the cached query context, which keeps only
-   * ledger data — so the implementation-binding guard can read a callee's deployed verifier key for
-   * *any* of its circuits on *every* call, including later calls to a different circuit of an
-   * already-resolved callee. Unlike {@link queryContexts}, this is *not* seeded with the entry
-   * contract, and does not need to be: the entry contract is always on the call stack, so
-   * {@link crossContractCall}'s re-entrancy guard means it is never itself a callee.
+   * The deployed state of every cross-contract callee, keyed by address and filled on first
+   * resolution. The cached query context keeps only ledger data, so this is where a callee's
+   * verifier keys are read from, for any of its circuits and on every call. The entry contract is
+   * always on the call stack, so the re-entrancy guard keeps it out of callee position and it never
+   * appears here.
    */
   contractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
   /**
@@ -178,24 +168,19 @@ export interface CircuitContext<PS = any> {
    */
   stateProvider?: ContractStateProvider;
   /**
-   * Resolves a cross-contract callee's address to the module implementing the contract deployed
-   * there. Absent on a context belonging to a contract that makes no cross-contract call; if one
-   * reaches {@link crossContractCall} anyway that is a `ModuleProviderAbsent` failure.
+   * The {@link ContractModuleProvider}. Absent unless the execution can make cross-contract calls;
+   * reaching {@link crossContractCall} without one is a `ModuleProviderAbsent` failure.
    */
   moduleProvider?: ContractModuleProvider;
   /**
-   * The set of contract addresses currently executing on the cross-contract call
-   * stack: the entry contract plus every callee whose call has not yet returned.
-   * Maintained by {@link crossContractCall} and shared by reference across the call
-   * tree (via {@link copyCircuitContext}), which is what lets it reject a re-entrant
-   * call (`A -> A`, or `A -> B -> A`) from any depth.
+   * The contract addresses currently executing: the entry contract, plus every callee whose call
+   * has not returned. Shared by reference across the call tree, so {@link crossContractCall} can
+   * reject re-entry (`A -> A`, `A -> B -> A`) from any depth.
    */
   activeContracts?: Set<ocrt.ContractAddress>;
   /**
-   * Events emitted by the on-chain VM during circuit execution from `log` operations,
-   * each tagged with the address of the emitting contract. A single global list shared
-   * across the whole call tree (threaded like {@link callProofDataTrace}); a per-contract
-   * view is a filter over the `address` tag. Surfaced via `CircuitResults.context.events`.
+   * Events the VM emitted from `log` operations, each tagged with the contract that emitted it.
+   * One list for the whole call tree, threaded like {@link callProofDataTrace}.
    */
   events: LogEvent[];
 }
@@ -206,7 +191,7 @@ export interface CircuitContext<PS = any> {
 export type CrossContractInputs = {
   /** Fetches a callee's deployed state at {@link CircuitContextOptions.parentBlockHash}. */
   readonly stateProvider: ContractStateProvider;
-  /** Resolves a callee's address to the module implementing what is deployed there. */
+  /** The {@link ContractModuleProvider}. */
   readonly moduleProvider: ContractModuleProvider;
 };
 
@@ -233,9 +218,8 @@ export type CircuitContextOptions<PS = any> = {
   /** The current time, for the block-time kernel operations. Defaults to now. */
   readonly time?: number;
   /**
-   * The hash of the block this transaction is being built on. Reaches the VM's block context, and
-   * is the block a cross-contract callee's state is fetched at — so it is needed for those, but is
-   * not only for those, which is why it does not live in {@link crossContract}.
+   * The hash of the block this transaction is built on. Reaches the VM's block context, and pins
+   * the block a cross-contract callee's state is fetched at.
    */
   readonly parentBlockHash?: string;
   /** Present exactly when this execution may make cross-contract calls. */
@@ -292,9 +276,7 @@ export const createCircuitContext = <PS>({
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
-  // `activeContracts` falls through the spread: the set is intentionally shared *by reference*
-  // across the whole call tree so `crossContractCall` sees one coherent call stack. Do not
-  // deep-copy it here.
+  // `activeContracts` falls through the spread. Shared by reference on purpose — do not copy it.
   ...context,
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },

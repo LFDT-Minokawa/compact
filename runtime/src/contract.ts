@@ -53,11 +53,8 @@ const failResolution: (context: ModuleResolutionContext, failure: ModuleResoluti
  * Checks that the module resolved for `calleeAddress` is the code deployed there, by
  * comparing verifier key fingerprints.
  *
- * The called circuit's fingerprint is mandatory and must match. Every other circuit present on both
- * sides must agree too — one circuit's key is too weak a check, because two versions of a contract
- * agree on every circuit they didn't change, while requiring the module's whole set to be deployed
- * is too strong, since removing an entry point would make the callee unusable for every other
- * circuit.
+ * The called circuit must match, and so must every other circuit the two sides share: two versions
+ * of a contract agree on whatever they didn't change.
  *
  * @internal
  */
@@ -82,8 +79,7 @@ const checkImplementation = (
     return recorded;
   };
 
-  // Nothing on the chain to fingerprint: either the address holds a contract with no such
-  // entry point, or its operation was deployed without a key. Either way is an error.
+  // No key on the chain: no such entry point, or an operation deployed without one.
   const deployed = deployedHash(calleeCircuitId);
   if (deployed === undefined) {
     failResolution(resolutionContext, { kind: 'OperationAbsent' });
@@ -169,10 +165,8 @@ const checkModuleConformance = (
 };
 
 /**
- * Asks the provider for the callee's module and loads it.
- *
- * Everything a provider can do wrong is classified here, so that an
- * application sees one vocabulary of failures.
+ * Asks the provider for the callee's module and loads it, turning every provider fault into a
+ * {@link ModuleResolutionFailure}.
  *
  * @internal
  */
@@ -219,9 +213,8 @@ const resolveQueryContext = async (
     assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
     const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
     assertDefined(contractState, `contract state for callee '${callee}'`);
-    // Retain the full deployed state. The cached query context keeps only ledger data, not the
-    // operations' verifier keys, so stashing it here is what lets {@link checkImplementation} run on
-    // every call — including a later call to a *different* circuit of this same callee.
+    // The cached query context drops the verifier keys, so keep the whole state for
+    // {@link checkImplementation}.
     (context.contractStates ??= {})[callee] = contractState;
     queryContext = createInitialQueryContext(
       contractState,
@@ -237,9 +230,8 @@ const resolveQueryContext = async (
 };
 
 /**
- * Gets the accumulated gas cost of a contract from the 'persistent' section of the circuit context.
- * Because {@link resolveQueryContext} either throws an error or populates `context.gasCosts` with
- * `emptyRunningCost`, throws an error if gas cost is not found.
+ * Gets a contract's accumulated gas cost from the circuit context. {@link resolveQueryContext}
+ * always leaves a cost behind, so a miss is a bug.
  *
  * @internal
  */
@@ -295,12 +287,9 @@ const setupCallContext = (
   context.callContext.currentGasCost = currentGasCost;
   // Undefined because sub-calls do not support witnesses, so a callee has no private state.
   context.callContext.currentPrivateState = undefined;
-  // Shielded coin operations, by contrast, *are* supported in a callee, and the ledger relies on
-  // them: an output addressed to a contract is only credited if that contract claims the receive
-  // in the same transaction, which for a callee means running `receiveShielded` here. Each
-  // contract keeps its own state — created on first entry, reused on a later sequential call to
-  // the same address — sharing only the submitter's coin public key, since one wallet pays for
-  // the whole transaction.
+  // A callee *can* do coin operations — an output addressed to a contract is credited only if that
+  // contract claims it in the same transaction — so each gets its own state, created on first entry
+  // and reused on a later sequential call to the same address.
   context.callContext.currentZswapLocalState = context.zswapLocalStates[contractAddress] ??=
     emptyZswapLocalState(callerCoinPublicKey);
 };
@@ -353,13 +342,12 @@ const restoreCircuitContext = (
   callerCircuitContext.zswapLocalStates = calleeCircuitContext.zswapLocalStates;
   callerCircuitContext.contractStates = calleeCircuitContext.contractStates;
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
-  // Take the callee's accumulated event list (callee-emitted events tagged with the callee's
-  // address are appended in order). Only runs on a successful return, so a reverted sub-call's
-  // events are dropped with its discarded context.
+  // Only reached on a successful return, so a reverted sub-call's events go with its discarded
+  // context.
   callerCircuitContext.events = calleeCircuitContext.events;
-  // The caller's own cells are not re-pointed from the per-address maps. Nothing can advance them
-  // during a sub-call — the guard refuses re-entry — so the snapshot is already current, and reading
-  // the map back would rewind any write that reached the live cell first.
+  // The caller's own cells are deliberately not re-pointed from the maps. The guard refuses
+  // re-entry, so nothing advanced them during the sub-call, and reading the map back would rewind
+  // any write that reached the live cell first.
 };
 
 const Bytes32Descriptor = new CompactTypeBytes(32);
@@ -375,36 +363,20 @@ const circuitIdToValue = (circuitId: CircuitId): ocrt.AlignedValue => ({
 });
 
 /**
- * Convert a hex-encoded `Fr` (as produced by `ocrt.communicationCommitment` or
- * `ocrt.communicationCommitmentRandomness` — both go through
- * `to_value_hex_ser(&Fr)` in `onchain-runtime-wasm/src/primitives.rs`) into an
- * `AlignedValue` matching midnight-ledger's `AlignedValue::from(fr)`:
+ * Converts a hex-encoded `Fr` from `ocrt.communicationCommitment{,Randomness}` into the
+ * `AlignedValue` that midnight-ledger's `AlignedValue::from(fr)` produces: one field atom holding
+ * the LE bytes with trailing zeros stripped (`transient-crypto/src/fab.rs`).
  *
- *   alignment = [{ tag: 'atom', value: { tag: 'field' } }]
- *   value     = [ValueAtom(fr.as_le_bytes()).normalize()]
- *
- * where `normalize()` strips trailing zeros from the LE byte vector
- * (see `transient-crypto/src/fab.rs:201` and `base-crypto/src/fab/conversions.rs`
- * for the `From<Fr> for ValueAtom` and `From<DynAligned> for AlignedValue` impls
- * we're mirroring).
- *
- * The hex from `to_value_hex_ser(&fr)` is in SCALE compact-integer form (see
- * `serialize/src/util.rs::ScaleBigInt`).  For uniformly-random Fr — which both
- * the rand and the `transient_commit` output approximately are — the encoding
- * is `[marker_byte, ...fr.as_le_bytes()]`: 33 bytes total, marker is one byte.
- * Strip that marker and then normalize.
- *
- * When the wasm API stops SCALE-encoding these and just hands back plain bytes, drop the `slice(1)`.
+ * The wasm hex is SCALE compact-integer encoded, which for a full-width `Fr` is one marker byte
+ * then the LE bytes. Drop the `slice(1)` when the API hands back plain bytes.
  */
 const frHexToAlignedValue = (frHex: string): ocrt.AlignedValue => {
   const allBytes = fromHex(frHex);
   if (allBytes.length < 1) {
     throw new CompactError('empty Fr hex encoding');
   }
-  // Drop the SCALE marker.  The Fr's LE bytes follow.
   const leBytes = allBytes.slice(1);
-  // `ValueAtom::normalize` strips trailing zero bytes; in LE that's the
-  // high-order zeros of the integer representation.
+  // `ValueAtom::normalize` strips trailing zero bytes.
   let end = leBytes.length;
   while (end > 0 && leBytes[end - 1] === 0) end -= 1;
   return {
@@ -416,9 +388,8 @@ const frHexToAlignedValue = (frHex: string): ocrt.AlignedValue => {
 const KernelStateFieldIndexDescriptor = new CompactTypeUnsignedInteger(255n, 1);
 
 /**
- * JavaScript code for a kernel call to 'claimContractCall'. This code must be
- * kept in sync with the JS code that a real Compact source program would
- * produce for 'Kernel.claimContractCall'.
+ * Hand-written equivalent of what `compactc` emits for `Kernel.claimContractCall`. Keep the two in
+ * sync.
  *
  * @internal
  */
@@ -475,10 +446,8 @@ const assertNotDefaultContractAddress = (address: ocrt.ContractAddress): void =>
 };
 
 /**
- * Rejects a re-entrant cross-contract call — one whose callee is already executing on the call
- * stack, such as `A -> A` or `A -> B -> A` — and otherwise records the callee as active so a deeper
- * sub-call can detect re-entry into it. The matching removal happens once the call returns; see the
- * `finally` in {@link crossContractCall}.
+ * Rejects a call to a callee already on the call stack; otherwise marks it active until the
+ * `finally` in {@link crossContractCall} pops it.
  *
  * @internal
  */
@@ -494,13 +463,9 @@ const assertNoReentrancy = (circuitContext: CircuitContext, calleeAddress: ocrt.
 };
 
 /**
- * Builds the `witnesses` argument for constructing a cross-contract callee. Witnesses are
- * only available to the entry (root) contract, so a callee can never execute one — but
- * the generated `Contract` constructor validates a function-valued field for every witness
- * the callee *declares*, so passing `{}` throws (with an opaque field-name message) even
- * when the called circuit needs no witness. This proxy passes those `typeof` checks for any
- * name, so construction succeeds and witness-free circuits run unchanged; if the callee
- * circuit actually invokes a witness, the stub throws a clear, self-describing error.
+ * Witnesses for constructing a callee. A callee can never run one, but the generated `Contract`
+ * constructor validates a function-valued field for every witness the callee *declares*, so `{}`
+ * throws. This proxy satisfies those checks for any name and throws only if a witness is invoked.
  *
  * @internal
  */
@@ -523,9 +488,9 @@ const forbiddenCalleeWitnesses = (calleeAddress: ocrt.ContractAddress): Record<s
 export type CrossContractCallOptions = {
   /** The caller's circuit context. Mutated in place for the duration of the sub-call. */
   readonly context: CircuitContext;
-  /** The caller's local name for the contract type. Names the declaration, for diagnostics. */
+  /** The caller's local name for the contract type, used in diagnostics. */
   readonly interfaceName: string;
-  /** The caller's `declaredInterfaces[interfaceName]`. Also where the callee's declared purity is. */
+  /** The caller's `declaredInterfaces[interfaceName]`. */
   readonly declaration: InterfaceDescriptor;
   /** String identifier of the circuit being called.*/
   readonly calleeCircuitId: CircuitId;
@@ -538,11 +503,7 @@ export type CrossContractCallOptions = {
 };
 
 /**
- * Calls a circuit defined in another contract from the currently executing contract and returns the
- * result.
- *
- * Everything before the `try` establishes that the call can be made at all. Everything inside it
- * binds the call to an implementation and runs it.
+ * Calls a circuit on another contract and returns its result.
  *
  * @internal
  */
@@ -591,21 +552,18 @@ export const crossContractCall = async ({
     // 6. The module, from the provider.
     const calleeModule = await resolveModule(moduleProvider, calleeAddress, resolutionContext);
 
-    // 7. Check conformance before checking keys. A non-conformant module is a mistake in the application, and a key
-    //    mismatch is the code and the chain having drifted. Checking in this order keeps one from
-    //    being diagnosed as the other.
+    // 7. Conformance before keys: a non-conformant module is an application mistake, a key mismatch
+    //    is the code and the chain having drifted.
     checkModuleConformance(declaration, calleeModule, resolutionContext);
 
     // 5 and 8. The operation exists and carries a key, and its fingerprint agrees.
     checkImplementation(deployedState, calleeModule, calleeCircuitId, resolutionContext);
 
-    // 9. Construct the callee and proceed as before.
+    // 9. Construct the callee and run it.
     const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];
     assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
     const callerCallContext = copyCallContext(circuitContext.callContext);
-    // The callee inherits only the submitter's coin public key; everything else about its Zswap
-    // local state is its own.
     const callerZswapLocalState = callerCallContext.currentZswapLocalState;
     assertDefined(callerZswapLocalState, `Zswap local state for calling contract '${callerCallContext.contractAddress}'`);
     setupCallContext(
