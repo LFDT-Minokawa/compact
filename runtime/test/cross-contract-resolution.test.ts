@@ -24,6 +24,7 @@ import {
   ContractModuleProvider,
   ContractStateProvider,
   InterfaceDescriptor,
+  Module,
   ModuleResolutionError,
   ModuleThunk,
   PartialProofData,
@@ -99,6 +100,11 @@ const rejectingProvider = (rejection: unknown): ContractModuleProvider => ({
   resolve: () => () => Promise.reject(rejection),
 });
 
+/** A provider whose thunk resolves to `module`. */
+const providerFor = (module: Module): ContractModuleProvider => ({
+  resolve: () => () => Promise.resolve(module),
+});
+
 describe('crossContractCall failure classification', () => {
   test('no module provider on the context', async () => {
     expect((await failureFrom({})).kind).toEqual('ModuleProviderAbsent');
@@ -160,6 +166,15 @@ describe('crossContractCall failure classification', () => {
       throw new Error(`expected ModuleLoadRejected, got ${failure.kind}`);
     }
     expect(failure.cause).toBe(wrapped);
+  });
+
+  test('a module built before dynamic resolution names what it lacks', async () => {
+    const stale = { Contract: class {} } as unknown as Module;
+    const failure = await failureFrom({ moduleProvider: providerFor(stale) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['circuitSignatures', 'expectedVk']);
   });
 
   test('a rejection that is not an Error is carried too', async () => {

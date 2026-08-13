@@ -17,6 +17,7 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitId } from './circuit-context.js';
 import { ConformanceViolation, UnreadableSignature } from './conformance.js';
 import { CompactError } from './error.js';
+import { Module } from './module.js';
 import { VerifierKeyHash } from './verifier-key-hash.js';
 
 /**
@@ -62,7 +63,10 @@ export type ModuleResolutionFailure =
       readonly actual: VerifierKeyHash;
     }
   /** Awaiting the thunk rejected; `cause` is what it rejected with. */
-  | { readonly kind: 'ModuleLoadRejected'; readonly cause: unknown };
+  | { readonly kind: 'ModuleLoadRejected'; readonly cause: unknown }
+  /** The thunk resolved to something without the exports resolution reads. A module built before
+   *  dynamic resolution has a `Contract` and none of the tables. */
+  | { readonly kind: 'IncompleteModule'; readonly missing: readonly (keyof Module)[] };
 
 /** Which call failed, and through which contract type. */
 export type ModuleResolutionContext = {
@@ -130,6 +134,8 @@ const describeFailure = (failure: ModuleResolutionFailure): string => {
             `module but '${failure.actual}' on chain`;
     case 'ModuleLoadRejected':
       return 'loading the resolved module rejected';
+    case 'IncompleteModule':
+      return `the resolved module does not export ${failure.missing.join(', ')}; it was built before dynamic resolution`;
     default: {
       const exhaustive: never = failure;
       throw new CompactError(`unhandled resolution failure ${JSON.stringify(exhaustive)}`);
