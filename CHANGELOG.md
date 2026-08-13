@@ -44,12 +44,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   * `verifier-key-hash.ts` — the branded `VerifierKeyHash` and
     `isVerifierKeyHash` / `asVerifierKeyHash` / `verifierKeyHashOf`.
   * `module-resolution.ts` — `ModuleResolutionError`, carrying a
-    `ModuleResolutionFailure` discriminated union with ten kinds:
+    `ModuleResolutionFailure` discriminated union with eleven kinds:
     `ModuleProviderAbsent`, `PureInterfaceCircuit`, `OperationAbsent`,
     `UnsupportedImplementation`, `ProviderThrew`, `NonconformantImplementation`,
-    `UnreadableModule`, `MalformedVerifierKeyHash`, `ImplementationMismatch`
-    and `ModuleLoadRejected`. A payload rather than an error subclass, so it
-    survives an application re-throwing through its own error type.
+    `UnreadableModule`, `MalformedVerifierKeyHash`, `ImplementationMismatch`,
+    `ModuleLoadRejected` and `IncompleteModule`. A payload rather than an error
+    subclass, so it survives an application re-throwing through its own error
+    type. The last of these covers a module built before dynamic resolution: the
+    exports resolution reads are checked as the module loads, so a stale
+    artifact names itself instead of failing later as a type error inside
+    conformance checking.
 - Adds `CompactError.is`, which recognizes runtime errors and their subclasses
   across duplicate installs of the package. A generated contract module resolves
   its own copy of the runtime, so the copy that throws is not the copy an

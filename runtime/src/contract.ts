@@ -88,7 +88,7 @@ const checkImplementation = (
   // Own properties only: `toString` and `constructor` are legal circuit names, so a bare index
   // would find `Object.prototype`'s and report a function as a malformed fingerprint.
   const expectedVk = calleeModule.expectedVk;
-  const recorded = expectedVk !== undefined && Object.hasOwn(expectedVk, calleeCircuitId) ? expectedVk[calleeCircuitId] : undefined;
+  const recorded = Object.hasOwn(expectedVk, calleeCircuitId) ? expectedVk[calleeCircuitId] : undefined;
   if (recorded === undefined) {
     failResolution(resolutionContext, {
       kind: 'ImplementationMismatch',
@@ -165,8 +165,18 @@ const checkModuleConformance = (
 };
 
 /**
+ * What {@link crossContractCall} reads off a callee's module, checked as the module loads. One
+ * built before dynamic resolution has a `Contract` and none of the tables, and indexing a table
+ * that is not there is a bare `TypeError` naming neither the contract nor the call.
+ *
+ * @internal
+ */
+const RESOLVED_MODULE_EXPORTS: readonly (keyof Module)[] = ['Contract', 'circuitSignatures', 'expectedVk'];
+
+/**
  * Asks the provider for the callee's module and loads it, turning every provider fault into a
- * {@link ModuleResolutionFailure}.
+ * {@link ModuleResolutionFailure} — including a thunk that resolves to something that is not a
+ * module, since a provider is application code and its result is not otherwise checked.
  *
  * @internal
  */
@@ -187,11 +197,19 @@ const resolveModule = async (
   if (typeof thunk !== 'function') {
     failResolution(resolutionContext, { kind: 'ProviderThrew', cause: thunk });
   }
+  let calleeModule: Module;
   try {
-    return await thunk();
+    calleeModule = await thunk();
   } catch (cause) {
     failResolution(resolutionContext, { kind: 'ModuleLoadRejected', cause });
   }
+  // By own property, not by value: an export bound to `undefined` is still an export, and a name
+  // inherited from `Object.prototype` is not one.
+  const missing = RESOLVED_MODULE_EXPORTS.filter((name) => !Object.hasOwn(calleeModule, name));
+  if (missing.length !== 0) {
+    failResolution(resolutionContext, { kind: 'IncompleteModule', missing });
+  }
+  return calleeModule;
 };
 
 /**

@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Pins how each failure kind reads, and how the recognizer behaves. `ALL_FAILURES` lists the kinds
-// by hand; nothing checks that it stays complete.
+// Pins how each failure kind reads, and how the recognizer behaves.
 
 import { describe, expect, test } from 'vitest';
 import {
@@ -38,18 +37,20 @@ const CONTEXT: ModuleResolutionContext = {
 const VK_A = asVerifierKeyHash('a'.repeat(64));
 const VK_B = asVerifierKeyHash('b'.repeat(64));
 
-const ALL_FAILURES: readonly ModuleResolutionFailure[] = [
-  { kind: 'ModuleProviderAbsent' },
-  { kind: 'PureInterfaceCircuit' },
-  { kind: 'OperationAbsent' },
-  { kind: 'UnsupportedImplementation' },
-  { kind: 'ProviderThrew', cause: new Error('boom') },
-  { kind: 'NonconformantImplementation', circuitId: 'transfer', check: 'Existence' },
-  { kind: 'UnreadableModule', circuitId: 'transfer', unreadableTag: 'BagTag' },
-  { kind: 'MalformedVerifierKeyHash', circuitId: 'transfer', recorded: 'not-a-hash' },
-  { kind: 'ImplementationMismatch', circuitId: 'transfer', expected: VK_A, actual: VK_B },
-  { kind: 'ModuleLoadRejected', cause: new Error('boom') },
-  ];
+/** One value per kind, keyed by it, so adding a kind without a sample here does not compile. */
+const ALL_FAILURES: { [K in ModuleResolutionFailure['kind']]: Extract<ModuleResolutionFailure, { kind: K }> } = {
+  ModuleProviderAbsent: { kind: 'ModuleProviderAbsent' },
+  PureInterfaceCircuit: { kind: 'PureInterfaceCircuit' },
+  OperationAbsent: { kind: 'OperationAbsent' },
+  UnsupportedImplementation: { kind: 'UnsupportedImplementation' },
+  ProviderThrew: { kind: 'ProviderThrew', cause: new Error('boom') },
+  NonconformantImplementation: { kind: 'NonconformantImplementation', circuitId: 'transfer', check: 'Existence' },
+  UnreadableModule: { kind: 'UnreadableModule', circuitId: 'transfer', unreadableTag: 'BagTag' },
+  MalformedVerifierKeyHash: { kind: 'MalformedVerifierKeyHash', circuitId: 'transfer', recorded: 'not-a-hash' },
+  ImplementationMismatch: { kind: 'ImplementationMismatch', circuitId: 'transfer', expected: VK_A, actual: VK_B },
+  ModuleLoadRejected: { kind: 'ModuleLoadRejected', cause: new Error('boom') },
+  IncompleteModule: { kind: 'IncompleteModule', missing: ['circuitSignatures', 'expectedVk'] },
+};
 
 describe('ModuleResolutionError message', () => {
   test('names the call it could not bind', () => {
@@ -61,14 +62,15 @@ describe('ModuleResolutionError message', () => {
   });
 
   test('every kind produces a non-empty, kind-specific explanation', () => {
+    const failures = Object.values(ALL_FAILURES);
     const explanations = new Set<string>();
-    for (const failure of ALL_FAILURES) {
+    for (const failure of failures) {
       const message = new ModuleResolutionError(CONTEXT, failure).message;
       const tail = message.slice(message.indexOf('implementation: '));
       expect(tail.length).toBeGreaterThan('implementation: '.length + 1);
       explanations.add(tail);
     }
-    expect(explanations.size).toEqual(ALL_FAILURES.length);
+    expect(explanations.size).toEqual(failures.length);
   });
 
   test('a key mismatch reports both digests', () => {
@@ -119,6 +121,16 @@ describe('ModuleResolutionError message', () => {
     });
     expect(err.message).toContain('NOTAHASH');
     expect(err.message).toContain('64 lowercase hex digits');
+    expect(err.message).not.toContain('on chain');
+  });
+
+  test('an incomplete module names the exports it lacks, not a mismatch', () => {
+    const err = new ModuleResolutionError(CONTEXT, {
+      kind: 'IncompleteModule',
+      missing: ['circuitSignatures', 'expectedVk'],
+    });
+    expect(err.message).toContain('circuitSignatures, expectedVk');
+    expect(err.message).toContain('before dynamic resolution');
     expect(err.message).not.toContain('on chain');
   });
 
