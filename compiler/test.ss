@@ -887,6 +887,21 @@ groups than for single tests.
                      (next-value (cdr v*))))))))]))
 )
 
+(module ()
+  (define directory "test-center/sha256-test")
+
+  (define (check-sha256 filename)
+    (let* ([pathname (format "~a/~a" directory filename)]
+           [expected-pathname (format "~a.sha256" pathname)]
+           [expected (call-with-port (open-input-file expected-pathname) get-line)]
+           [actual (sha256-file pathname)])
+      (unless (string=? actual expected)
+        (error 'sha256-file "unexpected digest" filename expected actual))))
+
+  (for-each check-sha256
+    '(empty abc multi-block multiline-lf multiline-crlf random-binary))
+)
+
 (run-tests parse-file/format/reparse
   (test
     '(
@@ -92495,6 +92510,93 @@ groups than for single tests.
         "  const checked = await contract.circuits.storeXChecked(stored.context);"
         "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger jubjubScalars: Set<JubjubScalar>;"
+      "export ledger jubjubPoints: Map<Uint<8>, JubjubPoint>;"
+      "ledger secp256k1Scalars: List<Secp256k1Scalar>;"
+      "ledger secp256k1Points: MerkleTree<8, Secp256k1Point>;"
+      "export ledger secp256k1Tuple: [Secp256k1Point, Secp256k1Point, Secp256k1Point];"
+      "struct Nested {"
+      "  jp: JubjubPoint;"
+      "  color: Vector<3, Uint<8>>;"
+      "  sp: Secp256k1Point;"
+      "}"
+      "export ledger pointStruct: Nested;"
+      "export ledger jubjubTuples: Map<Uint<32>, [JubjubPoint, JubjubPoint, JubjubPoint]>;"
+      "ledger pointStructs: Map<Uint<32>, Maybe<Either<JubjubPoint, Secp256k1Point>>>;"
+      "export ledger jubjubMap: Map<Uint<32>, Map<Uint<8>, JubjubPoint>>;"
+      ""
+      "export circuit test(j: JubjubScalar, s: Secp256k1Scalar): [] {"
+      "  const j0 = disclose(j);"
+      "  jubjubScalars.insert(j0);"
+      "  jubjubPoints.insert(1, ecMulGenerator(j0));"
+      "  const jp = jubjubPoints.lookup(1);"
+      "  const s0 = disclose(s);"
+      "  secp256k1Scalars.pushFront(s0);"
+      "  secp256k1Points.insert(ecMulGenerator(s0));"
+      "  const stIn = [default<Secp256k1Point>, ecMulGenerator(s0), ecMulGenerator(s0 + s0)];"
+      "  secp256k1Tuple = stIn;"
+      "  const stOut = secp256k1Tuple;"
+      "  assert(stIn == stOut, 'ledger round tripping did not work');"
+      "  const psIn = "
+      "    Nested { jp: ecMulGenerator(j0), color: [204, 85, 0], sp: ecMulGenerator(s0 + s0 + s0) };"
+      "  pointStruct = psIn;"
+      "  const psOut = pointStruct;"
+      "  assert(psIn == psOut, 'ledger round tripping did not work');"
+      "  const jtIn = [default<JubjubPoint>, ecMulGenerator(j0), ecMulGenerator(j0)];"
+      "  jubjubTuples.insert(0, jtIn);"
+      "  const jtOut = jubjubTuples.lookup(0);"
+      "  assert(jtIn == jtOut, 'ledger round tripping did not work');"
+      "  pointStructs.insert("
+      "    0,"
+      "    some<Either<JubjubPoint, Secp256k1Point>>("
+      "      left<JubjubPoint, Secp256k1Point>(ecMulGenerator(j0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert("
+      "    1,"
+      "    some<Either<JubjubPoint, Secp256k1Point>>("
+      "      right<JubjubPoint, Secp256k1Point>(ecMulGenerator(s0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert(2, none<Either<JubjubPoint, Secp256k1Point>>());"
+      "  const ps0 = pointStructs.lookup(0);"
+      "  const ps1 = pointStructs.lookup(1);"
+      "  const ps2 = pointStructs.lookup(2);"
+      "  jubjubMap.insert(0, default<Map<Uint<8>, JubjubPoint>>);"
+      "  jubjubMap.lookup(0).insert(1, ecMulGenerator(j0));"
+      "  const jp1 = jubjubMap.lookup(0).lookup(1);"
+      "}"
+      )
+    (stage-javascript
+      '("test('Nested ZKIR native types in various contexts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const result = await contract.circuits.test(context, 3n, 4n);"
+        "  expect(result.result).toEqual([]);"
+        "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
+        "  expect(ledger.jubjubPoints.lookup(1n)).toEqual(runtime.ecMulGenerator(3n));"
+        "  expect(ledger.secp256k1Tuple).toEqual(["
+        "      { x: 0n, y: 0n, identity: true },"
+        "      runtime.secp256k1MulGenerator(4n),"
+        "      runtime.secp256k1MulGenerator(8n),"
+        "  ]);"
+        "  expect(ledger.pointStruct).toEqual({"
+        "    jp: runtime.ecMulGenerator(3n),"
+        "    color: [204n, 85n, 0n],"
+        "    sp: runtime.secp256k1MulGenerator(12n),"
+        "  });"
+        "  expect(ledger.jubjubTuples.lookup(0n)).toEqual(["
+        "    runtime.ecMulGenerator(0n),"
+        "    runtime.ecMulGenerator(3n),"
+        "    runtime.ecMulGenerator(3n),"
+        "  ]);"
         "});"
         ))
     )
