@@ -31,8 +31,6 @@ Replaces: none
 
 The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a second compiler output behind a flag, `compiler/normalized-ir.sexp`. The file holds the analyzed program in the compiler's own vocabulary. Every ledger operation and every `emit` carries its expanded Impact VM instructions. An SDK in any language can then execute circuits with a small interpreter, instead of embedding a JavaScript engine.
 
-The flag is off by default. `contract-info.json` does not change.
-
 ## Motivation
 
 The only first-class way to use a compiled contract today is the generated TypeScript plus `@midnight-ntwrk/compact-runtime`. An SDK in another language must embed a JavaScript engine.
