@@ -68,6 +68,8 @@ The compiler writes `compiler/analyzed-ir.sexp` into the target directory when t
 
 The vocabulary is the compiler's own. `compiler/langs.ss` is the grammar. Forms keep their names and their field order, and identifiers print as the compiler prints them. So this CoIP defines no schema of its own. There is no renaming layer to maintain, and there is no second description of the language to keep in step with the first.
 
+The file carries no format version of its own. It opens with `compiler-version`, `language-version` and `runtime-version`, and those name the compiler that wrote it. The format follows the intermediate language, so it can change with the compiler. A consumer reads those three fields and accepts the versions it supports.
+
 ### What the pass adds
 
 The pass prints the analyzed program. It adds three things that a plain unparse does not show.
@@ -119,10 +121,6 @@ produces this file:
 
 An interpreter reads it as follows. `increment` is exported, it is not pure, and it needs a proof. It takes no arguments and returns the empty tuple. Its body binds `%tmp.2` to the literal `1`, cast to `Uint<0..65535>`, the declared width of the counter's argument. It then runs one ledger operation on the field `%round.1` at path `(0)`. The `(instructions ...)` block is what the interpreter replays against the contract state. It walks to field 0, adds the immediate, and writes the result back.
 
-### Failing closed
-
-A consumer must reject a form it does not recognize. It must not guess. The instruction set is the exception: that set is open, because `midnight-ledger.ss` defines it, so a consumer must reject an instruction it does not implement rather than skip it.
-
 ## Rationale
 
 - **Why not ZKIR?**
@@ -143,7 +141,7 @@ A consumer must reject a form it does not recognize. It must not guess. The inst
 
 ## Backwards Compatibility
 
-The flag is off by default. With the flag off, the compiler writes the same files with the same bytes. `contract-info.json` does not change. The TypeScript pipeline does not change.
+The flag is off by default. With the flag off, the compiler writes the same files with the same bytes.
 
 ## Reference implementation
 
@@ -152,15 +150,7 @@ Two compiler branches implement this, both against upstream `main`. They differ 
 - [RomarQ/compact#16](https://github.com/RomarQ/compact/pull/16) adds `--analyzed-ir`. The emitter is a new pass in the compiler. It adds 391 lines and removes nothing. `save-contract-info-passes` stays untouched. This is what this CoIP proposes.
 - [RomarQ/compact#13](https://github.com/RomarQ/compact/pull/13) adds `--run-hook`. A consumer loads its own Scheme pass and owns the emitter. It is the alternative. It needs the compiler's libraries visible, which grows the binary, and it asks every consumer to carry a Scheme pass.
 
-The two write the same file. Every one of the reference consumer's 24 committed artifacts recompiles byte-identical under either route.
-
-Reference consumer: [`Moonsong-Labs/midnight-rs`](https://github.com/Moonsong-Labs/midnight-rs) reads this artifact and executes circuits from it in Rust. Its conformance suite runs a corpus of contracts through the interpreter. The suite holds each result to the canonical `@midnight-ntwrk/compact-runtime`, and it compares the transcripts and the FAB encodings for the same inputs. All 15 cases match. That is the useful measure: the artifact carries enough to reproduce the TypeScript semantics, and two independent consumers agree.
-
-## Open Questions
-
-**Who owns the emitter?** This CoIP proposes the compiler owns it, as in #16. A released binary then writes the artifact, and no consumer copy can differ from the compiler it runs against. #13 shows the other choice. The project may prefer it if it does not want to carry another output.
-
-**Versioning.** This CoIP carries no version number and makes no stability promise. The format follows the intermediate language, so it can change between compiler versions. A consumer that needs a stable contract should record the shape it built against and compare. The project can add a version later, when the format has settled.
+The two write the same file.
 
 ## References
 
