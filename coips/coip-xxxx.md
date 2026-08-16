@@ -29,7 +29,7 @@ Replaces: none
 
 ## Abstract
 
-The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a second compiler output behind a flag, `compiler/normalized-ir.sexp`. The file holds the analyzed program in the compiler's own vocabulary. Every ledger operation and every `emit` carries its expanded Impact VM instructions. An SDK in any language can then execute circuits with a small interpreter, instead of embedding a JavaScript engine.
+The Compact compiler emits the off-chain half of a compiled contract only as generated TypeScript, so only TypeScript SDKs can use a contract. This CoIP adds a second compiler output behind a flag, `compiler/analyzed-ir.sexp`. The file holds the analyzed program in the compiler's own vocabulary. Every ledger operation and every `emit` carries its expanded Impact VM instructions. An SDK in any language can then execute circuits with a small interpreter, instead of embedding a JavaScript engine.
 
 ## Motivation
 
@@ -47,7 +47,7 @@ ZKIR is already versioned and language-neutral. It sits after this step, and it 
  analyzed program  ---lower + flatten--->  ZKIR   (proving IR, already shared)
        |
        |  today: TypeScript codegen only
-       |  this CoIP: also write compiler/normalized-ir.sexp
+       |  this CoIP: also write compiler/analyzed-ir.sexp
        v
  executable circuit body
        |
@@ -64,7 +64,7 @@ ZKIR is already versioned and language-neutral. It sits after this step, and it 
 
 ## Specification
 
-The compiler writes `compiler/normalized-ir.sexp` into the target directory when the user passes `--normalized-ir`. The file holds one S-expression datum.
+The compiler writes `compiler/analyzed-ir.sexp` into the target directory when the user passes `--analyzed-ir`. The file holds one S-expression datum. The name is the compiler's own: `compiler/passes.ss` binds this value as `analyzed-ir` after the analysis passes run.
 
 The vocabulary is the compiler's own. `compiler/langs.ss` is the grammar. Forms keep their names and their field order, and identifiers print as the compiler prints them. So this CoIP defines no schema of its own. There is no renaming layer to maintain, and there is no second description of the language to keep in step with the first.
 
@@ -95,7 +95,7 @@ export circuit increment(): [] {
 produces this file:
 
 ```scheme
-(normalized-ir (compiler-version "0.33.122") (language-version "0.25.107")
+(analyzed-ir (compiler-version "0.33.122") (language-version "0.25.107")
   (runtime-version "0.18.107")
   (exports (increment . %increment.0) (round . %round.1))
   (contract-types)
@@ -149,7 +149,7 @@ The flag is off by default. With the flag off, the compiler writes the same file
 
 Two compiler branches implement this, both against upstream `main`. They differ in who owns the emitter.
 
-- [RomarQ/compact#16](https://github.com/RomarQ/compact/pull/16) adds `--normalized-ir`. The emitter is a new pass in the compiler. It adds 391 lines and removes nothing. `save-contract-info-passes` stays untouched. This is what this CoIP proposes.
+- [RomarQ/compact#16](https://github.com/RomarQ/compact/pull/16) adds `--analyzed-ir`. The emitter is a new pass in the compiler. It adds 391 lines and removes nothing. `save-contract-info-passes` stays untouched. This is what this CoIP proposes.
 - [RomarQ/compact#13](https://github.com/RomarQ/compact/pull/13) adds `--run-hook`. A consumer loads its own Scheme pass and owns the emitter. It is the alternative. It needs the compiler's libraries visible, which grows the binary, and it asks every consumer to carry a Scheme pass.
 
 The two write the same file. Every one of the reference consumer's 24 committed artifacts recompiles byte-identical under either route.
