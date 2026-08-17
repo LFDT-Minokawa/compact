@@ -97,6 +97,10 @@ export async function getLanguageVersion(): Promise<string> {
     return result.stdout.trim();
 }
 
+export function withContractPath(compilation: Compilation, contractPath: string): Compilation {
+    return { ...compilation, contractPath };
+}
+
 function compiledPaths(args: string[], cwd: string | undefined): CompilationPaths {
     // filter out flags
     const values = args.filter((argument) => !argument.startsWith('-'));

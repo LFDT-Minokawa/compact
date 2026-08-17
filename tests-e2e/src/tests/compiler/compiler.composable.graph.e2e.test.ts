@@ -15,7 +15,9 @@
 
 import { describe, test } from 'vitest';
 import {
+    buildPathTo,
     compile,
+    withContractPath,
     compilerDefaultOutput,
     compileQueue,
     compileWithContractName,
@@ -26,18 +28,23 @@ import {
 } from '@';
 import fs from 'fs';
 
+const FIXTURES = '/composable/graph';
+
 describe('[Composable contracts dependency graph] Compiler', () => {
     let contractsDir: string;
 
     beforeAll(() => {
         contractsDir = createTempFolder();
-        copyFiles('../examples/composable/graph/*.compact', contractsDir);
+        copyFiles(buildPathTo(`${FIXTURES}/*.compact`), contractsDir);
     });
 
     test('should compile when A and B are referenced in MAIN', async () => {
         await compileQueue(contractsDir, ['A', 'B']);
 
-        const result = await compileWithContractName('Main-A-and-B', contractsDir);
+        const result = withContractPath(
+            await compileWithContractName('Main-A-and-B', contractsDir),
+            buildPathTo(`${FIXTURES}/Main-A-and-B.compact`),
+        );
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(result).thatGeneratedJSCodeIsValid();
     });
@@ -45,7 +52,10 @@ describe('[Composable contracts dependency graph] Compiler', () => {
     test('should compile when A is referenced in C, B and C are referenced in MAIN', async () => {
         await compileQueue(contractsDir, ['A', 'B', 'C']);
 
-        const result = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
+        const result = withContractPath(
+            await compileWithContractName('Main-B-and-C-on-A', contractsDir),
+            buildPathTo(`${FIXTURES}/Main-B-and-C-on-A.compact`),
+        );
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(result).thatGeneratedJSCodeIsValid();
     });
@@ -54,7 +64,10 @@ describe('[Composable contracts dependency graph] Compiler', () => {
         await compileQueue(contractsDir, ['B', 'A', 'C']);
         fs.rmSync(`${contractsDir} + A`, { recursive: true, force: true });
 
-        const result = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
+        const result = withContractPath(
+            await compileWithContractName('Main-B-and-C-on-A', contractsDir),
+            buildPathTo(`${FIXTURES}/Main-B-and-C-on-A.compact`),
+        );
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles(result).thatGeneratedJSCodeIsValid();
     });
@@ -62,7 +75,10 @@ describe('[Composable contracts dependency graph] Compiler', () => {
     test('should fail when A and B are referenced in MAIN, and MAIN is compiled to output directory A', async () => {
         await compileQueue(contractsDir, ['B', 'A']);
 
-        const result = await compile([contractsDir + 'Main-A-and-B.compact', contractsDir + 'A']);
+        const result = withContractPath(
+            await compile([contractsDir + 'Main-A-and-B.compact', contractsDir + 'A']),
+            buildPathTo(`${FIXTURES}/Main-A-and-B.compact`),
+        );
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
         expectFiles({ outputDir: `${contractsDir}Main-A-and-B` }).thatGeneratedJSCodeIsValid();
     });
