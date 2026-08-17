@@ -70,16 +70,14 @@ export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
     ];
   },
   fromValue(value: ocrt.Value): JubjubPoint {
-    const x = value.shift();
-    const y = value.shift();
-    if (x == undefined || y == undefined) {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected JubjubPoint');
-    } else {
-      return {
-        x: ocrt.valueToBigInt([x]),
-        y: ocrt.valueToBigInt([y]),
-      };
     }
+    const coordinates = value.splice(0, 2);
+    return {
+      x: ocrt.valueToBigInt([coordinates[0]]),
+      y: ocrt.valueToBigInt([coordinates[1]]),
+    };
   },
   toValue(value: JubjubPoint): ocrt.Value {
     return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
@@ -99,15 +97,22 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
       .concat([{ tag: 'atom', value: { tag: 'field' } }]);
   },
   fromValue(value: ocrt.Value): Secp256k1Point {
-    if (value.length != 5 || value[4] == undefined) {
+    if (value.length < 5) {
       throw new CompactError('expected Secp256k1Point');
     }
     // This might throw CompactError('expected Secp256k1Base').
-    return {
-      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
-      y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: ocrt.valueToBigInt(value.slice(4)) === 1n,
-    };
+    const x = CompactTypeSecp256k1Base.fromValue(value);
+    const y = CompactTypeSecp256k1Base.fromValue(value);
+    const identity = value.shift();
+    if (identity == undefined) {
+      throw new CompactError('expected Secp256k1Point');
+    } else {
+      return {
+        x: x,
+        y: y,
+        identity: ocrt.valueToBigInt([identity]) === 1n,
+      };
+    }
   },
   toValue(value: Secp256k1Point): ocrt.Value {
     return CompactTypeSecp256k1Base.toValue(value.x)
@@ -248,11 +253,12 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Base');
     }
-    const low192 = ocrt.valueToBigInt([value[0]]);
-    const high64 = ocrt.valueToBigInt([value[1]]);
+    const limbs = value.splice(0, 2);
+    const low192 = ocrt.valueToBigInt([limbs[0]]);
+    const high64 = ocrt.valueToBigInt([limbs[1]]);
     if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
       throw new CompactError('expected Secp256k1Base');
     }
@@ -290,11 +296,12 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Scalar');
     }
-    const low192 = ocrt.valueToBigInt([value[0]]);
-    const high64 = ocrt.valueToBigInt([value[1]]);
+    const limbs = value.splice(0, 2);
+    const low192 = ocrt.valueToBigInt([limbs[0]]);
+    const high64 = ocrt.valueToBigInt([limbs[1]]);
     if (low192 > (1n << 192n) - 1n) {
       throw new CompactError('expected Secp256k1Scalar');
     }

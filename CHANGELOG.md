@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.122, language 0.25.107, runtime 0.18.107]
+
+### Fixed
+
+- Issue #704, where nested ZKIR v3 native-typed values did not have proper
+  ledger conversions in-circuit.  The underlying issue was that we give these
+  types a "pseudo-alignment" of `anative` in `flatten-datatypes`, and this
+  alignment cannot appear in the ledger.  Consequently, we translate this into
+  ledger alignments and ZKIR encoding instructions (essentially, flattening
+  further) in the ZKIR v3 backend.
+  
+  There were three places that had near duplicates of this code: (1) for ZKIR
+  hashing instructions that need an alignment, (2) for Impact `popeq`, (3) and
+  for all other Impact instructions.  Only number (1) of those correctly handled
+  nested ZKIR-typed values.
+  
+  The fix is to reuse the correct code everywhere.
+  
+  This revealed a different issue with the descriptors for secp256k1 points and
+  field types, they did not properly nest inside Compact types because they did
+  not consume the FAB encoding in `fromValue`.
+
+## [Toolchain 0.33.121, language 0.25.107, runtime 0.18.106]
+
+### Changed
+
+- The compiler now hashes manifest files in-process using Common Crypto or
+  OpenSSL when available.
+
 ## [Toolchain 0.33.120, language 0.25.107, runtime 0.18.106]
 
 ### Changed
@@ -18,7 +47,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   Curve25519.  The `zkir-v3` and `zkir-v3-wasm` dependencies are changed to
   include the new features.  The `onchain-runtime-v4` dependency is kept to
   track the tag `ledger-9.1.0.0-rc.3`.
-  
+
   The toolchain version is bumped (if nothing else, it reports a different
   string for `--feature-zkir-v3 --ledger-version`).
 
