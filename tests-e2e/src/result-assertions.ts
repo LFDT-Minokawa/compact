@@ -15,7 +15,7 @@
 
 import { logger } from './logger-utils';
 import { expect } from 'vitest';
-import { Result } from 'execa';
+import { Compilation } from './types';
 
 export enum ExitCodes {
     Success = 0,
@@ -30,12 +30,22 @@ export type AssertOptions = {
 };
 
 export class AssertResult {
-    private result: Result;
+    private result: Compilation;
 
-    expect(result: Result): AssertResult {
+    expect(result: Compilation): AssertResult {
         this.result = result;
 
         return this;
+    }
+
+    private get context(): string {
+        const { command, contractPath, outputDir } = this.result;
+
+        if (contractPath === undefined || outputDir === undefined) {
+            return `[command: ${command}]`;
+        }
+
+        return `[contract: ${contractPath}] [output: ${outputDir}]`;
     }
 
     toReturn(stderr: string | RegExp, stdout: string | RegExp, exitCode: number): void {
@@ -58,9 +68,9 @@ export class AssertResult {
 
     toMatchStdOut(stdout: string | RegExp) {
         if (stdout instanceof RegExp) {
-            expect(this.result.stdout).toMatch(stdout);
+            expect(this.result.stdout, this.context).toMatch(stdout);
         } else {
-            expect(this.result.stdout).toBe(stdout);
+            expect(this.result.stdout, this.context).toBe(stdout);
         }
 
         return this;
@@ -68,7 +78,7 @@ export class AssertResult {
 
     stdOutToContain(stdout: (string | RegExp)[]): AssertResult {
         for (const word of stdout) {
-            expect(this.result.stdout).toContain(word);
+            expect(this.result.stdout, this.context).toContain(word);
         }
 
         return this;
@@ -76,7 +86,7 @@ export class AssertResult {
 
     stdOutToNotContain(stdout: (string | RegExp)[]): AssertResult {
         for (const word of stdout) {
-            expect(this.result.stdout).not.toContain(word);
+            expect(this.result.stdout, this.context).not.toContain(word);
         }
 
         return this;
@@ -84,9 +94,9 @@ export class AssertResult {
 
     toMatchStdError(stderr: string | RegExp): AssertResult {
         if (stderr instanceof RegExp) {
-            expect(this.result.stderr).toMatch(stderr);
+            expect(this.result.stderr, this.context).toMatch(stderr);
         } else {
-            expect(this.result.stderr).toBe(stderr);
+            expect(this.result.stderr, this.context).toBe(stderr);
         }
 
         return this;
@@ -94,7 +104,7 @@ export class AssertResult {
 
     stdErrToContain(stderr: (string | RegExp)[]): AssertResult {
         for (const word of stderr) {
-            expect(this.result.stderr).toContain(word);
+            expect(this.result.stderr, this.context).toContain(word);
         }
 
         return this;
@@ -102,14 +112,14 @@ export class AssertResult {
 
     stdErrToNotContain(stderr: (string | RegExp)[]): AssertResult {
         for (const word of stderr) {
-            expect(this.result.stderr).not.toContain(word);
+            expect(this.result.stderr, this.context).not.toContain(word);
         }
 
         return this;
     }
 
     toMatchExitCode(exitCode: number): AssertResult {
-        expect(this.result.exitCode).toEqual(exitCode);
+        expect(this.result.exitCode, this.context).toEqual(exitCode);
 
         return this;
     }
@@ -121,14 +131,12 @@ export class AssertResult {
     }
 }
 
-const assertResult = new AssertResult();
-
 const logChoice = (choice: boolean, message: string) => {
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     choice ? logger.debug(message) : logger.info(message);
 };
 
-export function expectCommandResult(result: Result): AssertResult {
+export function expectCommandResult(result: Compilation): AssertResult {
     logger.info(`---- Result ----`);
     logger.info(`command: ${result.command}`);
     // eslint-disable-next-line @typescript-eslint/restrict-template-expressions
@@ -137,11 +145,11 @@ export function expectCommandResult(result: Result): AssertResult {
     logger.info(`stderr: ${result.stderr}`);
     logger.info(`exit code: ${result.exitCode}`);
     logger.info(`---- End ----`);
-    return assertResult.expect(result);
+    return new AssertResult().expect(result);
 }
 
 export function expectCompilerResult(
-    result: Result,
+    result: Compilation,
     options: AssertOptions = { contract: '', ignoreStdOut: false, ignoreStdErr: false },
 ): AssertResult {
     logger.info(`---- Result ----`);
@@ -156,5 +164,5 @@ export function expectCompilerResult(
     logger.info(`exit code: ${result.exitCode}`);
     logger.info(`---- End ----`);
 
-    return assertResult.expect(result);
+    return new AssertResult().expect(result);
 }
