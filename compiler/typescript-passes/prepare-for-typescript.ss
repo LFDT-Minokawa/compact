@@ -56,6 +56,10 @@
              [(field-base (curve-secp256k1)) 952780025]
              [(field-scalar (curve-secp256k1)) 817054627])]
           [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
+          [(tpoint ,src ,ctype)
+           (nanopass-case (Ltypescript Curve-Type) ctype
+             [(curve-jubjub) 556995959]
+             [(curve-secp256k1) 234863430])]
           [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
           [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
            ; arrange for equivalent vectors and tuples to hash to same value with same elements,
@@ -112,51 +116,56 @@
       (define (type=? type1 type2)
         (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
           (let ([type1 (subst-tcontract type1)] [type2 (subst-tcontract type2)])
-            (T type1
-               [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-               [(tfield ,src1 ,ftype1)
-                (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
-               [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-               [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-               [(topaque ,src1 ,opaque-type1)
-                (T type2
-                   [(topaque ,src2 ,opaque-type2)
-                    (string=? opaque-type1 opaque-type2)])]
-               [(tvector ,src1 ,len1 ,type1)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= len1 len2)
-                         (type=? type1 type2))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= len1 (length type2*))
-                         (andmap (lambda (type2) (type=? type1 type2)) type2*))])]
-               [(ttuple ,src1 ,type1* ...)
-                (T type2
-                   [(tvector ,src2 ,len2 ,type2)
-                    (and (= (length type1*) len2)
-                         (andmap (lambda (type1) (type=? type1 type2)) type1*))]
-                   [(ttuple ,src2 ,type2* ...)
-                    (and (= (length type1*) (length type2*))
-                         (andmap type=? type1* type2*))])]
-               [(tunknown) (T type2 [(tunknown) #t])]
-               [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-                ; since we substitute out tcontract types, this is not exercised
-                (assert cannot-happen)]
-               [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-                (T type2
-                   [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                    ; include struct-name and elt-name tests for nominal typing; remove
-                    ; for structural typing.
-                    (and (eq? struct-name1 struct-name2)
-                         (fx= (length elt-name1*) (length elt-name2*))
-                         (andmap eq? elt-name1* elt-name2*)
-                         (andmap type=? type1* type2*))])]
-               [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-                (T type2
-                   [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                    (and (eq? enum-name1 enum-name2)
-                         (eq? elt-name1 elt-name2)
-                         (andmap eq? elt-name1* elt-name2*))])]))))
+            (nanopass-case (Ltypescript Type) type1
+              [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+              [(tfield ,src1 ,ftype1)
+               (T type2 [(tfield ,src2 ,ftype2) (field-type=? ftype1 ftype2)])]
+              [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+              [(tpoint ,src1 ,ctype1)
+               (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
+              [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+              [(topaque ,src1 ,opaque-type1)
+               (T type2
+                  [(topaque ,src2 ,opaque-type2)
+                   (string=? opaque-type1 opaque-type2)])]
+              [(tvector ,src1 ,len1 ,type1)
+               (T type2
+                  [(tvector ,src2 ,len2 ,type2)
+                   (and (= len1 len2)
+                        (type=? type1 type2))]
+                  [(ttuple ,src2 ,type2* ...)
+                   (and (= len1 (length type2*))
+                        (andmap (lambda (type2) (type=? type1 type2)) type2*))])]
+              [(ttuple ,src1 ,type1* ...)
+               (T type2
+                  [(tvector ,src2 ,len2 ,type2)
+                   (and (= (length type1*) len2)
+                        (andmap (lambda (type1) (type=? type1 type2)) type1*))]
+                  [(ttuple ,src2 ,type2* ...)
+                   (and (= (length type1*) (length type2*))
+                        (andmap type=? type1* type2*))])]
+              [(tunknown) (T type2 [(tunknown) #t])]
+              [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+               ; since we substitute out tcontract types, this is not exercised
+               (assert cannot-happen)]
+              [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+               (T type2
+                  [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+                   ; include struct-name and elt-name tests for nominal typing; remove
+                   ; for structural typing.
+                   (and (eq? struct-name1 struct-name2)
+                        (fx= (length elt-name1*) (length elt-name2*))
+                        (andmap eq? elt-name1* elt-name2*)
+                        (andmap type=? type1* type2*))])]
+              [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+               (T type2
+                  [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+                   (and (eq? enum-name1 enum-name2)
+                        (eq? elt-name1 elt-name2)
+                        (andmap eq? elt-name1* elt-name2*))])]
+              [else (internal-errorf 'print-typescript
+                                     "unhandled type ~a in type=?"
+                                     type1)]))))
       (define (public-adt? type)
         (nanopass-case (Ltypescript Type) (de-alias type)
           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]

@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export struct SX<#n, T> { curidx: Uint<n> }
+export ledger value: Uint<64>;
 
-export circuit test(): [] {
-  const p: SX<0, Field> = default<SX<0,Field>>;
+export circuit set(next: Uint<64>): Uint<64> {
+  value = disclose(next);
+  return value;
 }

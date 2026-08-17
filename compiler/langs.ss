@@ -308,12 +308,7 @@
       (targ-type src type)                   => type
       )
     (Field-Type (ftype)
-      (field-native)
-      (field-base ctype)
-      (field-scalar ctype))
-    (Curve-Type (ctype)
-      (curve-jubjub)
-      (curve-secp256k1))
+      (field-native))
   )
 
   (define-language/pretty Lnoinclude (extends Lsrc)
@@ -422,9 +417,13 @@
          (vm-code (vm-code))
          (native-entry (native-entry))))
     (Program-Element (pelt)
-      (+ ndecl
+      (+ ntdecl
+         ndecl
          adt-defn
          fixup-alias-defn))
+    (Native-Type-Declaration (ntdecl)
+      (+ (native-type src exported? type-name type) =>
+           (native-type type-name type)))
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
@@ -450,6 +449,14 @@
     (Expression (expr index)
       (+ (serialize src tsize type expr)      => (serialize tsize type expr)
          (deserialize src tsize type expr)    => (deserialize tsize type expr)))
+    (Type (type)
+      (+ (tpoint src ctype)                   => (tpoint ctype)))
+    (Field-Type (ftype)
+      (+ (field-base ctype))
+      (+ (field-scalar ctype)))
+    (Curve-Type (ctype)
+      (+ (curve-jubjub))
+      (+ (curve-secp256k1)))
     )
 
   (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
@@ -516,9 +523,12 @@
          structdef
          enumdef
          tdefn
+         ntdecl
          adt-defn
          fixup-alias-defn)
       (+ export-tdefn))
+    (Native-Type-Declaration (ntdecl)
+      (- (native-type src exported? type-name type)))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Fixup-Alias-Definition (fixup-alias-defn)
@@ -611,7 +621,7 @@
          (tunsigned src tsize tsize^)
          (tvector src tsize type)
          (tbytes src tsize))
-      (+ tvar-name
+      (+ tvar-name ; should appear only in external type declarations
          (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
@@ -718,9 +728,9 @@
       ; only to have some Uint type
       (bytes-ref src type expr index)         => (bytes-ref #f expr #f index)
       (bytes-slice src type expr index len)   => (bytes-slice #f expr #f index #f len)
-      (+ src mbits expr1 expr2)               => (+ mbits expr1 expr2)
-      (- src mbits expr1 expr2)               => (- mbits expr1 expr2)
-      (* src mbits expr1 expr2)               => (* mbits expr1 expr2)
+      (+ src type expr1 expr2 )               => (+ type expr1 expr2)
+      (- src type expr1 expr2)                => (- type expr1 expr2)
+      (* src type expr1 expr2)                => (* type expr1 expr2)
       (< src bits expr1 expr2)                => (< expr1 expr2)
       (<= src bits expr1 expr2)               => (<= expr1 3 expr2)
       (> src bits expr1 expr2)                => (> expr1 expr2)
@@ -776,10 +786,11 @@
       (fref src function-name)               => function-name
       (circuit src (arg* ...) type expr)     => (circuit (arg* 0 ...) 4 type #f expr))
     (Type (type)
-      tvar-name
+      tvar-name ; should appear only in external type declarations
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
+      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -1078,9 +1089,9 @@
     (Rhs (rhs)
       triv
       (default type)
-      (+ mbits triv1 triv2)
-      (- mbits triv1 triv2)
-      (* mbits triv1 triv2)
+      (+ type triv1 triv2)
+      (- type triv1 triv2)
+      (* type triv1 triv2)
       (< bits triv1 triv2)
       (== triv1 triv2)                       => (== triv1 3 triv2)
       (select triv0 triv1 triv2)             => (select triv0 triv1 triv2)
@@ -1120,6 +1131,7 @@
       (tboolean src)                         => (tboolean)
       (tfield src ftype)                     => (tfield ftype)
       (tunsigned src nat)                    => (tunsigned nat)
+      (tpoint src ctype)                     => (tpoint ctype)
       (tbytes src len)                       => (tbytes len)
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src len type)                 => (tvector len type)
@@ -1144,10 +1156,12 @@
     (terminals
       (- (symbol (export-name struct-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal))
          (boolean (pure-dcl))
-         (datum (datum)))
+         (datum (datum))
+         (string (mesg opaque-type file sugar)))
       (+ (symbol (export-name contract-name elt-name ledger-op ledger-op-class adt-name adt-formal ledger-op-formal))
          (boolean (pure-dcl safe))
-         (field-bytes (nb))))
+         (field-bytes (nb))
+         (string (mesg opaque-type file sugar zkir-type))))
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type stmt* ... triv))
       (+ (circuit src function-name (arg* ...) type stmt* ... (triv* ...)) =>
@@ -1175,9 +1189,9 @@
     (Rhs (rhs)
       (- triv
          (default type)
-         (+ mbits triv1 triv2)
-         (- mbits triv1 triv2)
-         (* mbits triv1 triv2)
+         (+ type triv1 triv2)
+         (- type triv1 triv2)
+         (* type triv1 triv2)
          (< bits triv1 triv2)
          (== triv1 triv2)
          (select triv0 triv1 triv2)
@@ -1198,9 +1212,9 @@
          (downcast-unsigned src nat2 nat1 triv)))
     (Single (single)
       (+ triv
-         (+ mbits triv1 triv2)
-         (- mbits triv1 triv2)
-         (* mbits triv1 triv2)
+         (+ primitive-type triv1 triv2)
+         (- primitive-type triv1 triv2)
+         (* primitive-type triv1 triv2)
          (< bits triv1 triv2)
          (== triv1 triv2)                            => (== triv1 3 triv2)
          (select triv0 triv1 triv2)                  => (select triv0 triv1 triv2)
@@ -1213,7 +1227,7 @@
          ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)
-         (default opaque-type)
+         (default zkir-type)
          (field->bytes src len ftype triv)         => (field->bytes len ftype #f triv)
          (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
          (div-mod-power-of-two triv bits)
@@ -1240,11 +1254,12 @@
          (abytes nat)
          (afield)
          (aadt)
-         (anative opaque-type)))
+         (anative zkir-type)))
     (Type (type)
       (- (tboolean src)
          (tfield src ftype)
          (tunsigned src nat)
+         (tpoint src ctype)
          (tbytes src len)
          (topaque src opaque-type)
          (tvector src len type)
@@ -1256,6 +1271,7 @@
     (Primitive-Type (primitive-type)
       (+ (tfield ftype)
          (tunsigned nat)
+         (tpoint ctype)
          (topaque opaque-type)
          (tcontract contract-name (elt-name* pure-dcl* (type** ...) type*) ...) =>
            (tcontract contract-name #f (elt-name* pure-dcl* (type** ...) #f type*) ...)
@@ -1270,6 +1286,8 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
+      ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
     (Program (p)
       (program src cdefn* ...) => (program #f cdefn* ...))

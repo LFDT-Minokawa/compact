@@ -13,6 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test3(): Uint<0> {
-    return default<Uint<0>>;
+export ledger F1: Uint<0..1>;
+
+export circuit foo1(x: Uint<32>): Uint<8> {
+  F1 = disclose(x) as Uint<0..1>;
+  return F1;
+}
+
+export ledger F2: Uint<0..2>;
+
+export circuit foo2(x: Uint<32>): Uint<8> {
+  F2 = disclose(x) as Uint<0..1>;
+  return F2;
+}
+
+export ledger F3: Uint<0..3>;
+
+export circuit foo3(x: Uint<32>): Uint<8> {
+  F3 = disclose(x) as Uint<0..1>;
+  return F3;
 }

@@ -56,6 +56,13 @@ export interface CallProofData extends ProofData {
    */
   finalQueryContext: ocrt.QueryContext;
   /**
+   * The Zswap local state this contract accumulated during the call — the shielded coins it
+   * consumed and produced. Recorded per call, not just for the root, so transaction assembly can
+   * build one offer contribution per call and bind each contract-owned input and output to the
+   * contract that actually made it.
+   */
+  zswapLocalState: EncodedZswapLocalState;
+  /**
    * Data included by the parent call only if this was a sub-call
    */
   commCommData?: CommunicationCommitmentData;
@@ -132,6 +139,17 @@ export interface CircuitContext<PS = any> {
    * The current gas costs for every contract in the call tree.
    */
   gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
+  /**
+   * The current Zswap local state of every contract in the call tree — the shielded-coin
+   * counterpart of {@link queryContexts} and {@link gasCosts}, and keyed the same way.
+   *
+   * Each contract keeps its own state, with its own `currentIndex`, `inputs` and `outputs`;
+   * only the transaction submitter's `coinPublicKey` is shared, since one wallet pays for the
+   * whole transaction. Threaded across cross-contract calls (see `restoreCircuitContext`) so a
+   * callee's coin operations survive its return, and mirrored onto each {@link CallProofData}
+   * so transaction assembly can attribute every input and output to the contract that made it.
+   */
+  zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
   /**
    * The deployed {@link ocrt.ContractState} of every cross-contract callee resolved during the
    * execution, keyed by address. Populated by {@link crossContractCall} (via the state provider)
@@ -227,18 +245,16 @@ export const createCircuitContext = <PS>(
     time,
     parentBlockHash,
   );
+  // The per-address maps below must alias *this* call context's cells, so a write through either
+  // route is visible from the other. (They previously indexed a second, separately-constructed
+  // call context, which held distinct `QueryContext` objects.)
+  const zswapLocalState = callContext.currentZswapLocalState;
+  assertDefined(zswapLocalState, `initial Zswap local state for contract '${contractAddress}'`);
   return {
-    callContext: createCallContext(
-      circuitId,
-      contractAddress,
-      coinPublicKeyOrZswapState,
-      contractState,
-      privateState,
-      time,
-      parentBlockHash,
-    ),
+    callContext,
     queryContexts: { [contractAddress]: callContext.currentQueryContext },
     gasCosts: { [contractAddress]: callContext.currentGasCost },
+    zswapLocalStates: { [contractAddress]: zswapLocalState },
     contractStates: {},
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
@@ -262,6 +278,7 @@ export const copyCircuitContext = (context: CircuitContext): CircuitContext => (
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
+  zswapLocalStates: { ...context.zswapLocalStates },
   contractStates: { ...context.contractStates },
   callProofDataTrace: [...context.callProofDataTrace],
   events: [...context.events],
@@ -275,8 +292,11 @@ export const finalizeCallProofData = (circuitContext: CircuitContext, proofData:
   const initialQueryContext = circuitContext.callContext.initialQueryContext;
   const currentQueryContext = circuitContext.callContext.currentQueryContext;
 
+  const zswapLocalState = circuitContext.callContext.currentZswapLocalState;
+
   assertDefined(initialQueryContext, `initial ledger context for contract '${contractAddress}'`);
   assertDefined(currentQueryContext, `current ledger context for contract '${contractAddress}'`);
+  assertDefined(zswapLocalState, `Zswap local state for contract '${contractAddress}'`);
 
   circuitContext.callProofDataTrace.push({
     ...proofData,
@@ -284,6 +304,7 @@ export const finalizeCallProofData = (circuitContext: CircuitContext, proofData:
     contractAddress,
     initialQueryContext,
     finalQueryContext: currentQueryContext,
+    zswapLocalState,
   });
 };
 
