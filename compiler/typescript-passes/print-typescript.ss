@@ -1127,12 +1127,26 @@
                   [(tunsigned ,src ,nat)
                    (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                   [(tpoint ,src ,ctype)
-                   (nanopass-case (Ltypescript Curve-Type) ctype
-                     [(curve-jubjub)
-                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint'" var)]
-                     [(curve-secp256k1)
-                      ;; We could check for canonical identity points if we relied on them.
-                      (format "typeof(~a.x) === 'bigint' && typeof(~:*~a.y) === 'bigint' && typeof(~:*~a.identity) == 'boolean'" var)])]
+                   ;; The tfield case above bounds a bare field element, but an
+                   ;; unbounded check here would let the same bigint through as
+                   ;; a coordinate, so bound these too - otherwise the
+                   ;; failure surfaces inside CompactTypeSecp256k1Base.toValue,
+                   ;; far from the call site. Curve membership and canonical
+                   ;; identity points are still unchecked.
+                   (let ([coordinate
+                           (lambda (field bound)
+                             (format "typeof(~a.~a) === 'bigint' && ~a.~a >= 0n && ~a.~a <= __compactRuntime.~a"
+                               var field var field var field bound))])
+                     (nanopass-case (Ltypescript Curve-Type) ctype
+                       [(curve-jubjub)
+                        (format "~a && ~a"
+                          (coordinate "x" "MAX_FIELD")
+                          (coordinate "y" "MAX_FIELD"))]
+                       [(curve-secp256k1)
+                        (format "~a && ~a && typeof(~a.identity) == 'boolean'"
+                          (coordinate "x" "MAX_SECP256K1_BASE")
+                          (coordinate "y" "MAX_SECP256K1_BASE")
+                          var)]))]
                   [(tbytes ,src ,len)
                    (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                   [(topaque ,src ,opaque-type)

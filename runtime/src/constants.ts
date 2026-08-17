@@ -60,6 +60,16 @@ export const SECP256K1_SCALAR_MODULUS: bigint =
 export const MAX_SECP256K1_SCALAR: bigint = SECP256K1_SCALAR_MODULUS - 1n;
 
 /**
+ * The exclusive upper bound of the low-order limb of a secp256k1 field value
+ * in its field-aligned binary representation.
+ *
+ * A secp256k1 field value is 256 bits wide but a native field element holds
+ * only 255, so it is split across two atoms: 192 low-order bits (24
+ * bytes), then 64 high-order bits (8 bytes).
+ */
+export const SECP256K1_LOW_LIMB_BOUND: bigint = 1n << 192n;
+
+/**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use
