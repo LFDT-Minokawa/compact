@@ -34,26 +34,26 @@ describe('[Composable contracts graphs] Compiler', () => {
         copyFiles('../examples/composable/graph-linear/*.compact', contractsDir);
         await compileQueue(contractsDir, ['A', 'B', 'C', 'D']);
 
-        const returnValue = await compileWithContractName('E', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}E`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('E', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should compile - tree-1', async () => {
         copyFiles('../examples/composable/graph-tree-1/*.compact', contractsDir);
         await compileQueue(contractsDir, ['A', 'B', 'C', 'D']);
 
-        const returnValue = await compileWithContractName('E', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}E`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('E', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should compile - tree-2', async () => {
         copyFiles('../examples/composable/graph-tree-2/*.compact', contractsDir);
         await compileQueue(contractsDir, ['A', 'C', 'B', 'D']);
 
-        const returnValue = await compileWithContractName('E', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}E`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('E', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

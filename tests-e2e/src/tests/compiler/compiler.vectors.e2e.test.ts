@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
-import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
+import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 
 describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
     const CONTRACTS_ROOT = buildPathTo('/vectors/');
@@ -25,10 +24,10 @@ describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
             const filePath = CONTRACTS_ROOT + 'slice_part_one.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 
@@ -37,10 +36,10 @@ describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
             const filePath = CONTRACTS_ROOT + 'spread_part_one.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 
@@ -49,52 +48,52 @@ describe('[Vectors] PM-13684/PM-17201/PM-18328 - Vector slice & spread', () => {
             const filePath = CONTRACTS_ROOT + 'negative/invalid_index_length.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 /Exception: invalid_index_length.compact line 19 char 31: slice index 100 plus length 4 is out-of-bounds for a vector of length 8/,
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 2 [slice] - non-constant index', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/non_constant_index.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: non_constant_index.compact line 19 char 10: tuple slice with a non-constant index should be a vector but has a tuple type [Boolean, Boolean, Field] that cannot be converted to a vector because its element types are unrelated',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 3 [slice] - non-negative constant index', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/non_negative_index.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: non_negative_index.compact line 22 char 13: slice index did not reduce to a constant nonnegative value at compile time',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 4 [spread] - non-negative constant index', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/non_vector_type.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: non_vector_type.compact line 18 char 14: expected tuple/vector spread expression to have a tuple, Vector, or Bytes type but received Boolean',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

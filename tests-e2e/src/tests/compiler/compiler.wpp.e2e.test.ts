@@ -13,17 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
+    buildPathTo,
     compile,
     compilerDefaultOutput,
     copyFile,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
-    buildPathTo,
 } from '@';
 import * as fs from 'fs';
 import path from 'node:path';
@@ -45,15 +44,15 @@ describe('[WPP] Compiler', () => {
         const filePath = path.join(CONTRACTS_ROOT, fileName);
 
         test(`should be able to compile contract: ${fileName}`, async () => {
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+            const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 
     test(`should not be able to compile contract: pm_16723_neg.compact`, async () => {
         const filePath = path.join(CONTRACTS_ROOT, 'negative', 'pm_16723_neg.compact');
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
 
         expectCompilerResult(result).toBeFailure(
             'Exception: pm_16723_neg.compact line 23 char 10:\n' +

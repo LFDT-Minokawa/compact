@@ -53,9 +53,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFilePath = contractsDir + mainFileName;
         const currentTime = new Date();
         fs.utimesSync(dependencyFilePath, currentTime, currentTime);
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 16 char 1: ${dependencyFilePath} has been modified more recently than ${dependencyFileJsonPath}; try recompiling ${dependencyFilePath}`,
             compilerDefaultOutput(),
         );
@@ -70,10 +70,10 @@ describe('[Composable contracts direct] Compiler', () => {
         contractInfo.circuits[0].counter = 'value';
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     /* Issue 201: this is no longer a static error
@@ -85,9 +85,9 @@ describe('[Composable contracts direct] Compiler', () => {
         contractInfo.circuits.splice(0, 1);
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 17 char 5: contract declaration has a circuit named get_square, but it is not present in the actual contract definition`,
             compilerDefaultOutput(),
         );
@@ -100,9 +100,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFilePath = contractsDir + mainFileName;
         fs.writeFileSync(dependencyFileJsonPath, '{}');
 
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: missing association for "contracts"; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -114,9 +114,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
         fs.writeFileSync(dependencyFileJsonPath, '{"circuits":[],\n"witnesses":[]}');
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: missing association for "contracts"; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -128,9 +128,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
         fs.writeFileSync(dependencyFileJsonPath, '{"witnesses":[],\n"contracts":[]}');
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: missing association for "circuits"; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -146,9 +146,9 @@ describe('[Composable contracts direct] Compiler', () => {
         delete (contractInfo as Partial<ContractInfo>).witnesses;
 
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: missing association for "witnesses"; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -160,9 +160,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
         fs.writeFileSync(dependencyFileJsonPath, '{"circuits":{},\n"witnesses":[],\n"contracts":[]}');
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: "circuits" is not associated with a vector; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -196,9 +196,9 @@ describe('[Composable contracts direct] Compiler', () => {
         (contractInfo.circuits[0].arguments[0].type as { 'type-name': string })['type-name'] = 'MALFORMED';
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: malformed contract-info file ${dependencyFileJsonPath} for Calculator: unrecognized type-name MALFORMED; try recompiling Calculator`,
             compilerDefaultOutput(),
         );
@@ -213,10 +213,10 @@ describe('[Composable contracts direct] Compiler', () => {
         contractInfo.circuits[0].arguments[0].name = 'MALFORMED';
         fs.writeFileSync(dependencyFileJsonPath, JSON.stringify(contractInfo, null, 2));
         logger.info(fs.readFileSync(dependencyFileJsonPath, 'utf8'));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     /* Issue 201: this is no longer a static error
@@ -224,9 +224,9 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
         fs.rmSync(dependencyFileJsonPath);
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 16 char 1: error opening ${dependencyFileJsonPath}; try (re)compiling ${dependencyFilePath}`,
             compilerDefaultOutput(),
         );
@@ -237,19 +237,19 @@ describe('[Composable contracts direct] Compiler', () => {
         const mainFileName = 'Main-interface.compact';
         const mainFilePath = contractsDir + mainFileName;
         fs.utimesSync(dependencyFilePath, new Date(), new Date(new Date().getTime() - 10 * 1000));
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should compile on circuit parameter', async () => {
         const mainFileName = 'Main-circuit-parameter.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should throw an error on exported circuit parameter', async () => {
@@ -260,9 +260,9 @@ describe('[Composable contracts direct] Compiler', () => {
         // that disclosure has not been declared.
         const mainFileName = 'Main-export-circuit-parameter.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 22 char 16: ` +
                 'potential witness-value disclosure must be declared but is not: ' +
                 'witness value potentially disclosed: the value of parameter calc of exported circuit calculate_square at line 21 char 33; ' +
@@ -274,9 +274,9 @@ describe('[Composable contracts direct] Compiler', () => {
     test('should throw an error when contract is created in constructor', async () => {
         const mainFileName = 'Main-constructor-contract-create.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 26 char 12: ` + 'invalid context for reference to contract type name Calculator',
             compilerDefaultOutput(),
         );
@@ -285,9 +285,9 @@ describe('[Composable contracts direct] Compiler', () => {
     test('should throw an error on missing circuit in interface', async () => {
         const mainFileName = 'Main-missing-circuit.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeFailure(
+        expectCompilerResult(result).toBeFailure(
             `Exception: ${mainFileName} line 16 char 1: ` + 'contract Calculator has no circuit declaration named get_square',
             compilerDefaultOutput(),
         );
@@ -296,25 +296,25 @@ describe('[Composable contracts direct] Compiler', () => {
     test('should throw an error on contract reference in ledger', async () => {
         const mainFileName = 'Main-ledger-reference.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
     });
 
     test('should throw an error on circuit returns contract', async () => {
         const mainFileName = 'Main-circuit-return-contract.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
     });
 
     test('should compile when exported circuit returns contract', async () => {
         const mainFileName = 'Main-export-circuit-return-contract.compact';
         const mainFilePath = contractsDir + mainFileName;
-        const returnValue = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
+        const result = await compileWithContractPath(mainFilePath, 'Main', contractsDir);
 
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main`).thatGeneratedJSCodeIsValid();
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

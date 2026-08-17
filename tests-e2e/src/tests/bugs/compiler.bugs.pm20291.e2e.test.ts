@@ -13,17 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
+    buildPathTo,
     compile,
     compilerDefaultOutput,
+    copyFile,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
-    buildPathTo,
-    copyFile,
 } from '@';
 
 describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
@@ -33,10 +32,10 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
         const filePath = CONTRACTS_ROOT + 'examples.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     describe('should fail with proper error in certain cases', () => {
@@ -44,65 +43,65 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_one.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_one.compact line 24 char 54: call site ambiguity (multiple compatible functions) in call to test3; supplied argument types: (Vector<1, Vector<1, Uint<1>>>); compatible functions: line 20 char 3; line 21 char 3; line 22 char 3',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 2 - same signature, different return types', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_two.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_two.compact line 20 char 46: call site ambiguity (multiple compatible functions) in call to test15; supplied argument types: (Uint<1>); compatible functions: line 18 char 3; line 19 char 3',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 3 - same signature, more different return types', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_three.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_three.compact line 22 char 46: call site ambiguity (multiple compatible functions) in call to test19; supplied argument types: (Uint<1>); compatible functions: line 18 char 3; line 19 char 3; line 20 char 3; line 21 char 3',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 4 - same signature, return struct with enum', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_four.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_four.compact line 25 char 48: call site ambiguity (multiple compatible functions) in call to test23; supplied argument types: (Boolean); compatible functions: line 23 char 3; line 24 char 3',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 5 - same signature, return enum', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_five.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_five.compact line 25 char 45: call site ambiguity (multiple compatible functions) in call to test18; supplied argument types: (Field); compatible functions: line 22 char 3; line 23 char 3; line 24 char 3',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 6 - import module from another file', async () => {
@@ -113,9 +112,9 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
 
             const firstContract = await compile([`${outputDir}/M1.compact`, `${outputDir}/M1`]);
             expectCompilerResult(firstContract).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(`${outputDir}/M1`).thatGeneratedJSCodeIsValid();
+            expectFiles(firstContract).thatGeneratedJSCodeIsValid();
 
-            const secondContract: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const secondContract = await compile([Arguments.VSCODE, filePath, outputDir]);
             expectCompilerResult(secondContract).toBeFailure(
                 'Exception: example_six.compact line 21 char 57: no compatible function named test1 is in scope at this call; three functions are incompatible with the supplied generic values; supplied generic values: <size 8, type Field>; declared generics for function at M1.compact line 17 char 3: <size>; declared generics for function at line 19 char 3: <size>; declared generics for function at line 20 char 3: <size>',
                 compilerDefaultOutput(),

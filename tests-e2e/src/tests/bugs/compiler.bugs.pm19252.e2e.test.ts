@@ -13,17 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
+    Arguments,
+    AssertContract,
+    buildPathTo,
     compile,
     compilerDefaultOutput,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
-    buildPathTo,
-    AssertContract,
-    Arguments,
 } from '@';
 
 describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the ledger', () => {
@@ -35,10 +34,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_one.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -51,10 +50,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_one_a.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+                const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -67,10 +66,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_two.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -83,10 +82,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_three.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -99,10 +98,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_four.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -115,10 +114,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_four_a.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -131,10 +130,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_four_b.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -151,10 +150,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_five.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -169,10 +168,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_six.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
@@ -185,10 +184,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_seven.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
@@ -201,10 +200,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_eight.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('Compiling 1 circuits:', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test']);
@@ -217,10 +216,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_eight_a.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('Compiling 2 circuits:', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test', 'test1']);
@@ -233,10 +232,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_eight_b.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('Compiling 2 circuits:', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test', 'test1']);
@@ -253,10 +252,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_nine.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -269,10 +268,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_ten.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
@@ -285,10 +284,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_eleven.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
@@ -301,10 +300,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_twelve.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual(['test1']);
@@ -317,10 +316,10 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
                 const filePath = CONTRACTS_ROOT + 'example_thirteen.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([filePath, outputDir]);
+                const result = await compile([filePath, outputDir]);
 
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
 
                 const outputContract = new AssertContract().expect(outputDir);
                 expect(outputContract.getImpureCircuits()).toStrictEqual([]);
@@ -336,13 +335,13 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
             const filePath = CONTRACTS_ROOT + 'example_fourteen.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_fourteen.compact line 18 char 1: circuit test1 is marked pure but is actually impure because it accesses ledger field vara at line 19 char 4',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

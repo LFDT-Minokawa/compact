@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 
@@ -81,9 +80,9 @@ describe('[Errors] Compiler', () => {
         const filePath = CONTRACTS_ROOT + file;
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+        const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
         expectCompilerResult(result).toBeFailure(error, compilerDefaultOutput());
-        expectFiles(outputDir).thatNoFilesAreGenerated();
+        expectFiles(result).thatNoFilesAreGenerated();
     });
 });

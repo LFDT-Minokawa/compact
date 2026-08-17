@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
-import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
+import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 import * as fs from 'fs';
 
 describe('[CamelCase] Compiler', () => {
@@ -24,16 +23,16 @@ describe('[CamelCase] Compiler', () => {
     test(`should be able to compile updated ledger types and methods`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, files[0], outputDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, files[0], outputDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test(`should be able to compile updated standard types and methods`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, files[1], outputDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, files[1], outputDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

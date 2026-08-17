@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
-import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
+import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 import path from 'node:path';
 import fs from 'fs';
 
@@ -31,9 +30,9 @@ describe('[Bug] [PM-20295] Non-constant Vector and Bytes indices are not bounds-
         const filePath = path.join(CONTRACTS_ROOT, fileName);
 
         test(`should be able to compile contract: ${fileName}`, async () => {
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+            const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 
@@ -42,52 +41,52 @@ describe('[Bug] [PM-20295] Non-constant Vector and Bytes indices are not bounds-
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_one.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_one.compact line 19 char 14: index 11 is out-of-bounds for a vector of length 10',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 2 - slice index out of bounds', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_two.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_two.compact line 19 char 14: slice index 0 plus length 10 is out-of-bounds for a vector of length 5',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 3 - nonnegative constant value as index', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_three.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_three.compact line 19 char 14: slice index did not reduce to a constant nonnegative value at compile time',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('example 4 - slice index out of bounds (max value)', async () => {
             const filePath = CONTRACTS_NEGATIVE_ROOT + 'example_four.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: example_four.compact line 19 char 14: slice index 255 plus length 1 is out-of-bounds for a vector of length 10',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

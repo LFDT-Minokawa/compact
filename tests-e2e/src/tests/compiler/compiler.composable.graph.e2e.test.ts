@@ -17,6 +17,7 @@ import { describe, test } from 'vitest';
 import {
     compile,
     compilerDefaultOutput,
+    compileQueue,
     compileWithContractName,
     copyFiles,
     createTempFolder,
@@ -34,41 +35,35 @@ describe('[Composable contracts dependency graph] Compiler', () => {
     });
 
     test('should compile when A and B are referenced in MAIN', async () => {
-        expectCompilerResult(await compileWithContractName('A', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('B', contractsDir)).toCompileWithoutErrors();
+        await compileQueue(contractsDir, ['A', 'B']);
 
-        const returnValue = await compileWithContractName('Main-A-and-B', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main-A-and-B`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('Main-A-and-B', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should compile when A is referenced in C, B and C are referenced in MAIN', async () => {
-        expectCompilerResult(await compileWithContractName('A', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('B', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('C', contractsDir)).toCompileWithoutErrors();
+        await compileQueue(contractsDir, ['A', 'B', 'C']);
 
-        const returnValue = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main-B-and-C-on-A`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should fail when A is referenced in C, B and C are referenced in MAIN and A is deleted', async () => {
-        expectCompilerResult(await compileWithContractName('B', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('A', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('C', contractsDir)).toCompileWithoutErrors();
+        await compileQueue(contractsDir, ['B', 'A', 'C']);
         fs.rmSync(`${contractsDir} + A`, { recursive: true, force: true });
 
-        const returnValue = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
-        expectCompilerResult(returnValue).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main-B-and-C-on-A`).thatGeneratedJSCodeIsValid();
+        const result = await compileWithContractName('Main-B-and-C-on-A', contractsDir);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test('should fail when A and B are referenced in MAIN, and MAIN is compiled to output directory A', async () => {
-        expectCompilerResult(await compileWithContractName('B', contractsDir)).toCompileWithoutErrors();
-        expectCompilerResult(await compileWithContractName('A', contractsDir)).toCompileWithoutErrors();
+        await compileQueue(contractsDir, ['B', 'A']);
 
-        const returnValueMain = await compile([contractsDir + 'Main-A-and-B.compact', contractsDir + 'A']);
-        expectCompilerResult(returnValueMain).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(`${contractsDir}Main-A-and-B`).thatGeneratedJSCodeIsValid();
+        const result = await compile([contractsDir + 'Main-A-and-B.compact', contractsDir + 'A']);
+        expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
+        expectFiles({ outputDir: `${contractsDir}Main-A-and-B` }).thatGeneratedJSCodeIsValid();
     });
 });

@@ -13,16 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import {
     Arguments,
+    buildPathTo,
     compile,
     compilerDefaultOutput,
     copyFile,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
-    buildPathTo,
 } from '@';
 import * as fs from 'fs';
 
@@ -39,14 +38,14 @@ describe('[Commas] Compiler', () => {
     });
 
     test(`should be able to compile contract: commas.compact which contains additional commas`, async () => {
-        const result: Result = await compile([Arguments.SKIP_ZK, files[0], contractsDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, files[0], contractsDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     test(`should be able to compile contract: more-commas.compact which contains additional commas`, async () => {
-        const result: Result = await compile([Arguments.SKIP_ZK, files[1], contractsDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, files[1], contractsDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

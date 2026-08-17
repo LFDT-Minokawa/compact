@@ -50,11 +50,13 @@ export class AssertGeneratedFiles {
     }
 
     private get folderPath() {
-        if (this.compilationPaths.outputDir === undefined) {
+        const { outputDir } = this.compilationPaths;
+
+        if (outputDir === undefined) {
             throw new Error('expectFiles: that compilation had no output directory');
         }
 
-        return this.compilationPaths.outputDir;
+        return outputDir.endsWith('/') ? outputDir : `${outputDir}/`;
     }
 
     thatOnlyExpectedFilesArePresent(expectedFiles: string[] = allExpectedFiles) {
@@ -85,7 +87,7 @@ export class AssertGeneratedFiles {
         const syntaxError = this.parseGeneratedJSCode(getFileContent(jsFile));
         const detail = syntaxError === undefined ? 'it parsed cleanly' : syntaxError;
 
-        expect(syntaxError === undefined, `${jsFile} -- ${detail}`).toEqual(valid);
+        expect(syntaxError === undefined, `${this.context} | ${jsFile} -- ${detail}`).toEqual(valid);
 
         return this;
     }

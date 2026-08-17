@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
-import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
+import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 import * as fs from 'fs';
 import path from 'node:path';
 
@@ -30,16 +29,16 @@ describe('[Assert] Compiler', () => {
         const filePath = path.join(CONTRACTS_ROOT, fileName);
 
         test(`should be able to compile contract with new assert expression syntax: ${fileName}`, async () => {
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+            const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(contractsDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 
     test(`should not be able to compile contract with assert statement syntax: old_assert.compact`, async () => {
         const filePath = path.join(CONTRACTS_ROOT, 'negative', 'old_assert.compact');
 
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
+        const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
         expectCompilerResult(result).toBeFailure(
             'Exception: old_assert.compact line 21 char 10:\n  parse error: found "1" looking for "("',
             compilerDefaultOutput(),
