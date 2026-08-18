@@ -29,6 +29,24 @@
                      n))])
         (string->symbol (format "~a~s.~s" (id-prefix) (id-sym i) n))))
 
+    ;; Scan the result because a type parameter can occur there without appearing in an argument.
+    (define (native-type-argument* native-entry arg* type)
+      (let ([seen (make-hashtable symbol-hash eq?)])
+        (fold-right
+          (lambda (maybe-type-param type acc)
+            (if (and maybe-type-param (not (hashtable-contains? seen maybe-type-param)))
+                (begin
+                  (hashtable-set! seen maybe-type-param #t)
+                  (cons (Type type) acc))
+                acc))
+          '()
+          (native-entry-maybe-type-param* native-entry)
+          (append (map (lambda (a)
+                         (nanopass-case (Lloweredemit Argument) a
+                           [(,var-name ,type) type]))
+                       arg*)
+                  (list type)))))
+
     (define (rendered? v) (and (pair? v) (symbol? (car v))))
 
     (define (vm-value->sexp v)
@@ -133,6 +151,14 @@
     [(tunknown) '(tunknown)]
     [else (fail "type" (unparse-Lloweredemit type))])
 
+  ;; A coin-check class names the argument positions the check reads, and the
+  ;; check is a runtime call rather than a VM instruction, so the instruction
+  ;; list cannot carry it.
+  (OpClass : ADT-Op-Class (op-class) -> * (sexp)
+    [,ledger-op-class ledger-op-class]
+    [(,ledger-op-class ,nat ,nat^) `(,ledger-op-class ,nat ,nat^)]
+    [else (fail "operation class" op-class)])
+
   (AdtArg : Public-Ledger-ADT-Arg (arg) -> * (sexp)
     [,type (Type type)]
     [,nat nat])
@@ -231,6 +257,7 @@
      (nanopass-case (Lloweredemit ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
         `(public-ledger ,(id->sym ledger-field-name)
+           ,(OpClass op-class)
            ,(map (lambda (pe)
                    (nanopass-case (Lloweredemit Path-Element) pe
                      [,path-index path-index]
@@ -255,6 +282,7 @@
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      `(native ,(id->sym function-name)
         (entry ,(native-entry-function native-entry) ,(native-entry-class native-entry))
+        (type-arguments ,@(native-type-argument* native-entry arg* type))
         ,(map Arg arg*)
         ,(Type type))]
     [(witness ,src ,function-name (,arg* ...) ,type)
