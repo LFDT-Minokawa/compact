@@ -156,17 +156,17 @@ The flag is disabled by default. Without the flag, the compiler writes the same 
 
 The artifact follows the compiler's intermediate language. Its structure can change between compiler versions. Consumers must check the version fields before reading the remaining data.
 
-## Reference implementation
+## Implementations
 
 [LFDT-Minokawa/compact#722](https://github.com/LFDT-Minokawa/compact/pull/722) implements the in-tree `--analyzed-ir` output described by this CoIP. The compiler owns the extraction pass and writes `compiler/analyzed-ir.sexp` when the flag is present.
 
-[RomarQ/compact#13](https://github.com/RomarQ/compact/pull/13) is an earlier alternative prototype. It lets a consumer load a Scheme pass and own the emitter.
+[LFDT-Minokawa/compact#726](https://github.com/LFDT-Minokawa/compact/pull/726) implements the alternative `--ir-hook` approach. A Scheme hook receives the compiler stages and controls its own output. This provides a general extension point but does not define one artifact format.
 
 ## References
 
 - MPS-0022, Language-Agnostic Representation of Compiled Compact Contracts: [midnightntwrk/midnight-improvement-proposals#188](https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0022-standard-contract-representation.md)
 - Reference implementation: [LFDT-Minokawa/compact#722](https://github.com/LFDT-Minokawa/compact/pull/722)
-- Alternative prototype: [RomarQ/compact#13](https://github.com/RomarQ/compact/pull/13)
+- Alternative implementation: [LFDT-Minokawa/compact#726](https://github.com/LFDT-Minokawa/compact/pull/726)
 - Reference consumer: [Moonsong-Labs/midnight-rs](https://github.com/Moonsong-Labs/midnight-rs), in `crates/compact/`
 
 ## Copyright
