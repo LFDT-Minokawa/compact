@@ -5,6 +5,109 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.33.107, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Modify the standard library's `secp256k1EthereumAddress` circuit to `assert`
+  that the input is not the secp256k1 identity point, because it does not have a
+  corresponding Ethereum address.  This required two other fixes:
+  - ZKIR code generation for `default<Secp256k1Point>` was not yet implemented
+    and is needed, and
+  - `persistentHash` and `keccak256` hashing functions need to properly handle
+    alignment for `JubjubScalar`, `Secp256k1Base`, and `Secp256k1Scalar` in the
+    ZKIR v3 backend.
+
+### Internal notes
+
+- The standard library behavior is changed (to reject the secp256k1 identity
+  point) but this is deemed a bug fix and not a language version change.
+
+## [Toolchain 0.33.106, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#609](https://github.com/LFDT-Minokawa/compact/issues/609).
+  Successive calls to `secp256k1EcdsaVerify` triggered a failure in the circuit
+  optimizer where the secp256k1 base and scalar fields were not handled in a
+  comparison predicate.
+
+## [Toolchain 0.33.105, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Fix issue [#608](https://github.com/LFDT-Minokawa/compact/issues/608).  The
+  ZKIR v3 backend did not properly handle alignment for JubjubPoint and
+  Secp256k1Point when passed to the hashing function `persistentHash`,
+  `persistentCommit`, or `keccak256`.
+
+## [Toolchain 0.33.104, language 0.25.102, runtime 0.18.101]
+
+### Fixed
+
+- Implement proper equality comparison for `Secp256k1Point`.  Identity points
+  are equal to identity points, and non-identity points are equal if they have
+  the same affine X- and Y- coordinates.
+
+### Internal notes
+
+- JS code for `JubjubPoint` equality is simplified, and `Uint` types now use
+  direct `===` comparisons, rather than a helper that performs only `===`
+  comparison.
+
+## [Toolchain 0.33.103, language 0.25.101, runtime 0.18.101]
+
+### Changed
+
+- Pulls in ledger-9.1.0.0-rc.3
+
+## [Toolchain 0.33.102, language 0.25.101, runtime 0.18.100]
+
+## Fixed
+
+- Add a `toBinaryRepr` to the Compact runtime that replicates the effect of the
+  on-chain Rust `binary_repr`.  Use it in the runtime for the argument to the
+  Noble hashes `keccak_256` function, to correctly replicate the in-circuit
+  implementation.  This ensures that trailing zero bytes from byte vectors are
+  preserved and hashed in JS as well as in circuit.
+
+- Change casting of byte vectors to foreign fields so that they perform modular
+  reduction by the field modulus rather than failing for byte vectors encoding
+  values out of range.  The failure is kept for native fields to avoid a
+  breaking change at this time.
+
+### Internal notes
+
+- There is a Compact runtime change, so when this change is cherry-picked to the
+  0.33 release, there should be another Compact runtime release candidate
+  release.
+
+## [Toolchain 0.33.101, language 0.25.100, runtime 0.18.0]
+
+### Changed
+
+- The compiler now tries sha256sum first, then shasum -a 256 when looking
+  for a program to compute a sha256 hash.
+
+## [Toolchain 0.33.100, language 0.25.100, runtime 0.18.0]
+
+### Fixed
+
+- The `ShieldedReceive` standard event now serializes its fields in the order
+  specified by CoIP-442 and MIP-0002: `commitment`, `ciphertext`,
+  `contractAddress` (previously `contractAddress` preceded `ciphertext`).
+  Serialized size is unchanged (578). Fixes #590.
+
+### Changed
+
+- The standard library ECDSA circuits `secp256k1EcdsaVerify` and
+  `secp256k1EcdsaRecover` deserialize the message hash as a big endian
+  secp256k1 scalar `z` internally, following the ECDSA convention (RFC 6979).
+
+- The circuit `secp256k1EcdsaRecover` and struct
+  `Secp256k1EcdsaSignatureWithRecovery` have been removed from the standard
+  library.
+
 ## [Toolchain 0.33.0, language 0.25.0, runtime 0.18.0]
 
 This release includes all changes for compiler versions in the range between
