@@ -47,6 +47,9 @@
                        arg*)
                   (list type)))))
 
+    (define (Ftype ftype) (unparse-Lloweredemit ftype))
+    (define (Type type) (unparse-Lloweredemit type))
+
     (define (rendered? v) (and (pair? v) (symbol? (car v))))
 
     (define (vm-value->sexp v)
@@ -117,51 +120,10 @@
                   (map (lambda (vn ex) (cons (id-sym vn) (Expr ex))) var-name* expr*))
           (vm-code-code vm-code)))))
 
-  (Ftype : Field-Type (ftype) -> * (sexp)
-    [(field-native) '(field-native)]
-    [(field-base ,ctype) `(field-base ,(Ctype ctype))]
-    [(field-scalar ,ctype) `(field-scalar ,(Ctype ctype))])
-
-  (Ctype : Curve-Type (ctype) -> * (sexp)
-    [(curve-jubjub) '(curve-jubjub)]
-    [(curve-secp256k1) '(curve-secp256k1)])
-
-  (Type : Type (type) -> * (sexp)
-    [(tboolean ,src) '(tboolean)]
-    [(tfield ,src ,ftype) `(tfield ,(Ftype ftype))]
-    [(tunsigned ,src ,nat) `(tunsigned ,nat)]
-    [(tpoint ,src ,ctype) `(tpoint ,(Ctype ctype))]
-    [(tbytes ,src ,len) `(tbytes ,len)]
-    [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
-    [(tvector ,src ,len ,type) `(tvector ,len ,(Type type))]
-    [(ttuple ,src ,type* ...) `(ttuple ,@(map Type type*))]
-    [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-     `(tstruct ,struct-name ,@(map (lambda (n t) `(,n ,(Type t))) elt-name* type*))]
-    [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-     `(tenum ,enum-name ,elt-name ,@elt-name*)]
-    [(talias ,src ,nominal? ,type-name ,type)
-     `(talias ,nominal? ,type-name ,(Type type))]
-    [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-     `(tcontract ,contract-name
-        ,@(map (lambda (n p ts t) `(,n ,p ,(map Type ts) ,(Type t)))
-               elt-name* pure-dcl* type** type*))]
-    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-     `(,adt-name ,@(map AdtArg adt-arg*))]
-    [,tvar-name tvar-name]
-    [(tunknown) '(tunknown)]
-    [else (fail "type" (unparse-Lloweredemit type))])
-
-  ;; A coin-check class names the argument positions the check reads, and the
-  ;; check is a runtime call rather than a VM instruction, so the instruction
-  ;; list cannot carry it.
   (OpClass : ADT-Op-Class (op-class) -> * (sexp)
     [,ledger-op-class ledger-op-class]
     [(,ledger-op-class ,nat ,nat^) `(,ledger-op-class ,nat ,nat^)]
     [else (fail "operation class" op-class)])
-
-  (AdtArg : Public-Ledger-ADT-Arg (arg) -> * (sexp)
-    [,type (Type type)]
-    [,nat nat])
 
   (TupleArg : Tuple-Argument (ta) -> * (sexp)
     [(single ,src ,expr) `(single ,(Expr expr))]
