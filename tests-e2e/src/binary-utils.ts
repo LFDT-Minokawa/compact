@@ -20,6 +20,7 @@ import { isRelease } from './test-utils';
 import { execa, Result } from 'execa';
 import { expectCompilerResult } from './result-assertions';
 import { expectFiles } from './files-assertions';
+import { Compilation, CompilationPaths } from './types';
 
 export enum Arguments {
     SKIP_ZK = '--skip-zk',
@@ -97,21 +98,40 @@ export async function getLanguageVersion(): Promise<string> {
     return result.stdout.trim();
 }
 
-/*
- * Compile, format and fixup
- */
-export function compile(args: string[], folderPath?: string): Promise<Result> {
-    return execa(getCompactcBinary(), args, {
+export function withContractPath(compilation: Compilation, contractPath: string): Compilation {
+    return { ...compilation, contractPath };
+}
+
+function compiledPaths(args: string[], cwd: string | undefined): CompilationPaths {
+    // filter out flags
+    const values = args.filter((argument) => !argument.startsWith('-'));
+    if (values.length < 2) {
+        return {};
+    }
+
+    const base = cwd ?? process.cwd();
+    return {
+        contractPath: path.resolve(base, values[values.length - 2]),
+        outputDir: path.resolve(base, values[values.length - 1]),
+    };
+}
+
+export async function compile(args: string[], folderPath?: string): Promise<Compilation> {
+    const cwd = folderPath !== undefined && folderPath.length > 0 ? folderPath : undefined;
+
+    const result = await execa(getCompactcBinary(), args, {
         reject: false,
-        ...(folderPath !== undefined && folderPath.length > 0 && { cwd: folderPath }),
+        ...(cwd !== undefined && { cwd }),
     });
+
+    return { ...result, ...compiledPaths(args, cwd) };
 }
 
 export function compileWithContractName(
     contractName: string,
     contractsDir: string,
     formatErrors: boolean = false,
-): Promise<Result> {
+): Promise<Compilation> {
     const args = [Arguments.SKIP_ZK, contractsDir + `${contractName}.compact`, contractsDir + `${contractName}`];
 
     if (formatErrors) {
@@ -120,14 +140,16 @@ export function compileWithContractName(
     return compile(args);
 }
 
-export function compileWithContractPath(path: string, outputDirName: string, contractsDir: string): Promise<Result> {
+export function compileWithContractPath(path: string, outputDirName: string, contractsDir: string): Promise<Compilation> {
     return compile([Arguments.VSCODE, Arguments.SKIP_ZK, `${path}`, `${contractsDir}${outputDirName}`]);
 }
 
 export async function compileQueue(contractsDir: string, contractNames: string[]): Promise<void> {
     for (const contractName of contractNames) {
-        expectCompilerResult(await compileWithContractName(contractName, contractsDir)).toCompileWithoutErrors();
-        expectFiles(`${contractsDir}${contractName}`).thatGeneratedJSCodeIsValid();
+        const compilation = await compileWithContractName(contractName, contractsDir);
+
+        expectCompilerResult(compilation).toCompileWithoutErrors();
+        expectFiles(compilation).thatGeneratedJSCodeIsValid();
     }
 }
 
@@ -141,16 +163,16 @@ export async function compileQueueWithFailures(
         const match = failed.find((item) => item.contract === contractName);
         if (match !== undefined) {
             logger.info(`found failed contract: ${contractName}`);
-            expectCompilerResult(await compileWithContractName(contractName, contractsDir, formatErrors)).toReturn(
-                match.stderr,
-                match.stdout,
-                match.exitCode,
-            );
-            expectFiles(`${contractsDir}${contractName}`).thatNoFilesAreGenerated();
+            const compilation = await compileWithContractName(contractName, contractsDir, formatErrors);
+
+            expectCompilerResult(compilation).toReturn(match.stderr, match.stdout, match.exitCode);
+            expectFiles(compilation).thatNoFilesAreGenerated();
         } else {
             logger.info(`performing default check: ${contractName}`);
-            expectCompilerResult(await compileWithContractName(contractName, contractsDir)).toCompileWithoutErrors();
-            expectFiles(`${contractsDir}${contractName}`).thatGeneratedJSCodeIsValid();
+            const compilation = await compileWithContractName(contractName, contractsDir);
+
+            expectCompilerResult(compilation).toCompileWithoutErrors();
+            expectFiles(compilation).thatGeneratedJSCodeIsValid();
         }
     }
 }

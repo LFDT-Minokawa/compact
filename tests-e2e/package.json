@@ -52,6 +52,8 @@
     "vitest": "^3.2.4"
   },
   "dependencies": {
+    "@noble/curves": "^2.2.0",
+    "@noble/hashes": "^2.0.1",
     "@types/fs-extra": "^11.0.4",
     "fs-extra": "^11.3.0"
   },
