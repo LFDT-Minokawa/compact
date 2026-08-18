@@ -15,7 +15,7 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CompactError } from './error.js';
-import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR } from './constants.js';
+import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR, SECP256K1_LOW_LIMB_BOUND } from './constants.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -106,13 +106,12 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     const identity = value.shift();
     if (identity == undefined) {
       throw new CompactError('expected Secp256k1Point');
-    } else {
-      return {
-        x: x,
-        y: y,
-        identity: ocrt.valueToBigInt([identity]) === 1n,
-      };
     }
+    const flag = ocrt.valueToBigInt([identity]);
+    if (flag != 0n && flag != 1n) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    return { x: x, y: y, identity: flag === 1n };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
     return CompactTypeSecp256k1Base.toValue(value.x)
@@ -259,7 +258,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     const limbs = value.splice(0, 2);
     const low192 = ocrt.valueToBigInt([limbs[0]]);
     const high64 = ocrt.valueToBigInt([limbs[1]]);
-    if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
+    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
       throw new CompactError('expected Secp256k1Base');
     }
     let res = high64 << 192n | low192;
@@ -302,7 +301,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     const limbs = value.splice(0, 2);
     const low192 = ocrt.valueToBigInt([limbs[0]]);
     const high64 = ocrt.valueToBigInt([limbs[1]]);
-    if (low192 > (1n << 192n) - 1n) {
+    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
       throw new CompactError('expected Secp256k1Scalar');
     }
     let res = high64 << 192n | low192;
@@ -351,13 +350,16 @@ export class CompactTypeEnum implements CompactType<number> {
         res += (1 << (8 * i)) * val[i];
       }
       if (res > this.maxValue) {
-        throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+        throw new CompactError(`expected Enum[<=${this.maxValue}]`);
       }
       return res;
     }
   }
 
   toValue(value: number): ocrt.Value {
+    if (!Number.isInteger(value) || value < 0 || value > this.maxValue) {
+      throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+    }
     return CompactTypeField.toValue(BigInt(value));
   }
 }
@@ -395,6 +397,9 @@ export class CompactTypeUnsignedInteger implements CompactType<bigint> {
   }
 
   toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > this.maxValue) {
+      throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+    }
     return CompactTypeField.toValue(value);
   }
 }
@@ -482,15 +487,17 @@ export class CompactTypeBytes implements CompactType<Uint8Array> {
     if (val == undefined || val.length > this.length) {
       throw new CompactError(`expected Bytes[${this.length}]`);
     }
-    if (val.length == this.length) {
-      return val;
-    }
+    // The atom belongs to the value we were handed, so copy it.
+    // Otherwise, mutating the decoded bytes mutates what they came from.
     const res = new Uint8Array(this.length);
     res.set(val, 0);
     return res;
   }
 
   toValue(value: Uint8Array): ocrt.Value {
+    if (value.length > this.length) {
+      throw new CompactError(`expected Bytes[${this.length}]`);
+    }
     let end = value.length;
     while (end > 0 && value[end - 1] == 0) {
       end -= 1;
@@ -507,7 +514,11 @@ export const CompactTypeOpaqueUint8Array: CompactType<Uint8Array> = {
     return [{ tag: 'atom', value: { tag: 'compress' } }];
   },
   fromValue(value: ocrt.Value): Uint8Array {
-    return value.shift() as Uint8Array;
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError("expected Opaque<'Uint8Array'>");
+    }
+    return val;
   },
   toValue(value: Uint8Array): ocrt.Value {
     return [value];
@@ -522,7 +533,11 @@ export const CompactTypeOpaqueString: CompactType<string> = {
     return [{ tag: 'atom', value: { tag: 'compress' } }];
   },
   fromValue(value: ocrt.Value): string {
-    return new TextDecoder('utf-8').decode(value.shift());
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError("expected Opaque<'string'>");
+    }
+    return new TextDecoder('utf-8').decode(val);
   },
   toValue(value: string): ocrt.Value {
     return [new TextEncoder().encode(value)];
