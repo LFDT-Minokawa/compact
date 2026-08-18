@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
@@ -33,10 +32,10 @@ describe('[PM-21414] Compiler and language versions added to contract-info.json'
 
     test('should match both compiler and language versions', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const compilerVersion = await getCompilerVersion();
         const languageVersion = await getLanguageVersion();
