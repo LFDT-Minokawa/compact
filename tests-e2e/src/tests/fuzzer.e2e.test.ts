@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { Arguments, compile, createTempFolder, ExitCodes, expectCompilerResult, expectFiles, getFileContent, isRelease } from '@';
 import path from 'node:path';
 import fs from 'fs';
@@ -40,7 +39,7 @@ describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
             const failPath = path.join(failDir, fileName);
             fs.writeFileSync(failPath, contractContent);
 
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
             expectCompilerResult(result, {
                 contract: contractContent,
                 ignoreStdOut: false,
@@ -48,7 +47,7 @@ describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
             }).stdErrToNotContain(['Internal']);
 
             if (result.exitCode == ExitCodes.Success) {
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
             }
 
             // Only reached if the test passed — clean up

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 import * as fs from 'fs';
@@ -29,9 +28,9 @@ describe('[ADT Exports] Compiler', () => {
             test(`should be able to compile contract: '${fileName}'`, async () => {
                 const outputDir = createTempFolder();
 
-                const result: Result = await compile([Arguments.SKIP_ZK, fileName, outputDir], CONTRACTS_ROOT);
+                const result = await compile([Arguments.SKIP_ZK, fileName, outputDir], CONTRACTS_ROOT);
                 expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-                expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                expectFiles(result).thatGeneratedJSCodeIsValid();
             });
         });
 });
