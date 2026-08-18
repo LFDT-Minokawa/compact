@@ -56,3 +56,7 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --analyzed-ir writes compiler/analyzed-ir.sexp in the target directory.
+    It contains the analyzed program, with ledger operations and emits expanded
+    into Impact VM instructions. Its format can change between compiler versions.
