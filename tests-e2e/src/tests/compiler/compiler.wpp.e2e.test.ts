@@ -35,7 +35,7 @@ describe('[WPP] Compiler', () => {
     const contractsDir = createTempFolder();
 
     beforeAll(async () => {
-        copyFile('../examples/wpp/test/test.compact', contractsDir);
+        copyFile(buildPathTo('/wpp/test/test.compact'), contractsDir);
 
         await compile([`${contractsDir}/test.compact`, `${contractsDir}/test`]);
     });

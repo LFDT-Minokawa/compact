@@ -23,6 +23,7 @@ import {
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    withContractPath,
 } from '@';
 
 describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
@@ -110,7 +111,10 @@ describe('[Bug] [PM-20291] Redundant incompatible functions', () => {
             const outputDir = createTempFolder();
             copyFile(`${CONTRACTS_ROOT}negative/M1.compact`, outputDir);
 
-            const firstContract = await compile([`${outputDir}/M1.compact`, `${outputDir}/M1`]);
+            const firstContract = withContractPath(
+                await compile([`${outputDir}/M1.compact`, `${outputDir}/M1`]),
+                `${CONTRACTS_ROOT}negative/M1.compact`,
+            );
             expectCompilerResult(firstContract).toBeSuccess('', compilerDefaultOutput());
             expectFiles(firstContract).thatGeneratedJSCodeIsValid();
 

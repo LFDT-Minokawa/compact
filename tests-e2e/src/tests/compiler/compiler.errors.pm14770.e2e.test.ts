@@ -21,6 +21,7 @@ import {
     compilerDefaultOutput,
     contractInfoFiles,
     createTempFolder,
+    escapeRegExp,
     expectCompilerResult,
     expectFiles,
     tsFiles,
@@ -57,26 +58,30 @@ describe('[Errors] PM-14770', () => {
          * throws the exception to no such file or directory.
          */
         test('include spaces and passed with double quotes - is not compiled', async () => {
-            const filePath = '../examples/errors/existing file with  spaces in    name.compact';
+            const filePath = buildPathTo('/errors/existing file with  spaces in    name.compact');
 
             const outputDir = createTempFolder();
             const result = await compile([Arguments.VSCODE, `"${filePath}"`, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                /Exception: error opening source file: failed for "..\/examples\/errors\/existing file with  spaces in    name.compact": no such file or directory/,
+                new RegExp(
+                    `Exception: error opening source file: failed for "${escapeRegExp(filePath)}": no such file or directory`,
+                ),
                 compilerDefaultOutput(),
             );
             expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('include spaces and passed with single quotes - is not compiled', async () => {
-            const filePath = '../examples/errors/existing file with  spaces in    name.compact';
+            const filePath = buildPathTo('/errors/existing file with  spaces in    name.compact');
 
             const outputDir = createTempFolder();
             const result = await compile([Arguments.VSCODE, `'${filePath}'`, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                /Exception: error opening source file: failed for '..\/examples\/errors\/existing file with  spaces in    name.compact': no such file or directory/,
+                new RegExp(
+                    `Exception: error opening source file: failed for '${escapeRegExp(filePath)}': no such file or directory`,
+                ),
                 compilerDefaultOutput(),
             );
             expectFiles(result).thatNoFilesAreGenerated();

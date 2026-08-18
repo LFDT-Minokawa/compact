@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import {
+    buildPathTo,
     compileQueue,
     compileQueueWithFailures,
     compilerDefaultOutput,
@@ -25,6 +26,7 @@ import {
     expectCompilerResult,
     expectFiles,
     tsFiles,
+    withContractPath,
 } from '@';
 import { describe } from 'vitest';
 
@@ -37,10 +39,15 @@ describe('[Composable contracts] Compiler', () => {
 
     describe('should not compile main contract', () => {
         test('when you call dependent contract method from vector in main contract constructor', async () => {
-            copyFiles('../examples/composable/cases/call-from-vector/*.compact', contractsDir);
+            const fixtures = '/composable/cases/call-from-vector';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 25 char 1:\n  constructor cannot call external contracts but calls circuit up from external contract A at line\n  27 char 7`,
                 compilerDefaultOutput(),
@@ -50,7 +57,7 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when contracts have circular reference - A is main', async () => {
-            copyFiles('../examples/composable/cases/circular-reference/*.compact', contractsDir);
+            copyFiles(buildPathTo('/composable/cases/circular-reference/*.compact'), contractsDir);
 
             const result = await compileWithContractName('A', contractsDir, true);
             expectCompilerResult(result).toBeFailure(
@@ -63,7 +70,7 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when contracts have circular reference - B is main', async () => {
-            copyFiles('../examples/composable/cases/circular-reference/*.compact', contractsDir);
+            copyFiles(buildPathTo('/composable/cases/circular-reference/*.compact'), contractsDir);
 
             const result = await compileWithContractName('B', contractsDir, true);
             expectCompilerResult(result).toBeFailure(
@@ -75,10 +82,15 @@ describe('[Composable contracts] Compiler', () => {
         */
 
         test('when you use dependent contract as variable in main contract constructor', async () => {
-            copyFiles('../examples/composable/cases/contract-as-variable/*.compact', contractsDir);
+            const fixtures = '/composable/cases/contract-as-variable';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 26 char 13:\n  invalid context for reference to contract type name A`,
                 compilerDefaultOutput(),
@@ -87,10 +99,15 @@ describe('[Composable contracts] Compiler', () => {
         });
 
         test('when you define dependent contract in main contract circuit', async () => {
-            copyFiles('../examples/composable/cases/contract-in-circuit/*.compact', contractsDir);
+            const fixtures = '/composable/cases/contract-in-circuit';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['AB']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 20 char 28:\n  parse error: found "{" looking for ":"`,
                 compilerDefaultOutput(),
@@ -99,10 +116,15 @@ describe('[Composable contracts] Compiler', () => {
         });
 
         test('when you define dependent contract in main contract constructor', async () => {
-            copyFiles('../examples/composable/cases/contract-in-constructor/*.compact', contractsDir);
+            const fixtures = '/composable/cases/contract-in-constructor';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['AB']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 22 char 3:\n  parse error: found keyword "contract" looking for a statement or "}"`,
                 compilerDefaultOutput(),
@@ -111,10 +133,15 @@ describe('[Composable contracts] Compiler', () => {
         });
 
         test('when it has duplicated dependent contract definition', async () => {
-            copyFiles('../examples/composable/cases/duplicated-contract/*.compact', contractsDir);
+            const fixtures = '/composable/cases/duplicated-contract';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['AB']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 25 char 1:\n  another binding found for AB in the same scope at line 20 char 1`,
                 compilerDefaultOutput(),
@@ -123,10 +150,15 @@ describe('[Composable contracts] Compiler', () => {
         });
 
         test('when you try to export dependent contract as ledger value in dependent contract definition', async () => {
-            copyFiles('../examples/composable/cases/export-in-definition/*.compact', contractsDir);
+            const fixtures = '/composable/cases/export-in-definition';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 21 char 3:\n  parse error: found keyword "export" looking for an external contract circuit or "}"`,
                 compilerDefaultOutput(),
@@ -136,10 +168,15 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract circuit definition has invalid parameters', async () => {
-            copyFiles('../examples/composable/cases/invalid-definition/*.compact', contractsDir);
+            const fixtures = '/composable/cases/invalid-definition';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 21 char 3:\n  contract declaration claims the type of circuit up argument 1 is Field, but in the actual\n  contract definition it is Uint<16>`,
                 compilerDefaultOutput(),
@@ -150,10 +187,15 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract circuit definition has invalid return types', async () => {
-            copyFiles('../examples/composable/cases/invalid-definition-return/*.compact', contractsDir);
+            const fixtures = '/composable/cases/invalid-definition-return';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 21 char 3:\n  contract declaration claims the return type of circuit up is Boolean, but in the actual contract\n  definition it is []`,
                 compilerDefaultOutput(),
@@ -164,7 +206,7 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract compilation order is invalid', async () => {
-            copyFiles('../examples/composable/cases/invalid-order/*.compact', contractsDir);
+            copyFiles(buildPathTo('/composable/cases/invalid-order/*.compact'), contractsDir);
 
             await compileQueueWithFailures(
                 contractsDir,
@@ -183,10 +225,15 @@ describe('[Composable contracts] Compiler', () => {
         */
 
         test('when you define dependent contract in module', async () => {
-            copyFiles('../examples/composable/cases/module-contract/*.compact', contractsDir);
+            const fixtures = '/composable/cases/module-contract';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 29 char 26:\n  unbound identifier $A`,
                 compilerDefaultOutput(),
@@ -195,10 +242,15 @@ describe('[Composable contracts] Compiler', () => {
         });
 
         test('when you try to use dependent contract without contract definition', async () => {
-            copyFiles('../examples/composable/cases/no-defined-contract/*.compact', contractsDir);
+            const fixtures = '/composable/cases/no-defined-contract';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 20 char 26:\n  unbound identifier A`,
                 compilerDefaultOutput(),
@@ -208,10 +260,15 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract definition has additional (non-existing) circuit added', async () => {
-            copyFiles('../examples/composable/cases/non-existing-circuit/*.compact', contractsDir);
+            const fixtures = '/composable/cases/non-existing-circuit';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 23 char 5:\n  contract declaration has a circuit named middle, but it is not present in the actual contract\n  definition`,
                 compilerDefaultOutput(),
@@ -222,7 +279,7 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract does not exist (and it is not compiled)', async () => {
-            copyFiles('../examples/composable/cases/non-existing-contract-impl/*.compact', contractsDir);
+            copyFiles(buildPathTo('/composable/cases/non-existing-contract-impl/*.compact'), contractsDir);
             await compileQueue(contractsDir, ['A', 'B']);
 
             const result = await compileWithContractName('main', contractsDir, true);
@@ -236,10 +293,15 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract definition has just non-existing circuit', async () => {
-            copyFiles('../examples/composable/cases/non-existing-definition/*.compact', contractsDir);
+            const fixtures = '/composable/cases/non-existing-definition';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 21 char 3:\n  contract declaration has a circuit named bobAnderson, but it is not present in the actual\n  contract definition`,
                 compilerDefaultOutput(),
@@ -250,10 +312,15 @@ describe('[Composable contracts] Compiler', () => {
 
         /* Issue 201: this is no longer a static error
         test('when dependent contract definition has non-exported circuit', async () => {
-            copyFiles('../examples/composable/cases/not-exported-circuit/*.compact', contractsDir);
+            const fixtures = '/composable/cases/not-exported-circuit';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeFailure(
                 `Exception: main.compact line 21 char 5:\n  contract declaration has a circuit named up, but it is not present in the actual contract\n  definition`,
                 compilerDefaultOutput(),
@@ -265,37 +332,57 @@ describe('[Composable contracts] Compiler', () => {
 
     describe('should compile main contract', () => {
         test('when dependent contract is used as witness return value', async () => {
-            copyFiles('../examples/composable/cases/witness-return/*.compact', contractsDir);
+            const fixtures = '/composable/cases/witness-return';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
             expectFiles(result).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
 
         test('when dependent contract is empty', async () => {
-            copyFiles('../examples/composable/cases/empty-contract/*.compact', contractsDir);
+            const fixtures = '/composable/cases/empty-contract';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
             expectFiles(result).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
 
         test('when dependent contract definition is missing exported circuit', async () => {
-            copyFiles('../examples/composable/cases/missing-definition-circuit/*.compact', contractsDir);
+            const fixtures = '/composable/cases/missing-definition-circuit';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A', 'B']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
             expectFiles(result).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
 
         test('when dependent contract is used as witness parameter', async () => {
-            copyFiles('../examples/composable/cases/witness-param/*.compact', contractsDir);
+            const fixtures = '/composable/cases/witness-param';
+
+            copyFiles(buildPathTo(`${fixtures}/*.compact`), contractsDir);
             await compileQueue(contractsDir, ['A']);
 
-            const result = await compileWithContractName('main', contractsDir);
+            const result = withContractPath(
+                await compileWithContractName('main', contractsDir),
+                buildPathTo(`${fixtures}/main.compact`),
+            );
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
             expectFiles(result).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });

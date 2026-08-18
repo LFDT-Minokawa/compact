@@ -16,6 +16,7 @@
 import { logger } from './logger-utils';
 import { expect } from 'vitest';
 import { Compilation } from './types';
+import { displayPath } from './file-utils';
 
 export enum ExitCodes {
     Success = 0,
@@ -45,7 +46,7 @@ export class AssertResult {
             return `[command: ${command}]`;
         }
 
-        return `[contract: ${contractPath}] [output: ${outputDir}]`;
+        return `[contract: ${displayPath(contractPath)}] [output: ${displayPath(outputDir)}]`;
     }
 
     toReturn(stderr: string | RegExp, stdout: string | RegExp, exitCode: number): void {

@@ -14,10 +14,19 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import {
+    Arguments,
+    buildPathTo,
+    compile,
+    compilerDefaultOutput,
+    createTempFolder,
+    escapeRegExp,
+    expectCompilerResult,
+    expectFiles,
+} from '@';
 
 describe('[Errors] Compiler', () => {
-    const CONTRACTS_ROOT = '../examples/errors/';
+    const CONTRACTS_ROOT = buildPathTo('/errors/');
 
     test.each([
         {
@@ -46,7 +55,9 @@ describe('[Errors] Compiler', () => {
         },
         {
             file: 'missing.compact',
-            error: /Exception: error opening source file: failed for ..\/examples\/errors\/missing.compact: no such file or directory/,
+            error: new RegExp(
+                `Exception: error opening source file: failed for ${escapeRegExp(CONTRACTS_ROOT + 'missing.compact')}: no such file or directory`,
+            ),
         },
         {
             file: 'missing-include.compact',

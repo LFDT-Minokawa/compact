@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { getAllFilesRecursively, getFileContent } from './file-utils';
+import { displayPath, getAllFilesRecursively, getFileContent } from './file-utils';
 import fs from 'fs';
 import path from 'node:path';
 import { logger } from './logger-utils';
@@ -43,10 +43,12 @@ export class AssertGeneratedFiles {
 
     private get context(): string {
         const { contractPath, outputDir } = this.compilationPaths;
+        const output = outputDir === undefined ? '(none)' : displayPath(outputDir);
+
         if (contractPath === undefined) {
-            return `[output: ${outputDir}]`;
+            return `[output: ${output}]`;
         }
-        return `[contract: ${contractPath}] [output: ${outputDir}]`;
+        return `[contract: ${displayPath(contractPath)}] [output: ${output}]`;
     }
 
     private get folderPath() {
@@ -87,7 +89,7 @@ export class AssertGeneratedFiles {
         const syntaxError = this.parseGeneratedJSCode(getFileContent(jsFile));
         const detail = syntaxError === undefined ? 'it parsed cleanly' : syntaxError;
 
-        expect(syntaxError === undefined, `${this.context} | ${jsFile} -- ${detail}`).toEqual(valid);
+        expect(syntaxError === undefined, `${this.context} | ${displayPath(jsFile)} -- ${detail}`).toEqual(valid);
 
         return this;
     }

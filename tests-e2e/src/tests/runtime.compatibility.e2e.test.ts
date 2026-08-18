@@ -71,7 +71,7 @@ describe('[Runtime] Dry running contract', () => {
         const outputDir = createTempFolder();
         const contractDir = `${outputDir}/contract`;
 
-        const result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
         expectFiles(result).thatGeneratedJSCodeIsValid();
 
@@ -88,7 +88,7 @@ describe('[Runtime] Dry running contract', () => {
         const outputDir = createTempFolder();
         const contractDir = `${outputDir}/contract`;
 
-        const result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
         expectFiles(result).thatGeneratedJSCodeIsValid();
 
@@ -107,7 +107,7 @@ describe('[Runtime] Dry running contract', () => {
         const contractDir = `${outputDir}/contract`;
         const builtLibs = `../result-1/lib/node_modules`;
 
-        const result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
         expectFiles(result).thatGeneratedJSCodeIsValid();
 

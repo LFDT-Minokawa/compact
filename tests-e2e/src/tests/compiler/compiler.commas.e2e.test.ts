@@ -32,7 +32,7 @@ describe('[Commas] Compiler', () => {
     const contractsDir = createTempFolder();
 
     beforeAll(async () => {
-        copyFile('../examples/commas/test.compact', contractsDir);
+        copyFile(buildPathTo('/commas/test.compact'), contractsDir);
 
         await compile([`${contractsDir}/test.compact`, `${contractsDir}/test`]);
     });
