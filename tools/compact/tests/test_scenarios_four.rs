@@ -232,13 +232,11 @@ fn test_sc34_update_latest_format_verbose_same_file_twice() {
             "--verbose",
         ],
         None,
-        Some("./output/format/std_format_verbose_two_files.txt"),
+        Some("./output/format/std_format_verbose_one_file.txt"),
         None,
         &[
             ("[CONTRACT_PATH]", formated_contract_as_string),
             ("[STATUS]", "formatted"),
-            ("[CONTRACT_PATH_TWO]", formated_contract_as_string),
-            ("[STATUS_TWO]", "formatted"),
         ],
         Some(0),
     );
@@ -550,5 +548,46 @@ fn test_sc39_update_latest_format_check_unformatted_two_files() {
     assert_files_equal(
         "./contract/formatter/input/example_2.compact",
         output_contract_two_as_string,
+    );
+}
+
+#[test]
+fn test_sc40_update_latest_fixup_verbose_same_file_twice() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
+    run_command(
+        &["--directory", &format!("{}", temp_path.display()), "update"],
+        None,
+        Some("./output/update/std_default.txt"),
+        None,
+        &[
+            ("[LATEST_COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    copy_file_to_dir("./contract/formatter/input/example_1.compact", temp_path).unwrap();
+    let contract = temp_path.join("example_1.compact");
+    let contract_as_string = contract.to_str().unwrap();
+
+    run_command_sorted(
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "fixup",
+            contract_as_string,
+            contract_as_string,
+            "--verbose",
+        ],
+        None,
+        Some("./output/fixup/std_fixup_verbose_one_file.txt"),
+        None,
+        &[
+            ("[CONTRACT_PATH]", contract_as_string),
+            ("[STATUS]", "unchanged"),
+        ],
+        Some(0),
     );
 }
