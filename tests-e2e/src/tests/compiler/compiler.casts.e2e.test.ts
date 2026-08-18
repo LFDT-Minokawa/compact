@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
@@ -26,20 +25,20 @@ describe('[Casts] PM-15536 - Casts between Bytes and Vectors', () => {
             const filePath = CONTRACTS_ROOT + 'vector_to_bytes.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
 
         test('should not fail on zkir generation', async () => {
             const filePath = CONTRACTS_ROOT + 'zkir_generation.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([filePath, outputDir]);
+            const result = await compile([filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('Compiling 3 circuits:', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
 
         describe('should fail with proper error in certain cases', () => {
@@ -47,26 +46,26 @@ describe('[Casts] PM-15536 - Casts between Bytes and Vectors', () => {
                 const filePath = CONTRACT_NEGATIVE_ROOT + 'cannot_cast_higher_2.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+                const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
                 expectCompilerResult(result).toBeFailure(
                     /Exception: cannot_cast_higher_2.compact line 17 char 10: cannot cast from type Vector<1024, Uint<16>> to type Bytes<1024>/,
                     compilerDefaultOutput(),
                 );
-                expectFiles(outputDir).thatNoFilesAreGenerated();
+                expectFiles(result).thatNoFilesAreGenerated();
             });
 
             test('example 2 - can`t cast bytes to vector Uint<7>', async () => {
                 const filePath = CONTRACT_NEGATIVE_ROOT + 'cannot_cast_lower.compact';
 
                 const outputDir = createTempFolder();
-                const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+                const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
                 expectCompilerResult(result).toBeFailure(
                     /Exception: cannot_cast_lower.compact line 17 char 10: cannot cast from type Bytes<1024> to type Vector<1024, Uint<7>>/,
                     compilerDefaultOutput(),
                 );
-                expectFiles(outputDir).thatNoFilesAreGenerated();
+                expectFiles(result).thatNoFilesAreGenerated();
             });
         });
     });
@@ -77,10 +76,10 @@ describe('[Advanced casts] PM-17427 - Casts between more advanced types', () => 
         const filePath = CONTRACTS_ROOT + 'advanced_casts.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 
     describe('should fail with proper error in certain cases', () => {
@@ -88,13 +87,13 @@ describe('[Advanced casts] PM-17427 - Casts between more advanced types', () => 
             const filePath = CONTRACT_NEGATIVE_ROOT + 'cannot_cast_six_to_four.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
                 'Exception: cannot_cast_six_to_four.compact line 17 char 17: cannot cast from type [Boolean, Boolean, Boolean, Boolean, Boolean, Boolean] to type Vector<4, Boolean>',
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

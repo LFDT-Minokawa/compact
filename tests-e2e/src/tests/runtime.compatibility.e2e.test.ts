@@ -27,7 +27,7 @@ import {
     buildPathTo,
     logger,
 } from '@';
-import { execa, Result } from 'execa';
+import { execa } from 'execa';
 import fs from 'fs';
 
 const RUNTIME_ROOT = buildPathTo('/', 'runtime');
@@ -71,9 +71,9 @@ describe('[Runtime] Dry running contract', () => {
         const outputDir = createTempFolder();
         const contractDir = `${outputDir}/contract`;
 
-        const result: Result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         saveFile(contractDir, 'package.json', packageJSONAsString);
 
@@ -88,9 +88,9 @@ describe('[Runtime] Dry running contract', () => {
         const outputDir = createTempFolder();
         const contractDir = `${outputDir}/contract`;
 
-        const result: Result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         saveFile(contractDir, 'package.json', packageJSONAsString);
         saveFile(contractDir, '.npmrc', npmrcFile);
@@ -107,9 +107,9 @@ describe('[Runtime] Dry running contract', () => {
         const contractDir = `${outputDir}/contract`;
         const builtLibs = `../result-1/lib/node_modules`;
 
-        const result: Result = await compile([Arguments.SKIP_ZK, '../examples/counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, buildPathTo('/counter.compact'), outputDir]);
         expectCompilerResult(result).toBeSuccess('', '');
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         saveFile(contractDir, 'package.json', packageJSONAsString);
         copyFiles(builtLibs, contractDir);

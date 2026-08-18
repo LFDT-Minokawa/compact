@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
 import { Project } from 'ts-morph';
 import {
@@ -154,16 +153,16 @@ describe('[Bugs] Compiler', () => {
     ])(`$testcase`, async ({ file, output }) => {
         const filePath = CONTRACTS_ROOT + file;
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+        const result = await compile([Arguments.VSCODE, filePath, outputDir]);
         expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
     });
 
     test(`[PM-9232] ledger camel case variables should be untouched in generated js`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-9232.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-9232.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const contractIndexCjs = getFileContent(outputDir + '/contract/index.js');
         const contractIndexDCts = getFileContent(outputDir + '/contract/index.d.ts');
@@ -223,7 +222,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'include-pm-9636/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.VSCODE, file, outputDir], dirPath);
+            const result = await compile([Arguments.VSCODE, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
@@ -232,22 +231,22 @@ describe('[Bugs] Compiler', () => {
         const filePath = CONTRACTS_ROOT + 'pm-16065.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+        const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
         expectCompilerResult(result).toBeFailure(
             /Exception: pm-16065.compact line 19 char 25: vector type length; 43590753987470154073008687018949015693739732443847; exceeds the maximum supported length 16777216/,
             compilerDefaultOutput(),
         );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
+        expectFiles(result).thatNoFilesAreGenerated();
     });
 
     test(`[PM-16150] export naming with module, should follow same pattern as camel casing`, async () => {
         const outputDir = createTempFolder();
         const contractDir = CONTRACTS_ROOT + 'pm-16150/';
 
-        const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16150.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16150.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const project = new Project();
         const file = project.addSourceFileAtPath(contractDir + 'index.ts');
@@ -297,7 +296,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'pm-16181/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
+            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
@@ -326,7 +325,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'pm-16183/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
+            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
@@ -355,7 +354,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'pm-16349/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
+            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
@@ -364,20 +363,20 @@ describe('[Bugs] Compiler', () => {
         const filePath = CONTRACTS_ROOT + 'pm-16440.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+        const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
         expectCompilerResult(result).toBeFailure(
             /Exception: pm-16440.compact line 17 char 30: MerkleTree depth 159390502094656647950333731871572319422 does not fall in 2 <= depth <= 32/,
             compilerDefaultOutput(),
         );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
+        expectFiles(result).thatNoFilesAreGenerated();
     });
 
     test(`[PM-16603] should generate proper export names in contract-info.json`, async () => {
         const outputDir = createTempFolder();
         const contractDir = CONTRACTS_ROOT + 'pm-16603/';
 
-        const result: Result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, contractDir + 'pm-16603.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
 
         const actualContract = new AssertContract().expect(outputDir);
@@ -422,7 +421,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'pm-16893/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
+            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
@@ -505,7 +504,7 @@ describe('[Bugs] Compiler', () => {
             const dirPath = CONTRACTS_ROOT + 'pm-17347/';
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
+            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
             expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
         });
     });
