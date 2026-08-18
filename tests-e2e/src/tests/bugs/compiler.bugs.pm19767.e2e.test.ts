@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[Bug] [PM-19767] Large casts in constructor', () => {
     const CONTRACTS_ROOT = buildPathTo('/bugs/pm-19767/');

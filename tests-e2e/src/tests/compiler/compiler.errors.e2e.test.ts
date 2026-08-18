@@ -16,13 +16,13 @@
 import { describe, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     createTempFolder,
-    escapeRegExp,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
+    escapeRegExp,
 } from '@';
 
 describe('[Errors] Compiler', () => {

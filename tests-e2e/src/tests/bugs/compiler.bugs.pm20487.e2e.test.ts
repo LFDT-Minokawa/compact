@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[Bug] [PM-20487] Return from for loops is not supported', () => {
     const CONTRACTS_ROOT = buildPathTo('/bugs/pm-20487/');

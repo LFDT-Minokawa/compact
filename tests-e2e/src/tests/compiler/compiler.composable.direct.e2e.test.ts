@@ -15,7 +15,6 @@
 
 import { describe, test } from 'vitest';
 import {
-    buildPathTo,
     compilerDefaultOutput,
     compileWithContractPath,
     ContractInfo,
@@ -24,6 +23,7 @@ import {
     expectCompilerResult,
     expectFiles,
     logger,
+    buildPathTo,
     withContractPath,
 } from '@';
 import fs from 'fs';

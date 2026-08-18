@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[Bug] [PM-15797] Unsigned range changes', () => {
     const CONTRACTS_ROOT = buildPathTo('/bugs/pm-15797/');

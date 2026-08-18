@@ -16,13 +16,13 @@
 import { describe, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
-    copyFile,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
+    copyFile,
     withContractPath,
 } from '@';
 

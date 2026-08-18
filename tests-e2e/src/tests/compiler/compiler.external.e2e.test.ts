@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[External] Issue #68 - Removal of external circuits', () => {
     const CONTRACTS_ROOT = buildPathTo('/external/');

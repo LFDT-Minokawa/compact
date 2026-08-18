@@ -15,16 +15,16 @@
 
 import { describe, test } from 'vitest';
 import {
-    buildPathTo,
     compile,
-    withContractPath,
     compilerDefaultOutput,
-    compileQueue,
     compileWithContractName,
     copyFiles,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
+    withContractPath,
+    compileQueue,
 } from '@';
 import fs from 'fs';
 

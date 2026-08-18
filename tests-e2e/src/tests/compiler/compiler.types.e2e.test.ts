@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
 describe('[Types] [PM-19636] Define type aliases and new disjoint types for existing types', () => {
     const CONTRACTS_ROOT = buildPathTo('/types/');

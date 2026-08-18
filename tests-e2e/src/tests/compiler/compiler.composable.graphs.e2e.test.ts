@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import {
-    buildPathTo,
     compileQueue,
     compilerDefaultOutput,
     compileWithContractName,
@@ -22,6 +21,7 @@ import {
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
     withContractPath,
 } from '@';
 

@@ -15,14 +15,14 @@
 
 import { describe, test } from 'vitest';
 import {
-    Arguments,
-    AssertContract,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
+    AssertContract,
+    Arguments,
 } from '@';
 
 describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the ledger', () => {

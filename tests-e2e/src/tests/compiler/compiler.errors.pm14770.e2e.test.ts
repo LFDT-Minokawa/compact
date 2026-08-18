@@ -16,15 +16,15 @@
 import { describe, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     contractInfoFiles,
     createTempFolder,
-    escapeRegExp,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
     tsFiles,
+    escapeRegExp,
 } from '@';
 
 describe('[Errors] PM-14770', () => {

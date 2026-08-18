@@ -14,7 +14,6 @@
 // limitations under the License.
 
 import {
-    buildPathTo,
     compileQueue,
     compileQueueWithFailures,
     compilerDefaultOutput,
@@ -26,6 +25,7 @@ import {
     expectCompilerResult,
     expectFiles,
     tsFiles,
+    buildPathTo,
     withContractPath,
 } from '@';
 import { describe } from 'vitest';

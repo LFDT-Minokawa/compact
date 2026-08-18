@@ -16,13 +16,13 @@
 import { describe, expect, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
     getFileContent,
+    buildPathTo,
 } from '@';
 
 const CONTRACTS_ROOT = buildPathTo('/');

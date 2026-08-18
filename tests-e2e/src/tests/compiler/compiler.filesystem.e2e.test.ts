@@ -16,14 +16,14 @@
 import { describe, expect, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     createTempFolder,
-    escapeRegExp,
     ExitCodes,
     expectCompilerResult,
     expectFiles,
+    escapeRegExp,
+    buildPathTo,
 } from '@';
 import fs from 'fs';
 import path from 'path';

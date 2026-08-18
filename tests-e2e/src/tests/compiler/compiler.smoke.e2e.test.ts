@@ -18,7 +18,6 @@ import { describe, expect, test } from 'vitest';
 import {
     Arguments,
     AssertOptions,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     compilerManualPage,
@@ -30,14 +29,15 @@ import {
     getAllFilesRecursively,
     getCompactcBinary,
     getCrLfFileCopy,
+    buildPathTo,
     HELP_REGEX,
     isRelease,
     keysFiles,
-    LEDGER_VERSION_REGEX,
     saveContract,
     tsFiles,
     VERSION_REGEX,
     zkirFiles,
+    LEDGER_VERSION_REGEX,
 } from '@';
 
 describe('[Smoke] Compiler', () => {

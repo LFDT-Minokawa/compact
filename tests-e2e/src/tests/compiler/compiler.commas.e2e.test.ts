@@ -15,13 +15,13 @@
 
 import {
     Arguments,
-    buildPathTo,
     compile,
     compilerDefaultOutput,
     copyFile,
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    buildPathTo,
 } from '@';
 import * as fs from 'fs';
 

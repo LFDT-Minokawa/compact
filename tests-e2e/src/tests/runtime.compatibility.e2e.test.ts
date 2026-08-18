@@ -16,7 +16,6 @@
 import { beforeAll, describe, test } from 'vitest';
 import {
     Arguments,
-    buildPathTo,
     compile,
     copyFiles,
     createTempFolder,
@@ -25,6 +24,7 @@ import {
     expectCompilerResult,
     expectFiles,
     getFileContent,
+    buildPathTo,
     logger,
 } from '@';
 import { execa } from 'execa';

@@ -147,14 +147,6 @@ export class AssertGeneratedFiles {
     }
 }
 
-/**
- * Assert on the files a compilation produced.
- *
- * Prefer passing the `compile` outcome, so the directory comes from the invocation
- * itself; passing a path means the caller has to rebuild what `compile` was given, and
- * the two can drift silently. The string form remains for callers inspecting a
- * directory that no single compilation owns.
- */
 export function expectFiles(paths: CompilationPaths): AssertGeneratedFiles {
     const target = paths.outputDir;
     if (target === undefined) {

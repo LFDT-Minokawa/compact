@@ -14,7 +14,7 @@
 // limitations under the License.
 
 import { describe, test } from 'vitest';
-import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
+import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, buildPathTo, expectFiles } from '@';
 
 describe('[Reserved] PM-14357 - Reserved keywords', () => {
     const CONTRACTS_ROOT = buildPathTo('/reserved/');
