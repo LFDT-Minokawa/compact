@@ -147,7 +147,7 @@ The flag is off by default. With the flag off, the compiler writes the same file
 
 Two compiler branches implement this, both against upstream `main`. They differ in who owns the emitter.
 
-- [RomarQ/compact#16](https://github.com/RomarQ/compact/pull/16) adds `--analyzed-ir`. The emitter is a new pass in the compiler. It adds 391 lines and removes nothing. `save-contract-info-passes` stays untouched. This is what this CoIP proposes.
+- [LFDT-Minokawa/compact#722](https://github.com/LFDT-Minokawa/compact/pull/722) adds `--analyzed-ir`. The emitter is a new pass in the compiler. It adds 391 lines and removes nothing. `save-contract-info-passes` stays untouched. This is what this CoIP proposes.
 - [RomarQ/compact#13](https://github.com/RomarQ/compact/pull/13) adds `--run-hook`. A consumer loads its own Scheme pass and owns the emitter. It is the alternative. It needs the compiler's libraries visible, which grows the binary, and it asks every consumer to carry a Scheme pass.
 
 The two write the same file.
@@ -155,8 +155,7 @@ The two write the same file.
 ## References
 
 - MPS-0022, Language-Agnostic Representation of Compiled Compact Contracts (the problem statement): [midnightntwrk/midnight-improvement-proposals#188](https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0022-standard-contract-representation.md)
-- Reference implementation, in-tree flag: https://github.com/RomarQ/compact/pull/16
-- Reference implementation, consumer-owned hook: https://github.com/RomarQ/compact/pull/13
+- Reference implementation, in-tree flag: https://github.com/LFDT-Minokawa/compact/pull/722
 - Reference consumer: https://github.com/Moonsong-Labs/midnight-rs (`crates/compact/`)
 
 ## Copyright
