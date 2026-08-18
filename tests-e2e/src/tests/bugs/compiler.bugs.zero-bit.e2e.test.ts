@@ -13,17 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
-import {
-    Arguments,
-    buildPathTo,
-    compile,
-    createTempFolder,
-    expectCompilerResult,
-    expectFiles,
-    getFileContent,
-} from '@';
+import { Arguments, buildPathTo, compile, createTempFolder, expectCompilerResult, expectFiles, getFileContent } from '@';
 
 type Alignment = {
     tag: string;
@@ -66,10 +57,10 @@ function expectPersistentHashAlignment(outputDir: string, version: number): void
 describe('[Bugs] Zero-bit fields use consistent one-byte alignment', () => {
     test('[Issue #285] Uint<0..1> ledger descriptors use one byte', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, ZERO_MAXIMUM_LEDGER, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, ZERO_MAXIMUM_LEDGER, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const generatedContract = getFileContent(`${outputDir}/contract/index.js`);
         expect(generatedContract).toContain('new __compactRuntime.CompactTypeUnsignedInteger(0n, 1)');
@@ -80,19 +71,19 @@ describe('[Bugs] Zero-bit fields use consistent one-byte alignment', () => {
 
     test('[Issue #588] persistentHash inputs match their v2 alignment', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, ATTESTATION, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, ATTESTATION, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
         expectPersistentHashAlignment(outputDir, 2);
     });
 
     test('[Issue #615] the reproduction compiles with the v3 backend', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, ATTESTATION, outputDir]);
+        const result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, ATTESTATION, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
         expectPersistentHashAlignment(outputDir, 3);
     });
 });
