@@ -109,7 +109,9 @@
       (syntax-error x complaint)))
 
   (define (make-check-vm-expr arg-name*)
-    (let ([free-name* (cons* 'f 'f-cached arg-name*)])
+    ;; names the checker accepts in VM expressions; each is bound at
+    ;; expansion time by the code-generation passes
+    (let ([free-name* (cons* 'f 'f-cached 'result_type arg-name*)])
       (define (free-name? x) (memq x free-name*))
       (rec check-vm-expr
         (lambda (e)
