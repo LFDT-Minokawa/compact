@@ -1143,7 +1143,7 @@
                           (coordinate "x" "MAX_FIELD")
                           (coordinate "y" "MAX_FIELD"))]
                        [(curve-secp256k1)
-                        (format "~a && ~a && typeof(~a.identity) == 'boolean'"
+                        (format "~a && ~a && typeof(~a.identity) === 'boolean'"
                           (coordinate "x" "MAX_SECP256K1_BASE")
                           (coordinate "y" "MAX_SECP256K1_BASE")
                           var)]))]
