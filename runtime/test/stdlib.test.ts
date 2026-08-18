@@ -19,13 +19,13 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 describe('createCoinCommitment', () => {
   test('Check for success', () => {
-    const context = compactRuntime.createCircuitContext(
-      'test',
-      ocrt.sampleContractAddress(),
-      '0'.repeat(64),
-      new ocrt.ContractState(),
-      undefined,
-    );
+    const context = compactRuntime.createCircuitContext({
+      circuitId: 'test',
+      contractAddress: ocrt.sampleContractAddress(),
+      coinPublicKeyOrZswapState: '0'.repeat(64),
+      contractState: new ocrt.ContractState(),
+      privateState: undefined,
+    });
     const coinInfo = {
       tag: 'shielded',
       type: ocrt.sampleRawTokenType(),
@@ -139,13 +139,13 @@ describe('__compact.convertBytesToUint for Field', () => {
 describe('__compact.convertBytesToUint for Uint<0..256>', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0xff, 0]);
-    const x = compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
+    const x = compactRuntime.convertBytesToUint(255n, a.length, a, 'Uint<0..256>', 'source');
     expect(x).toBe(255n);
   });
 
   const f = () => {
     const a = new Uint8Array([0, 1]);
-    compactRuntime.convertBytesToUint(255, a.length, a, 'Uint<0..256>', 'source');
+    compactRuntime.convertBytesToUint(255n, a.length, a, 'Uint<0..256>', 'source');
   };
 
   test('check for error type', () => {
@@ -239,11 +239,7 @@ test('sanity check for contract address utilities', () => {
   const address = ocrt.sampleContractAddress();
   expect(compactRuntime.fromHex(address).length).toEqual(compactRuntime.CONTRACT_ADDRESS_BYTE_LENGTH);
   expect(compactRuntime.isContractAddress(address)).toBe(true);
-  const encodedAddress = { bytes: compactRuntime.fromHex(address) };
-  expect(compactRuntime.isEncodedContractAddress(encodedAddress)).toBe(true);
 
   const bogusAddress = '098230498';
   expect(compactRuntime.isContractAddress(bogusAddress)).toBe(false);
-  const encodedBogusAddress = { bytes: compactRuntime.fromHex(bogusAddress) };
-  expect(compactRuntime.isEncodedContractAddress(encodedBogusAddress)).toBe(false);
 });

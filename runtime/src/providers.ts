@@ -14,15 +14,28 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import { Module } from './module.js';
 
 /**
- * A user-provided interface for fetching the public state of a contract
- * at a given block hash. Used exclusively to retrieve the state of cross-contract
- * call targets at runtime. Assumes state returned is the post-block evaluation
- * contract state.
- *
- * The `parentBlockHash` value in {@link CircuitContext} is used for as the `blockHash` argument.
+ * A user-provided fetch of a contract's public state at a block hash, used only for cross-contract
+ * call targets. The state returned must be post-block-evaluation; `blockHash` is the
+ * `parentBlockHash` from the circuit context.
  */
 export interface ContractStateProvider {
   getContractState(blockHash: string, address: ocrt.ContractAddress): Promise<ocrt.ContractState | undefined>;
+}
+
+/** A deferred load of a generated contract module: evaluated only when a call resolves to it. */
+export type ModuleThunk = () => Promise<Module>;
+
+/**
+ * A user-provided lookup from a cross-contract callee's address to the module implementing the
+ * contract deployed there.
+ *
+ * `resolve` is synchronous and total: loading is deferred into the thunk, and an address with no
+ * binding returns `undefined` rather than throwing, so the runtime classifies every failure and an
+ * application sees one vocabulary rather than one per provider.
+ */
+export interface ContractModuleProvider {
+  resolve(calleeAddress: ocrt.ContractAddress): ModuleThunk | undefined;
 }

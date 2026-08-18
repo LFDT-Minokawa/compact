@@ -170,11 +170,8 @@
         [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
         [(XPelt-public-ledger pl-array lconstructor external-names) #f]
         [(XPelt-ledger-kernel) #f]))
-    ;; Tracks which functions have async wrappers in the generated JS.
-    ;; Only impure circuits are async (because their bodies
-    ;; may contain `await __compactRuntime.crossContractCall(...)`). Witnesses,
-    ;; native circuits, and native witnesses all have synchronous wrappers, so
-    ;; their call sites don't need `await`.
+    ;; Which functions have async wrappers in the generated JS. Only impure circuits, since their
+    ;; bodies may `await` a cross-contract call; everything else is synchronous.
     (define function-async-ht (make-eq-hashtable))
     (define (mark-function-async! function-name)
       (eq-hashtable-set! function-async-ht function-name #t))
@@ -193,14 +190,6 @@
       (define (type->descriptor-name type)
         (assert descriptor-table)
         (format-id-reference (assertf (hashtable-ref descriptor-table type #f) "unregistered type descriptor for ~s" type))))
-
-    (define (contract-import-binding contract-name)
-      (format "__compactContractsImport_~a" contract-name))
-
-    (define (contract-import-path contract-name)
-      (if (string=? (print-contract-name contract-name) (get-self-contract-name))
-          "."
-          (format "../../~a/contract/index.js" contract-name)))
 
     (define (pl-array->public-bindings pl-array)
       (let f ([pl-array pl-array] [pb* '()])
@@ -528,13 +517,6 @@
       (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
         [(,src ,ledger-field-name (,path-index* ...) ,type)
          (id-exported? ledger-field-name)]))
-    (define (get-self-contract-name)
-      (source-file-name))
-    (define (print-contract-name contract-name)
-        (if (symbol? contract-name)
-            (symbol->string contract-name)
-            contract-name))
-
     (define (subst-tcontract type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -872,10 +854,6 @@
             (for-each print-ledger-declaration xpelt* uname*)
             (display-string "}\n")
             (newline)
-            (display-string "export type ContractReferenceLocations = any;\n")
-            (newline)
-            (display-string "export declare const contractReferenceLocations : ContractReferenceLocations;\n")
-            (newline)
             (display-string "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {\n")
             (display-string "  witnesses: W;\n")
             (display-string "  circuits: Circuits<PS>;\n")
@@ -888,6 +866,8 @@
             (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
             (display-string "export declare const pureCircuits: PureCircuits;\n")
             (display-string "export declare const expectedVk: Record<string, string>;\n")
+            (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
+            (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
             ))))
 
     (define (format-field-type ftype)
@@ -932,17 +912,8 @@
          (assert cannot-happen)]))
 
     (module (print-contract.js)
-      (define (print-contract-header contract-type*)
+      (define (print-contract-header)
         (display-string "import * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
-        (for-each
-          (lambda (contract-type)
-            (let ([contract-name (nanopass-case (Ltypescript Contract-Type) contract-type
-                                   [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                                    contract-name])])
-              (printf "import * as ~a from '~a';\n"
-                (contract-import-binding contract-name)
-                (contract-import-path contract-name))))
-          contract-type*)
         (printf "__compactRuntime.checkRuntimeVersion('~a');\n" runtime-version-string)
         (display-string "\n"))
 
@@ -1421,7 +1392,7 @@
                      (with-local-unique-names
                        (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
                          (append
-                           ;; Pure circuit wrappers on `this.circuits` are still declared async
+                           ;; Async for a uniform call shape, though nothing here awaits.
                            (map (lambda (external-name)
                                   (make-Qconcat/src src
                                     "async "
@@ -1758,7 +1729,7 @@
                                            (ledger-initializers src state pl-array
                                              (set-operations state xpelt0*
                                                (cons*
-                                                 2 (format "const context = __compactRuntime.createCircuitContext('constructor', __compactRuntime.dummyContractAddress(), ~a.initialZswapLocalState.coinPublicKey, ~a.data, ~a.initialPrivateState);" constructorContext state constructorContext)
+                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState});" constructorContext state constructorContext)
                                                  2 "const partialProofData = {"
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
@@ -1964,169 +1935,132 @@
               [else (void)]))
           xpelt*))
 
-      (module (print-contract-reference-locations)
-        (define (do-type type)
-          (nanopass-case (Ltypescript Type) (de-alias type)
-            [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-             (make-Qconcat
-               "{"
-               1 "tag: 'contractAddress'"
-               0 "}")]
-            [(tvector ,src ,len ,type)
-             (guard (not (= len 0)))
-             (let ([q (do-type type)])
-               (and q
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                         "tag: 'vector'"
-                         (make-Qconcat "sparseType: " q))
-                      0 "}")))]
-            [(ttuple ,src ,type* ...)
-             ; FIXME: need to teach the runtime about this.
-             ; tuple is like publicLedgerArray; consider replacing latter with former
-             (let ([q* (map do-type type*)] [i* (enumerate type*)])
-               (and (ormap values q*)
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                          "tag: 'tuple'"
-                          (make-Qconcat
-                            "indices: {"
-                            2 (apply (make-Qsep ",")
-                                (fold-right
-                                  (lambda (q i q*)
-                                    (if q
-                                        (cons
-                                          (make-Qconcat
-                                            (format "~d: " i)
-                                            q)
-                                          q*)
-                                        q*))
-                                  '()
-                                  q*
-                                  (enumerate type*)))
-                            0 "}"))
-                      0 "}")))]
-            [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-             (let ([q* (map do-type type*)])
-               (and (ormap values q*)
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                         "tag: 'struct'"
-                         (make-Qconcat
-                           "elements: "
-                           2 (make-Qconcat
-                               "{"
-                               1 (apply (make-Qsep ",")
-                                   (fold-right
-                                     (lambda (elt-name q q*)
-                                       (if q
-                                           (cons
-                                             (make-Qconcat (format "~a: " elt-name) q)
-                                             q*)
-                                           q*))
-                                     '()
-                                     elt-name*
-                                     q*))
-                               0 "}")))
-                      0 "}")))]
-            [else #f]))
-        (define (do-adt-arg adt-arg)
-          (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
-            ; can't get a nat at present since only merkle trees have nat adt-args
-            ; and contract references cannot be retrieved from merkle trees
-            [,nat #f]
-            [,type
-             (if (public-adt? type)
-                 (do-public-adt type)
-                 (let ([q (do-type type)])
-                   (and q
-                        (make-Qconcat
-                          "{"
-                          1 ((make-Qsep ",")
-                             "tag: 'compactValue'"
-                             (make-Qconcat "descriptor: " (type->descriptor-name type))
-                             (make-Qconcat "sparseType: " q))
-                          0 "}"))))]))
-        (define (do-public-adt public-adt)
-          (nanopass-case (Ltypescript Type) (de-alias public-adt)
-            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-             ; FIXME: building in knowledge of the ledger here
-             ; contract references cannot be retreived from merkle trees
-             (and (not (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree)))
-                  (let ([maybe-q* (map do-adt-arg adt-arg*)])
-                    (and (ormap values maybe-q*)
-                         (make-Qconcat
-                           "{ "
-                           1 (apply (make-Qsep ",")
-                                    (format "tag: '~a'"
-                                      (if (eq? adt-name '__compact_Cell)
-                                          "cell"
-                                          (to-camel-case (symbol->string adt-name) #f)))
-                                    (fold-right
-                                      (lambda (adt-formal maybe-q q*)
-                                        (if maybe-q
-                                            (cons
-                                              (make-Qconcat
-                                                (format "~a: " (to-camel-case (symbol->string adt-formal) #f))
-                                                maybe-q)
-                                              q*)
-                                            q*))
-                                      '()
-                                      adt-formal*
-                                      maybe-q*))
-                           0 "}"))))]))
-        (define (do-public-binding public-binding)
-          (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-            [(,src ,ledger-field-name (,path-index* ...) ,type)
-             (do-public-adt type)]))
-        (define (do-pl-array-elt pl-array-elt)
-          (nanopass-case (Ltypescript Public-Ledger-Array-Element) pl-array-elt
-            [,pl-array (do-pl-array pl-array #f)]
-            [,public-binding (do-public-binding public-binding)]))
-        (define (do-pl-array pl-array even-if-empty?)
-          (nanopass-case (Ltypescript Public-Ledger-Array) pl-array
-            [(public-ledger-array ,pl-array-elt* ...)
-             (let ([maybe-q* (map do-pl-array-elt pl-array-elt*)])
-               (and (or even-if-empty? (ormap values maybe-q*))
-                    (make-Qconcat
-                      "{"
-                      1 ((make-Qsep ",")
-                          "tag: 'publicLedgerArray'"
-                          (make-Qconcat
-                            "indices: {"
-                            2 (apply (make-Qsep ",")
-                                (fold-right
-                                  (lambda (maybe-q i q*)
-                                    (if maybe-q
-                                        (cons
-                                          (make-Qconcat
-                                            (format "~d: " i)
-                                            maybe-q)
-                                          q*)
-                                        q*))
-                                  '()
-                                  maybe-q*
-                                  (enumerate pl-array-elt*)))
-                            0 "}"))
-                      0 "}")))]))
-        (define (print-contract-reference-locations xpelt)
-          (XPelt-case xpelt
-            [(XPelt-public-ledger pl-array ledger-constructor external-names)
-             (print-Q 0
-               (make-Qconcat
-                 "export const contractReferenceLocations ="
-                 2 (do-pl-array pl-array #t)
-                 ";"))
-             (newline)]
-            [else (void)])))
+      (define (comma-separated s*)
+        (if (null? s*) "" (format "~a~{, ~a~}" (car s*) (cdr s*))))
 
-      ;; Emit the per-circuit verifier-key fingerprints computed in passes.ss after key
-      ;; generation. A caller's cross-contract guard reads the callee module's `expectedVk` to
-      ;; detect a contract deployed at the call target that does not match the implementation this
-      ;; module was compiled against. Empty (`{}`) for builds that generate no keys (e.g. --skip-zk).
+      ;; A non-empty sequence whose elements all encode alike is a Vector;
+      ;; anything else is a Tuple.  A zero-length sequence is a Tuple, because
+      ;; Vector<0,T> has no recoverable element type.
+      (define (format-sequence-type s*)
+        (cond
+          [(null? s*) "{tag: 'Tuple', types: []}"]
+          [(andmap (lambda (s) (string=? s (car s*))) (cdr s*))
+           (format "{tag: 'Vector', length: ~d, type: ~a}" (length s*) (car s*))]
+          [else (format "{tag: 'Tuple', types: [~a]}" (comma-separated s*))]))
+
+      (define (format-interface-descriptor elt-name* pure-dcl* type** type*)
+        (format "{~a}"
+          (comma-separated
+            (map (lambda (elt-name pure-dcl arg-type* result-type)
+                   (format "~a: {pure: ~a, argumentTypes: [~a], resultType: ~a}"
+                     (format-javascript-string (symbol->string elt-name))
+                     (if pure-dcl "true" "false")
+                     (comma-separated (map format-compact-type arg-type*))
+                     (format-compact-type result-type)))
+                 elt-name* pure-dcl* type** type*))))
+
+      (define (format-compact-type type)
+        (nanopass-case (Ltypescript Type) type
+          [(tboolean ,src) "{tag: 'Boolean'}"]
+          [(tfield ,src ,ftype)
+           (format "{tag: ~a}" (format-javascript-string (format-field-type ftype)))]
+          [(tpoint ,src ,ctype)
+           (format "{tag: ~a}" (format-javascript-string (format-point-type ctype)))]
+          [(tunsigned ,src ,nat)
+           (format "{tag: 'Uint', maxval: ~a}"
+             (format-javascript-string (number->string nat)))]
+          [(tbytes ,src ,len) (format "{tag: 'Bytes', length: ~d}" len)]
+          [(topaque ,src ,opaque-type)
+           (format "{tag: 'Opaque', tsType: ~a}"
+             (format-javascript-string opaque-type))]
+          [(tvector ,src ,len ,type)
+           (format-sequence-type (make-list len (format-compact-type type)))]
+          [(ttuple ,src ,type* ...)
+           (format-sequence-type (map format-compact-type type*))]
+          [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
+           (format "{tag: 'Struct', name: ~a, elements: [~a]}"
+             (format-javascript-string (symbol->string struct-name))
+             (comma-separated
+               (map (lambda (elt-name type)
+                      (format "{name: ~a, type: ~a}"
+                        (format-javascript-string (symbol->string elt-name))
+                        (format-compact-type type)))
+                    elt-name* type*)))]
+          [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
+           (format "{tag: 'Enum', name: ~a, elements: [~a]}"
+             (format-javascript-string (symbol->string enum-name))
+             (comma-separated
+               (map (lambda (n) (format-javascript-string (symbol->string n)))
+                    (cons elt-name elt-name*))))]
+          ;; A transparent alias is erased; only a `new type` survives as a node.
+          [(talias ,src ,nominal? ,type-name ,type)
+           (if nominal?
+               (format "{tag: 'Alias', name: ~a, type: ~a}"
+                 (format-javascript-string (symbol->string type-name))
+                 (format-compact-type type))
+               (format-compact-type type))]
+          [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+           (format "{tag: 'Contract', name: ~a, circuits: ~a}"
+             (format-javascript-string (symbol->string contract-name))
+             (format-interface-descriptor elt-name* pure-dcl* type** type*))]
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (assert cannot-happen)]
+          [,tvar-name (assert cannot-happen)]
+          [(tunknown) (assert cannot-happen)]))
+
+      (define (format-argument-type arg)
+        (nanopass-case (Ltypescript Argument) arg
+          [(,var-name ,type) (format-compact-type type)]))
+
+      (define (print-table name entry*)
+        (if (null? entry*)
+            (printf "export const ~a = {};\n" name)
+            (begin
+              (printf "export const ~a = {\n" name)
+              (for-each (lambda (entry) (printf "  ~a,\n" entry)) entry*)
+              (display-string "};\n")))
+        (newline))
+
+      ;; One entry per external name, so a circuit exported under several fans out, as expectedVk
+      ;; and pureCircuits already do.
+      (define (print-circuit-signatures xpelt*)
+        (print-table "circuitSignatures"
+          (fold-right
+            (lambda (xpelt entry*)
+              (XPelt-case xpelt
+                [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
+                 (fold-right
+                   (lambda (external-name entry*)
+                     (cons
+                       (format "~a: {pure: ~a, provable: ~a, argumentTypes: [~a], resultType: ~a}"
+                         (format-javascript-string external-name)
+                         (if pure? "true" "false")
+                         (if (memq (string->symbol external-name) (proof-circuit-names))
+                             "true"
+                             "false")
+                         (comma-separated (map format-argument-type arg*))
+                         (format-compact-type type))
+                       entry*))
+                   entry*
+                   external-name*)]
+                [else entry*]))
+            '()
+            xpelt*)))
+
+      ;; contract-type* holds exactly the contract types a call is made on.
+      (define (print-declared-interfaces contract-type*)
+        (print-table "declaredInterfaces"
+          (map
+            (lambda (contract-type)
+              (nanopass-case (Ltypescript Contract-Type) contract-type
+                [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                 (format "~a: ~a"
+                   (format-javascript-string (symbol->string contract-name))
+                   (format-interface-descriptor elt-name* pure-dcl* type** type*))]))
+            contract-type*)))
+
+      ;; The per-circuit fingerprints computed in passes.ss after key generation. Empty for a build
+      ;; that generates no keys, such as --skip-zk.
       (define (print-expected-vk)
         (let ([vk* (verifier-key-hashes)])
           (if (null? vk*)
@@ -2148,12 +2082,13 @@
       (define (print-contract.js src contract-type* descriptor-id* type* xpelt* uname*)
         (parameterize ([current-output-port (get-target-port 'contract.js)])
           (fluid-let ([sourcemap-tracker (make-sourcemap-tracker)])
-            (print-contract-header contract-type*)
+            (print-contract-header)
             (print-exported-types xpelt*)
             (print-contract-descriptors src descriptor-id* type*)
             (print-contract-class src xpelt* uname*)
-            (for-each print-contract-reference-locations xpelt*)
             (print-expected-vk)
+            (print-circuit-signatures xpelt*)
+            (print-declared-interfaces contract-type*)
             (print-contract-footer)
             (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
             (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))
@@ -3107,27 +3042,25 @@
                 q)))])]
     [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      ;; Lower a cross-contract call to:
-     ;;   await __compactRuntime.crossContractCall(
-     ;;     context,                                     // caller CircuitContext
-     ;;     <import-binding>,                            // callee Module (Contract + pureCircuits)
-     ;;     '<elt-name>',                                // callee CircuitId
-     ;;     <receiver-expr>,                             // callee address from the ledger
-     ;;     <callee-is-pure>,                            // declared purity of the callee circuit
-     ;;     partialProofData,                            // caller PartialProofData
-     ;;     <args>...)
+     ;;   await __compactRuntime.crossContractCall({
+     ;;     context,
+     ;;     interfaceName: '<contract-name>',
+     ;;     declaration: declaredInterfaces['<contract-name>'],
+     ;;     calleeCircuitId: '<elt-name>',
+     ;;     calleeAddress: <receiver-expr>,
+     ;;     partialProofData,
+     ;;     args: [<args>...]})
      (when outer-pure?
        (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-        (let ([callee-is-pure
-               (let loop ([names elt-name*] [pures pure-dcl*])
-                 (cond
-                   [(null? names)
-                    (internal-errorf 'print-typescript
-                      "contract-call references unknown circuit ~s on contract ~s"
-                      elt-name contract-name)]
-                   [(eq? (car names) elt-name) (car pures)]
-                   [else (loop (cdr names) (cdr pures))]))]
+        ;; Type checking already established this; re-checked so a declaration missing the circuit
+        ;; fails here rather than as a run-time conformance failure.
+        (unless (memq elt-name elt-name*)
+          (internal-errorf 'print-typescript
+            "contract-call references unknown circuit ~s on contract ~s"
+            elt-name contract-name))
+        (let ([interface-name (format-javascript-string (symbol->string contract-name))]
               [callee-address
                (make-Qconcat
                  (format "~a((" (compact-stdlib "decodeContractAddress"))
@@ -3135,16 +3068,16 @@
                  ").bytes)")])
           (parenthesize level (precedence not)
             (make-Qconcat
-              (format "await ~a(" (compact-stdlib "crossContractCall"))
-              (apply (make-Qsep ",")
-                (cons* "context"
-                       (format "~a" (contract-import-binding contract-name))
-                       (format "'~a'" elt-name)
-                       callee-address
-                       (if callee-is-pure "true" "false")
-                       "partialProofData"
-                       expr*))
-              ")")))]
+              (format "await ~a({" (compact-stdlib "crossContractCall"))
+              1 ((make-Qsep ",")
+                 "context"
+                 (format "interfaceName: ~a" interface-name)
+                 (format "declaration: declaredInterfaces[~a]" interface-name)
+                 (format "calleeCircuitId: ~a" (format-javascript-string (symbol->string elt-name)))
+                 (make-Qconcat "calleeAddress: " callee-address)
+                 "partialProofData"
+                 (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
+              0 "})")))]
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)

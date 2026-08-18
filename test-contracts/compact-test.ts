@@ -191,13 +191,13 @@ export async function createTestContract<
     const constructorResult = await contract.initialState(
         createConstructorContext(privateState, '0'.repeat(64)),
     );
-    const ctx = createCircuitContext(
-        'constructor',
-        dummyContractAddress(),
-        constructorResult.currentZswapLocalState.coinPublicKey,
-        constructorResult.currentContractState,
-        constructorResult.currentPrivateState,
-    );
+    const ctx = createCircuitContext({
+        circuitId: 'constructor',
+        contractAddress: dummyContractAddress(),
+        coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
+        contractState: constructorResult.currentContractState,
+        privateState: constructorResult.currentPrivateState,
+    });
 
     return {
         contract,

@@ -35,7 +35,7 @@ const RUNTIME_ROOT = buildPathTo('/', 'runtime');
 function saveFile(contractDir: string, fileName: string, fileContent: string): void {
     fs.writeFile(`${contractDir}/${fileName}`, fileContent, 'utf8', (err) => {
         if (err) {
-            logger.error('Error writing file:', err);
+            logger.error({ err }, 'Error writing file');
             return;
         }
         logger.info('File written successfully!');

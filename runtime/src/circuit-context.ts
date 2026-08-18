@@ -23,7 +23,7 @@ import {
 } from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
-import { ContractStateProvider } from './providers.js';
+import { ContractModuleProvider, ContractStateProvider } from './providers.js';
 
 export type CircuitId = string;
 
@@ -56,10 +56,8 @@ export interface CallProofData extends ProofData {
    */
   finalQueryContext: ocrt.QueryContext;
   /**
-   * The Zswap local state this contract accumulated during the call — the shielded coins it
-   * consumed and produced. Recorded per call, not just for the root, so transaction assembly can
-   * build one offer contribution per call and bind each contract-owned input and output to the
-   * contract that actually made it.
+   * The shielded coins this contract consumed and produced. Recorded per call, not just for the
+   * root, so an input or output can be attributed to the contract that made it.
    */
   zswapLocalState: EncodedZswapLocalState;
   /**
@@ -140,23 +138,17 @@ export interface CircuitContext<PS = any> {
    */
   gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
   /**
-   * The current Zswap local state of every contract in the call tree — the shielded-coin
-   * counterpart of {@link queryContexts} and {@link gasCosts}, and keyed the same way.
-   *
-   * Each contract keeps its own state, with its own `currentIndex`, `inputs` and `outputs`;
-   * only the transaction submitter's `coinPublicKey` is shared, since one wallet pays for the
-   * whole transaction. Threaded across cross-contract calls (see `restoreCircuitContext`) so a
-   * callee's coin operations survive its return, and mirrored onto each {@link CallProofData}
-   * so transaction assembly can attribute every input and output to the contract that made it.
+   * The current Zswap local state of every contract in the call tree, keyed like
+   * {@link queryContexts}. Each contract has its own `currentIndex`, `inputs` and `outputs`; only
+   * the submitter's `coinPublicKey` is shared, since one wallet pays for the transaction.
    */
   zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
   /**
-   * The deployed {@link ocrt.ContractState} of every cross-contract callee resolved during the
-   * execution, keyed by address. Populated by {@link crossContractCall} (via the state provider)
-   * the first time a callee is reached. Retained — unlike the cached query context, which keeps only
-   * ledger data — so the implementation-binding guard can read a callee's deployed verifier key for
-   * *any* of its circuits on *every* call, including later calls to a different circuit of an
-   * already-resolved callee. The entry contract is not recorded here; only fetched callees are.
+   * The deployed state of every cross-contract callee, keyed by address and filled on first
+   * resolution. The cached query context keeps only ledger data, so this is where a callee's
+   * verifier keys are read from, for any of its circuits and on every call. The entry contract is
+   * always on the call stack, so the re-entrancy guard keeps it out of callee position and it never
+   * appears here.
    */
   contractStates?: Record<ocrt.ContractAddress, ocrt.ContractState>;
   /**
@@ -176,66 +168,80 @@ export interface CircuitContext<PS = any> {
    */
   stateProvider?: ContractStateProvider;
   /**
-   * When `true`, {@link crossContractCall} refuses to enter a contract that is
-   * already executing on the current call stack — i.e. a re-entrant cross-contract
-   * call (`A -> A`, or `A -> B -> A`) — and throws instead. On by default (the
-   * upstream ledger can mis-apply transcripts on re-entry). Pass `false` to
-   * {@link createCircuitContext} to opt out, e.g. for tests that deliberately
-   * exercise recursion.
+   * The {@link ContractModuleProvider}. Absent unless the execution can make cross-contract calls;
+   * reaching {@link crossContractCall} without one is a `ModuleProviderAbsent` failure.
    */
-  reentrancyGuard?: boolean;
+  moduleProvider?: ContractModuleProvider;
   /**
-   * The set of contract addresses currently executing on the cross-contract call
-   * stack: the entry contract plus every callee whose call has not yet returned.
-   * Maintained by {@link crossContractCall} and shared by reference across the call
-   * tree (via {@link copyCircuitContext}). Only consulted when {@link reentrancyGuard}
-   * is set.
+   * The contract addresses currently executing: the entry contract, plus every callee whose call
+   * has not returned. Shared by reference across the call tree, so {@link crossContractCall} can
+   * reject re-entry (`A -> A`, `A -> B -> A`) from any depth.
    */
   activeContracts?: Set<ocrt.ContractAddress>;
   /**
-   * Events emitted by the on-chain VM during circuit execution from `log` operations,
-   * each tagged with the address of the emitting contract. A single global list shared
-   * across the whole call tree (threaded like {@link callProofDataTrace}); a per-contract
-   * view is a filter over the `address` tag. Surfaced via `CircuitResults.context.events`.
+   * Events the VM emitted from `log` operations, each tagged with the contract that emitted it.
+   * One list for the whole call tree, threaded like {@link callProofDataTrace}.
    */
   events: LogEvent[];
 }
 
 /**
- * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always use this
- * function to set up the initial circuit context.
- *
- * @param circuitId The name of the circuit being executed.
- * @param contractAddress The address of the contract defining the circuit being executed.
- * @param coinPublicKeyOrZswapState The initial Zswap local state information - used for tracking shielded coin transfers.
- * @param contractState The initial ledger state to execute the contract again - most often a snapshot fetched from the chain.
- * @param privateState The initial witness / private state to execute the contract again - most often a snapshot fetched
- *                     from local storage.
- * @param stateProvider The provider to use to dynamically fetch on-chain contract state. This is only used to execute
- *                      cross-contract calls, and is not needed if the circuit being executed does not perform any
- *                      cross-contract calls.
- * @param gasLimit The maximum gas this contract should consume.
- * @param costModel The model capturing how much ledger operations cost.
- * @param time The current time. Used to execute the block time related kernel operations.
- * @param parentBlockHash The hash of the block the transaction is being built on. Also passed to {@link ContractStateProvider}
- *                        to fetch the correct contract states when executing cross-contract calls.
- * @param reentrancyGuard When `true`, cross-contract calls that re-enter a contract already executing on the call
- *                        stack (`A -> A`, or `A -> B -> A`) throw instead of running. On by default; pass `false`
- *                        to opt out.
+ * The inputs that let an execution make cross-contract calls.
  */
-export const createCircuitContext = <PS>(
-  circuitId: CircuitId,
-  contractAddress: ocrt.ContractAddress,
-  coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
-  contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
-  privateState: PS,
-  stateProvider?: ContractStateProvider,
-  gasLimit?: ocrt.RunningCost,
-  costModel?: ocrt.CostModel,
-  time?: number,
-  parentBlockHash?: string,
-  reentrancyGuard?: boolean,
-): CircuitContext<PS> => {
+export type CrossContractInputs = {
+  /** Fetches a callee's deployed state at {@link CircuitContextOptions.parentBlockHash}. */
+  readonly stateProvider: ContractStateProvider;
+  /** The {@link ContractModuleProvider}. */
+  readonly moduleProvider: ContractModuleProvider;
+};
+
+/** The inputs to {@link createCircuitContext}. */
+export type CircuitContextOptions<PS = any> = {
+  /** The name of the circuit being executed. */
+  readonly circuitId: CircuitId;
+  /** The address of the contract defining the circuit being executed. */
+  readonly contractAddress: ocrt.ContractAddress;
+  /** The initial Zswap local state, for tracking shielded coin transfers. */
+  readonly coinPublicKeyOrZswapState:
+    | ocrt.CoinPublicKey
+    | EncodedCoinPublicKey
+    | ZswapLocalState
+    | EncodedZswapLocalState;
+  /** The ledger state to execute against — most often a snapshot fetched from the chain. */
+  readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
+  /** The witness / private state — most often a snapshot from local storage. */
+  readonly privateState: PS;
+  /** The maximum gas this contract should consume. */
+  readonly gasLimit?: ocrt.RunningCost;
+  /** The model capturing how much ledger operations cost. */
+  readonly costModel?: ocrt.CostModel;
+  /** The current time, for the block-time kernel operations. Defaults to now. */
+  readonly time?: number;
+  /**
+   * The hash of the block this transaction is built on. Reaches the VM's block context, and pins
+   * the block a cross-contract callee's state is fetched at.
+   */
+  readonly parentBlockHash?: string;
+  /** Present exactly when this execution may make cross-contract calls. */
+  readonly crossContract?: CrossContractInputs;
+};
+
+/**
+ * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always
+ * use this function to set up the initial circuit context.
+ */
+export const createCircuitContext = <PS>({
+  circuitId,
+  contractAddress,
+  coinPublicKeyOrZswapState,
+  contractState,
+  privateState,
+  gasLimit,
+  costModel,
+  time,
+  parentBlockHash,
+  crossContract,
+}: CircuitContextOptions<PS>): CircuitContext<PS> => {
   const callContext = createCallContext(
     circuitId,
     contractAddress,
@@ -259,8 +265,8 @@ export const createCircuitContext = <PS>(
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
-    stateProvider,
-    reentrancyGuard: reentrancyGuard ?? true,
+    stateProvider: crossContract?.stateProvider,
+    moduleProvider: crossContract?.moduleProvider,
     activeContracts: new Set([contractAddress]),
     events: [],
   };
@@ -270,10 +276,7 @@ export const createCircuitContext = <PS>(
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
-  // `reentrancyGuard` and `activeContracts` fall through the spread: the guard
-  // flag is copied by value and the active-contract set is intentionally shared
-  // *by reference* across the whole call tree so `crossContractCall` sees one
-  // coherent call stack. Do not deep-copy `activeContracts` here.
+  // `activeContracts` falls through the spread. Shared by reference on purpose — do not copy it.
   ...context,
   callContext: { ...context.callContext },
   queryContexts: { ...context.queryContexts },

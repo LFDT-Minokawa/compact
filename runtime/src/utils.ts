@@ -47,21 +47,9 @@ export function assertIsContractAddress(x: unknown): asserts x is ContractAddres
   }
 }
 
-export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
-  return (
-    typeof x === 'object' &&
-    x !== null &&
-    x !== undefined &&
-    'bytes' in x &&
-    x.bytes instanceof Uint8Array &&
-    x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
-  );
-}
-
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
-
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
