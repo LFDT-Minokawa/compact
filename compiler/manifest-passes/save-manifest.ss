@@ -1,0 +1,60 @@
+;;; This file is part of Compact.
+;;; Copyright (C) 2025 Midnight Foundation
+;;; SPDX-License-Identifier: Apache-2.0
+;;; Licensed under the Apache License, Version 2.0 (the "License");
+;;; you may not use this file except in compliance with the License.
+;;; You may obtain a copy of the License at
+;;;
+;;; 	http://www.apache.org/licenses/LICENSE-2.0
+;;;
+;;; Unless required by applicable law or agreed to in writing, software
+;;; distributed under the License is distributed on an "AS IS" BASIS,
+;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;; See the License for the specific language governing permissions and
+;;; limitations under the License.
+
+(define (save-manifest ir output-directory-pathname manifest-dir*)
+  (define manifest-version-string "1")
+  (define (file-entry root)
+    (lambda (fn)
+      (let ([pathname (format "~a/~a" root fn)])
+        (cons
+          fn
+          (list
+            (cons "type" "file")
+            (cons "size" (call-with-port (open-file-input-port pathname) port-length))
+            (cons "hash" (sha256-file pathname)))))))
+  (define (dir-entry root)
+    (lambda (fn)
+      (let* ([pathname (format "~a/~a" root fn)]
+             [fn* (directory-list pathname)]
+             [fn* (sort string<? fn*)]
+             [fn* (remove "contract-manifest.json" fn*)])
+        (let-values ([(dir-fn* file-fn*) (partition file-directory? fn*)])
+          (cons
+            fn
+            (cons*
+              (cons "type" "directory")
+              (append
+                (map (file-entry pathname) file-fn*)
+                (map (dir-entry pathname) dir-fn*))))))))
+  (let ([op (get-target-port 'contract-manifest.json)])
+    (print-json op
+      (cons*
+        (cons
+          "manifest-version"
+          manifest-version-string)
+        (cons
+          "compiler-version"
+          compiler-version-string)
+        (cons
+          "language-version"
+          language-version-string)
+        (cons
+          "runtime-version"
+          runtime-version-string)
+        (map (dir-entry output-directory-pathname)
+             (filter (lambda (d)
+                       (file-exists? (format "~a/~a" output-directory-pathname d)))
+                     manifest-dir*)))))
+  ir)
