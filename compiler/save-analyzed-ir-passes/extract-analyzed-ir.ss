@@ -19,15 +19,7 @@
   (definitions
     (define (fail what x) (internal-errorf 'save-analyzed-ir "unsupported ~a: ~s" what x))
 
-    (define id-number (make-eq-hashtable))
-    (define next-id-number 0)
-    (define (id->sym i)
-      (let ([n (or (hashtable-ref id-number i #f)
-                   (let ([n next-id-number])
-                     (hashtable-set! id-number i n)
-                     (set! next-id-number (+ n 1))
-                     n))])
-        (string->symbol (format "~a~s.~s" (id-prefix) (id-sym i) n))))
+    (define (id->sym i) (string->symbol (format "~a" i)))
 
     ;; Scan the result because a type parameter can occur there without appearing in an argument.
     (define (native-type-argument* native-entry arg* type)
@@ -49,6 +41,7 @@
 
     (define (Ftype ftype) (unparse-Lloweredemit ftype))
     (define (Type type) (unparse-Lloweredemit type))
+    (define (Arg arg) (unparse-Lloweredemit arg))
 
     (define (rendered? v) (and (pair? v) (symbol? (car v))))
 
@@ -136,9 +129,6 @@
     [(fref ,src ,function-name) `(fref ,(id->sym function-name))]
     [(circuit ,src (,arg* ...) ,type ,expr)
      `(circuit ,(map Arg arg*) ,(Type type) ,(Expr expr))])
-
-  (Arg : Argument (arg) -> * (sexp)
-    [(,var-name ,type) `(,(id->sym var-name) ,(Type type))])
 
   (Expr : Expression (expr) -> * (sexp)
     [(quote ,src ,datum) `(quote ,datum)]
