@@ -213,6 +213,23 @@ const resolveModule = async (
 };
 
 /**
+ * Effects are per call, not per contract: a transcript declares what its own call did.
+ *
+ * @internal
+ */
+const emptyEffects = (): ocrt.Effects => ({
+  claimedNullifiers: [],
+  claimedShieldedReceives: [],
+  claimedShieldedSpends: [],
+  claimedContractCalls: [],
+  shieldedMints: new Map(),
+  unshieldedMints: new Map(),
+  unshieldedInputs: new Map(),
+  unshieldedOutputs: new Map(),
+  claimedUnshieldedSpends: new Map(),
+});
+
+/**
  * @internal
  */
 const resolveQueryContext = async (
@@ -223,8 +240,12 @@ const resolveQueryContext = async (
   let queryContext: ocrt.QueryContext;
   if (callee in context.queryContexts) {
     const cached = context.queryContexts[callee];
-    // Keep the callee's accumulated state/effects; only rewrite the caller.
+    // Keep the state and commitment indices. The second call has to see what the first left
+    // behind, but not the effects. A transcript's effects are its start context's plus its own
+    // ops', so carried forward the second call re-declares the first's receives; the ledger sums
+    // claims across transcripts and requires the offers to match as a multiset, and no offer carries one commitment twice.
     cached.block = { ...cached.block, caller };
+    cached.effects = emptyEffects();
     queryContext = cached;
   } else {
     assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
