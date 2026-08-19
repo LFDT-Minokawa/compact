@@ -384,3 +384,7 @@ export circuit jubjubSchnorrVerify<#N>(
 
   return lhs == rhs;
 }
+
+export struct VerifyingKey {
+  hash: Bytes<32>;
+}

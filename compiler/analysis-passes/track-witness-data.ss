@@ -922,7 +922,8 @@
              (record-leak! src
                (format "the value returned from exported circuit ~s" (id-sym disclosing-function-name?))
                witness*)))))
-     abs])
+     abs]
+    [(verify-proof ,src ,[* abs1] ,[* abs2] ,[* abs3]) (Abs-atomic '())])
   (Map-Argument : Map-Argument (ir p control-witness* disclosing-function-name?) -> * (abs)
     [(,[* abs] ,type ,type^) abs])
   (Function : Function (ir src p abs* control-witness*) -> Function ()

@@ -902,6 +902,35 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: VerifyingKey, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, [X, y], p);"
+      "}"
+      )
+    (pass-returns infer-types '(what))
+    (output-file "compiler/testdir/contract/index.d.ts" '())
+    (output-file "compiler/testdir/contract/index.js" '())
+    (output-file "compiler/testdir/contract/index.js" '())
+    (output-file "compiler/testdir/zkir/foo.zkir3" '())
+    (stage-javascript
+      '(
+        "test('failing verifyProof call', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.foo(context, { hash: new Uint8Array(32)}, 17n, 23n, new Uint8Array(64))).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+)
+(run-javascript)
+)
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

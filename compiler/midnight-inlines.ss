@@ -22,3 +22,8 @@
   ([value (Bytes n)])
   T
   (deserialize src n T value))
+
+(declare-inline-entry verifyProof [(nat n)]
+  ([vk (Bytes 32)] [proof (Opaque "Uint8Array")] [pis (Vector n Field)])
+  Void
+  (verify-proof src vk proof pis))

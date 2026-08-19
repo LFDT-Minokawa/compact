@@ -47,6 +47,7 @@
           Lunrolled unparse-Lunrolled Lunrolled-pretty-formats
           Linlined unparse-Linlined Linlined-pretty-formats
           Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
+          verifying-key?
           Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
           Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-Native-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
           Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition?
@@ -448,7 +449,8 @@
       (+ (fixup-alias function-name^ function-name)))
     (Expression (expr index)
       (+ (serialize src tsize type expr)      => (serialize tsize type expr)
-         (deserialize src tsize type expr)    => (deserialize tsize type expr)))
+         (deserialize src tsize type expr)    => (deserialize tsize type expr)
+         (verify-proof src expr1 expr2 expr3) => (verify-proof src expr1 expr2 expr3)))
     (Type (type)
       (+ (tpoint src ctype)                   => (tpoint ctype)))
     (Field-Type (ftype)
@@ -773,6 +775,7 @@
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
+      (verify-proof src expr1 expr2 expr3)    => (verify-proof src expr1 expr2 expr3)
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
@@ -1018,7 +1021,13 @@
     (Expression (expr index)
       (- (safe-cast src type type^ expr))))
 
+  (define (verifying-key? x)
+    (and (bytevector? x)
+         (fx= (bytevector-length x) 32)))
+
   (define-language/pretty Lnovectorref (extends Lnosafecast)
+    (terminals
+      (+ (verifying-key (vk))))
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration pl-array lconstructor))
       (+ (public-ledger-declaration pl-array) =>
@@ -1030,8 +1039,11 @@
          (vector-ref src type expr index)
          (tuple-slice src type expr kindex len)
          (bytes-slice src type expr index len)
-         (vector-slice src type expr index len))
-      (+ (bytes-ref src expr kindex) => (bytes-ref expr kindex))))
+         (vector-slice src type expr index len)
+         (verify-proof src expr1 expr2 expr3))
+      (+ (bytes-ref src expr kindex) => (bytes-ref expr kindex)
+         (verify-proof src vk expr1 expr2) =>
+           (verify-proof vk expr1 expr2))))
 
   (define-language/pretty Lcircuit (entry Program)
     (terminals
@@ -1050,6 +1062,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -1115,6 +1128,7 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      (verify-proof src vk triv1 triv2) 
       )
     (Triv (triv test)
       var-name
@@ -1286,6 +1300,7 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      (verifying-key (vk))
       ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
       ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
@@ -1330,7 +1345,8 @@
       (reconstitute_field outp inp0 inp1 imm)
       (reverse_bytes outp inp)
       (test_eq outp inp0 inp1)
-      (transient_hash outp inp* ...))
+      (transient_hash outp inp* ...)
+      (verify-proof vk inp inp* ...))
     (Input (inp)
       fr
       var-name)

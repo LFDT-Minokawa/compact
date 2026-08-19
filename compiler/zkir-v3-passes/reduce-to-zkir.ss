@@ -226,9 +226,9 @@
                   ,(make-temp-id src 'tmp) ,(cadr var-name*) ,(car triv*) ,248)
                `(copy ,(car var-name*) ,0)
                instr*)]
-            [else
-              (fprintf (current-error-port) "unknown native: ~s\n" name)
-              (assert not-implemented)]))))
+            [(verifyProof)
+             (fprintf (current-error-port) "number of var names = ~s\n" (length var-name*))]
+            [else (assertf not-implemented "unknown native ~s" name)]))))
 
     (define (declare-callable pelt)
       (nanopass-case (Lflattened Program-Element) pelt
