@@ -72210,6 +72210,102 @@ groups than for single tests.
         "});"
         )))
 
+  (test
+    '(
+      "witness bytesWitness(): Opaque<'Uint8Array'>;"
+      "witness stringWitness(): Opaque<'string'>;"
+      "export circuit testBytesWitness(): Boolean {"
+      "  const value = bytesWitness();"
+      "  return disclose(value == value);"
+      "}"
+      "export circuit testStringWitness(): Boolean {"
+      "  const value = stringWitness();"
+      "  return disclose(value == value);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('witness return type checks on JS opaque types', async () => {"
+        "  const validWitnesses = {"
+        "    bytesWitness(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] {"
+        "      return [wc.privateState, new Uint8Array([0, 1, 2, 3])];"
+        "    },"
+        "    stringWitness(wc: runtime.WitnessContext<{}, number>): [number, string] {"
+        "      return [wc.privateState, 'Hello, Compact!'];"
+        "    },"
+        "  };"
+        "  const [validContract, validContext] = await startContract(contractCode, validWitnesses, 0);"
+        "  expect((await validContract.circuits.testBytesWitness(validContext)).result).toEqual(true);"
+        "  expect((await validContract.circuits.testStringWitness(validContext)).result).toEqual(true);"
+        ""
+        "  const invalidBytesWitnesses = {"
+        "    ...validWitnesses,"
+        "    bytesWitness(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] {"
+        "      return [wc.privateState, 0n as any];"
+        "    },"
+        "  };"
+        "  const [invalidBytesContract, invalidBytesContext] = await startContract(contractCode, invalidBytesWitnesses, 0);"
+        "  const invalidBytesCall = invalidBytesContract.circuits.testBytesWitness(invalidBytesContext);"
+        "  await expect(invalidBytesCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidBytesCall).rejects.toThrow('type error: ');"
+        ""
+        "  const invalidStringWitnesses = {"
+        "    ...validWitnesses,"
+        "    stringWitness(wc: runtime.WitnessContext<{}, number>): [number, string] {"
+        "      return [wc.privateState, 0n as any];"
+        "    },"
+        "  };"
+        "  const [invalidStringContract, invalidStringContext] = await startContract(contractCode, invalidStringWitnesses, 0);"
+        "  const invalidStringCall = invalidStringContract.circuits.testStringWitness(invalidStringContext);"
+        "  await expect(invalidStringCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidStringCall).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness jubjubWitness(): JubjubPoint;"
+      "export circuit testJubjubArgument(point: JubjubPoint): JubjubPoint {"
+      "  return disclose(point);"
+      "}"
+      "export circuit testJubjubWitness(): JubjubPoint {"
+      "  return disclose(jubjubWitness());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('argument and witness return type checks on JubjubPoint', async () => {"
+        "  const jubjubPoint = runtime.ecMulGenerator(1n);"
+        "  const validWitnesses = {"
+        "    jubjubWitness(wc: runtime.WitnessContext<{}, number>): [number, runtime.JubjubPoint] {"
+        "      return [wc.privateState, jubjubPoint];"
+        "    },"
+        "  };"
+        "  const [validContract, validContext] = await startContract(contractCode, validWitnesses, 0);"
+        "  expect((await validContract.circuits.testJubjubArgument(validContext, jubjubPoint)).result).toEqual(jubjubPoint);"
+        "  expect((await validContract.circuits.testJubjubWitness(validContext)).result).toEqual(jubjubPoint);"
+        ""
+        "  const invalidJubjubPoint = { x: 'not-a-bigint', y: 0n } as any;"
+        "  const invalidJubjubArgumentCall = validContract.circuits.testJubjubArgument(validContext, invalidJubjubPoint);"
+        "  await expect(invalidJubjubArgumentCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidJubjubArgumentCall).rejects.toThrow('type error: ');"
+        ""
+        "  const invalidJubjubWitnesses = {"
+        "    ...validWitnesses,"
+        "    jubjubWitness(wc: runtime.WitnessContext<{}, number>): [number, runtime.JubjubPoint] {"
+        "      return [wc.privateState, invalidJubjubPoint];"
+        "    },"
+        "  };"
+        "  const [invalidJubjubContract, invalidJubjubContext] = await startContract(contractCode, invalidJubjubWitnesses, 0);"
+        "  const invalidJubjubWitnessCall = invalidJubjubContract.circuits.testJubjubWitness(invalidJubjubContext);"
+        "  await expect(invalidJubjubWitnessCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidJubjubWitnessCall).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+
   )
 
 (with-parameter-values ([feature-zkir-v3 #f #t])
@@ -91230,6 +91326,49 @@ groups than for single tests.
     )
 )
 
+(run-tests print-typescript
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness pointWitness(): Secp256k1Point;"
+      "export circuit testArgument(point: Secp256k1Point): Secp256k1Point {"
+      "  return disclose(point);"
+      "}"
+      "export circuit testWitness(): Secp256k1Point {"
+      "  return disclose(pointWitness());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('argument and witness return type checks on Secp256k1Point', async () => {"
+        "  const secp256k1Point = runtime.secp256k1MulGenerator(1n);"
+        "  const validWitnesses = {"
+        "    pointWitness(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
+        "      return [wc.privateState, secp256k1Point];"
+        "    },"
+        "  };"
+        "  const [validContract, validContext] = await startContract(contractCode, validWitnesses, 0);"
+        "  expect((await validContract.circuits.testArgument(validContext, secp256k1Point)).result).toEqual(secp256k1Point);"
+        "  expect((await validContract.circuits.testWitness(validContext)).result).toEqual(secp256k1Point);"
+        ""
+        "  const invalidPoint = { x: 0n, y: 0n, identity: 'not-a-boolean' } as any;"
+        "  const invalidArgumentCall = validContract.circuits.testArgument(validContext, invalidPoint);"
+        "  await expect(invalidArgumentCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidArgumentCall).rejects.toThrow('type error: ');"
+        ""
+        "  const invalidWitnesses = {"
+        "    pointWitness(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
+        "      return [wc.privateState, invalidPoint];"
+        "    },"
+        "  };"
+        "  const [invalidContract, invalidContext] = await startContract(contractCode, invalidWitnesses, 0);"
+        "  const invalidWitnessCall = invalidContract.circuits.testWitness(invalidContext);"
+        "  await expect(invalidWitnessCall).rejects.toThrow(runtime.CompactError);"
+        "  await expect(invalidWitnessCall).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+  )
 
 (run-tests save-manifest
   (test
