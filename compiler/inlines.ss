@@ -19,6 +19,7 @@
   (export inline-declarations)
   (import (except (chezscheme) errorf)
           (utils)
+          (field)
           (datatype)
           (nanopass)
           (langs))
@@ -27,7 +28,7 @@
     (define inline-decl* '())
     (define inline-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
-    (define-syntax declare-inline-entry
+    (trace-define-syntax declare-inline-entry
       (lambda (q)
         (define (f name type-param* argument-name* argument-type* result-type body)
           (define (convert-type-param type-param)
@@ -35,10 +36,17 @@
               [(nat n) (identifier? #'n)  #`(nat-valued  ,inline-src n)]
               [t (identifier? #'t)        #`(type-valued ,inline-src t)]
               [other (syntax-error #'other "type-param must be an identifier or (nat <id>)")]))
+          (define (convert-size size)
+            (syntax-case size ()
+              [nat (field? (datum nat)) #'(type-size ,inline-src ,nat)]
+              [id (identifier? #'id) #'(type-size-ref ,inline-src id)]
+              [other (syntax-error #'other "unrecognized inline size")]))
           (define (convert-type type)
-            (syntax-case type (Bytes)
+            (syntax-case type (Bytes Vector)
               [id (identifier? #'id) #'(type-ref ,inline-src id)]
-              [(Bytes nat) (identifier? #'nat) #`(tbytes ,inline-src (type-size-ref ,inline-src nat))]
+              [(Bytes size) #`(tbytes ,inline-src #,(convert-size #'size))]
+              [(Vector size type) #`(tvector ,inline-src #,(convert-size #'nat) #,(convert-type #'type))]
+              [(Opaque str) (string? (datum str)) #`(topaque ,inline-src str)]
               [other (syntax-error #'other "unrecognized inline type")]))
           (define (convert-inline-argument name type)
             #`(,inline-src #,name #,(convert-type type)))
