@@ -16,8 +16,11 @@
 use anyhow::{Context, Result, anyhow};
 use reqwest::Url;
 use semver::Version;
-use std::{path::PathBuf, process::Stdio};
+use std::{io::ErrorKind, path::PathBuf, process::Stdio};
 use tokio::process::Command;
+
+/// External program used to unpack the downloaded compiler artifact.
+const UNZIP_PROGRAM: &str = "unzip";
 
 pub struct CompilerAsset {
     pub path: PathBuf,
@@ -44,7 +47,7 @@ impl CompilerAsset {
     pub async fn unzip(&self) -> Result<()> {
         let cwd = &self.path;
 
-        let mut cmd = Command::new("unzip");
+        let mut cmd = Command::new(UNZIP_PROGRAM);
 
         // execute the unzip command in the artifact directory
         cmd.current_dir(cwd);
@@ -58,9 +61,25 @@ impl CompilerAsset {
         // input and we don't want it to be inherited
         cmd.stdin(Stdio::null());
 
-        let child = cmd
-            .spawn()
-            .context("Failed to spawn artifact extraction command")?;
+        let child = cmd.spawn().map_err(|error| {
+            // A `NotFound' here means the `unzip' program itself is missing, not
+            // the artifact we are about to unpack. Say so, otherwise the user
+            // just sees "No such file or directory" and goes looking for a file.
+            if error.kind() == ErrorKind::NotFound {
+                anyhow!(
+                    "The `{UNZIP_PROGRAM}' program was not found in your PATH. \
+                     It is required to unpack the downloaded compiler artifact. \
+                     Install it and run the command again, for example: \
+                     `sudo apt install {UNZIP_PROGRAM}' (Debian/Ubuntu), \
+                     `sudo dnf install {UNZIP_PROGRAM}' (Fedora/RHEL), \
+                     `sudo pacman -S {UNZIP_PROGRAM}' (Arch), \
+                     `brew install {UNZIP_PROGRAM}' (macOS)"
+                )
+            } else {
+                anyhow!(error)
+            }
+            .context("Failed to spawn artifact extraction command")
+        })?;
 
         let output = child
             .wait_with_output()
@@ -71,7 +90,7 @@ impl CompilerAsset {
             let stderr = String::from_utf8_lossy(&output.stderr);
             Err(anyhow!("Stderr: {stderr}"))
                 .with_context(|| anyhow!("Status: {status}"))
-                .with_context(|| anyhow!("Command=unzip CWD={cwd:?}"))
+                .with_context(|| anyhow!("Command={UNZIP_PROGRAM} CWD={cwd:?}"))
                 .context("artifact Extraction failed")
         } else {
             Ok(())
