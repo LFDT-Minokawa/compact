@@ -1103,6 +1103,10 @@
       (elt-ref triv elt-name)
       (vector->bytes len triv)               => (vector->bytes len triv)
       (bytes->vector len triv)               => (bytes->vector len triv)
+      ; Circuit-only marker for the exact vector->bytes(vector(...)) shape
+      ; produced by expand-serialize.  Each segment is a value paired with its
+      ; statically checked serialized byte width.
+      (serialize-pack src len (nat* triv*) ...)
       (call src function-name triv* ...)     => (call function-name #f triv* ...)
       (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
         (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
@@ -1203,6 +1207,7 @@
          (elt-ref triv elt-name)
          (vector->bytes len triv)
          (bytes->vector len triv)
+         (serialize-pack src len (nat* triv*) ...)
          (call src function-name triv* ...)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
          (emit src event-version event-tag len triv vm-code)
@@ -1230,6 +1235,15 @@
          (default zkir-type)
          (field->bytes src len ftype triv)         => (field->bytes len ftype #f triv)
          (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         ; Exact V3-only lowering for a numeric ABI word.
+         ; The operand is the checked Bytes<16> limb and the two results use
+         ; flattened Bytes<32> storage order: high byte, then low 31 bytes.
+         (numeric-abi-word triv)
+         ; Segments are in byte-string order.  Results use flattened Bytes
+         ; storage order (short high limb first, then full low limbs).
+         (serialize-pack src len (nat* triv*) ...)
+         ; Operands and results use the flattened Bytes<32> limb order: high, low.
+         (reverse-bytes32 triv1 triv2)
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
