@@ -55,10 +55,7 @@ describe('[E2E] Example contract tests for formatter tool', () => {
 
             const result: Result = await format([Arguments.LINES_LENGTH, '-10', filePath, formattedContract]);
 
-            expectCommandResult(result).toBeFailure(
-                `Exception: specified line length -10 is not a nonnegative integer`,
-                '',
-            );
+            expectCommandResult(result).toBeFailure(`Exception: specified line length -10 is not a nonnegative integer`, '');
         });
     });
 });

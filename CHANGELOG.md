@@ -5,6 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.100, language 0.26.0, runtime 0.19.100]
+
+### Fixed
+
+- `CompactTypeOpaqueUint8Array.fromValue` and `CompactTypeOpaqueString.fromValue`
+  now throw a `CompactError` on exhausted input. Previously they returned
+  `undefined` (laundered through an `as Uint8Array` cast) and `""` respectively.
+  These were the last two descriptors that did not fail loudly on a truncated
+  field-aligned binary value.
+
+- `CompactTypeEnum.fromValue` now reports an out-of-range value as
+  `expected Enum[<=N]` rather than `expected UnsignedInteger[<=N]`.
+
+- `CompactTypeBytes.fromValue` now returns a copy rather than aliasing the atom
+  it decoded, so mutating a decoded value cannot mutate the field-aligned
+  binary value it came from.
+
+### Changed
+
+- **Breaking.** Runtime type checks on curve point arguments to exported
+  circuits now bound the coordinates rather than only checking their types. A
+  `Secp256k1Point` whose `x` or `y` falls outside `[0, MAX_SECP256K1_BASE]`, or
+  a `JubjubPoint` whose coordinates fall outside `[0, MAX_FIELD]`, is now
+  rejected at the circuit boundary rather than failing later inside `toValue`.
+  This makes the check consistent with the one already applied to a bare
+  `Secp256k1Base` or `Field` argument.
+
+- **Breaking.** `CompactTypeSecp256k1Point.fromValue` now rejects an identity
+  flag that is neither 0 nor 1. Previously any value other than 1 was silently
+  read as `false`.
+
+- **Breaking.** `CompactTypeUnsignedInteger.toValue`, `CompactTypeEnum.toValue`
+  and `CompactTypeBytes.toValue` now reject arguments they cannot faithfully
+  encode: a value outside the type's range, a non-integer enum tag, or a byte
+  string longer than the type's length. Previously these descriptors validated
+  on decode but not on encode, so it was possible to write a value to the ledger
+  that could not be read back.
+
+### Added
+
+- `SECP256K1_LOW_LIMB_BOUND`, the exclusive upper bound of the low-order limb
+  of a secp256k1 field value in its field-aligned binary representation. This
+  replaces an unnamed decimal literal in `CompactTypeSecp256k1Base` and an
+  equivalent but differently spelled expression in `CompactTypeSecp256k1Scalar`.
+
+- `runtime/test/compact-types.test.ts`, a conformance suite for the
+  `CompactType` protocol. For every descriptor it asserts that `alignment()`
+  declares as many atoms as `toValue` produces, that `fromValue` consumes
+  exactly its own prefix, tolerates trailing atoms and fails loudly on truncated
+  input, and that values round trip. It also decodes every ordered pair of
+  descriptors from one shared array, the way the generated tuple and struct
+  classes do, and compares the results element-wise, so a descriptor that
+  decodes correctly only as the last member of a compound fails as the first
+  half of every pair.
+
+  Descriptors are discovered from the module's exports rather than listed, and a
+  coverage test names any exported descriptor that has no sample, so a new
+  descriptor cannot be added without conformance coverage. No runtime unit test
+  previously called any descriptor's `fromValue` or `toValue`.
+
+  End-to-end coverage of specific Compact constructs remains in
+  `compiler/test.ss`; this suite does not duplicate it.
+
+## [Toolchain 0.34.0, language 0.26.0, runtime 0.19.0]
+
+This release includes all changes for compiler versions in the range between
+0.33.100 and 0.34.0; language versions in the range between 0.25.100 and 0.26.0;
+and Compact runtime versions in the range between 0.18.100 and 0.19.0.
+
 ## [Toolchain 0.33.122, language 0.25.107, runtime 0.18.107]
 
 ### Fixed

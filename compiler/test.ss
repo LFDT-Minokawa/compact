@@ -173,7 +173,7 @@ groups than for single tests.
 
   (define (print-pass-result pass-name pretty-formats result)
     (pretty-print/formats
-      (cons 
+      (cons
         (cons 'pass-returns '(pass-returns pass-name #f e))
         pretty-formats)
       (list 'pass-returns pass-name result)))
@@ -393,7 +393,7 @@ groups than for single tests.
                                      sfn
                                      (and maybe-src (format-source-object maybe-src))))
                   (unless (and (list? code) (andmap string? code))
-                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]" 
+                    (internal-errorf #f "supplied code is not a list of strings~@[ at ~a~]"
                                      (and maybe-src (format-source-object maybe-src))))
                   (mkdir-p (path-parent sfn))
                   (with-output-to-file sfn
@@ -62671,7 +62671,7 @@ groups than for single tests.
         "    { \"op\": \"output\", \"var\": 35 }"
         "  ]"
         "}"))
-    )  
+    )
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -73224,7 +73224,7 @@ groups than for single tests.
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
-    ) 
+    )
   )
 
  (with-compact-path '(".")
@@ -90652,10 +90652,10 @@ groups than for single tests.
       '(
         "test('nested equality through aliases', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
-        "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
-        "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };" 
-        "  const s0d = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 7, 3, 2, 1, 1, 0 ])] };" 
+        "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
+        "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
+        "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
+        "  const s0d = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 7, 3, 2, 1, 1, 0 ])] };"
         ""
         "  const s1a = { x: [ 91n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
         "  const s1b = { x: [ 97n, new Uint8Array([1, 2, 3, 5, 7, 11, 13, 17])], y: true };"
