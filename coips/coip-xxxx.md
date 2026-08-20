@@ -37,7 +37,7 @@ This CoIP proposes adding **Rust as a second target language**. A new
 `--rust` flag makes `compactc` emit a Rust module beside the TypeScript
 one, shaped the same way: a contract type with one method per exported
 circuit, a witnesses trait, pure circuits, a typed ledger view, and a
-constructor. A companion `compact-runtime` crate does for Rust what
+constructor. A companion `midnight-compact-runtime` crate does for Rust what
 `@midnight-ntwrk/compact-runtime` does for TypeScript.
 
 Nothing changes unless you pass `--rust`. The backend adds emission
@@ -75,6 +75,66 @@ This is not hypothetical. It shows up repeatedly:
 Rust is also where several classes of Compact consumer naturally live:
 backend services, CLIs, embedded targets, and mobile apps whose shared
 core is Rust bound to Swift and Kotlin.
+
+### What generating Rust actually buys
+
+The headline is that **there is no bridge to build.** A Rust program calls
+a circuit the way it calls any other Rust function. Everything below
+follows from removing that layer rather than from Rust itself.
+
+**No interop layer to write, and none to get wrong.** Every alternative
+above needs a hand-written boundary: types marshalled out, results
+marshalled back, errors translated. That boundary is code someone owns
+forever, it is where the serialisation bugs live, and it has to be
+re-audited whenever the contract's shape changes. Generated code has no
+boundary to audit — the contract's types *are* Rust types.
+
+**The ledger types are already the right types.** A Rust application
+shares `Fr`, `ContractState`, and the storage ADTs with the ledger crates
+directly, so there is no conversion step and no impedance mismatch. The
+current path serialises state to cross into JS and again to cross back
+into WASM, to reach Rust code that was there all along.
+
+**Contract changes become compile errors.** Rename a ledger field or
+change a circuit's arity and dependent Rust stops compiling, naming the
+call site. In TypeScript the same change is a type error at best and
+`undefined` at runtime at worst, because the types are erased before the
+call happens.
+
+**No JavaScript runtime in production.** A service ships as one static
+binary — no Node, no `node_modules`, no WASM loader in the image. That
+matters for container size, cold start, minimal or distroless base
+images, and for audited environments where the reviewable dependency set
+is the deliverable. It also removes the npm supply-chain surface from
+deployments that otherwise have none.
+
+**Native concurrency.** Services that read many contract states or
+orchestrate proofs get threads, `async`, and no event loop or GC pause to
+work around. This is the difference between an indexer that scales with
+cores and one that does not.
+
+**Mobile and embedded become reachable.** A Rust core bound to Swift and
+Kotlin via UniFFI — or compiled to WASM for the browser — is the standard
+way to share one implementation across platforms. Today that requires
+embedding a JavaScript engine in a mobile app, which is why it is not
+done.
+
+Two further benefits are properties of *this* approach rather than of
+Rust, and are worth stating because a hand-written SDK cannot offer
+either:
+
+**Correctness is mechanically checkable.** Both backends emit from the
+same IR, so the two outputs can be required to produce byte-identical
+`ContractState`. That is a property a test suite can enforce on every
+commit (§How we know it is correct). No hand-written bridge can be
+checked this way — there is nothing to compare it against.
+
+**A second backend validates the first.** Lowering the same IR twice
+forces under-specified corners into the open. Implementing this one
+surfaced genuine defects — a construct that emitted plausible-looking but
+uncompilable code while the compiler exited 0, and arithmetic width
+handling that no existing corpus reached. Those were latent for any
+consumer, not just Rust ones. A single backend has no second opinion.
 
 The maintainers have already described the shape of the fix. On the
 MPS-0022 thread:
@@ -146,7 +206,7 @@ Mirrors the TypeScript backend one-for-one:
   the trait implementations needed to move values through cells, maps,
   and circuit arguments.
 
-### The `compact-runtime` crate
+### The `midnight-compact-runtime` crate
 
 What `@midnight-ntwrk/compact-runtime` is for TypeScript, this crate is
 for Rust: query-context construction and execution, op-program builders,
@@ -168,7 +228,7 @@ target:
 
 | TypeScript (today) | Rust (proposed) |
 |---|---|
-| `runtime/` → `@midnight-ntwrk/compact-runtime` | `runtime-rs/` → `compact-runtime` |
+| `runtime/` → `@midnight-ntwrk/compact-runtime` | `runtime-rs/` → `midnight-compact-runtime` |
 | `tests-e2e/` | `tests-e2e-rust/` |
 
 There is a concrete reason beyond symmetry: `runtime/export-version.ss`
@@ -180,6 +240,15 @@ need it replaced by cross-repository release coordination.
 **This is an open question for the TSC.** The authors will maintain the
 crate wherever the project prefers; the choice affects packaging, not
 design. See Rejected Ideas.
+
+On the name: the crate is `midnight-compact-runtime`, not
+`compact-runtime`. The Midnight Rust crates are uniformly `midnight-*`
+(`midnight-onchain-state`, `midnight-transient-crypto`, and so on) — the
+prefix does for Rust what the `@midnight-ntwrk` scope does for npm, and
+`compact-runtime` alone is generic on crates.io. Generated code names the
+crate in every `use`, so the choice is effectively permanent once anything
+is published; it is worth getting right before the first release rather
+than after.
 
 ### How we know it is correct
 
@@ -258,7 +327,7 @@ compiles `counter.compact` with `--rust --skip-ts` and drives
 TypeScript one, existing Compact documentation and examples transfer
 almost directly — the mental model is unchanged.
 
-**Reference documentation** ships as rustdoc on `compact-runtime` and on
+**Reference documentation** ships as rustdoc on `midnight-compact-runtime` and on
 the generated code itself, which carries doc comments.
 
 ## Implementation
@@ -279,7 +348,7 @@ A complete reference implementation exists and is in production use.
 
 Suggested landing order, as separate reviewable pull requests:
 
-1. `compact-runtime` (+ its proc-macro crate) — standalone, no compiler
+1. `midnight-compact-runtime` (+ its proc-macro crate) — standalone, no compiler
    changes.
 2. Native routing plumbing — small, and unblocks the rest.
 3. The emission passes and the `--rust` / `--skip-ts` flags.
@@ -304,7 +373,7 @@ proposing this instead**: ahead-of-time code generation and runtime
 interpretation coexist comfortably in other ecosystems, and this CoIP
 serves the type-safe Rust case now, using only IRs that already exist.
 
-**Shipping the Rust `compact-runtime` from a separate repository.** This
+**Shipping the Rust `midnight-compact-runtime` from a separate repository.** This
 would reduce the footprint here, and the authors will do it if the TSC
 prefers. We propose against it because it would make Rust the only
 Compact target whose runtime is not co-located with the compiler:
