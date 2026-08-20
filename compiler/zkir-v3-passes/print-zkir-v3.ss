@@ -182,7 +182,7 @@
      `((op . "inner_proof") (output . ,outp))]
     [(verify_proof ,vk ,[* inp] ,[* inp*] ...)
      `((op . "verify_proof")
-       (vk_hash . ,vk)
+       (vk_hash . ,(format "0x~(~{~2,'0x~}~)" (bytevector->u8-list vk)))
        (instance . ,(list->vector inp*))
        (proof . ,inp))])
 

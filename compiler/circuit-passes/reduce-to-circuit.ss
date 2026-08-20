@@ -302,7 +302,8 @@
          (Triv expr2 test
            (lambda (triv2)
              (cons
-               `(verify-proof ,src ,test ,vk ,triv1 ,triv2)
+               (with-output-language (Lcircuit Statement)
+                 `(verify-proof ,src ,test ,vk ,triv1 ,triv2))
                (k (with-output-language (Lcircuit Rhs)
                     `(tuple))))))))]
     [else (internal-errorf 'Rhs "unexpected ir ~s" ir)])

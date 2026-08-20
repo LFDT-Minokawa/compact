@@ -393,6 +393,21 @@
      (verify-test src test)]
     [(assert ,src ,test ,mesg)
      (verify-test src test)]
+    [(verify-proof ,src ,test ,vk ,[* type] ,[* type*] ...)
+     (verify-test src test)
+     (unless (nanopass-case (Lflattened Primitive-Type) type
+               [(topaque ,opaque-type) (string=? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected proof type to be Opaque<'Uint8Array'>, got ~a"
+                      (format-primitive-type type)))
+     (for-each
+       (lambda (type)
+         (unless (nanopass-case (Lflattened Primitive-Type) type
+                   [(tfield (field-native)) #t]
+                   [else #f])
+           (source-errorf src "expected private input type to be Field, got ~a"
+                          (format-primitive-type type))))
+       type*)]
     [else (internal-errorf 'Statement "unhandled form ~s" ir)])
   (Single : Single (ir) -> * (type)
     [,triv (Triv triv)]
