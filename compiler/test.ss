@@ -909,7 +909,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "ledger X: Field;"
       "circuit vk(): VerifyingKey {"
-      "  return VerifyingKey { pad(32, 'hello') };"
+      "  return pad(32, 'hello') as VerifyingKey;"
       "}"
       "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
@@ -920,12 +920,12 @@ groups than for single tests.
     (output-file "compiler/testdir/contract/index.d.ts" '())
     (output-file "compiler/testdir/contract/index.js" '())
     (output-file "compiler/testdir/contract/index.js" '())
-    (output-file "compiler/testdir/zkir/foo.zkir3" '())
+    (output-file "compiler/testdir/zkir/foo.zkir" '())
     (stage-javascript
       '(
         "test('failing verifyProof call', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
-        "  await expect(contract.circuits.foo(context, { hash: new Uint8Array(32)}, 17n, 23n, new Uint8Array(64))).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.foo(context, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
         "});"
         ))
     )

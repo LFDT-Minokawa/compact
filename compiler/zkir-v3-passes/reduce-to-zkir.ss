@@ -898,8 +898,8 @@
        ;; TODO(rkd): This should respect test and be conditional in the ZKIR output.
        (let ([tmp (make-temp-id src 'tmp)])
          (cons*
-           `(inner_proof ,tmp) 
            `(verify_proof ,vk ,tmp ,triv* ...)
+           `(inner_proof ,tmp) 
            instr*)))]
     [else (assertf cannot-happen "unimplemented: ~s\n" ir)])
 

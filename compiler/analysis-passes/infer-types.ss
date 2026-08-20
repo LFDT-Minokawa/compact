@@ -1970,17 +1970,14 @@
        type)]
     [(verify-proof ,src ,[Care : expr1 type1] ,[Care : expr2 type2] ,[Care : expr3 type3])
      (unless (nanopass-case (Ltypes Type) (de-alias type1 #t)
-               [(tstruct ,src ,struct-name (,elt-name (tbytes ,src^ ,len)))
-                (and (eq? struct-name 'VerifyingKey)
-                     (eq? elt-name 'hash)
-                     (eqv? len 32))]
+               [(tbytes ,src ,len) (eqv? len 32)]
                [else #f])
-       (source-errorf src "expected verify-proof verifying-key argument to have type struct VerifyingKey<hash: Bytes<32>>, received ~a"
+       (source-errorf src "expected verify-proof verifying-key argument to have type Bytes<32>, received ~a"
                       (format-type type1)))
      (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
                [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
                [else #f])
-       (source-errorf src "expected verify-proof proof argument to have type Opaque<\"Uint8Array\">, received ~a"
+       (source-errorf src "expected verify-proof proof argument to have type Opaque<'Uint8Array'>, received ~a"
                       (format-type type2)))
      (unless (nanopass-case (Ltypes Type) (de-alias type3 #t)
                [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
