@@ -34,13 +34,14 @@ The Compact compiler generates TypeScript. Any application that calls a
 Compact contract off-chain must therefore run JavaScript.
 
 This CoIP proposes adding **Rust as a second target language**. A new
-`--rust` flag makes `compactc` emit a Rust module beside the TypeScript
-one, shaped the same way: a contract type with one method per exported
-circuit, a witnesses trait, pure circuits, a typed ledger view, and a
-constructor. A companion `midnight-compact-runtime` crate does for Rust what
-`@midnight-ntwrk/compact-runtime` does for TypeScript.
+`--target rust` flag makes `compactc` emit a Rust module in place of, or
+alongside, the TypeScript one, shaped the same way: a contract type with
+one method per exported circuit, a witnesses trait, pure circuits, a typed
+ledger view, and a constructor. A companion `midnight-compact-runtime`
+crate does for Rust what `@midnight-ntwrk/compact-runtime` does for
+TypeScript.
 
-Nothing changes unless you pass `--rust`. The backend adds emission
+Nothing changes unless you pass `--target`. The backend adds emission
 passes only — no new IR, no new language semantics, no change to how
 Compact is type-checked or lowered. It is deliberately the smallest
 addition that gives Rust programs what TypeScript programs already have.
@@ -150,11 +151,30 @@ This CoIP is that suggestion, worked out and implemented.
 
 ### What a user does
 
-Compile with `--rust` (and optionally `--skip-ts` for Rust-only builds):
+Select a backend with `--target`. It is repeatable, and the valid targets
+are `ts` and `rust`:
 
 ```
-compactc --rust --skip-ts counter.compact out/
+compactc --target rust counter.compact out/
 ```
+
+TypeScript is emitted when `--target` is absent, so today's invocations are
+unaffected. Passing the flag replaces that default with exactly the targets
+listed:
+
+| Invocation | TypeScript | Rust |
+|---|---|---|
+| `compactc counter.compact out/` | implied | — |
+| `compactc --target rust counter.compact out/` | — | yes |
+| `compactc --target rust --target ts counter.compact out/` | yes | yes |
+
+A repeatable value flag is used rather than a boolean `--rust` because a
+boolean assumes exactly two backends: a third language would need its own
+flag plus a skip-flag per existing target, which does not compose. The
+list-replaces-default rule is what removes the need for any
+flag-combination validation — "Rust only" and "emit both" are each one
+unambiguous invocation. `--skip-zk` stays orthogonal: ZKIR and proving keys
+are independent of the contract-code backend.
 
 Given a contract like:
 
@@ -293,7 +313,7 @@ because a silently mismatched runtime is a very unpleasant failure.
 
 **Not a breaking change.** The feature is entirely additive:
 
-- Without `--rust`, compiler output is unchanged.
+- Without `--target`, compiler output is unchanged.
 - No syntax or semantic change to the Compact language.
 - No change to ZKIR, proving, or on-chain behaviour.
 - The TypeScript backend remains the reference; Rust follows it.
@@ -322,7 +342,7 @@ to be learned.
 
 **For Rust users:** one new documentation section, "Generating Rust
 bindings", covering the flag, the emitted layout, and a walkthrough that
-compiles `counter.compact` with `--rust --skip-ts` and drives
+compiles `counter.compact` with `--target rust` and drives
 `increment` from a Rust test. Because the generated API mirrors the
 TypeScript one, existing Compact documentation and examples transfer
 almost directly — the mental model is unchanged.
@@ -351,7 +371,7 @@ Suggested landing order, as separate reviewable pull requests:
 1. `midnight-compact-runtime` (+ its proc-macro crate) — standalone, no compiler
    changes.
 2. Native routing plumbing — small, and unblocks the rest.
-3. The emission passes and the `--rust` / `--skip-ts` flags.
+3. The emission passes and the `--target` flag.
 4. The end-to-end harness and its contract corpus.
 5. CI wiring and documentation.
 
@@ -377,7 +397,7 @@ serves the type-safe Rust case now, using only IRs that already exist.
 would reduce the footprint here, and the authors will do it if the TSC
 prefers. We propose against it because it would make Rust the only
 Compact target whose runtime is not co-located with the compiler:
-`--rust` would emit code that cannot build without a crate this project
+`--target rust` would emit code that cannot build without a crate this project
 does not control, and the compiler/runtime version guarantee that
 `runtime/export-version.ss` provides in-repo would have to be replaced
 by cross-repository coordination. Review burden is better addressed by
