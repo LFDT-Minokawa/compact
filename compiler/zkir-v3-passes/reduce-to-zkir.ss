@@ -226,8 +226,6 @@
                   ,(make-temp-id src 'tmp) ,(cadr var-name*) ,(car triv*) ,248)
                `(copy ,(car var-name*) ,0)
                instr*)]
-            [(verifyProof)
-             (fprintf (current-error-port) "number of var names = ~s\n" (length var-name*))]
             [else (assertf not-implemented "unknown native ~s" name)]))))
 
     (define (declare-callable pelt)
@@ -895,9 +893,15 @@
     [(assert ,src ,test ,mesg)
      (with-output-language (Lzkir Instruction)
        (cons `(assert ,test) instr*))]
-    [else
-      (fprintf (current-error-port) "unimplemented: ~s\n" ir)
-      (assert cannot-happen)])
+    [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
+     (with-output-language (Lzkir Instruction)
+       ;; TODO(rkd): This should respect test and be conditional in the ZKIR output.
+       (let ([tmp (make-temp-id src 'tmp)])
+         (cons*
+           `(inner_proof ,tmp) 
+           `(verify_proof ,vk ,tmp ,triv* ...)
+           instr*)))]
+    [else (assertf cannot-happen "unimplemented: ~s\n" ir)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
     [(+ ,primitive-type ,triv0 ,triv1)

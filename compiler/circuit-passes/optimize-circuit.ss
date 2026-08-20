@@ -310,6 +310,13 @@
                  (begin
                    (set-cdr! a #t)
                    (cons `(assert ,src ,test ,mesg) rstmt*))))))]
+    [(verify-proof ,src ,[FWD-Triv : test] ,vk ,[FWD-Triv : triv] ,[FWD-Triv : triv*] ...)
+     (if (eqv? test 0)
+         rstmt*
+         (cons 
+           (with-output-language (Lflattened Statement)
+             `(verify-proof ,src ,test ,vk ,triv ,triv* ...))
+           rstmt*))]
     [else (internal-errorf 'FWD-Statement "unexpected ir ~s" ir)])
   (FWD-Multiple : Multiple (ir test var-name* rstmt*) -> * (rstmt*)
     [(call ,src ,function-name ,[FWD-Triv : triv*] ...)
@@ -662,6 +669,8 @@
            stmt*)]
     [(assert ,src ,[BWD-Triv : test] ,mesg)
      (cons `(assert ,src ,test ,mesg) stmt*)]
+    [(verify-proof ,src ,[BWD-Triv : test] ,vk ,[BWD-Triv : triv] ,[BWD-Triv : triv*] ...)
+     (cons `(verify-proof ,src ,test ,vk ,triv ,triv* ...) stmt*)]
     [else (internal-errorf 'BWD-Statement "unexpected ir ~s" ir)])
   (BWD-Single : Single (ir) -> Single ()
     [,triv (BWD-Triv ir)] ; not exercised since FWD-Single propagates Triv Rhs

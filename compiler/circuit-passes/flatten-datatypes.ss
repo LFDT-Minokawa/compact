@@ -244,7 +244,10 @@
     [(= ,[Single-Triv : test] ,var-name ,rhs) (Rhs rhs test var-name)]
     [(assert ,src ,[Single-Triv : test] ,mesg)
      (with-output-language (Lflattened Statement)
-       (list `(assert ,src ,test ,mesg)))])
+       (list `(assert ,src ,test ,mesg)))]
+    [(verify-proof ,src ,[Single-Triv : test] ,vk ,[Single-Triv : triv] ,[* wump])
+     (with-output-language (Lflattened Statement)
+       (list `(verify-proof ,src ,test ,vk ,triv ,(wump->elts wump) ...)))])
   (Rhs : Rhs (ir test var-name) -> * (stmt*)
     [,triv
      (hashtable-set! var-ht var-name (Triv triv))
@@ -550,7 +553,8 @@
            (with-output-language (Lflattened Statement)
              (list `(= ,test
                        (,var-name* ...)
-                       (call ,src ,function-name ,triv* ...)))))))])
+                       (call ,src ,function-name ,triv* ...)))))))]
+    )
   (Triv : Triv (ir) -> * (wump)
     [,var-name
      (or (hashtable-ref var-ht var-name #f)

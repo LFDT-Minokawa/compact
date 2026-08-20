@@ -177,7 +177,15 @@
     [(test_eq ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
-     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))])
+     `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))]
+    [(inner_proof ,[* outp])
+     `((op . "inner_proof") (output . ,outp))]
+    [(verify_proof ,vk ,[* inp] ,[* inp*] ...)
+     `((op . "verify_proof")
+       (vk_hash . ,vk)
+       (instance . ,(list->vector inp*))
+       (proof . ,inp))])
+
   (Input : Input (ir) -> * (json)
     (,fr (zkir-field-rep->string fr))
     (,var-name (var->string var-name)))

@@ -1098,7 +1098,8 @@
       (var-name type) => (bracket var-name type))
     (Statement (stmt)
       (= test var-name rhs)             => (= test var-name 2 rhs)
-      (assert src test mesg)            => (assert test #f mesg))
+      (assert src test mesg)            => (assert test #f mesg)
+      (verify-proof src test vk triv1 triv2) => (verify-proof test vk triv1 triv2))
     (Rhs (rhs)
       triv
       (default type)
@@ -1128,7 +1129,6 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
-      (verify-proof src vk triv1 triv2) 
       )
     (Triv (triv test)
       var-name
@@ -1199,7 +1199,9 @@
       ; nanopass limitation: swap the two clauses below and the (= (var-name ...) multiple) pattern
       ; is rejected. (reported to Andy Keep 01/02/2024)
       (+ (= test (var-name* ...) multiple) =>  (= test (var-name* 0 ...) 2 multiple)
-         (= test var-name single)          =>  (= test var-name 2 single)))
+         (= test var-name single)          =>  (= test var-name 2 single))
+      (- (verify-proof src test vk triv1 triv2))
+      (+ (verify-proof src test vk triv triv* ...) =>  (verify-proof src test vk triv triv* ...)))
     (Rhs (rhs)
       (- triv
          (default type)
@@ -1346,7 +1348,8 @@
       (reverse_bytes outp inp)
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...)
-      (verify-proof vk inp inp* ...))
+      (inner_proof outp)
+      (verify_proof vk inp inp* ...))
     (Input (inp)
       fr
       var-name)
