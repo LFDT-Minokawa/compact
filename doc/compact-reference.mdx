@@ -425,9 +425,6 @@ The following are the primitive types of Compact:
 | *type*  | &xrarr; | [*tref*](#primitive-types)                                                                |
 |         | \|      | `Boolean`                                                                                 |
 |         | \|      | `Field`                                                                                   |
-|         | \|      | `JubjubScalar`                                                                            |
-|         | \|      | `Secp256k1Base`                                                                           |
-|         | \|      | `Secp256k1Scalar`                                                                         |
 |         | \|      | `Uint` `<` [*tsize*](#primitive-types) `>`                                                |
 |         | \|      | `Uint` `<` [*tsize*](#primitive-types) `..` [*tsize*](#primitive-types) `>`               |
 |         | \|      | `Bytes` `<` [*tsize*](#primitive-types) `>`                                               |
@@ -458,8 +455,8 @@ The following are the primitive types of Compact:
   The current limit, if any, is given in
   [Implementation-specific limits](#implementation-specific-limits).
 
-- `Uint<`*n*`>`, where *n* is a non-zero natural number literal or generic natural-number
-  parameter bound to a non-zero natural number, is the type of
+- `Uint<`*n*`>`, where *n* is a natural number literal or generic natural-number
+  parameter, is the type of
   *sized unsigned integer* values with binary representations using up to *n*
   bits.  This is the same type as `Uint<0..`*m*`>` where *m* is equal to 2<sup>*n*</sup>.
   Sized integer types can be seen as a convenience for programmers.  `Uint<32>`,
@@ -472,21 +469,6 @@ The following are the primitive types of Compact:
   the native prime field of the ZK proving system.
   The current maximum field value is given in
   [Implementation-specific limits](#implementation-specific-limits).
-
-- `JubjubScalar` represents the set of unsigned integers with values up to the
-  order of the prime-order subgroup of the JubJub embedded elliptic curve.
-  It is the type of the scalars used to multiply JubJub curve points.
-  The maximum value is 6554484396890773809930967563523245729705921265872317281365359162392183254198.
-
-- `Secp256k1Base` represents the set of unsigned integers with values up to the
-  order of the base field of the secp256k1 elliptic curve.
-  It is the type of the affine coordinates of a point on that curve.
-  The maximum value is 115792089237316195423570985008687907853269984665640564039457584007908834671662.
-
-- `Secp256k1Scalar` represents the set of unsigned integers with values up to
-  the order of the secp256k1 group.
-  It is the type of the scalars used to multiply secp256k1 curve points.
-  The maximum value is 115792089237316195423570985008687907852837564279074904382605163141518161494336.
 
 - `[`*T<sub>1</sub>*, ⋯, *T<sub>n</sub>*`]`, where *T<sub>1</sub>*, ⋯,
   *T<sub>n</sub>* are zero or more comma-separated types, is the type of *tuple*
@@ -516,8 +498,12 @@ The following are the primitive types of Compact:
 - `Opaque<`*s*`>`, where *s* is a string literal, is the type of _opaque_ values
   with tag *s*.
   `Opaque` types with different tags are different types.
-  Opaque values can be manipulated in witnesses but they are opaque to circuits.
-  They are represented in circuits as their hash.
+  Opaque values can be manipulated in witnesses and stored in the ledger,
+  but they are opaque to Compact.
+  They are represented in TypeScript as values whose type is the tag.
+  They are represented in cryptographic circuits as a hash of their value.
+  In the ledger, they are represented as a binary enocoding (not a hash)
+  of the underlying value.
   The only tags currently allowed are `"string"` and `"Uint8Array"`.
 
 ### Program-defined types
@@ -2561,8 +2547,12 @@ has a specific structure type, so does the other.
   the values are equal if the values of the corresponding fields are equal.
 - **Enumeration types:**
   the values are equal if they are the same enumeration member.
-- **`Opaque` types:**
+- **`Opaque<"string">`:**
   the values are equal if the run-time values are equal according to JavaScript's
+  strict equality (`===`) operator.
+- **`Opaque<"Uint8Array">`:**
+  the values are equal if the run-time values have the same length and
+  they are element-wise equal according to JavaScript's
   strict equality (`===`) operator.
 
 Otherwise the values are not equal.

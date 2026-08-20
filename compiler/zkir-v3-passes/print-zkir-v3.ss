@@ -72,7 +72,7 @@
                   [instructions (list->vector (maplr Instruction instr*))]
                   [outputs (list->vector zkir-type0*)])
              `((version . ((major . 3) (minor . 0)))
-               (do_communications_commitment . #t)
+               (do_communications_commitment . ,(not (no-communications-commitment)))
                (inputs . ,inputs)
                (outputs . ,outputs)
                (instructions . ,instructions))))))

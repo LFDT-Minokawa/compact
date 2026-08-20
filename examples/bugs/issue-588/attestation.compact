@@ -13,6 +13,21 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test3(): Uint<0> {
-    return default<Uint<0>>;
+import CompactStandardLibrary;
+
+enum Kind { mint }
+
+struct Attestation {
+  kind: Kind,
+  amount: Uint<64>,
+}
+
+export ledger digest: Bytes<32>;
+export ledger value: Attestation;
+
+export circuit attest(amount: Uint<64>): Attestation {
+  const attestation = Attestation { kind: Kind.mint, amount: amount };
+  value = disclose(attestation);
+  digest = disclose(persistentHash<Attestation>(attestation));
+  return value;
 }

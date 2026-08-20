@@ -34,9 +34,6 @@
     ;; The `anative` alignment atom is a "pseudo-alignment" that the ledger does no know about.
     ;; We translate each occurrence into a sequence of real ledger alignment atoms.  This
     ;; translation mirrors the alignment defined in `runtime/src/compact-types.ts`.
-    ;;
-    ;; TODO (kmillikin): there is duplicated, but lower-level, handling of these types for the
-    ;; Impact `push` and `popeq` instructions.  Try to find a way to share this code.
     (define (circuit-alignment-for src alignment* triv* instr*)
       (let loop ([alignment* alignment*] [triv* triv*] [instr* instr*]
                  [new-alignment* '()] [new-triv* '()])
@@ -46,7 +43,7 @@
               (values (reverse new-alignment*) (reverse new-triv*) instr*))
             (let ([atom (car alignment*)])
               (nanopass-case (Lflattened Alignment) atom
-                [(anative ,opaque-type) (guard (string=? opaque-type "JubjubScalar"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "JubjubScalar"))
                  ;; This doesn't have its own descriptor in `runtime/src/compact-types.ts.  It's
                  ;; just a native field but it needs a ZKIR conversion instruction.
                  (let ([fld (make-temp-id src 'fld)])
@@ -56,8 +53,8 @@
                      (with-output-language (Lflattened Alignment)
                        (cons `(afield) new-alignment*))
                      (cons fld new-triv*)))]
-                [(anative ,opaque-type) (guard (or (string=? opaque-type "Secp256k1Base")
-                                                   (string=? opaque-type "Secp256k1Scalar")))
+                [(anative ,zkir-type) (guard (or (string=? zkir-type "Secp256k1Base")
+                                                 (string=? zkir-type "Secp256k1Scalar")))
                  (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -66,7 +63,7 @@
                        ;; Reversed:
                        (cons* `(abytes 8) `(abytes 24) new-alignment*))
                      (cons* fld1 fld0 new-triv*)))]
-                [(anative ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "JubjubPoint"))
                  (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -74,7 +71,7 @@
                      (with-output-language (Lflattened Alignment)
                        (cons* `(afield) `(afield) new-alignment*))
                      (cons* pt1 pt0 new-triv*)))]
-                [(anative ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
+                [(anative ,zkir-type) (guard (string=? zkir-type "Secp256k1Point"))
                  (let ([fld* (maplr (lambda (ignore) (make-temp-id src 'fld)) (make-list 5))])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -285,11 +282,13 @@
           (let* ([bytes (make-temp-id default-src 'bytes)]
                  [hash0 (make-temp-id default-src 'hash)]
                  [hash1 (make-temp-id default-src 'hash)])
-            (zkir-instr*
-              (cons*
-                `(bytes32_into_low_high ,hash1 ,hash0 ,bytes)
-                `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
-                (zkir-instr*)))
+            (let-values ([(alignment* triv* instr*)
+                          (circuit-alignment-for default-src alignment* var* (zkir-instr*))])
+              (zkir-instr*
+                (cons*
+                  `(bytes32_into_low_high ,hash1 ,hash0 ,bytes)
+                  `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
+                  instr*)))
             ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
             (cons* hash1 hash0 32 1 code*))))
       ;; The number of zeros and alignment for the default value of an Lflattened type.
@@ -311,12 +310,15 @@
       ;;   - VMop, whose datatype definition is in vm.ss
       (cond
         [(zkir-val? rand)
-         (let ([code* (fold-left (lambda (code* a)
-                                   (cons (assemble-alignment-atom a) code*))
-                        (cons (length (zkir-val-alignment* rand)) code*)
-                        (zkir-val-alignment* rand))])
-           (fold-left (lambda (code* var) (cons var code*))
-             code* (zkir-val-input* rand)))]
+         (let-values ([(alignment* var* instr*)
+                       (circuit-alignment-for default-src
+                         (zkir-val-alignment* rand)
+                         (zkir-val-input* rand)
+                         (zkir-instr*))])
+           (zkir-instr* instr*)
+           (append (reverse var*)
+                   (reverse (map assemble-alignment-atom alignment*))
+                   (cons (length alignment*) code*)))]
         [(not (VMop? rand)) (cons rand code*)]
         [else
           (VMop-case rand
@@ -423,55 +425,7 @@
                    code*)))]
             [(VMstate-value-null) (cons 0 code*)]
             [(VMstate-value-cell val)
-             ;; Special handling of ZKIR native types.
-             (if (and (zkir-val? val)
-                      (= 1 (length (zkir-val-primitive-type* val))))
-                 (with-output-language (Lzkir Instruction)
-                   (nanopass-case (Lflattened Primitive-Type)
-                                  (car (zkir-val-primitive-type* val))
-                     [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
-                      (let* ([pt0 (make-temp-id default-src 'pt)]
-                             [pt1 (make-temp-id default-src 'pt)])
-                        (zkir-instr*
-                          (cons `(encode (,pt0 ,pt1) ,(car (zkir-val-input* val)))
-                            (zkir-instr*)))
-                        (cons* pt1 pt0 -2 -2 2 1 code*))]
-                     [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                      (let* (;; This is the alignment of Secp256k1Point, see
-                             ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
-                             [alignment* '(24 8 24 8 -2)]
-                             [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                     alignment*)])
-                        (zkir-instr*
-                          (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
-                            (zkir-instr*)))
-                        (append (reverse fld*) (reverse alignment*) '(5 1) code*))]
-                     [(tfield (field-scalar (curve-jubjub)))
-                      (let ([fld (make-temp-id default-src 'fld)])
-                        (zkir-instr*
-                          (cons `(encode (,fld) ,(car (zkir-val-input* val)))
-                            (zkir-instr*)))
-                        (cons* fld -2 1 1 code*))]
-                     [(tfield (field-base (curve-secp256k1)))
-                      (let* (;; This is the alignment of Secp256k1Base, see
-                             ;; CompactTypeSecp256k1Base in runtime/src/compact-types.ts.
-                             [alignment* '(24 8)]
-                             [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                     alignment*)])
-                        (zkir-instr*
-                          (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
-                            (zkir-instr*)))
-                        (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
-                     [(tfield (field-scalar (curve-secp256k1)))
-                      (let* ([alignment* '(24 8)]
-                             [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                     alignment*)])
-                        (zkir-instr*
-                          (cons `(encode (,fld* ...) ,(car (zkir-val-input* val)))
-                            (zkir-instr*)))
-                        (append (reverse fld*) (reverse alignment*) '(2 1) code*))]
-                     [else (assemble-operand-acc (cons 1 code*) val)]))
-                 (assemble-operand-acc (cons 1 code*) val))]
+             (assemble-operand-acc (cons 1 code*) val)]
             [(VMstate-value-ADT val type)
              (or (nanopass-case (Lflattened Type) type
                    [(ty (,alignment* ...) ((tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))))
@@ -522,7 +476,7 @@
         [(acompress) -1]
         [(afield) -2]
         [(aadt) -3]
-        [(anative ,opaque-type)
+        [(anative ,zkir-type)
          ;; These are handled specially because (1) they assemble into a sequence of alignment
          ;; atoms and (2) they need ZKIR instructions to be emitted.
          (assert cannot-happen)]))
@@ -562,85 +516,25 @@
           ;; popeq  --> 0x0c result
           ;; popeqc --> 0x0d result
           [("popeq")
-           (let-values
-               ([(alignment var-name*)
-                 (with-output-language (Lzkir Instruction)
-                   ;; Special handling of ZKIR native types.
-                   (if (= 1 (length primitive-type*))
-                       (nanopass-case (Lflattened Primitive-Type) (car primitive-type*)
-                         [(topaque ,opaque-type) (guard (string=? opaque-type "JubjubPoint"))
-                          (let* ([pt0 (make-temp-id default-src 'pt)]
-                                 [pt1 (make-temp-id default-src 'pt)])
-                            (zkir-instr*
-                              (cons*
-                                `(encode (,pt0 ,pt1) ,(car var-name*))
-                                (make-public-input test-val (car var-name*) "Point<Jubjub>")
-                                (zkir-instr*)))
-                            (values (list -2 -2) (list pt0 pt1)))]
-                         [(topaque ,opaque-type) (guard (string=? opaque-type "Secp256k1Point"))
-                          (let* (;; This is the alignment of Secp256k1Point, see
-                                 ;; CompactTypeSecp256k1Point in runtime/src/compact-types.ts.
-                                 [alignment* '(24 8 24 8 -2)]
-                                 [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                         alignment*)])
-                            (zkir-instr*
-                              (cons*
-                                `(encode (,fld* ...) ,(car var-name*))
-                                (make-public-input test-val (car var-name*) "Point<Secp256k1>")
-                                (zkir-instr*)))
-                            (values alignment* fld*))]
-                         [(tfield (field-scalar (curve-jubjub)))
-                          (let ([fld (make-temp-id default-src 'fld)])
-                            (zkir-instr*
-                              (cons*
-                                `(encode (,fld) ,(car var-name*))
-                                (make-public-input test-val (car var-name*) "Scalar<Jubjub>")
-                                (zkir-instr*)))
-                            (values (list -2) (list fld)))]
-                         [(tfield (field-base (curve-secp256k1)))
-                          (let* (;; This is the alignment of Secp256k1Base, see
-                                 ;; CompactTypeSecp256k1Base in runtime/src/compact-types.ts.
-                                 [alignment* '(24 8)]
-                                 [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                         alignment*)])
-                            (zkir-instr*
-                              (cons*
-                                `(encode (,fld* ...) ,(car var-name*))
-                                (make-public-input test-val (car var-name*) "Base<Secp256k1>")
-                                (zkir-instr*)))
-                            (values alignment* fld*))]
-                         [(tfield (field-scalar (curve-secp256k1)))
-                          (let* ([alignment* '(24 8)]
-                                 [fld* (maplr (lambda (ignore) (make-temp-id default-src 'fld))
-                                         alignment*)])
-                            (zkir-instr*
-                              (cons*
-                                `(encode (,fld* ...) ,(car var-name*))
-                                (make-public-input test-val (car var-name*) "Scalar<Secp256k1>")
-                                (zkir-instr*)))
-                            (values alignment* fld*))]
-                         [else
-                           (for-each
-                             (lambda (var-name)
-                               (zkir-instr*
-                                 (cons
-                                   (make-public-input test-val var-name "Scalar<BLS12-381>")
-                                   (zkir-instr*))))
-                             var-name*)
-                           (values (map assemble-alignment-atom alignment*) var-name*)])
-                       (begin
-                         (for-each
-                           (lambda (var-name)
-                             (zkir-instr*
-                               (cons
-                                 (make-public-input test-val var-name "Scalar<BLS12-381>")
-                                 (zkir-instr*))))
-                           var-name*)
-                         (values (map assemble-alignment-atom alignment*) var-name*))))])
+           ;; The public inputs are not yet bound in ZKIR.  Insert `public_input` instructions for
+           ;; them.
+           (assertf (= (length var-name*) (length primitive-type*))
+             "mismatched lists of public input names and types")
+           (for-each
+             (lambda (var-name primitive-type)
+               (zkir-instr*
+                 (cons
+                   (make-public-input test-val var-name (type->string primitive-type))
+                   (zkir-instr*))))
+             var-name*
+             primitive-type*)
+           (let-values ([(alignment* var-name* instr*)
+                         (circuit-alignment-for default-src alignment* var-name* (zkir-instr*))])
+             (zkir-instr* instr*)
              (cons*
                (if (cdr (assoc "cached" rands)) #xd #xc)
-               (length alignment)
-               (append alignment var-name*)))]
+               (length alignment*)
+               (append (map assemble-alignment-atom alignment*) var-name*)))]
 
           ;; addi --> 0x0e state
           [("addi")
@@ -769,6 +663,7 @@
                    `(assert ,tmp)
                    `(less_than ,tmp ,var-name ,(1+ nat) ,bits)
                    instr*))]))]
+        [(tpoint ,ctype) instr*]
         [else (assert cannot-happen)]))
 
     ;; Turn an Lflattened argument list into a list of names, a parallel list of types, and
@@ -792,11 +687,9 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (field-type->string ftype)]
         [(tunsigned ,nat) "Scalar<BLS12-381>"]
-        [(topaque ,opaque-type)
-         (case opaque-type
-           [("JubjubPoint") "Point<Jubjub>"]
-           [("Secp256k1Point") "Point<Secp256k1>"]
-           [else "Scalar<BLS12-381>"])]
+        [(tpoint (curve-jubjub)) "Point<Jubjub>"]
+        [(tpoint (curve-secp256k1)) "Point<Secp256k1>"]
+        [(topaque ,opaque-type) "Scalar<BLS12-381>"]
         [else (assert cannot-happen)])))
 
   (Program : Program (ir) -> Program ()
@@ -911,9 +804,9 @@
                        (cons 'emit-tag     event-tag)
                        (cons 'emit-payload (make-zkir-val payload-primitive-type* payload-alignment* triv*)))])
        (assemble test '() '() '() src '() env vm-code instr*))]
-    [(= ,test (,var-name) (default ,opaque-type))
+    [(= ,test (,var-name) (default ,zkir-type))
      (with-output-language (Lzkir Instruction)
-       (case opaque-type
+       (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
          [("Secp256k1Point")
           (let* ([tmp0 (make-temp-id default-src 'tmp)]
@@ -1007,17 +900,17 @@
       (assert cannot-happen)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
-    [(+ ,mbits ,triv0 ,triv1)
+    [(+ ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(add ,var-name ,triv0 ,triv1) instr*))]
-    [(- ,mbits ,triv0 ,triv1)
+    [(- ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (let ([neg (make-temp-id default-src 'neg)])
          (cons*
            `(add ,var-name ,triv0 ,neg)
            `(neg ,neg ,triv1)
            instr*)))]
-    [(* ,mbits ,triv0 ,triv1)
+    [(* ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(mul ,var-name ,triv0 ,triv1) instr*))]
     [(< ,bits ,triv0 ,triv1)

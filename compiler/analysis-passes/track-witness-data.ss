@@ -723,11 +723,11 @@
            [else (assert cannot-happen)])))]
 
     ; arithmetic isn't sanitizing: could be x + 0, x - 0, x * 1, age == 18, (age < 19 && 17 < age)
-    [(+ ,src ,mbits ,[* abs1] ,[* abs2])
+    [(+ ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of an addition involving" (combine-abs abs1 abs2))]
-    [(- ,src ,mbits ,[* abs1] ,[* abs2])
+    [(- ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of a subtraction involving" (combine-abs abs1 abs2))]
-    [(* ,src ,mbits ,[* abs1] ,[* abs2])
+    [(* ,src ,type ,[* abs1] ,[* abs2])
      (add-path-point src "the computation" "the result of a multiplication involving" (combine-abs abs1 abs2))]
     [(< ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]
     [(<= ,src ,bits ,[* abs1] ,[* abs2]) (handle-comparison src abs1 abs2)]

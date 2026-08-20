@@ -13,8 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export struct SX<#n, T> { curidx: Uint<n> }
+// PM-15889
+import CompactStandardLibrary;
 
-export circuit test(): [] {
-  const p: SX<0, Field> = default<SX<0,Field>>;
+export circuit balance_exceeds(n: Uint<64>): [] {
+  const x = n as Map<Field, Field>;
 }

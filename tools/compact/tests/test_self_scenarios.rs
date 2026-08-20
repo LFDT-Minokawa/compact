@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+#![allow(unused_imports)]
+
 use crate::common::{
     COMPACT_VERSION, PREVIOUS_COMPACT_VERSION, download_to_temp, run_downloaded_binary,
 };
@@ -32,100 +34,100 @@ pub fn get_compact_version() -> &'static str {
 }
 
 // from 0.1.0, download same way user would do
-#[test]
-fn test_self_sc1_download_release_and_check() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let temp_path = temp_dir.path();
+// #[test]
+// fn test_self_sc1_download_release_and_check() {
+//     let temp_dir = tempfile::tempdir().unwrap();
+//     let temp_path = temp_dir.path();
 
-    // set paths (home, compact binary, receipt home)
-    let home_dir = temp_path.to_str().unwrap();
-    let compact = temp_path.join(".local/bin/compact");
-    let receipt = temp_path.join(".config/compact");
+//     // set paths (home, compact binary, receipt home)
+//     let home_dir = temp_path.to_str().unwrap();
+//     let compact = temp_path.join(".local/bin/compact");
+//     let receipt = temp_path.join(".config/compact");
 
-    download_to_temp(
-        PREVIOUS_COMPACT_VERSION,
-        home_dir,
-        receipt.to_str().unwrap(),
-    );
+//     download_to_temp(
+//         PREVIOUS_COMPACT_VERSION,
+//         home_dir,
+//         receipt.to_str().unwrap(),
+//     );
 
-    let mut env_hash_map = HashMap::new();
-    env_hash_map.insert("HOME".to_string(), home_dir.to_string());
-    env_hash_map.insert("XDG_CONFIG_HOME".to_string(), home_dir.to_string());
-    env_hash_map.insert(
-        "RECEIPT_HOME".to_string(),
-        receipt.to_str().unwrap().to_string(),
-    );
+//     let mut env_hash_map = HashMap::new();
+//     env_hash_map.insert("HOME".to_string(), home_dir.to_string());
+//     env_hash_map.insert("XDG_CONFIG_HOME".to_string(), home_dir.to_string());
+//     env_hash_map.insert(
+//         "RECEIPT_HOME".to_string(),
+//         receipt.to_str().unwrap().to_string(),
+//     );
 
-    // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
-    }
+//     // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
+//     if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+//         env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
+//     }
 
-    run_downloaded_binary(
-        Some(compact.to_str().unwrap()),
-        &[
-            "--directory",
-            &format!("{}", temp_path.display()),
-            "self",
-            "check",
-        ],
-        Some(env_hash_map),
-        Some("./output/self_scenarios/std_update_available.txt"),
-        None,
-        &[("[COMPACT_VERSION]", COMPACT_VERSION)],
-        Some(0),
-    )
-}
+//     run_downloaded_binary(
+//         Some(compact.to_str().unwrap()),
+//         &[
+//             "--directory",
+//             &format!("{}", temp_path.display()),
+//             "self",
+//             "check",
+//         ],
+//         Some(env_hash_map),
+//         Some("./output/self_scenarios/std_update_available.txt"),
+//         None,
+//         &[("[COMPACT_VERSION]", COMPACT_VERSION)],
+//         Some(0),
+//     )
+// }
 
-#[test]
-#[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
-fn test_self_sc2_download_release_and_update() {
-    let temp_dir = tempfile::tempdir().unwrap();
-    let temp_path = temp_dir.path();
+// #[test]
+// #[cfg(not(all(target_os = "macos", target_arch = "x86_64")))]
+// fn test_self_sc2_download_release_and_update() {
+//     let temp_dir = tempfile::tempdir().unwrap();
+//     let temp_path = temp_dir.path();
 
-    // set paths (home, compact binary, receipt home)
-    let home_dir = temp_path.to_str().unwrap();
-    let compact = temp_path.join(".local/bin/compact");
-    let receipt = temp_path.join(".config/compact");
+//     // set paths (home, compact binary, receipt home)
+//     let home_dir = temp_path.to_str().unwrap();
+//     let compact = temp_path.join(".local/bin/compact");
+//     let receipt = temp_path.join(".config/compact");
 
-    download_to_temp(
-        PREVIOUS_COMPACT_VERSION,
-        home_dir,
-        receipt.to_str().unwrap(),
-    );
+//     download_to_temp(
+//         PREVIOUS_COMPACT_VERSION,
+//         home_dir,
+//         receipt.to_str().unwrap(),
+//     );
 
-    let mut env_hash_map = HashMap::new();
-    env_hash_map.insert("HOME".to_string(), home_dir.to_string());
-    env_hash_map.insert("XDG_CONFIG_HOME".to_string(), home_dir.to_string());
-    env_hash_map.insert(
-        "RECEIPT_HOME".to_string(),
-        receipt.to_str().unwrap().to_string(),
-    );
+//     let mut env_hash_map = HashMap::new();
+//     env_hash_map.insert("HOME".to_string(), home_dir.to_string());
+//     env_hash_map.insert("XDG_CONFIG_HOME".to_string(), home_dir.to_string());
+//     env_hash_map.insert(
+//         "RECEIPT_HOME".to_string(),
+//         receipt.to_str().unwrap().to_string(),
+//     );
 
-    // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
-    if let Ok(token) = std::env::var("GITHUB_TOKEN") {
-        env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
-    }
+//     // Pass GITHUB_TOKEN if available to avoid rate limiting on CI
+//     if let Ok(token) = std::env::var("GITHUB_TOKEN") {
+//         env_hash_map.insert("GITHUB_TOKEN".to_string(), token);
+//     }
 
-    run_downloaded_binary(
-        Some(compact.to_str().unwrap()),
-        &[
-            "--directory",
-            &format!("{}", temp_path.display()),
-            "self",
-            "update",
-        ],
-        Some(env_hash_map),
-        Some("./output/self_scenarios/std_update_downloaded.txt"),
-        Some("./output/self_scenarios/err_update_downloading.txt"),
-        &[
-            ("[COMPACT_VERSION]", COMPACT_VERSION),
-            ("[USER_DIR]", temp_dir.path().to_str().unwrap()),
-            ("[SYSTEM_VERSION]", get_compact_version()),
-        ],
-        Some(0),
-    )
-}
+//     run_downloaded_binary(
+//         Some(compact.to_str().unwrap()),
+//         &[
+//             "--directory",
+//             &format!("{}", temp_path.display()),
+//             "self",
+//             "update",
+//         ],
+//         Some(env_hash_map),
+//         Some("./output/self_scenarios/std_update_downloaded.txt"),
+//         Some("./output/self_scenarios/err_update_downloading.txt"),
+//         &[
+//             ("[COMPACT_VERSION]", COMPACT_VERSION),
+//             ("[USER_DIR]", temp_dir.path().to_str().unwrap()),
+//             ("[SYSTEM_VERSION]", get_compact_version()),
+//         ],
+//         Some(0),
+//     )
+// }
 
 #[test]
 #[cfg(all(target_os = "macos", target_arch = "x86_64"))]

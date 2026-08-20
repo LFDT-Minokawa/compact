@@ -15,7 +15,7 @@
 
 import fs from 'fs';
 import { expect } from 'vitest';
-import { ContractInfo, ContractInfoCircuit, ContractInfoLedger, LedgerAdtType, OrdinaryType } from './types';
+import { CompilationPaths, ContractInfo, ContractInfoCircuit, ContractInfoLedger, LedgerAdtType, OrdinaryType } from './types';
 
 export class AssertContract {
     private folderPath: string = '';
@@ -24,8 +24,13 @@ export class AssertContract {
     private contractInfo: ContractInfo | null = null;
 
     /** Initialize with contract folder path, scans directories immediately */
-    expect(folder: string): AssertContract {
-        this.folderPath = folder.endsWith('/') ? folder : folder + '/';
+    expect(folder: string | CompilationPaths): AssertContract {
+        const target = typeof folder === 'string' ? folder : folder.outputDir;
+        if (target === undefined) {
+            throw new Error('expectFiles: that compilation had no output directory');
+        }
+
+        this.folderPath = target.endsWith('/') ? target : target + '/';
         this.pureCircuits = [];
         this.impureCircuits = [];
 
