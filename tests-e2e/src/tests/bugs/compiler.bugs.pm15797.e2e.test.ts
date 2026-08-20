@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
@@ -24,9 +23,9 @@ describe('[Bug] [PM-15797] Unsigned range changes', () => {
         const filePath = CONTRACTS_ROOT + 'examples.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });

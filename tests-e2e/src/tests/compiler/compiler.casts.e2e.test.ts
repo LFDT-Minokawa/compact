@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 
@@ -25,20 +24,20 @@ describe('[Casts] PM-15536 - Casts between Bytes and Vectors', () => {
             const filePath = CONTRACTS_ROOT + 'vector_to_bytes.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
 
         test('should not fail on zkir generation', async () => {
             const filePath = CONTRACTS_ROOT + 'zkir_generation.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([filePath, outputDir]);
+            const result = await compile([filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('Compiling 3 circuits:', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
     });
 });
@@ -48,9 +47,9 @@ describe('[Advanced casts] PM-17427 - Casts between more advanced types', () => 
         const filePath = CONTRACTS_ROOT + 'advanced_casts.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
     });
 });
