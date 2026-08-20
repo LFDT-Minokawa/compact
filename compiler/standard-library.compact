@@ -386,5 +386,5 @@ export circuit jubjubSchnorrVerify<#N>(
 }
 
 export struct VerifyingKey {
-  hash: Bytes<32>;
+  hash: Bytes<32>
 }

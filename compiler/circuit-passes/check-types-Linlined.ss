@@ -710,5 +710,25 @@
                   (car type*))
                 (loop (cdr elt-name*) (cdr type**) (cdr type*))))))]
        [else (assert cannot-happen)])]
+    [(verify-proof ,src ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2] ,[Care : expr3 -> * type3])
+     (unless (nanopass-case (Linlined Type) type1
+               [(tstruct ,src ,struct-name (,elt-name (tbytes ,src^ ,len)))
+                (and (eq? struct-name 'VerifyingKey)
+                     (eq? elt-name 'hash)
+                     (eqv? len 32))]
+               [else #f])
+       (source-errorf src "expected verify-proof verifying-key argument to have type struct VerifyingKey<hash: Bytes<32>>, received ~a"
+                      (format-type type1)))
+     (unless (nanopass-case (Linlined Type) type2
+               [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected verify-proof proof argument to have type Opaque<\"Uint8Array\">, received ~a"
+                      (format-type type2)))
+     (unless (nanopass-case (Linlined Type) type3
+               [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
+               [else #f])
+       (source-errorf src "expected verify-proof public-inputs argument to have type Vector<n, Field> for some n, received ~a"
+                      (format-type type3)))
+     (with-output-language (Linlined Type) `(ttuple ,src))]
     [else (internal-errorf 'Care "unhandled form Expr-type ~s\n" ir)])
   )

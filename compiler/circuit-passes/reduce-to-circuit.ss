@@ -162,11 +162,11 @@
     [(assert ,src ,expr ,mesg)
      (Triv expr test
        (lambda (triv)
-         (let ([t1 (make-temp-id src 't)] [t2 (make-temp-id src 't)])
+         (let ([t (make-temp-id src 't)])
            (with-output-language (Lcircuit Statement)
              (cons*
-               `(= (quote #t) ,t2 (select ,test ,triv (quote #t)))
-               `(assert ,src ,t2 ,mesg)
+               `(= (quote #t) ,t (select ,test ,triv (quote #t)))
+               `(assert ,src ,t ,mesg)
                (k (with-output-language (Lcircuit Rhs)
                   `(tuple))))))))]
     [(quote ,src ,datum)
@@ -296,6 +296,15 @@
            (lambda (triv*)
              (k (with-output-language (Lcircuit Rhs)
                  `(contract-call ,src ,elt-name (,triv ,type) ,triv* ...)))))))]
+    [(verify-proof ,src ,vk ,expr1 ,expr2)
+     (Triv expr1 test
+       (lambda (triv1)
+         (Triv expr2 test
+           (lambda (triv2)
+             (cons
+               `(verify-proof ,src ,test ,vk ,triv1 ,triv2)
+               (k (with-output-language (Lcircuit Rhs)
+                    `(tuple))))))))]
     [else (internal-errorf 'Rhs "unexpected ir ~s" ir)])
   (Type : Type (ir) -> Type ())
   )

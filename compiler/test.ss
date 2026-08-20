@@ -908,9 +908,12 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger X: Field;"
-      "export circuit foo(vk: VerifyingKey, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "circuit vk(): VerifyingKey {"
+      "  return VerifyingKey { pad(32, 'hello') };"
+      "}"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
-      "  verifyProof<2>(vk, [X, y], p);"
+      "  verifyProof<2>(vk(), p, [X, y]);"
       "}"
       )
     (pass-returns infer-types '(what))
@@ -925,6 +928,17 @@ groups than for single tests.
         "  await expect(contract.circuits.foo(context, { hash: new Uint8Array(32)}, 17n, 23n, new Uint8Array(64))).rejects.toThrow(runtime.CompactError);"
         "});"
         ))
+    )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: VerifyingKey, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, p, [X, y]);"
+      "}"
+      )
+    (returns (what))
     )
 )
 (run-javascript)

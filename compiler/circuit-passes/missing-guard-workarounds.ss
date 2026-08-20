@@ -88,7 +88,12 @@
     [(= ,test (,var-name* ...) ,multiple)
      (when (eqv? test 1) (for-each defined! var-name*))
      (list ir)]
-    [(assert ,src ,test ,mesg) (list ir)])
+    [(assert ,src ,test ,mesg) (list ir)]
+    [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
+     (if (eqv? test 1) 
+         `(verify-proof ,src ,test ,vk ,triv ,triv* ...)
+         ; TODO(rkd) need to set up vk, triv, and triv* that never fail
+         (assert not-implemented))])
   (Single : Single (ir test var-name) -> * (stmt*)
     [(< ,bits ,triv1 ,triv2)
      (with-output-language (Lflattened Statement)

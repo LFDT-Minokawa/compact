@@ -41,12 +41,15 @@
               [nat (field? (datum nat)) #'(type-size ,inline-src ,nat)]
               [id (identifier? #'id) #'(type-size-ref ,inline-src id)]
               [other (syntax-error #'other "unrecognized inline size")]))
-          (define (convert-type type)
-            (syntax-case type (Bytes Vector)
+          (trace-define (convert-type type)
+            (syntax-case type (Field Void Bytes Vector Opaque TypeRef)
+              [Field #`(tfield ,inline-src (field-native))]
+              [Void #`(ttuple ,inline-src)]
               [id (identifier? #'id) #'(type-ref ,inline-src id)]
               [(Bytes size) #`(tbytes ,inline-src #,(convert-size #'size))]
-              [(Vector size type) #`(tvector ,inline-src #,(convert-size #'nat) #,(convert-type #'type))]
+              [(Vector size type) #`(tvector ,inline-src #,(convert-size #'size) #,(convert-type #'type))]
               [(Opaque str) (string? (datum str)) #`(topaque ,inline-src str)]
+              [(TypeRef id) #`(type-ref ,inline-src id)]
               [other (syntax-error #'other "unrecognized inline type")]))
           (define (convert-inline-argument name type)
             #`(,inline-src #,name #,(convert-type type)))
