@@ -56,3 +56,9 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --ir-hook <pathname> loads a Scheme file that defines `hook`. The compiler
+    calls it with the compilation stages, proof circuit names, selected compiler
+    values, and the target directory. The hook controls its own output. It uses
+    internal compiler structures, so it can require updates between compiler
+    versions. Load only files you trust.
