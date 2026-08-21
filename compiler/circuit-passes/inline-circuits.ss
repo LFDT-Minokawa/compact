@@ -45,6 +45,10 @@
            `(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,(Expression expr p)))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
+    (define-pass replace-source : (Linlined Expression) (ir src) -> (Linlined Expression) ()
+      (Expression : Expression (ir) -> Expression ()
+        [(verify-proof ,src^ ,expr1 ,expr2 ,expr3)
+         `(verify-proof ,src ,expr1 ,expr2 ,expr3)]))
     (define-record-type circuit
       (nongenerative)
       (fields
@@ -123,5 +127,5 @@
             (let-values ([(p var-name*) (extend-env empty-env (map arg->name arg*))]
                          [(type*) (map arg->type arg*)])
               `(let* ,src ([(,var-name* ,type*) ,expr*] ...)
-                 ,(rename-expr expr p)))))]
+                 ,(replace-source (rename-expr expr p) src)))))]
        [else `(call ,src ,function-name ,expr* ...)])]))

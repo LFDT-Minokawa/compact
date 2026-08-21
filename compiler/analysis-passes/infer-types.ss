@@ -1969,10 +1969,11 @@
        `(return ,src ,expr)
        type)]
     [(verify-proof ,src ,[Care : expr1 type1] ,[Care : expr2 type2] ,[Care : expr3 type3])
-     (unless (nanopass-case (Ltypes Type) (de-alias type1 #t)
-               [(tbytes ,src ,len) (eqv? len 32)]
+     (unless (nanopass-case (Ltypes Type) (de-alias type1 #f)
+               [(talias ,src ,nominal? ,type-name (tbytes ,src^ ,len))
+                (and nominal? (eq? type-name 'VerifyingKeyHash) (eqv? len 32))]
                [else #f])
-       (source-errorf src "expected verify-proof verifying-key argument to have type Bytes<32>, received ~a"
+       (source-errorf src "expected verify-proof verifying-key argument to have type VerifyingKeyHash, received ~a"
                       (format-type type1)))
      (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
                [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
