@@ -392,6 +392,23 @@
                [else
                 (set-cdr! a var-name*)
                 (cons `(= ,test (,var-name* ...) (bytes->vector ,triv)) rstmt*)]))))]
+    [(numeric-abi-word ,[FWD-Triv : triv])
+     (assert (fx= (length var-name*) 2))
+     (with-output-language (Lflattened Statement)
+       (cons `(= ,test (,(car var-name*) ,(cadr var-name*))
+                  (numeric-abi-word ,triv))
+             rstmt*))]
+    [(serialize-pack ,src ,len (,nat* ,[FWD-Triv : triv*]) ...)
+     (with-output-language (Lflattened Statement)
+       (cons `(= ,test (,var-name* ...)
+                  (serialize-pack ,src ,len (,nat* ,triv*) ...))
+             rstmt*))]
+    [(reverse-bytes32 ,[FWD-Triv : triv1] ,[FWD-Triv : triv2])
+     (assert (fx= (length var-name*) 2))
+     (with-output-language (Lflattened Statement)
+       (cons `(= ,test (,(car var-name*) ,(cadr var-name*))
+                  (reverse-bytes32 ,triv1 ,triv2))
+             rstmt*))]
     [(public-ledger ,src ,ledger-field-name ,sugar? (,[FWD-Path-Element : path-elt*] ...) ,src^ ,adt-op ,[FWD-Triv : triv*] ...)
      (with-output-language (Lflattened Statement)
        (cons `(= ,test
@@ -653,6 +670,38 @@
      stmt*]
     [(= ,[BWD-Triv : test] (,var-name* ...) (bytes->vector ,[BWD-Triv : triv]))
      (cons `(= ,test (,var-name* ...) (bytes->vector ,triv)) stmt*)]
+    [(= ,test (,var-name1 ,var-name2) (numeric-abi-word ,triv))
+     (guard
+       (not (hashtable-contains? ref-ht var-name1))
+       (not (hashtable-contains? ref-ht var-name2)))
+     stmt*]
+    [(= ,[BWD-Triv : test] (,var-name1 ,var-name2)
+        (numeric-abi-word ,[BWD-Triv : triv]))
+     (cons `(= ,test (,var-name1 ,var-name2)
+                (numeric-abi-word ,triv))
+           stmt*)]
+    [(= ,test (,var-name* ...)
+        (serialize-pack ,src ,len (,nat* ,triv*) ...))
+     (guard
+       (not (ormap
+              (lambda (var-name) (hashtable-contains? ref-ht var-name))
+              var-name*)))
+     stmt*]
+    [(= ,[BWD-Triv : test] (,var-name* ...)
+        (serialize-pack ,src ,len (,nat* ,[BWD-Triv : triv*]) ...))
+     (cons `(= ,test (,var-name* ...)
+                (serialize-pack ,src ,len (,nat* ,triv*) ...))
+           stmt*)]
+    [(= ,test (,var-name1 ,var-name2) (reverse-bytes32 ,triv1 ,triv2))
+     (guard
+       (not (hashtable-contains? ref-ht var-name1))
+       (not (hashtable-contains? ref-ht var-name2)))
+     stmt*]
+    [(= ,[BWD-Triv : test] (,var-name1 ,var-name2)
+        (reverse-bytes32 ,[BWD-Triv : triv1] ,[BWD-Triv : triv2]))
+     (cons `(= ,test (,var-name1 ,var-name2)
+                (reverse-bytes32 ,triv1 ,triv2))
+           stmt*)]
     [(= ,[BWD-Triv : test]
         (,var-name* ...)
         (public-ledger ,src ,ledger-field-name ,sugar? (,[BWD-Path-Element : path-elt*] ...) ,src^ ,adt-op ,[BWD-Triv : triv*] ...))

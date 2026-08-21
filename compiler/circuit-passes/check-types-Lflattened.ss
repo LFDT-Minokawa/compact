@@ -200,6 +200,13 @@
           (source-errorf src
                          "expected test to have type Boolean, received ~a"
                          (format-primitive-type type)))))
+    (define (bytes->unsigned-maxima len)
+      (let-values ([(q r) (div-and-mod len (field-bytes))])
+        (let ([full-max (- (expt 2 (* (field-bytes) 8)) 1)])
+          (if (fx= r 0)
+              (make-list q full-max)
+              (cons (- (expt 2 (* r 8)) 1)
+                    (make-list q full-max))))))
     )
   (Program : Program (ir) -> Program ()
     [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -361,6 +368,64 @@
        (for-each
          (lambda (var-name) (set-idtype! var-name (Idtype-Base `(tunsigned 8))))
          var-name*))]
+    [(= ,test (,var-name1 ,var-name2)
+        (numeric-abi-word ,[* primitive-type]))
+     (verify-test program-src test)
+     (unless (T primitive-type
+               [(tunsigned ,nat) (< nat (expt 2 128))])
+       (source-errorf program-src
+         "numeric-abi-word expected a checked 16-byte Uint limb, received ~a"
+         (format-primitive-type primitive-type)))
+     (with-output-language (Lflattened Primitive-Type)
+       (set-idtype! var-name1
+         (Idtype-Base `(tunsigned ,(- (expt 2 8) 1))))
+       (set-idtype! var-name2
+         (Idtype-Base `(tunsigned ,(- (expt 2 (* (field-bytes) 8)) 1)))))]
+    [(= ,test (,var-name* ...)
+        (serialize-pack ,src ,len (,nat* ,[* primitive-type*]) ...))
+     (verify-test src test)
+     (unless (= len (fold-left + 0 nat*))
+       (source-errorf src
+         "serialize-pack segments occupy ~d bytes, expected ~d"
+         (fold-left + 0 nat*) len))
+     (for-each
+       (lambda (width primitive-type)
+         (unless (and (<= 1 width (field-bytes))
+                      (T primitive-type
+                        [(tunsigned ,nat)
+                         (<= nat (- (expt 2 (* width 8)) 1))]))
+           (source-errorf src
+             "serialize-pack expected a ~d-byte Uint segment, received ~a"
+             width (format-primitive-type primitive-type))))
+       nat*
+       primitive-type*)
+     (let ([max* (bytes->unsigned-maxima len)])
+       (unless (= (length var-name*) (length max*))
+         (source-errorf src
+           "serialize-pack produced ~d limbs, expected ~d"
+           (length var-name*) (length max*)))
+       (with-output-language (Lflattened Primitive-Type)
+         (for-each
+           (lambda (var-name max)
+             (set-idtype! var-name (Idtype-Base `(tunsigned ,max))))
+           var-name*
+           max*)))]
+    [(= ,test (,var-name1 ,var-name2)
+        (reverse-bytes32 ,[* type1] ,[* type2]))
+     (verify-test program-src test)
+     ;; This operation is introduced only for the exact flattened Bytes<32>
+     ;; representation: one high byte followed by 31 low bytes.
+     (let ([hi-max (- (expt 2 8) 1)]
+           [lo-max (- (expt 2 (* (field-bytes) 8)) 1)])
+       (unless (and (T type1 [(tunsigned ,nat) (<= nat hi-max)])
+                    (T type2 [(tunsigned ,nat) (<= nat lo-max)]))
+         (source-errorf program-src
+           "expected Bytes<32> limbs for reverse-bytes32, received (~a, ~a)"
+           (format-primitive-type type1)
+           (format-primitive-type type2)))
+       (with-output-language (Lflattened Primitive-Type)
+         (set-idtype! var-name1 (Idtype-Base `(tunsigned ,hi-max)))
+         (set-idtype! var-name2 (Idtype-Base `(tunsigned ,lo-max)))))]
     [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,adt-op ,[* type^*] ...))
      (verify-test src test)
      (nanopass-case (Lflattened ADT-Op) adt-op

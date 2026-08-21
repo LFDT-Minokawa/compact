@@ -111,18 +111,17 @@ and the remaining passes are defined in
 [compiler/save-contract-info-passes.ss](./compiler/save-contract-info-passes.ss),
 [compiler/typescript-passes.ss](./compiler/typescript-passes.ss),
 [compiler/circuit-passes.ss](./compiler/circuit-passes.ss),
-and
-[compiler/zkir-passes.ss](./compiler/zkir-passes.ss).
+[compiler/zkir-passes.ss](./compiler/zkir-passes.ss),
+and [compiler/zkir-v3-passes.ss](./compiler/zkir-v3-passes.ss).
 
-As implied by the existence of two final passes, there are actually two
-paths through the compiler, one leading from `parse-file` to `print-typescript`
-and the other leading from `parse-file` to `print-zkir`.
+There are two code-generation paths through the compiler: one leading from
+`parse-file` to `print-typescript` and the other to ZKIR output.
 The two paths share a common set of initial passes (those in frontend-passes.ss
 and analysis-passes.ss).
 The path from there to `print-typescript` is short, just a couple of passes
 including `print-typescript` in typescript-passes.ss.
-The other path, to `print-zkir` is longer and more involved and includes the
-passes in circuit-passes.ss and zkir-passes.ss.
+The ZKIR path is longer and includes the passes in circuit-passes.ss followed
+by either zkir-passes.ss for ZKIR v2 or zkir-v3-passes.ss for ZKIR v3.
 
 There is actually a third final pass, `save-contract-info.ss`, that runs after
 the front-end and analysis passes.
@@ -2639,9 +2638,16 @@ a language for proving circuits.
 The pass must process every form in the input language but, even so,
 there is nothing complicated about it.
 
-### print-zkir (Lflattened -> Lflattened)
+### print-zkir (Lflattened -> output)
 
-This pass prints zkir code equivalent to the input Lflattened program.
+This pass prints ZKIR v2 code equivalent to the input `Lflattened` program.
+
+### reduce-to-zkir and print-zkir-v3 (Lflattened -> Lzkir -> output)
+
+For ZKIR v3, `reduce-to-zkir` converts `Lflattened` into `Lzkir` and
+`print-zkir-v3` writes the result. Between them,
+`cancel-bytes32-conversions` removes adjacent inverse `Bytes<32>` conversions
+when the intermediate limbs have no other uses.
 
 ## Generated TypeScript/JavaScript structure
 

@@ -676,6 +676,93 @@
               [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
                (values (append var-name* name*) (append primitive-type* type*))]))))
 
+    ;; Pack little-endian segments into high-first flattened Bytes limbs.
+    (define (emit-serialize-pack src len var-name* nat* triv* instr*)
+      (with-output-language (Lzkir Instruction)
+        (let-values ([(q r) (div-and-mod len (field-bytes))])
+          (let ([output-width*
+                 (append (make-list q (field-bytes))
+                   (if (fx= r 0) '() (list r)))]
+                [output-var* (reverse var-name*)]
+                [new-instr* '()])
+            (define (emit! instr)
+              ;; Statement accumulates instructions in reverse order.
+              (set! new-instr* (cons instr new-instr*)))
+            (define (shift-and-add accumulator piece byte-offset)
+              (let ([piece
+                     (if (integer? piece)
+                         (* piece (expt 2 (* byte-offset 8)))
+                         (if (fx= byte-offset 0)
+                             piece
+                             (let ([shifted (make-temp-id src 'shifted)])
+                               (emit! `(mul ,shifted ,piece
+                                         ,(expt 2 (* byte-offset 8))))
+                               shifted)))])
+                (cond
+                  [(not accumulator) piece]
+                  [(and (integer? accumulator) (integer? piece))
+                   (+ accumulator piece)]
+                  [(and (integer? piece) (zero? piece)) accumulator]
+                  [(and (integer? accumulator) (zero? accumulator)) piece]
+                  [else
+                   (let ([sum (make-temp-id src 'sum)])
+                     (emit! `(add ,sum ,accumulator ,piece))
+                     sum)])))
+            (define (fill-output output-var output-width segment*)
+              (let loop ([remaining output-width]
+                         [byte-offset 0]
+                         [accumulator #f]
+                         [segment* segment*])
+                (cond
+                  [(fx= remaining 0)
+                   (assert accumulator)
+                   (emit! `(copy ,output-var ,accumulator))
+                   segment*]
+                  [(null? segment*)
+                   (internal-errorf 'reduce-to-zkir
+                     "serialize-pack input width is too short")]
+                  [else
+                   (let* ([segment (car segment*)]
+                          [width (car segment)]
+                          [triv (cdr segment)])
+                     (if (fx<= width remaining)
+                         (loop (fx- remaining width)
+                               (fx+ byte-offset width)
+                               (shift-and-add accumulator triv byte-offset)
+                               (cdr segment*))
+                         (let-values ([(rest low)
+                                       (if (integer? triv)
+                                           (div-and-mod triv
+                                             (expt 2 (* remaining 8)))
+                                           (let ([rest (make-temp-id src 'rest)]
+                                                 [low (make-temp-id src 'low)])
+                                             (emit! `(div_mod_power_of_two
+                                                       ,rest ,low ,triv
+                                                       ,(* remaining 8)))
+                                             (values rest low)))])
+                           (loop 0
+                                 (fx+ byte-offset remaining)
+                                 (shift-and-add accumulator low byte-offset)
+                                 (cons (cons (fx- width remaining) rest)
+                                       (cdr segment*))))))])))
+            (unless (fx= (length output-width*) (length output-var*))
+              (internal-errorf 'reduce-to-zkir
+                "serialize-pack output arity mismatch"))
+            (let loop ([output-width* output-width*]
+                       [output-var* output-var*]
+                       [segment* (map cons nat* triv*)])
+              (if (null? output-width*)
+                  (begin
+                    (unless (null? segment*)
+                      (internal-errorf 'reduce-to-zkir
+                        "serialize-pack has unconsumed input segments"))
+                    (append new-instr* instr*))
+                  (loop (cdr output-width*)
+                        (cdr output-var*)
+                        (fill-output (car output-var*)
+                                     (car output-width*)
+                                     segment*))))))))
+
     (define (field-type->string ftype)
       (nanopass-case (Lflattened Field-Type) ftype
         [(field-native) "Scalar<BLS12-381>"]
@@ -854,6 +941,37 @@
              (let ([quo (make-temp-id default-src 'quo)])
                (loop (cdr var-name*) quo
                  (cons `(div_mod_power_of_two ,quo ,(car var-name*) ,var ,8) instr*))))))]
+    [(= ,test (,var-name1 ,var-name2) (numeric-abi-word ,triv))
+     ;; `triv` is the checked Bytes<16> limb from the exact unconditional
+     ;; numeric ABI-word shape.
+     (assert (eqv? test 1))
+     (with-output-language (Lzkir Instruction)
+       (let ([bytes-in (make-temp-id default-src 'bytes)]
+             [bytes-out (make-temp-id default-src 'bytes)])
+         ;; Instructions are accumulated backwards and reversed at the end.
+         (cons*
+           `(bytes32_into_low_high ,var-name2 ,var-name1 ,bytes-out)
+           `(reverse_bytes ,bytes-out ,bytes-in)
+           `(bytes32_from_low_high ,bytes-in ,triv 0)
+           instr*)))]
+    [(= ,test (,var-name* ...)
+        (serialize-pack ,src ,len (,nat* ,triv*) ...))
+     (assert (eqv? test 1))
+     (emit-serialize-pack src len var-name* nat* triv* instr*)]
+    [(= ,test (,var-name1 ,var-name2)
+        (reverse-bytes32 ,triv1 ,triv2))
+     ;; reverse_bytes is unconditional in ZKIR.  flatten-datatypes deliberately
+     ;; introduces this operation only when both source conversions have test 1.
+     (assert (eqv? test 1))
+     (with-output-language (Lzkir Instruction)
+       (let ([bytes-in (make-temp-id default-src 'bytes)]
+             [bytes-out (make-temp-id default-src 'bytes)])
+         ;; Instructions are accumulated backwards and reversed at the end.
+         (cons*
+           `(bytes32_into_low_high ,var-name2 ,var-name1 ,bytes-out)
+           `(reverse_bytes ,bytes-out ,bytes-in)
+           `(bytes32_from_low_high ,bytes-in ,triv2 ,triv1)
+           instr*)))]
     [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...)
                            ,src^ ,adt-op ,triv* ...))
      (nanopass-case (Lflattened ADT-Op) adt-op
