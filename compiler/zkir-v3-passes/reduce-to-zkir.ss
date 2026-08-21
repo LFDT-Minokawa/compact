@@ -895,11 +895,10 @@
        (cons `(assert ,test) instr*))]
     [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
      (with-output-language (Lzkir Instruction)
-       ;; TODO(rkd): This should respect test and be conditional in the ZKIR output.
        (let ([tmp (make-temp-id src 'tmp)])
          (cons*
-           `(verify_proof ,vk ,tmp ,triv* ...)
-           `(inner_proof ,tmp) 
+           `(verify_proof ,vk ,test ,tmp ,triv* ...)
+           `(inner_proof ,test ,tmp) 
            instr*)))]
     [else (assertf cannot-happen "unimplemented: ~s\n" ir)])
 

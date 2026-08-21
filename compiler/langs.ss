@@ -1348,8 +1348,8 @@
       (reverse_bytes outp inp)
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...)
-      (inner_proof outp)
-      (verify_proof vk inp inp* ...))
+      (inner_proof inp outp)
+      (verify_proof vk inp0 inp1 inp* ...))
     (Input (inp)
       fr
       var-name)
