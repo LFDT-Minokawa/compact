@@ -1968,6 +1968,26 @@
      (values
        `(return ,src ,expr)
        type)]
+    [(verify-proof ,src ,[Care : expr1 type1] ,[Care : expr2 type2] ,[Care : expr3 type3])
+     (unless (nanopass-case (Ltypes Type) (de-alias type1 #f)
+               [(talias ,src ,nominal? ,type-name (tbytes ,src^ ,len))
+                (and nominal? (eq? type-name 'VerifyingKeyHash) (eqv? len 32))]
+               [else #f])
+       (source-errorf src "expected verify-proof verifying-key argument to have type VerifyingKeyHash, received ~a"
+                      (format-type type1)))
+     (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
+               [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected verify-proof proof argument to have type Opaque<'Uint8Array'>, received ~a"
+                      (format-type type2)))
+     (unless (nanopass-case (Ltypes Type) (de-alias type3 #t)
+               [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
+               [else #f])
+       (source-errorf src "expected verify-proof public-inputs argument to have type Vector<n, Field> for some n, received ~a"
+                      (format-type type3)))
+     (values
+       `(verify-proof ,src ,expr1 ,expr2 ,expr3)
+       (with-output-language (Ltypes Type) `(ttuple ,src)))]
     [else (internal-errorf 'Care "unexpected ir ~s" ir)])
   (Tuple-Argument : Tuple-Argument (ir) -> Expression (type kind nat elt-type*)
     [(single ,src ,[Care : expr type])

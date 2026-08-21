@@ -902,6 +902,106 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
+      "}"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk(), p, [X, disclose(y)]);"
+      "}"
+      )
+    (pass-returns infer-types '(what))
+    (output-file "compiler/testdir/contract/index.d.ts" '())
+    (output-file "compiler/testdir/contract/index.js" '())
+    (output-file "compiler/testdir/contract/index.js" '())
+    (output-file "compiler/testdir/zkir/foo.zkir" '())
+    (stage-javascript
+      '(
+        "test('failing verifyProof call', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.foo(context, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
+      "}"
+      "export circuit foo(b: Boolean, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  if (disclose(b)) verifyProof<2>(vk(), p, [X, disclose(y)]);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir" '())
+    (stage-javascript
+      '(
+        "test('failing verifyProof call', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.foo(context, true, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
+        "  expect((await contract.circuits.foo(context, false, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
+      "}"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk(), p, [X, y]);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 6 char 30" ("\n    nature of the disclosure:\n      the call to standard-library circuit verifyProof might disclose the result of verifying a proof involving the witness value\n    via this path through the program:\n      the third argument to verifyProof at line 8 char 3"))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: VerifyingKeyHash, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, p, [X, disclose(y)]);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "verifyProof verifying-key did not reduce to a constant at compile time" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: Bytes<32>, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, p, [X, disclose(y)]);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (verifyProof #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, Opaque<\"Uint8Array\">, [Field, Field])\n      declared argument types for function at <standard library>:\n        (VerifyingKeyHash, Opaque<\"Uint8Array\">, Vector<2, Field>)" #f)))
+    )
+)
+(run-javascript)
+)
+#;#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

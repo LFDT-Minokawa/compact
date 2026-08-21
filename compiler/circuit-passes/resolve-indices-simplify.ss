@@ -439,6 +439,14 @@
                          `(seq ,src ,index (tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...))
                          (CTV-tuple no-var-name ctv*))))))))
            (source-errorf src "slice index did not reduce to a constant nonnegative value at compile time"))]
+    [(verify-proof ,src ,[expr1 expr1-ctv] ,[expr2 expr2-ctv] ,[expr3 expr3-ctv])
+     (mvor (ifconstant expr1-ctv
+             (lambda (vk)
+               (assert (verifying-key? vk))
+               (values 
+                 `(seq ,src ,expr1 (verify-proof ,src ,vk ,expr2 ,expr3))
+                 (CTV-tuple no-var-name '()))))
+           (source-errorf src "verifyProof verifying-key did not reduce to a constant at compile time"))]
     [(new ,src ,[type] ,[expr* ctv*] ...)
      (values
        `(new ,src ,type ,expr* ...)
