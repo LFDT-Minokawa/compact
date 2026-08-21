@@ -178,13 +178,16 @@
      `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
      `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))]
-    [(inner_proof ,[* outp])
-     `((op . "inner_proof") (output . ,outp))]
-    [(verify_proof ,vk ,[* inp] ,[* inp*] ...)
+    [(inner_proof ,[* inp] ,[* outp])
+     `((op . "inner_proof")
+       (guard . ,inp)
+       (output . ,outp))]
+    [(verify_proof ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
      `((op . "verify_proof")
+       (guard . ,inp0)
        (vk_hash . ,(format "0x~(~{~2,'0x~}~)" (bytevector->u8-list vk)))
        (instance . ,(list->vector inp*))
-       (proof . ,inp))])
+       (proof . ,inp1))])
 
   (Input : Input (ir) -> * (json)
     (,fr (zkir-field-rep->string fr))

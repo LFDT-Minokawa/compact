@@ -28,7 +28,7 @@
     (define inline-decl* '())
     (define inline-src (make-source-object (get-stdlib-sfd) 0 0 1 1))
 
-    (trace-define-syntax declare-inline-entry
+    (define-syntax declare-inline-entry
       (lambda (q)
         (define (f name type-param* argument-name* argument-type* result-type body)
           (define (convert-type-param type-param)
@@ -41,7 +41,7 @@
               [nat (field? (datum nat)) #'(type-size ,inline-src ,nat)]
               [id (identifier? #'id) #'(type-size-ref ,inline-src id)]
               [other (syntax-error #'other "unrecognized inline size")]))
-          (trace-define (convert-type type)
+          (define (convert-type type)
             (syntax-case type (Field Void Bytes Vector Opaque TypeRef)
               [Field #`(tfield ,inline-src (field-native))]
               [Void #`(ttuple ,inline-src)]

@@ -90,11 +90,8 @@
      (list ir)]
     [(assert ,src ,test ,mesg) (list ir)]
     [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
-     (if (eqv? test 1) 
-         (with-output-language (Lflattened Statement)
-           (list `(verify-proof ,src ,test ,vk ,triv ,triv* ...)))
-         ; TODO(rkd) need to set up vk, triv, and triv* that never fail
-         (assert not-implemented))])
+     (with-output-language (Lflattened Statement)
+       (list `(verify-proof ,src ,test ,vk ,triv ,triv* ...)))])
   (Single : Single (ir test var-name) -> * (stmt*)
     [(< ,bits ,triv1 ,triv2)
      (with-output-language (Lflattened Statement)

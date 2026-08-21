@@ -937,6 +937,29 @@ groups than for single tests.
       "circuit vk(): VerifyingKeyHash {"
       "  return pad(32, 'hello') as VerifyingKeyHash;"
       "}"
+      "export circuit foo(b: Boolean, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  if (disclose(b)) verifyProof<2>(vk(), p, [X, disclose(y)]);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/foo.zkir" '())
+    (stage-javascript
+      '(
+        "test('failing verifyProof call', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.foo(context, true, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
+        "  expect((await contract.circuits.foo(context, false, 17n, 23n, new Uint8Array(32))).result).toEqual([]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
+      "}"
       "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
       "  verifyProof<2>(vk(), p, [X, y]);"
@@ -977,7 +1000,7 @@ groups than for single tests.
 )
 (run-javascript)
 )
-#; #!eof
+#;#!eof
 
 (run-tests parse-file/format/reparse
   (test
