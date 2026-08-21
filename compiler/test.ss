@@ -942,7 +942,9 @@ groups than for single tests.
       "  verifyProof<2>(vk(), p, [X, y]);"
       "}"
       )
-    (returns (what))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 6 char 30" ("\n    nature of the disclosure:\n      the call to standard-library circuit verifyProof might disclose the result of verifying a proof involving the witness value\n    via this path through the program:\n      the third argument to verifyProof at line 8 char 3"))))
     )
 
   (test
@@ -954,7 +956,9 @@ groups than for single tests.
       "  verifyProof<2>(vk, p, [X, disclose(y)]);"
       "}"
       )
-    (returns (what))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "verifyProof verifying-key did not reduce to a constant at compile time" ()))
     )
 
   (test
@@ -966,12 +970,14 @@ groups than for single tests.
       "  verifyProof<2>(vk, p, [X, disclose(y)]);"
       "}"
       )
-    (returns (what))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (verifyProof #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, Opaque<\"Uint8Array\">, [Field, Field])\n      declared argument types for function at <standard library>:\n        (VerifyingKeyHash, Opaque<\"Uint8Array\">, Vector<2, Field>)" #f)))
     )
 )
 (run-javascript)
 )
-#!eof
+#; #!eof
 
 (run-tests parse-file/format/reparse
   (test
