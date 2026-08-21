@@ -60,11 +60,7 @@ The standard library's `secp256k1EthereumAddress` circuit now asserts that the i
 
 ### Compact runtime `toBinaryRepr` function
 
-The new Compact runtime function `toBinaryRepr` replicates the effect of the
-on-chain Rust `binary_repr`.  It is used by the runtime for the argument to the
-`keccak_256` function to correctly replicate the in-circuit
-implementation.  This ensures that trailing zero bytes from byte vectors are
-preserved and hashed in JS as well as in circuit.
+The new Compact runtime function `toBinaryRepr` replicates the effect of the on-chain Rust `binary_repr`.  It is used by the runtime for the argument to the `keccak_256` function to correctly replicate the in-circuit implementation.  This ensures that trailing zero bytes from byte vectors are preserved and hashed in JS as well as in circuit.
 
 ### Modular reduction in casts to foreign fields
 
@@ -108,9 +104,7 @@ Some unused and unnecessary exported types and descriptors previously exported f
 
 ### Standard-library `add` and `mul` have been removed
 
-Now that the infix operators `+` and `*` (and `-`) can be used for `Secp256k1Base` and
-`Secp256k1Scalar` values, the standard library circuits `add` and `mul` have been
-removed.
+Now that the infix operators `+` and `*` (and `-`) can be used for `Secp256k1Base` and `Secp256k1Scalar` values, the standard library circuits `add` and `mul` have been removed.
 
 ## Fixed defect list
 
