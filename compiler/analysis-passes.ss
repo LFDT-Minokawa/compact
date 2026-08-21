@@ -53,7 +53,7 @@
 
   (include "analysis-passes/check-sealed-fields.ss")
 
-  (include "analysis-passes/reject-constructor-emit.ss")
+  (include "analysis-passes/reject-constructor-effects.ss")
 
   (include "analysis-passes/reject-constructor-cc-calls.ss")
 
@@ -80,7 +80,7 @@
     (reject-recursive-circuits       Loneledger)
     (recognize-let                   Lnodca)
     (check-sealed-fields             Lnodca)
-    (reject-constructor-emit         Lnodca)
+    (reject-constructor-effects      Lnodca)
     (reject-constructor-cc-calls     Lnodca)
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)

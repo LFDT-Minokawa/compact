@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 // most of the types / methods from standard library excluding non-exported ones
 
-constructor() {
+export circuit foo() : [] {
   const test_10 = default<Maybe<Field>>;
   const test_11 = some<Field>(1 as Field);
   const test_12 = none<Field>();
