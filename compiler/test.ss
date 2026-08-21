@@ -908,12 +908,12 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger X: Field;"
-      "circuit vk(): VerifyingKey {"
-      "  return pad(32, 'hello') as VerifyingKey;"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
       "}"
       "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
-      "  verifyProof<2>(vk(), p, [X, y]);"
+      "  verifyProof<2>(vk(), p, [X, disclose(y)]);"
       "}"
       )
     (pass-returns infer-types '(what))
@@ -929,13 +929,41 @@ groups than for single tests.
         "});"
         ))
     )
+
   (test
     '(
       "import CompactStandardLibrary;"
       "ledger X: Field;"
-      "export circuit foo(vk: VerifyingKey, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "circuit vk(): VerifyingKeyHash {"
+      "  return pad(32, 'hello') as VerifyingKeyHash;"
+      "}"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
-      "  verifyProof<2>(vk, p, [X, y]);"
+      "  verifyProof<2>(vk(), p, [X, y]);"
+      "}"
+      )
+    (returns (what))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: VerifyingKeyHash, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, p, [X, disclose(y)]);"
+      "}"
+      )
+    (returns (what))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(vk: Bytes<32>, x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof<2>(vk, p, [X, disclose(y)]);"
       "}"
       )
     (returns (what))

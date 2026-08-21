@@ -446,7 +446,7 @@
                (values 
                  `(seq ,src ,expr1 (verify-proof ,src ,vk ,expr2 ,expr3))
                  (CTV-tuple no-var-name '()))))
-           (source-errorf src "verify-proof verifying-key did not reduce to a constant at compile time"))]
+           (source-errorf src "verifyProof verifying-key did not reduce to a constant at compile time"))]
     [(new ,src ,[type] ,[expr* ctv*] ...)
      (values
        `(new ,src ,type ,expr* ...)

@@ -385,4 +385,4 @@ export circuit jubjubSchnorrVerify<#N>(
   return lhs == rhs;
 }
 
-export new type VerifyingKey = Bytes<32>;
+export new type VerifyingKeyHash = Bytes<32>;

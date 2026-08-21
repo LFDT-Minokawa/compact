@@ -24,6 +24,6 @@
   (deserialize src n T value))
 
 (declare-inline-entry verifyProof [(nat n)]
-  ([vk (TypeRef VerifyingKey)] [proof (Opaque "Uint8Array")] [pis (Vector n Field)])
+  ([vk (TypeRef VerifyingKeyHash)] [proof (Opaque "Uint8Array")] [pis (Vector n Field)])
   Void
   (verify-proof src vk proof pis))
