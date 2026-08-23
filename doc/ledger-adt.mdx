@@ -508,7 +508,11 @@ Inserts a new leaf at the first free index in this Merkle tree.
 insertHash(hash: Bytes<32>): []
 ```
 
-Inserts a new leaf with a given hash at the first free index in this Merkle tree.
+Inserts a new leaf with a precomputed hash at the first free index in this Merkle tree. Unlike [`insert`](#insert), which hashes `item` before insertion, `insertHash` stores the supplied `hash` as the leaf value without further hashing.
+
+Use `insertHash` when you commit a value off-chain and want only its hash to enter the tree. This preserves the privacy of the underlying value: the tree holds the commitment, and a witness proves membership of the corresponding preimage without revealing it on chain.
+
+When you prove membership of an `insertHash` leaf, derive the path root with [`merkleTreePathRootNoLeafHash`](../../standard-library/exports.md#merkletreepathrootnoleafhash) from `CompactStandardLibrary`, not [`merkleTreePathRoot`](../../standard-library/exports.md#merkletreepathroot). The latter would re-hash an already-hashed leaf and produce a root that does not match the tree. See [issue #63](https://github.com/midnightntwrk/midnight-docs/issues/63) for the original report.
 
 ### insertHashIndex
 
@@ -516,7 +520,7 @@ Inserts a new leaf with a given hash at the first free index in this Merkle tree
 insertHashIndex(hash: Bytes<32>, index: Uint<64>): []
 ```
 
-Inserts a new leaf with a given hash at a specific index in this Merkle tree.
+Inserts a new leaf with a precomputed hash at a specific index in this Merkle tree. Behaves like [`insertHash`](#inserthash) with respect to hashing: the supplied `hash` is stored as-is, without further hashing. Pair with [`merkleTreePathRootNoLeafHash`](../../standard-library/exports.md#merkletreepathrootnoleafhash) when verifying membership of the resulting path.
 
 ### insertIndex
 
@@ -620,7 +624,11 @@ Inserts a new leaf at the first free index in this Merkle tree.
 insertHash(hash: Bytes<32>): []
 ```
 
-Inserts a new leaf with a given hash at the first free index in this Merkle tree.
+Inserts a new leaf with a precomputed hash at the first free index in this Merkle tree. Unlike [`insert`](#insert), which hashes `item` before insertion, `insertHash` stores the supplied `hash` as the leaf value without further hashing.
+
+Use `insertHash` when you commit a value off-chain and want only its hash to enter the tree. This preserves the privacy of the underlying value: the tree holds the commitment, and a witness proves membership of the corresponding preimage without revealing it on chain.
+
+When you prove membership of an `insertHash` leaf, derive the path root with [`merkleTreePathRootNoLeafHash`](../../standard-library/exports.md#merkletreepathrootnoleafhash) from `CompactStandardLibrary`, not [`merkleTreePathRoot`](../../standard-library/exports.md#merkletreepathroot). The latter would re-hash an already-hashed leaf and produce a root that does not match the tree. See [issue #63](https://github.com/midnightntwrk/midnight-docs/issues/63) for the original report.
 
 ### insertHashIndex
 
@@ -628,7 +636,7 @@ Inserts a new leaf with a given hash at the first free index in this Merkle tree
 insertHashIndex(hash: Bytes<32>, index: Uint<64>): []
 ```
 
-Inserts a new leaf with a given hash at a specific index in this Merkle tree.
+Inserts a new leaf with a precomputed hash at a specific index in this Merkle tree. Behaves like [`insertHash`](#inserthash) with respect to hashing: the supplied `hash` is stored as-is, without further hashing. Pair with [`merkleTreePathRootNoLeafHash`](../../standard-library/exports.md#merkletreepathrootnoleafhash) when verifying membership of the resulting path.
 
 ### insertIndex
 
