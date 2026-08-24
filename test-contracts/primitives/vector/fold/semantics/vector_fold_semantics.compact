@@ -1,0 +1,26 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// fold reduces a vector to a single accumulated value, left to right.
+export circuit vector_fold_semantics(): Field {
+    const vector: Vector<5, Field> = [1 as Field, 2 as Field, 3 as Field, 4 as Field, 5 as Field];
+
+    const sum = fold((acc, x) => acc + x, 0 as Field, vector);
+    assert(sum == 15 as Field, "Sum of all elements should be 15");
+
+    return sum;
+}

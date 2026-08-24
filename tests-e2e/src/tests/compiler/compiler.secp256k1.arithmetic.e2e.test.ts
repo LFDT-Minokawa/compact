@@ -13,17 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
-import {
-    Arguments,
-    buildPathTo,
-    compile,
-    createTempFolder,
-    expectCompilerResult,
-    expectFiles,
-    getFileContent,
-} from '@';
+import { Arguments, buildPathTo, compile, createTempFolder, expectCompilerResult, expectFiles, getFileContent } from '@';
 
 type ZkirCircuit = {
     inputs: {
@@ -58,10 +49,10 @@ function getZkir(outputDir: string, circuitName: string): ZkirCircuit {
 describe('[Compiler] secp256k1 arithmetic operators', () => {
     test('v3 emits arithmetic for base and scalar fields', async () => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, CONTRACT, outputDir]);
+        const result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, CONTRACT, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         for (const { circuit, type, operations } of cases) {
             const zkir = getZkir(outputDir, circuit);
