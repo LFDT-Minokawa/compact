@@ -168,6 +168,37 @@ describe('crossContractCall failure classification', () => {
     expect(failure.cause).toBe(wrapped);
   });
 
+  test('the thunk resolves to nothing', async () => {
+    // `Object.hasOwn` throws on nullish, so without a guard this is a bare TypeError that names
+    // neither the callee nor the circuit. A provider whose loader forgets to return is the way in.
+    const failure = await failureFrom({ moduleProvider: providerFor(undefined as unknown as Module) });
+    if (failure.kind !== 'ProviderThrew') {
+      throw new Error(`expected ProviderThrew, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBeUndefined();
+  });
+
+  test('a module that is a primitive is reported as missing every export', async () => {
+    // Not a crash, so it stays on the `missing` path rather than the guard above it.
+    const failure = await failureFrom({ moduleProvider: providerFor(42 as unknown as Module) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['Contract', 'circuitSignatures', 'expectedVk']);
+  });
+
+  test('an export bound to undefined is reported as lacking, not dereferenced', async () => {
+    // Present by name, unusable by value. checkImplementation indexes `expectedVk` and
+    // checkModuleConformance reads `circuitSignatures`; both throw on nullish, a frame past the
+    // point where anything still knows which contract is being resolved.
+    const hollow = { Contract: class {}, circuitSignatures: {}, expectedVk: undefined } as unknown as Module;
+    const failure = await failureFrom({ moduleProvider: providerFor(hollow) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['expectedVk']);
+  });
+
   test('a module built before dynamic resolution names what it lacks', async () => {
     const stale = { Contract: class {} } as unknown as Module;
     const failure = await failureFrom({ moduleProvider: providerFor(stale) });
