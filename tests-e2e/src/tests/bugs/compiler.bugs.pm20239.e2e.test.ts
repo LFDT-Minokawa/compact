@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles, buildPathTo } from '@';
 import * as fs from 'fs';
@@ -29,9 +28,9 @@ describe('[Bug] [PM-20239] Unreachable statements', () => {
         test(`should not be able to compile contract due to unreachable statement: '${fileName}'`, async () => {
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir], CONTRACTS_ROOT);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir], CONTRACTS_ROOT);
             expectCompilerResult(result).toBeFailure(/unreachable statement/, compilerDefaultOutput());
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

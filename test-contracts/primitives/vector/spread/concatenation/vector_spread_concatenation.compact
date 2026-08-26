@@ -1,0 +1,28 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Spreading two vectors into one literal concatenates their elements in order.
+export circuit vector_spread_concatenation(): Vector<4, Field> {
+    const a: Vector<2, Field> = [1 as Field, 2 as Field];
+    const b: Vector<2, Field> = [3 as Field, 4 as Field];
+
+    const combined: Vector<4, Field> = [...a, ...b];
+    assert(combined[0] == 1 as Field, "First element should come from a");
+    assert(combined[2] == 3 as Field, "Third element should come from b");
+
+    return combined;
+}

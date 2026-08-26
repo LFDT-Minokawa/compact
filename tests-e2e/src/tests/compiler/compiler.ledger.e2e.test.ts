@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
@@ -28,7 +27,7 @@ import {
 describe('[Contract Info] Ledger added to contract-info.json', async () => {
     const CONTRACT_FILE_PATH = buildPathTo('election.compact');
     const outputDir = createTempFolder();
-    const result: Result = await compile([Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
+    const result = await compile([Arguments.SKIP_ZK, CONTRACT_FILE_PATH, outputDir]);
     expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
     const contractAssertion = new AssertContract().expect(outputDir);
 
