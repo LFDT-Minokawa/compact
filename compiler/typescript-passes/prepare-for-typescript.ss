@@ -47,19 +47,21 @@
           (fxlogxor (#3%fx+ (#3%fxsll hc 2) hc) k))
         (define (nat-hash nat)
           (if (fixnum? nat) nat (modulo nat (most-positive-fixnum))))
+        (define (curve-hash ctype)
+          (strict-nanopass-case (Ltypescript Curve-Type) ctype
+            [(curve-curve25519) 852327791]
+            [(curve-jubjub) 556995959]
+            [(curve-secp256k1) 234863430]
+            [(curve-secp256r1) 181461606]))
         (nanopass-case (Ltypescript Type) (de-alias type)
           [(tboolean ,src) 523634023]
           [(tfield ,src ,ftype)
-           (nanopass-case (Ltypescript Field-Type) ftype
+           (strict-nanopass-case (Ltypescript Field-Type) ftype
              [(field-native) 22268065]
-             [(field-scalar (curve-jubjub)) 474914719]
-             [(field-base (curve-secp256k1)) 952780025]
-             [(field-scalar (curve-secp256k1)) 817054627])]
+             [(field-base ,ctype) (update 645321278 (curve-hash ctype))]
+             [(field-scalar ,ctype) (update 889578641 (curve-hash ctype))])]
           [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
-          [(tpoint ,src ,ctype)
-           (nanopass-case (Ltypescript Curve-Type) ctype
-             [(curve-jubjub) 556995959]
-             [(curve-secp256k1) 234863430])]
+          [(tpoint ,src ,ctype) (curve-hash ctype)]
           [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
           [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
            ; arrange for equivalent vectors and tuples to hash to same value with same elements,
@@ -90,7 +92,11 @@
           [(tunknown) 241715055]
           [else (assert cannot-happen)]))
       (define (curve-type=? ctype1 ctype2)
-        (nanopass-case (Ltypescript Curve-Type) ctype1
+        (strict-nanopass-case (Ltypescript Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
           [(curve-jubjub)
            (nanopass-case (Ltypescript Curve-Type) ctype2
              [(curve-jubjub) #t]
@@ -98,9 +104,13 @@
           [(curve-secp256k1)
            (nanopass-case (Ltypescript Curve-Type) ctype2
              [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Ltypescript Curve-Type) ctype2
+             [(curve-secp256r1) #t]
              [else #f])]))
       (define (field-type=? ftype1 ftype2)
-        (nanopass-case (Ltypescript Field-Type) ftype1
+        (strict-nanopass-case (Ltypescript Field-Type) ftype1
           [(field-native)
            (nanopass-case (Ltypescript Field-Type) ftype2
              [(field-native) #t]
