@@ -8,7 +8,7 @@ This is the counterpart to `./compiler/go`, which measures the compiler's own co
 
 Scanned the **101 fixtures** in `test-contracts/`. Nothing else. A name listed as uncovered may still be exercised by the e2e suite, which compiles contracts out of `examples/` — so read this as a to-do list for this suite, not as a claim about the repository.
 
-## Not covered by any fixture — 141
+## Not covered by any fixture — 144
 
 | name | group |
 |---|---|
@@ -41,6 +41,8 @@ Scanned the **101 fixtures** in `test-contracts/`. Nothing else. A name listed a
 | `unshieldedBalanceGt` | Standard library circuits |
 | `unshieldedBalanceLte` | Standard library circuits |
 | `jubjubSchnorrVerify` | Standard library circuits |
+| `secp256k1EcdsaVerify` | Standard library circuits |
+| `secp256k1EthereumAddress` | Standard library circuits |
 | `Maybe` | Standard library structs |
 | `Either` | Standard library structs |
 | `MerkleTreeDigest` | Standard library structs |
@@ -53,6 +55,7 @@ Scanned the **101 fixtures** in `test-contracts/`. Nothing else. A name listed a
 | `ShieldedSendResult` | Standard library structs |
 | `UserAddress` | Standard library structs |
 | `JubjubSchnorrSignature` | Standard library structs |
+| `Secp256k1EcdsaSignature` | Standard library structs |
 | `Kernel.claimZswapNullifier` | Ledger ADT operations |
 | `Kernel.claimZswapCoinSpend` | Ledger ADT operations |
 | `Kernel.claimZswapCoinReceive` | Ledger ADT operations |
@@ -167,9 +170,9 @@ Declared in `parser.ss — keywordDataTypes`.
 | `Uint` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:26`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L26) | 108 |
 | `Vector` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:20`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L20) | 95 |
 
-## Standard library circuits — 0/29 covered
+## Standard library circuits — 0/31 covered
 
-Declared in `standard-library.compact — export circuit`.
+Declared in `shipped Compact libraries — export circuit`.
 
 | name | first usage | uses |
 |---|---|---:|
@@ -202,10 +205,12 @@ Declared in `standard-library.compact — export circuit`.
 | `unshieldedBalanceGt` | **no fixture** | 0 |
 | `unshieldedBalanceLte` | **no fixture** | 0 |
 | `jubjubSchnorrVerify` | **no fixture** | 0 |
+| `secp256k1EcdsaVerify` | **no fixture** | 0 |
+| `secp256k1EthereumAddress` | **no fixture** | 0 |
 
-## Standard library structs — 0/12 covered
+## Standard library structs — 0/13 covered
 
-Declared in `standard-library.compact — export struct`.
+Declared in `shipped Compact libraries — export struct`.
 
 | name | first usage | uses |
 |---|---|---:|
@@ -221,6 +226,7 @@ Declared in `standard-library.compact — export struct`.
 | `ShieldedSendResult` | **no fixture** | 0 |
 | `UserAddress` | **no fixture** | 0 |
 | `JubjubSchnorrSignature` | **no fixture** | 0 |
+| `Secp256k1EcdsaSignature` | **no fixture** | 0 |
 
 ## Ledger ADT operations — 1/61 covered
 

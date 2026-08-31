@@ -38,6 +38,11 @@ const REPO_ROOT = path.dirname(TEST_ROOT);
 const FIXTURE_ROOT = path.join(TEST_ROOT, 'primitives');
 const OUTPUT_PATH = path.join(COVERAGE_DIR, 'usage.md');
 
+const COMPACT_LIBRARIES: readonly string[] = [
+    'standard-library.compact',
+    'zkir-v3-library.compact',
+];
+
 /** `declare-*` macros that introduce no name a developer can write. */
 const NOT_NAME_SOURCES: ReadonlySet<string> = new Set([
     'declare-callable', // a local function in a pass, not a macro
@@ -109,7 +114,7 @@ const buildGroups = (compilerSources: string): NameGroup[] => {
     const compilerFile = (name: string): string =>
         readFileSync(path.join(REPO_ROOT, 'compiler', name), 'utf8');
 
-    const stdlib = compilerFile('standard-library.compact');
+    const stdlib = COMPACT_LIBRARIES.map(compilerFile).join('\n');
     const dataTypes =
         /keywordDataTypes[\s\S]*?\(TITLE[^)]*\)\s*\(([^)]*)\)/.exec(
             compilerFile('parser.ss'),
@@ -127,7 +132,7 @@ const buildGroups = (compilerSources: string): NameGroup[] => {
         },
         {
             title: 'Standard library circuits',
-            source: 'standard-library.compact — export circuit',
+            source: 'shipped Compact libraries — export circuit',
             names: headMatches(
                 stdlib,
                 /^\s*export\s+(?:pure\s+)?circuit\s+(\w+)/gm,
@@ -135,7 +140,7 @@ const buildGroups = (compilerSources: string): NameGroup[] => {
         },
         {
             title: 'Standard library structs',
-            source: 'standard-library.compact — export struct',
+            source: 'shipped Compact libraries — export struct',
             names: headMatches(stdlib, /^\s*export\s+struct\s+(\w+)/gm),
         },
         {
@@ -194,6 +199,16 @@ const assertEveryDeclarationSiteIsClaimed = (
         unclaimed.length === 0,
         `compiler declares names through unhandled macro(s): ${unclaimed.join(', ')}. ` +
             'Add a group in buildGroups, or list the macro in NOT_NAME_SOURCES.',
+    );
+
+    const unreadLibraries = readdirSync(path.join(REPO_ROOT, 'compiler'))
+        .filter((entry) => entry.endsWith('.compact'))
+        .filter((entry) => !COMPACT_LIBRARIES.includes(entry));
+
+    invariant(
+        unreadLibraries.length === 0,
+        `compiler ships Compact libraries no group reads: ${unreadLibraries.join(', ')}. ` +
+            'Add them to COMPACT_LIBRARIES.',
     );
 };
 
