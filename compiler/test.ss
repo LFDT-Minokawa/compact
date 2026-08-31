@@ -34693,14 +34693,12 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 512)))
-              (== (bytes-ref %value.6 32)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.6 32)) 1)
               (bytes-slice %value.6 33 512))
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 32)))
-              (== (bytes-ref %value.6 545)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.6 545)) 1)
               (bytes-slice %value.6 546 32))))
         (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
@@ -34791,8 +34789,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-ref %value.5 64)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 64)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 65 16)))))
@@ -34873,8 +34870,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-ref %value.5 32)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 32)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 33 16)))))
@@ -34978,8 +34974,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35102,8 +35097,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35294,8 +35288,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35585,8 +35578,7 @@ groups than for single tests.
           (new (tstruct Maybe
                  (is_some (tboolean))
                  (value (tbytes 32)))
-            (== (bytes-ref %value.2 0)
-                (safe-cast (tunsigned 255) (tunsigned 1) 1))
+            (== (downcast-unsigned 8 1 (bytes-ref %value.2 0)) 1)
             (bytes-slice %value.2 1 32)))
         (circuit %non_event_deserialize.3 ([%x.4 (tbytes 33)])
              (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
@@ -70994,6 +70986,96 @@ groups than for single tests.
         "  ]"
         "}"))
       )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
+      "export circuit d1(bv: Bytes<1>): Boolean {"
+      "  forceProof();"
+      "  return deserialize<Boolean, 1>(bv);"
+      "}"
+      "struct S { a: Boolean, b: Uint<16>, c: Boolean, d: Uint<8>, e: Boolean};"
+      "export circuit d2(bv: Bytes<6>): S {"
+      "  forceProof();"
+      "  return deserialize<S, 6>(bv);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/d1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%ignore.2\"], \"val\": \"%bv.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.3\", \"%t.4\"], \"val\": \"%quo.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.5\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%t.5\", \"b\": \"0x01\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/d2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 48 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%ignore.2\"], \"val\": \"%bv.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.3\", \"%t.4\"], \"val\": \"%quo.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.5\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%t.5\", \"b\": \"0x01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%ignore.8\"], \"val\": \"%bv.0\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.9\", \"%t.10\"], \"val\": \"%quo.7\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.11\", \"%ignore.12\"], \"val\": \"%bv.0\", \"bits\": 16 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.13\", \"%t.14\"], \"val\": \"%quo.11\", \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"output\": \"%t.15\", \"divisor\": \"%t.14\", \"modulus\": \"%t.10\", \"bits\": 8 },"
+        "    { \"op\": \"copy\", \"output\": \"%t.16\", \"val\": \"%t.15\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.16\", \"bits\": 16 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.17\", \"%ignore.18\"], \"val\": \"%bv.0\", \"bits\": 24 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.19\", \"%t.20\"], \"val\": \"%quo.17\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.20\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.21\", \"val\": \"%t.20\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.22\", \"a\": \"%t.21\", \"b\": \"0x01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.23\", \"%ignore.24\"], \"val\": \"%bv.0\", \"bits\": 32 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.25\", \"%t.26\"], \"val\": \"%quo.23\", \"bits\": 8 },"
+        "    { \"op\": \"copy\", \"output\": \"%t.27\", \"val\": \"%t.26\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.28\", \"val\": \"%t.27\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.28\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.29\", \"%ignore.30\"], \"val\": \"%bv.0\", \"bits\": 40 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.31\", \"%t.32\"], \"val\": \"%quo.29\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.32\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.33\", \"val\": \"%t.32\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.34\", \"a\": \"%t.33\", \"b\": \"0x01\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\", \"%t.16\", \"%t.22\", \"%t.28\", \"%t.34\"] }"
+        "  ]"
+        "}"))
+    )
   )
 )
 
@@ -91061,6 +91143,39 @@ groups than for single tests.
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
+      "export circuit d1(bv: Bytes<1>): Boolean {"
+      "  forceProof();"
+      "  return deserialize<Boolean, 1>(bv);"
+      "}"
+      "struct S { a: Boolean, b: Uint<16>, c: Boolean, d: Uint<8>, e: Boolean};"
+      "export circuit d2(bv: Bytes<6>): S {"
+      "  forceProof();"
+      "  return deserialize<S, 6>(bv);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([0]))).result).toEqual(false);"
+        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([1]))).result).toEqual(true);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([2]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([3]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([32]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([255]))).rejects.toThrow(runtime.CompactError);"
+        "  expect((await C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0x01]))).result)"
+        "              .toEqual({a: true, b: 0xff07n, c: false, d: 0xc1n, e: true});"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x03, 0x07, 0xff, 0x00, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x32, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0xff]))).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
     )
 )
 
