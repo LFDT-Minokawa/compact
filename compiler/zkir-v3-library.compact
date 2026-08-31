@@ -19,47 +19,13 @@ export struct Secp256k1EcdsaSignature {
   s: Secp256k1Scalar,
 }
 
-// Deserialize a 32-byte hash digest into a secp256k1 scalar.
-//
-// By ECDSA convention (https://www.rfc-editor.org/rfc/rfc6979#section-2.3.2) the 
-// digest is the big-endian encoding of an integer, which is then reduced modulo
-// the scalar field's order.
-circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
-  const v = digest as Vector<32, Uint<8>>;
-  const beReversed =
-          Bytes[v[31],
-                v[30],
-                v[29],
-                v[28],
-                v[27],
-                v[26],
-                v[25],
-                v[24],
-                v[23],
-                v[22],
-                v[21],
-                v[20],
-                v[19],
-                v[18],
-                v[17],
-                v[16],
-                v[15],
-                v[14],
-                v[13],
-                v[12],
-                v[11],
-                v[10],
-                v[9],
-                v[8],
-                v[7],
-                v[6],
-                v[5],
-                v[4],
-                v[3],
-                v[2],
-                v[1],
-                v[0]];
-  return beReversed as Secp256k1Scalar;
+// Reverse the byte order of a 32-byte string.
+circuit reverseBytes32(b: Bytes<32>): Bytes<32> {
+  const v = b as Vector<32, Uint<8>>;
+  return Bytes[v[31], v[30], v[29], v[28], v[27], v[26], v[25], v[24],
+               v[23], v[22], v[21], v[20], v[19], v[18], v[17], v[16],
+               v[15], v[14], v[13], v[12], v[11], v[10], v[9],  v[8],
+               v[7],  v[6],  v[5],  v[4],  v[3],  v[2],  v[1],  v[0]];
 }
 
 // Verify an ECDSA signature over Secp256k1.
@@ -83,19 +49,12 @@ circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
 // Verification compares only P.x against r, and negating s negates P, so `(r, s)`
 // and `(r, n - s)` both verify against the same public key.  A caller that uses a
 // signature as a unique identifier MUST therefore constrain `s <= n / 2` itself.
-//
-// Note: To recover the address behind a signature (as recoverSigner / ecrecover do
-// in [EIP-1271](https://eips.ethereum.org/EIPS/eip-1271)) first recover the public
-// key off-circuit with the Compact runtime's `secp256k1EcdsaRecover(msgHash, sig,
-// recoveryId)`, pass it in as a witness or circuit argument, verify the signature
-// against it here, and then compute the address with compact function
-// secp256k1EthereumAddress.
 export circuit secp256k1EcdsaVerify(
                  msgHash: Bytes<32>,
                  sig: Secp256k1EcdsaSignature,
                  pk: Secp256k1Point
                  ): Boolean {
-  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
+  const z: Secp256k1Scalar = reverseBytes32(msgHash) as Secp256k1Scalar;
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
   const u1: Secp256k1Scalar = z * w;
@@ -151,4 +110,93 @@ export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
                   secp256k1BaseBigEndian(secp256k1PointY(pk))]
                  );
   return slice<20>(hash, 12);
+}
+
+// ECDSA signature over Secp256r1 (NIST P-256).
+export struct Secp256r1EcdsaSignature {
+  r: Secp256r1Scalar,
+  s: Secp256r1Scalar,
+}
+
+// Verify an ECDSA signature over Secp256r1 (NIST P-256).
+//
+// This circuit takes `msgHash` as given and does not constrain it to any message.
+// The verifier is expected to additionally constrain that value so it is bound to
+// the message actually being verified by hashing the message in-circuit.
+//
+// Implements the standard ECDSA verification:
+//   w  = s^(-1) mod n
+//   u1 = (msgHash * w) mod n
+//   u2 = (r * w) mod n
+//   P  = u1*G + u2*pk
+//   valid iff P.x == r as 32-byte big-endian integers
+//
+// Both low-s and high-s signatures are accepted.  FIPS 186-5, the Digital Signature
+// Standard, constrains s only to the interval [1, n - 1] in section 6.4.2 (ECDSA
+// Signature Verification Algorithm) and imposes no low-s requirement.
+//   https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf
+export circuit secp256r1EcdsaVerify(
+                 msgHash: Bytes<32>,
+                 sig: Secp256r1EcdsaSignature,
+                 pk: Secp256r1Point
+                 ): Boolean {
+  const z: Secp256r1Scalar = reverseBytes32(msgHash) as Secp256r1Scalar;
+  const {r, s} = sig;
+  const w: Secp256r1Scalar = inv(s);
+  const u1: Secp256r1Scalar = z * w;
+  const u2: Secp256r1Scalar = r * w;
+  const point: Secp256r1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
+  return (secp256r1PointX(point) as Bytes<32>) as Secp256r1Scalar == r;
+}
+
+// Ed25519 signature (RFC 8032).
+export struct Ed25519Signature {
+  R: Curve25519Point,
+  s: Curve25519Scalar,
+}
+
+// Encode a Curve25519 point in the canonical 32-byte Ed25519 compressed form.
+//
+// The compressed form is the little-endian byte encoding of y with bit 255
+// (the top bit of byte 31) replaced by the least significant bit of x.
+//
+// Compact does not expose bitwise operators, so:
+//   * x parity is extracted as `(x_LE[0]) % 2`, i.e. the LSB of the low byte
+//     of the little-endian encoding of x.
+//   * The sign bit is written into byte 31 with `y_LE[31] + xLsb * 128`.
+circuit compressCurve25519Point(p: Curve25519Point): Bytes<32> {
+  const yBytes = curve25519PointY(p) as Bytes<32> as Vector<32, Uint<8>>;
+  const xLsb: Uint<8> = (curve25519PointX(p) as Bytes<32> as Vector<32, Uint<8>>)[0] % 2;
+  return Bytes[yBytes[0],  yBytes[1],  yBytes[2],  yBytes[3],
+               yBytes[4],  yBytes[5],  yBytes[6],  yBytes[7],
+               yBytes[8],  yBytes[9],  yBytes[10], yBytes[11],
+               yBytes[12], yBytes[13], yBytes[14], yBytes[15],
+               yBytes[16], yBytes[17], yBytes[18], yBytes[19],
+               yBytes[20], yBytes[21], yBytes[22], yBytes[23],
+               yBytes[24], yBytes[25], yBytes[26], yBytes[27],
+               yBytes[28], yBytes[29], yBytes[30],
+               yBytes[31] + xLsb * 128];
+}
+
+// Verify an Ed25519 signature (RFC 8032) over an N-byte message.
+//
+// `sig.R`, `pk` and `sig.s` cross the circuit boundary as canonical Curve25519
+// values: points are constrained to the prime-order subgroup and scalars to
+// `[0, ℓ)`.  That makes cofactor multiplication (small-subgroup defence) and an
+// explicit `s < ℓ` range check redundant - both are enforced on decode.  A
+// caller that starts from raw 32-byte compressed encodings runs the decode step
+// off-circuit before calling in.
+export circuit ed25519Verify<#N>(
+                 msg: Bytes<N>,
+                 sig: Ed25519Signature,
+                 pk: Curve25519Point
+                 ): Boolean {
+  const digest: Bytes<64> = sha512<[Bytes<32>, Bytes<32>, Bytes<N>]>(
+                             [compressCurve25519Point(sig.R),
+                              compressCurve25519Point(pk),
+                              msg]);
+  const k: Curve25519Scalar = from_bytes<64>(digest);
+  const lhs: Curve25519Point = ecMulGenerator(sig.s);
+  const rhs: Curve25519Point = ecAdd(sig.R, ecMul(pk, k));
+  return lhs == rhs;
 }
