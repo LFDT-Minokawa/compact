@@ -30,3 +30,11 @@ jobs:
 
       - name: Test contracts
         run: ./test-contracts/test.sh
+
+      - name: Regenerate language usage index
+        run: node ./test-contracts/coverage/usage-index.ts
+
+      - name: Fail if the committed usage index is stale
+        run: |
+          git diff --exit-code test-contracts/coverage/usage.md \
+            || { echo '::error::usage index is out of date — run `yarn usage-index` in test-contracts/ and commit the result'; exit 1; }

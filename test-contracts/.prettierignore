@@ -2,3 +2,4 @@ node_modules/
 **/.build/
 **/.compact-test-build/
 package-lock.json
+coverage/usage.md
