@@ -431,6 +431,7 @@ The following are the primitive types of Compact:
 |         | \|      | `Opaque` `<` [*str*](#terminal-names) `>`                                                 |
 |         | \|      | `Vector` `<` [*tsize*](#primitive-types) `,` [*type*](#primitive-types) `>`               |
 |         | \|      | `[` [*type*](#primitive-types) `,` ⋯ `,` [*type*](#primitive-types) `,`<sup>opt</sup> `]` |
+|         | \|      | `&` [*type*](#primitive-types)                                                            |
 | *tref*  | &xrarr; | [*id*](#terminal-names) [*gargs*](#generic-parameters-and-arguments)<sup>opt</sup>        |
 | *tsize* | &xrarr; | [*nat*](#terminal-names)                                                                  |
 |         | \|      | [*id*](#terminal-names)                                                                   |
@@ -2234,6 +2235,7 @@ of expression.
 | *expr<sub>6</sub>* | &xrarr; | [*expr<sub>6</sub>*](#syntax-of-expressions) `*` [*expr<sub>7</sub>*](#syntax-of-expressions)                                                                                              |
 |                    | \|      | [*expr<sub>7</sub>*](#syntax-of-expressions)                                                                                                                                               |
 | *expr<sub>7</sub>* | &xrarr; | `!` [*expr<sub>7</sub>*](#syntax-of-expressions)                                                                                                                                           |
+|                    | \|      | `&` [*expr<sub>7</sub>*](#syntax-of-expressions)                                                                                                                                           |
 |                    | \|      | [*expr<sub>8</sub>*](#syntax-of-expressions)                                                                                                                                               |
 | *expr<sub>8</sub>* | &xrarr; | [*expr<sub>8</sub>*](#syntax-of-expressions) `[` [*expr*](#syntax-of-expressions) `]`                                                                                                      |
 |                    | \|      | [*expr<sub>8</sub>*](#syntax-of-expressions) `.` [*id*](#terminal-names)                                                                                                                   |

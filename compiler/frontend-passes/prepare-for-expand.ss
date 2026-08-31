@@ -15,4 +15,4 @@
 
 #!chezscheme
 
-(define-pass prepare-for-expand : Lnoandornot (ir) -> Lpreexpand())
+(define-pass prepare-for-expand : Lnoplace (ir) -> Lpreexpand())

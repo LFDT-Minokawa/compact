@@ -654,7 +654,11 @@
        (lambda (src lbracket type-sep* rbracket)
          (let-values ([(type* sep*) (split-sep type-sep*)])
            (with-output-language (Lparser Type)
-             `(ttuple ,src ,lbracket (,type* ...) (,sep* ...) ,rbracket))))])
+             `(ttuple ,src ,lbracket (,type* ...) (,sep* ...) ,rbracket))))]
+      [type-place :: src #\& type =>
+       (lambda (src amp type)
+         (with-output-language (Lparser Type)
+           `(tplace ,src ,amp ,type)))])
     (Type-reference (tref)
       [type-ref :: src id (OPT gargs #f) =>
        (lambda (src id generic-arg-list?)
@@ -789,6 +793,10 @@
        (lambda (src bang e)
          (with-output-language (Lparser Expression)
            `(not ,src ,bang ,e)))]
+      ["place reference" :: src #\& expr7 =>
+       (lambda (src amp e)
+         (with-output-language (Lparser Expression)
+           `(place-ref ,src ,amp ,e)))]
       [#f :: expr8 => values])
     (Expression8 (expr8)
       ["tuple/vector reference" :: src expr8 #\[ expr #\] =>

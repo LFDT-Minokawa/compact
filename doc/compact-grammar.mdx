@@ -339,6 +339,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |        | \|      | `Opaque` `<` [*str*](#string-literal) `>`                           |
 |        | \|      | `Vector` `<` [*tsize*](#type-size) `,` [*type*](#type) `>`          |
 |        | \|      | `[` [*type*](#type) `,` ⋯ `,` [*type*](#type) `,`<sup>opt</sup> `]` |
+|        | \|      | `&` [*type*](#type)                                                 |
 </div>
 
 #### Type-reference
@@ -506,6 +507,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                    |         |                                        |
 |--------------------|---------|----------------------------------------|
 | *expr<sub>7</sub>* | &xrarr; | `!` [*expr<sub>7</sub>*](#expression7) |
+|                    | \|      | `&` [*expr<sub>7</sub>*](#expression7) |
 |                    | \|      | [*expr<sub>8</sub>*](#expression8)     |
 </div>
 

@@ -26,6 +26,45 @@
 (define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
 (define-syntax zkir-v3-library-path (identifier-syntax "compiler/zkir-v3-library.compact"))
 
+;;; Place provenance for accesses that carry no keys.
+;;;
+;;; check-place-aliasing attributes a ledger access to the place parameter it came
+;;; from by looking at the access's key expressions: those are (tuple-ref (var-ref
+;;; <keys parameter>) i), and the keys parameter's id is stamped with the place name
+;;; (see place-keys-id).  A place whose path contains no Map lookup has no keys, so it
+;;; leaves no such expression: `&alice` used as `a.increment(1)` becomes exactly
+;;; `alice.increment(1)`, indistinguishable from that line written by hand.  Without
+;;; provenance the access is dropped and the whole body is invisible to the analysis.
+;;;
+;;; So the root reference carries the provenance instead.  This table maps the source
+;;; object of a generated ledger-ref -- which combine-ledger-declarations passes
+;;; through unchanged as the src of the resulting public-ledger node -- to the place
+;;; parameter that produced it.  The src of a use of `a` in the callee body is unique
+;;; to that use, and is the same object in every specialization of the circuit, so the
+;;; table is written once per specialization with the same value each time.  A ledger
+;;; access the user wrote directly is absent from the table, which is what keeps
+;;; `alice.increment(1); alice.decrement(1)` written by hand from being read as two
+;;; places that alias.
+;;;
+;;; A side table rather than a field on ledger-ref because the field would have to be
+;;; threaded through three languages and every pass between here and the analysis, none
+;;; of which has anything to do with places.  It is cleared per program.
+;;;
+;;; Keyed on the source file's path and the beginning file position rather than on the
+;;; source object itself, so that it does not rest on nanopass preserving the identity of
+;;; a src it copies.  A span is unique to the reference it came from, so the pair
+;;; identifies the same use of the same place parameter in every specialization.  Path
+;;; rather than sfd because equal-hash on a record is not required to be stable across a
+;;; collection; the table is cleared per program, so a path is unambiguous within it.
+(define place-provenance-ht (make-hashtable equal-hash equal?))
+(define (place-provenance-key src)
+  (cons (source-file-descriptor-path (source-object-sfd src)) (source-object-bfp src)))
+(define (place-provenance-clear!) (hashtable-clear! place-provenance-ht))
+(define (place-provenance-set! src var-name)
+  (hashtable-set! place-provenance-ht (place-provenance-key src) var-name))
+(define (place-provenance-ref src)
+  (hashtable-ref place-provenance-ht (place-provenance-key src) #f))
+
 (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
   (definitions
     (define-syntax run-passes
@@ -78,7 +117,8 @@
       (define (gv-hash generic-value)
         (nanopass-case (Lexpanded Generic-Value) generic-value
           [,nat nat]
-          [,type (type-hash type)]))
+          [,type (type-hash type)]
+          [,ledger-field-name (symbol-hash (id-sym ledger-field-name))]))
       (define (type-hash type)
         (define max-tuple-elts-to-hash 10)
         (nanopass-case (Lexpanded Type) type
@@ -119,6 +159,10 @@
            (nanopass-case (Lexpanded Curve-Type) ctype
              [(curve-jubjub) 16]
              [(curve-secp256k1) 17])]
+          [(tkeys ,src ,ledger-field-name (,elt-name* ...) ,type)
+           (+ 18 (combine (cons* (symbol-hash (id-sym ledger-field-name))
+                                 (type-hash type)
+                                 (map symbol-hash elt-name*))))]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
@@ -126,6 +170,10 @@
                  (Info-case info
                    [(Info-type src type) (type-hash type)]
                    [(Info-size src size) size]
+                   [(Info-place place-src ledger-field-name elt-name*)
+                    ; src is not part of a place's identity: see Info-place's definition
+                    (combine (cons (symbol-hash (id-sym ledger-field-name))
+                                   (map symbol-hash elt-name*)))]
                    [else (assert cannot-happen)]))
                info*)))
       (define (targ-info-equal? info1* info2*)
@@ -138,6 +186,12 @@
                     [(Info-size src1 size1)
                      (Info-case info2
                        [(Info-size src2 size2) (= size1 size2)]
+                       [else #f])]
+                    [(Info-place place-src1 id1 elt-name1*)
+                     (Info-case info2
+                       ; src is not compared: see Info-place's definition
+                       [(Info-place place-src2 id2 elt-name2*)
+                        (and (eq? id1 id2) (equal? elt-name1* elt-name2*))]
                        [else #f])]
                     [else (assert cannot-happen)]))
                 info1* info2*))
@@ -170,6 +224,11 @@
       (Info-type-alias src nominal? type-name type-param* type p)
       (Info-native-type src type-name type p)
       (Info-ledger ledger-field-name)
+      ; a place argument: a ledger field and the accessors applied to it.  src is the
+      ; call site's place expression, carried for diagnostics only -- it is deliberately
+      ; excluded from targ-info-hash and targ-info-equal? below, so that two call sites
+      ; naming the same place still share one specialization.
+      (Info-place src ledger-field-name elt-name*)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
       (Info-var id)
@@ -261,10 +320,30 @@
                      [(Info-size src size) (oops src src^ "non-ADT type" tvar-name)]
                      [(Info-free-tvar tvar-name) (void)]
                      [else (assert cannot-happen)])
+                   (env-insert! p src tvar-name info)]
+                  [(place-valued ,src^ ,tvar-name)
+                   (Info-case info
+                     [(Info-place place-src ledger-field-name elt-name*) (void)]
+                     [(Info-free-tvar tvar-name) (void)]
+                     [else (oops src src^ "ledger field" tvar-name)])
                    (env-insert! p src tvar-name info)]))
               type-param*
               info*)
             p)))
+    ; must agree with keys-parameter-name in expand-place-params
+    (define (keys-parameter-name var-name)
+      (string->symbol (string-append "__compact_place_keys_" (symbol->string var-name))))
+    (define (place-keys-id p src var-name)
+      (Info-case (lookup p src (keys-parameter-name var-name))
+        [(Info-var id)
+         ; stamp the keys parameter with the place name the user wrote, so that
+         ; check-place-aliasing can attribute a ledger access back to `from` or `to`
+         ; after monomorphization has erased the place parameters.  Idempotent: this
+         ; runs once per reference to the place and always writes the same name.
+         (id-place-name-set! id var-name)
+         id]
+        [else (internal-errorf 'expand-modules-and-types
+                "missing keys parameter for place ~s" var-name)]))
     (define (de-alias type nominal-too?)
       (nanopass-case (Lexpanded Type) type
         [(talias ,src ,nominal? ,type-name ,type)
@@ -289,6 +368,10 @@
            (nanopass-case (Lexpanded Generic-Value) gv2
              [,type2 (sametype? type1 type2)]
              ; this is currently unreachabe.  see note just above.
+             [else #f])]
+          [,ledger-field-name1
+           (nanopass-case (Lexpanded Generic-Value) gv2
+             [,ledger-field-name2 (eq? ledger-field-name1 ledger-field-name2)]
              [else #f])]))
       (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
         (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
@@ -328,6 +411,12 @@
         (let ([type1 (de-alias type1 #f)] [type2 (de-alias type2 #f)])
           (strict-nanopass-case (Lexpanded Type) type1
             [,tvar-name (assertf cannot-happen "sametype? should not be applied to external type declarations")]
+            [(tkeys ,src1 ,ledger-field-name1 (,elt-name1* ...) ,type1^)
+             (T type2
+                [(tkeys ,src2 ,ledger-field-name2 (,elt-name2* ...) ,type2^)
+                 (and (eq? ledger-field-name1 ledger-field-name2)
+                      (equal? elt-name1* elt-name2*)
+                      (sametype? type1^ type2^))])]
             [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
             [(tfield ,src1 ,ftype1)
              (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
@@ -467,6 +556,10 @@
                            [(non-adt-type-valued ,src^ ,tvar-name)
                             (Info-case info
                               [(Info-type src type) (not (public-adt? type))]
+                              [else #f])]
+                           [(place-valued ,src^ ,tvar-name)
+                            (Info-case info
+                              [(Info-place place-src ledger-field-name elt-name*) #t]
                               [else #f])]))
                        type-param*
                        info*))))
@@ -483,7 +576,8 @@
                          [(nat-valued ,src ,tvar-name) 'size]
                          [(type-valued ,src ,tvar-name) 'type]
                          ; currently not reachable since functions don't employ this kind of type-param
-                         [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]))
+                         [(non-adt-type-valued ,src ,tvar-name) 'non-adt-type]
+                         [(place-valued ,src ,tvar-name) 'place]))
                      (info-fun-type-param* info-fun)))))))
       (define (return id+* generic-failure*)
         (with-output-language (Lexpanded Function)
@@ -493,6 +587,7 @@
                           (Info-case info
                             [(Info-type src type) type]
                             [(Info-size src size) size]
+                            [(Info-place place-src ledger-field-name elt-name*) ledger-field-name]
                             [else (assert cannot-happen)]))
                         info*)
                    ...)
@@ -596,6 +691,7 @@
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
         [(Info-native-type src type-name type p) "type"]
         [(Info-ledger ledger-field-name) "ledger field"]
+        [(Info-place place-src ledger-field-name elt-name*) "place"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
     (define (handle-type-ref src tvar-name info* p info)
@@ -900,7 +996,8 @@
     (define (type-param->tvar-name type-param)
       (nanopass-case (Lpreexpand Type-Param) type-param
         [(nat-valued ,src ,tvar-name) tvar-name]
-        [(type-valued ,src ,tvar-name) tvar-name]))
+        [(type-valued ,src ,tvar-name) tvar-name]
+        [(place-valued ,src ,tvar-name) tvar-name]))
     (define (arg->id arg)
       (nanopass-case (Lexpanded Argument) arg
         [(,var-name ,type) var-name]))
@@ -1015,6 +1112,7 @@
                   (cons (frob-seqno frob) (process-frob frob))
                   seqno.pelt*))))))
     [(program ,src ,pelt* ...)
+     (place-provenance-clear!)
      (fluid-let ([program-src src])
        (let ([exported-type* '()] [exported-other* '()])
          (let ([export* (process-pelts #t pelt* (map list (enumerate pelt*)) empty-env)])
@@ -1198,6 +1296,28 @@
        [(Info-var id) `(var-ref ,src ,id)]
        [(Info-size src^ size) `(quote ,src ,size)]
        [(Info-ledger ledger-field-name) `(ledger-ref ,src ,ledger-field-name)]
+       [(Info-place place-src ledger-field-name elt-name*)
+        ; Stamp the keys parameter even when there are no keys to take from it.
+        ; check-place-aliasing maps a place name back to an argument index through
+        ; id-place-name on that parameter, so a place whose path has no Map lookup would
+        ; otherwise be unattributable at the call site -- the loop below is the only
+        ; other caller of place-keys-id, and it does not run for an empty path.
+        (place-keys-id p src var-name)
+        ; rebuild the caller's access path, taking each key from the keys parameter.
+        ; The root reference is stamped with the place name so that a place with no
+        ; keys still has provenance downstream; see place-provenance-ht.
+        (place-provenance-set! src var-name)
+        (let loop ([elt-name* elt-name*]
+                   [i 0]
+                   [expr `(ledger-ref ,src ,ledger-field-name)])
+          (if (null? elt-name*)
+              expr
+              (loop (cdr elt-name*)
+                    (fx+ i 1)
+                    `(elt-call ,src ,expr ,(car elt-name*)
+                       (tuple-ref ,src
+                         (var-ref ,src ,(place-keys-id p src var-name))
+                         (quote ,src ,i))))))]
        [(Info-bogus)
         (source-errorf src "identifier ~s might be referenced before it is assigned"
                        var-name)])]
@@ -1276,6 +1396,15 @@
   (New-Field : New-Field (ir p) -> New-Field ())
   (Type : Type (ir p) -> Type ()
     [,tref (Type-Ref->Type ir p)]
+    [(tkeys ,src ,tvar-name ,[type])
+     (Info-case (lookup p src tvar-name)
+       [(Info-place place-src ledger-field-name elt-name*)
+        ; carry the call site's source, not this parameter's.  infer-types validates the
+        ; access path off this node, and with specialization one parameter serves many
+        ; call sites -- reporting at the parameter would name the same spot for every
+        ; bad call.  This is what C4 of place-references-impl-plan.md asks for.
+        `(tkeys ,place-src ,ledger-field-name (,elt-name* ...) ,type)]
+       [else (source-errorf src "~s does not name a place" tvar-name)])]
     [(tunsigned ,src ,[Type-Size->nat : tsize p 1 -> * nat])
      (unless (<= nat (unsigned-bits))
         (source-errorf src "Uint width ~d exceeds the maximum Uint width ~d"
@@ -1325,5 +1454,20 @@
           (unless (null? info*) (generic-argument-count-oops src tvar-name (length info*) 0))
           (Info-size src size)]
          [else (Info-type src (handle-type-ref src tvar-name info* p info))]))]
-    [(targ-type ,src ,type) (Info-type src (Type type p))])
+    [(targ-type ,src ,type) (Info-type src (Type type p))]
+    [(targ-place ,src ,var-name (,elt-name* ...))
+     (let ([info (lookup p src var-name)])
+       (Info-case info
+         [(Info-ledger ledger-field-name) (Info-place src ledger-field-name elt-name*)]
+         ; Forwarding (section 13 of place-references-impl-plan.md): the root is itself a
+         ; place, so extend its chain rather than start a new one.  One arm covers both
+         ; `inner(&acct)`, which appends nothing and forwards the place unchanged, and
+         ; `inner(&acct.lookup(k))`, which forwards it one level deeper.  Nothing
+         ; downstream needs to change: tkeys resolution already walks a (field, chain)
+         ; pair, and the appended chain is the right one.
+         [(Info-place place-src ledger-field-name elt-name^*)
+          (Info-place src ledger-field-name (append elt-name^* elt-name*))]
+         [else (source-errorf src
+                 "expected ~s to name a ledger field or a place but it names a ~a"
+                 var-name (describe-info info))]))])
 )

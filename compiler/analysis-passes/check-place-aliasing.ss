@@ -33,9 +33,23 @@
   ;
   ; WHEN TWO ACCESSES MAY ALIAS.  Same ledger field, same sequence of navigation ops,
   ; and different place provenance.  Provenance comes from id-place-name, stamped on a
-  ; keys parameter by expand-modules-and-types; two accesses through the *same* place
-  ; parameter are the same location by construction and are not an aliasing question.
-  ; An access with no place provenance is a direct ledger access, also not in scope.
+  ; keys parameter by expand-modules-and-types, or -- for a place whose path has no Map
+  ; lookup and so no keys at all -- from that pass's place-provenance table, keyed on
+  ; the root reference it generated.  Two accesses through the *same* place parameter
+  ; are the same location by construction and are not an aliasing question.  An access
+  ; with no place provenance is a direct ledger access, also not in scope.
+  ;
+  ; THAT COVERS DEFINITE ALIASES TOO (E7 of the plan).  `move(&alice, &alice)` creates a
+  ; specialization in which both places are the same field, so its two accesses have the
+  ; same field and the same (empty) navigation and differ only in provenance -- exactly
+  ; the may-alias shape, judged by exactly the same hazard rules.  The call site is then
+  ; reported if and only if the body would actually misbehave: a callee that only reads
+  ; is not a hazard and is not reported, and neither is `a.decrement(n); b.increment(n)`,
+  ; which E4 requires be accepted.  So E7 needs no separate rule, and in particular no
+  ; syntactic rejection of a repeated argument in the front end, which would reject both
+  ; of those.  What it does need is the provenance fallback above, without which a
+  ; zero-key place is invisible here.  The E6 escape hatch is unreachable for such a
+  ; call rather than specially refused: there are no keys to assert a disequality about.
   ;
   ; WHAT COUNTS AS A HAZARD.  Two things:
   ;   - a read sequenced after a write (E2), and
@@ -159,7 +173,15 @@
       (let-values ([(nav* last*) (split-accessors accessor*)])
         (unless (null? last*)
           (let ([info (final-op-info field-name accessor*)]
-                [place-name (ormap place-of-accessor nav*)])
+                ; provenance from a key if there is one, and otherwise from the root
+                ; reference.  The fallback is what makes a place with no Map lookup on
+                ; its path visible at all: `&alice` used as `a.increment(1)` produces
+                ; `alice.increment(1)` with no key expression anywhere, so the keys
+                ; parameter's stamp cannot be reached.  expand-modules-and-types records
+                ; the place name against the src of the reference it generated; a ledger
+                ; access the user wrote directly has no entry, and stays out of scope.
+                [place-name (or (ormap place-of-accessor nav*)
+                                (place-provenance-ref src))])
             (when (and info place-name)
               (set! revent*
                 (cons (cons 'access
@@ -224,10 +246,20 @@
 
     ; Two places are separated when some key position is asserted different.  One
     ; position suffices: distinct keys anywhere along the path mean distinct locations.
+    ;
+    ; A position whose two key expressions are the same expression is never that
+    ; position, whatever was asserted about it.  Without that guard a statically false
+    ; assertion separates places it cannot possibly separate: `assert(k != k, ...)` before
+    ; a call satisfies the match at every position where both places use `k`, so a caller
+    ; could silence the check by asserting something that is guaranteed to abort at run
+    ; time.  §15.1 of place-references-impl-plan.md.  Note that this is a stronger
+    ; statement than "reject tautological assertions": identical keys are one key, so the
+    ; position carries no information no matter which assertion reached it.
     (define (separated? key1* key2* ne*)
       (let loop ([a key1*] [b key2*])
         (and (pair? a) (pair? b)
              (or (and (car a) (car b)
+                      (not (expr-equal? (car a) (car b)))
                       (ormap (lambda (ne)
                                (or (and (expr-equal? (car ne) (car a))
                                         (expr-equal? (cdr ne) (car b)))
@@ -235,6 +267,14 @@
                                         (expr-equal? (cdr ne) (car a)))))
                              ne*))
                  (loop (cdr a) (cdr b))))))
+
+    ; Two places are certainly one location when every key position holds the same
+    ; expression -- vacuously so when a place has no keys at all, which is E7's case.  A
+    ; key position this cannot read (a forwarded place's spread, which keys-of-argument
+    ; reports as #f) leaves the question open, so it is not definite.
+    (define (keys-identical? key1* key2*)
+      (and (fx= (length key1*) (length key2*))
+           (andmap (lambda (k1 k2) (and k1 k2 (expr-equal? k1 k2))) key1* key2*)))
 
     (define (write? a) (not (eq? (access-op-class a) 'read)))
 
@@ -330,29 +370,39 @@
                            [j (assq (hazard-earlier-place hazard) index*)])
                        (when (and i j
                                   (fx< (cdr i) (length arg*))
-                                  (fx< (cdr j) (length arg*))
-                                  (not (separated? (keys-of-argument (list-ref arg* (cdr i)))
-                                                   (keys-of-argument (list-ref arg* (cdr j)))
-                                                   ne*)))
-                         (report! src callee hazard))))
+                                  (fx< (cdr j) (length arg*)))
+                         (let* ([key1* (keys-of-argument (list-ref arg* (cdr i)))]
+                                [key2* (keys-of-argument (list-ref arg* (cdr j)))]
+                                [definite? (keys-identical? key1* key2*)])
+                           ; A definite alias is not up for excusing: separated? cannot
+                           ; separate identical keys, and where there are no keys the
+                           ; specialization alone settles the location.
+                           (when (or definite? (not (separated? key1* key2* ne*)))
+                             (report! src callee hazard definite?))))))
                    hazard*))
                (loop (cdr event*) ne*)]
               [else (loop (cdr event*) ne*)])))))
 
-    (define (report! src callee hazard)
-      (if (eq? (hazard-kind hazard) 'read-after-write)
-          (source-errorf src
-            "this call may pass one location as both places ~s and ~s of ~a, which reads \
-             it at ~a after writing it at ~a; assert that the two keys differ before the call"
-            (hazard-later-place hazard) (hazard-earlier-place hazard) (id-sym callee)
-            (format-source-object (hazard-later-src hazard))
-            (format-source-object (hazard-earlier-src hazard)))
-          (source-errorf src
-            "this call may pass one location as both places ~s and ~s of ~a, where ~s at ~a \
-             does not commute with ~s at ~a; assert that the two keys differ before the call"
-            (hazard-later-place hazard) (hazard-earlier-place hazard) (id-sym callee)
-            (hazard-later-op hazard) (format-source-object (hazard-later-src hazard))
-            (hazard-earlier-op hazard) (format-source-object (hazard-earlier-src hazard)))))
+    (define (report! src callee hazard definite?)
+      (let ([lede (if definite? "this call passes one location" "this call may pass one location")]
+            [advice (if definite?
+                        "pass two different places"
+                        "assert that the two keys differ before the call")])
+        (if (eq? (hazard-kind hazard) 'read-after-write)
+            (source-errorf src
+              "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it \
+               at ~a; ~a"
+              lede (hazard-later-place hazard) (hazard-earlier-place hazard) (id-sym callee)
+              (format-source-object (hazard-later-src hazard))
+              (format-source-object (hazard-earlier-src hazard))
+              advice)
+            (source-errorf src
+              "~a as both places ~s and ~s of ~a, where ~s at ~a does not commute with ~s \
+               at ~a; ~a"
+              lede (hazard-later-place hazard) (hazard-earlier-place hazard) (id-sym callee)
+              (hazard-later-op hazard) (format-source-object (hazard-later-src hazard))
+              (hazard-earlier-op hazard) (format-source-object (hazard-earlier-src hazard))
+              advice))))
     )
 
   (Program : Program (ir) -> Program ()

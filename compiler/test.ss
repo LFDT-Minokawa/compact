@@ -925,6 +925,21 @@ groups than for single tests.
     (succeeds)
     )
 
+  ; place references: &T in a type position, &e on a bare name and on an accessor
+  ; chain, and && still lexing as one token.  The formatter round-trips its input,
+  ; so this also checks that print-Lparser emits the & rather than dropping it.
+  (test
+    '(
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit test(k: Bytes<32>, p: Boolean, q: Boolean): Boolean {"
+      "  credit(&alice);"
+      "  credit(&accounts.lookup(k));"
+      "  return p && q;"
+      "}"
+      )
+    (succeeds)
+    )
+
   (test
     '(
       "circuit foo() : Bytes<20> { return 'Hello world!'; }"
@@ -5296,13 +5311,17 @@ groups than for single tests.
              (tfield (field-native))
           (block (const ([x (tundeclared) 7])) (return x))))))
 
+  ; NB: a lone & used to be a lexer error.  It is now a token (the place-reference
+  ; prefix operator), so these two are parse errors instead -- and they point at the &
+  ; itself rather than at the character after it.  The | cases below are unchanged.
   (test
     '(
       "circuit foo(x: Field) : Boolean { return x == 0 &|"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 50" "unexpected ~a" ("character '|'"))))
+      irritants: '("testfile.compact line 1 char 49" "parse error: found ~a looking for~?" ("\"&\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\""))))
+    )
 
   (test
     '(
@@ -5318,7 +5337,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 50" "unexpected ~a" ("end of file")))
+      irritants: '("testfile.compact line 1 char 49" "parse error: found ~a looking for~?" ("\"&\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\"" "\",\"" "\"||\"" "\"&&\"" "\"==\"" "\"!=\"" "\"as\"" "\"+\"" "\"-\"" "\"*\"" "\"[\"" "\".\"" "\"?\"" "\"=\"" "\"+=\"" "\"-=\"" "\"<\"" "\"<=\"" "\">=\"" "\">\""))))
     )
 
   (test
@@ -10086,7 +10105,421 @@ groups than for single tests.
         (import M (1) ""))))
 )
 
+(run-tests expand-place-params
+  ; a place reference to a top-level ledger field: no keys
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  credit(&alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; two different fields: two instances of the same circuit
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  credit(&alice);"
+      "  credit(&bob);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the same field twice: one instance, used twice
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  credit(&alice);"
+      "  credit(&alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; one key: a Map element
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; two keys: a chained access path
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(r: Field, k: Bytes<32>): [] {"
+      "  credit(&regions.lookup(r).lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a key that is an expression rather than a variable
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.lookup(persistentHash<Bytes<32>>(k)));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; two place parameters in one signature, at the same store
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit move(a: &Counter, b: &Counter): [] {"
+      "  a.decrement(1);"
+      "  b.increment(1);"
+      "}"
+      "export circuit test(a: Bytes<32>, b: Bytes<32>): [] {"
+      "  move(&accounts.lookup(a), &accounts.lookup(b));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; two place parameters at different stores
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit move(a: &Counter, b: &Counter): [] {"
+      "  a.decrement(1);"
+      "  b.increment(1);"
+      "}"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  move(&alice, &accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a place parameter alongside ordinary parameters, before and after
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit adjust(n: Uint<16>, acct: &Counter, m: Uint<16>): [] {"
+      "  acct.increment(n);"
+      "  acct.decrement(m);"
+      "}"
+      "export circuit test(): [] {"
+      "  adjust(3, &alice, 1);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a place parameter on a generic circuit
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit twice<T>(x: T, acct: &Counter): T {"
+      "  acct.increment(2);"
+      "  return x;"
+      "}"
+      "export circuit test(): Field {"
+      "  return twice<Field>(1, &alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the operand of & must name a place
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  credit(&(1 as Field));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 10" "the operand of & must name a ledger field, optionally followed by accessor calls" ()))
+    )
+
+  ; a place reference is not a value
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  const x = &alice;"
+      "  credit(&alice);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 13" "a place reference (&e) may appear only as an argument of a circuit call" ()))
+    )
+
+  ; an accessor in a place must take exactly one key
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.lookup(k, k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 19" "an accessor in a place reference must take exactly one key argument, but ~s takes ~d" (lookup 2)))
+    )
+
+  ; an exported circuit's signature faces TypeScript, permanently
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(acct: &Counter): [] {"
+      "  acct.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 21" "a place reference (&T) may not appear in ~a: the caller is TypeScript, which has no way to name a place in the ledger" ("an exported circuit's parameter list")))
+    )
+
+  ; and so does its return type -- this is not a "not yet"
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): &Counter {"
+      "  return &alice;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 1" "a place reference (&T) may not appear in ~a: the caller is TypeScript, which has no way to name a place in the ledger" ("an exported circuit's return type")))
+    )
+
+  ; an internal circuit's return type, by contrast, is merely unbuilt
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit pick(): &Counter {"
+      "  return &alice;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 1" "a place reference (&T) is not yet supported in ~a" ("a circuit's return type")))
+    )
+
+  ; a place nested in a compound parameter type: coherent, not built
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit f(x: [&Counter, Field]): [] { credit(x[0]); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 15" "a place reference (&T) is not yet supported in ~a" ("a circuit's parameter list")))
+    )
+
+  ; a witness is TypeScript on the other side
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "witness w(acct: &Counter): [];"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 17" "a place reference (&T) may not appear in ~a: the caller is TypeScript, which has no way to name a place in the ledger" ("a witness signature")))
+    )
+
+  ; a contract circuit's parameter: the callee is deployed separately
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "contract Bank {"
+      "  circuit credit(acct: &Counter): [];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 24" "a place reference (&T) may not appear in ~a: the callee is a separately deployed contract, so there is no body from which to resolve the place" ("a contract circuit's signature")))
+    )
+
+  ; and its return type, for the same reason -- there is no body to resolve
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "contract Bank {"
+      "  circuit balanceOf(a: Bytes<32>): &Counter;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 36" "a place reference (&T) may not appear in ~a: the callee is a separately deployed contract, so there is no body from which to resolve the place" ("a contract circuit's signature")))
+    )
+
+  ; the ledger holds runtime values; a place is not one
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export ledger m: Map<&Counter, Field>;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 22" "a place reference (&T) may not appear in ~a: a place is a compile-time coordinate, and this design gives it no runtime representation, so it can be neither stored nor serialized" ("a ledger field's type")))
+    )
+
+  ; a struct field: not built, and it would need the struct's uses confined
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "struct S { c: &Counter; n: Field }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 15" "a place reference (&T) is not yet supported in ~a" ("a struct field's type")))
+    )
+
+)
+
 (run-tests expand-modules-and-types
+  ; A local shadowing a place parameter.  expand-place-params decides forward-vs-fresh
+  ; on the name alone, and Compact permits shadowing, so at this use site it guesses
+  ; "forward" wrongly.  That guess is outcome-equivalent: the error comes from resolving
+  ; the ROOT, which depends only on what `acct` is bound to here, not on which keys
+  ; expression was emitted -- the keys are well-formed either way and are discarded.
+  ; This test is what pins that down; see section 13.3 of place-references-impl-plan.md.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "circuit inner(acct: &Counter): [] { acct.increment(1); }"
+      "circuit outer(acct: &Counter): [] {"
+      "  {"
+      "    const acct = 5;"
+      "    inner(&acct);"
+      "  }"
+      "}"
+      "export circuit test(): [] { outer(&alice); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 12" "expected ~s to name a ledger field or a place but it names a ~a" (acct "variable")))
+    )
+
   (test
     '(
       "export circuit foo(a: Boolean) : Boolean { return true; }"
@@ -14949,6 +15382,215 @@ groups than for single tests.
 )
 
 (run-tests infer-types
+  ; The &T annotation is checked against the store the path actually reaches.  This case
+  ; is the reason it has to be: Counter and Set both have resetToDefault, so before the
+  ; check existed this compiled -- the annotation was a lie and nothing caught it, because
+  ; a mismatch surfaced only through whichever ops the body happened to call.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger members: Set<Field>;"
+      "circuit reset(x: &Counter): [] { x.resetToDefault(); }"
+      "export circuit test(): [] {"
+      "  reset(&members);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 10" "this place is declared &~a but ~a reaches ~a" ("Counter" members "Set<Field>")))
+    )
+
+  ; and the annotation still has to match through a chained path
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger regions: Map<Field, Map<Field, Counter>>;"
+      "circuit reset(x: &Counter): [] { x.resetToDefault(); }"
+      "export circuit test(r: Field): [] {"
+      "  reset(&regions.lookup(r));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 10" "this place is declared &~a but ~a reaches ~a" ("Counter" regions "Map<Field, Counter>")))
+    )
+
+  ; place: no keys, specialized and type-checked
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(): [] {"
+      "  credit(&alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; place: one key, tkeys resolves to [Bytes<32>]
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; place: two keys, tkeys resolves to [Field, Bytes<32>]
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(r: Field, k: Bytes<32>): [] {"
+      "  credit(&regions.lookup(r).lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the same circuit used at one key and at two
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger regions: Map<Field, Map<Bytes<32>, Counter>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(r: Field, k: Bytes<32>): [] {"
+      "  credit(&accounts.lookup(k));"
+      "  credit(&regions.lookup(r).lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the ledger fields a place names are declared after the circuits that use them.
+  ; infer-types must have registered their types before it types any signature,
+  ; because a tkeys type in a signature resolves against the field's type.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "circuit bump(acct: &Counter): [] { credit(&late); acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&late);"
+      "  bump(&lateMap.lookup(k));"
+      "}"
+      "export ledger late: Counter;"
+      "export ledger lateMap: Map<Bytes<32>, Counter>;"
+      )
+    (succeeds)
+    )
+
+  ; three levels of nesting: three keys of two different types
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger deep: Map<Field, Map<Field, Map<Bytes<32>, Counter>>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(a: Field, b: Field, k: Bytes<32>): [] {"
+      "  credit(&deep.lookup(a).lookup(b).lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a store other than Counter, reached both at depth 0 and under a key
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger members: Set<Bytes<32>>;"
+      "export ledger groups: Map<Field, Set<Bytes<32>>>;"
+      "circuit add(s: &Set<Bytes<32>>, x: Bytes<32>): [] { s.insert(x); }"
+      "export circuit test(g: Field, x: Bytes<32>): [] {"
+      "  add(&members, x);"
+      "  add(&groups.lookup(g), x);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a navigation step must land on a store: member returns Boolean
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger plain: Map<Bytes<32>, Uint<64>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.member(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 11" "~a ~s returns ~a, which is not a ledger ADT, so it cannot be used to navigate a place" (Map member "Boolean")))
+    )
+
+  ; an op called with one key but declaring two cannot navigate
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger plain: Map<Bytes<32>, Uint<64>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&accounts.insert(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 11" "~a ~s takes ~d arguments and cannot be used to navigate a place" (Map insert 2)))
+    )
+
+  ; the op has to exist on the ADT at that position
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger plain: Map<Bytes<32>, Uint<64>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&alice.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 11" "~a has no operation named ~s to navigate through" (Counter lookup)))
+    )
+
+  ; a Map of plain values: lookup yields a value, not a store
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger plain: Map<Bytes<32>, Uint<64>>;"
+      "circuit credit(acct: &Counter): [] { acct.increment(1); }"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  credit(&plain.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 7 char 11" "~a ~s returns ~a, which is not a ledger ADT, so it cannot be used to navigate a place" (Map lookup "Uint<64>")))
+    )
+
   (test
     '("import CompactStandardLibrary;")
     (returns
@@ -31040,6 +31682,360 @@ groups than for single tests.
           (public-ledger %q.1
             (lookup (safe-cast (tunsigned 255) (tunsigned 7) 7))
             (lookup (safe-cast (tunsigned 255) (tunsigned 11) 11))))))
+    )
+)
+
+(run-tests check-place-aliasing
+  ; the same, through the `read` op rather than `lessThan`
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit peek2(a: &Counter, b: &Counter): [] {"
+      "  b.increment(1);"
+      "  assert(a.read() < 100, \"big\");"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): [] {"
+      "  peek2(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 3" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call may pass one location" a b peek2 "line 7 char 10" "line 6 char 3" "assert that the two keys differ before the call")))
+    )
+
+  ; a read-after-write where the read is not the body's final expression
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit poke(a: &Counter, b: &Counter): [] {"
+      "  b.increment(1);"
+      "  assert(a.lessThan(100), \"big\");"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): [] {"
+      "  poke(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 3" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call may pass one location" a b poke "line 7 char 10" "line 6 char 3" "assert that the two keys differ before the call")))
+    )
+
+  ; commuting writes through two places: correct when aliased, E4's canonical false positive
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit move(a: &Counter, b: &Counter): [] {"
+      "  a.decrement(1);"
+      "  b.increment(1);"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): [] {"
+      "  move(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; read then write through the SAME place is not an aliasing question
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit bump(acct: &Counter): [] {"
+      "  assert(acct.lessThan(100), \"too big\");"
+      "  acct.increment(1);"
+      "}"
+      "export circuit test(k: Bytes<32>): [] {"
+      "  bump(&accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; two places rooted at different ledger fields can never be the same location
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit move(a: &Counter, b: &Counter): [] {"
+      "  b.increment(1);"
+      "  assert(a.lessThan(100), \"big\");"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): [] {"
+      "  move(&accounts.lookup(j), &others.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; E6's escape hatch: a disequality asserted before the call excuses it.  Note the call
+  ; is itself in trailing position, so this also covers assert-before-call ordering --
+  ; which the same traversal-order bug had made vacuous.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): Uint<64> {"
+      "  assert(j != k, \"distinct\");"
+      "  return peek(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; REGRESSION: the read is the body's FINAL expression, so it is the circuit's result.
+  ; Nanopass visits a seq's trailing expression first (Chez evaluates let bindings right
+  ; to left), so an earlier version of the pass recorded this read before the write that
+  ; precedes it and never fired.  Events are now ordered by source position; this test is
+  ; what catches a regression to traversal order.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): Uint<64> {"
+      "  return peek(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 10" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call may pass one location" a b peek "line 7 char 10" "line 6 char 3" "assert that the two keys differ before the call")))
+    )
+
+  ; two writes that do not commute: increment then resetToDefault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit drain(a: &Counter, b: &Counter): [] {"
+      "  b.increment(1);"
+      "  a.resetToDefault();"
+      "}"
+      "export circuit test(j: Bytes<32>, k: Bytes<32>): [] {"
+      "  drain(&accounts.lookup(j), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 3" "~a as both places ~s and ~s of ~a, where ~s at ~a does not commute with ~s at ~a; ~a" ("this call may pass one location" a b drain resetToDefault "line 7 char 3" increment "line 6 char 3" "assert that the two keys differ before the call")))
+    )
+
+  ; ---------------------------------------------------------------------------
+  ; E7, definite aliases.  A place whose path has no Map lookup carries no keys, so
+  ; nothing in the specialized body distinguishes it from a hand-written access; the
+  ; provenance table in expand-modules-and-types is what makes these visible here.
+  ; Note the wording: "passes", not "may pass", and no advice to assert anything.
+
+  ; the same field passed as both places, and the body reads one after writing the other
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(): Uint<64> {"
+      "  return peek(&alice, &alice);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 10" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call passes one location" a b peek "line 6 char 10" "line 5 char 3" "pass two different places")))
+    )
+
+  ; two DIFFERENT fields, same circuit: the specialization decides, and these cannot be
+  ; one location
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(): Uint<64> {"
+      "  return peek(&alice, &bob);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a read-only callee given the same place twice is harmless, and must not be rejected.
+  ; This is what a syntactic "the same argument twice" check in the front end would get
+  ; wrong, and the reason E7 is decided here instead.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "circuit both(a: &Counter, b: &Counter): [] {"
+      "  assert(a.lessThan(100), \"a\");"
+      "  assert(b.lessThan(100), \"b\");"
+      "}"
+      "export circuit test(): [] {"
+      "  both(&alice, &alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; likewise the same place twice into commuting writes: E4 says this is correct when
+  ; aliased, and a definite alias does not change that
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "circuit move(a: &Counter, b: &Counter): [] {"
+      "  a.decrement(1);"
+      "  b.increment(1);"
+      "}"
+      "export circuit test(): [] {"
+      "  move(&alice, &alice);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the discrimination that makes the above possible: the identical op sequence written
+  ; directly against the ledger field has no place provenance and is not an alias question
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger alice: Counter;"
+      "export ledger bob: Counter;"
+      "export circuit test(): Uint<64> {"
+      "  alice.increment(1);"
+      "  return alice.read();"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a definite alias that carries keys: every key position holds the same expression, so
+  ; this is as certain as the no-keys case and reads the same way
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(k: Bytes<32>): Uint<64> {"
+      "  return peek(&accounts.lookup(k), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 10" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call passes one location" a b peek "line 5 char 10" "line 4 char 3" "pass two different places")))
+    )
+
+  ; §15.1: a statically false assertion must not silence the check.  `assert(k != k)`
+  ; matches at every key position where both places use k, so before the guard in
+  ; separated? this call was excused -- the error became a guaranteed run-time abort.
+  ; Reported as definite, since identical keys are one key.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(k: Bytes<32>): Uint<64> {"
+      "  assert(k != k, \"distinct\");"
+      "  return peek(&accounts.lookup(k), &accounts.lookup(k));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 10" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call passes one location" a b peek "line 5 char 10" "line 4 char 3" "pass two different places")))
+    )
+
+  ; the multi-key version of the same hole: the first key position is shared and the
+  ; second is genuinely asserted distinct, so the call IS excused -- but only because of
+  ; the second position.  An assertion about the shared one could never have done it.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger regions: Map<Bytes<32>, Map<Bytes<32>, Counter>>;"
+      "circuit peek(a: &Counter, b: &Counter): Uint<64> {"
+      "  b.increment(1);"
+      "  return a.read();"
+      "}"
+      "export circuit test(r: Bytes<32>, j: Bytes<32>, k: Bytes<32>): Uint<64> {"
+      "  assert(j != k, \"distinct\");"
+      "  return peek(&regions.lookup(r).lookup(j), &regions.lookup(r).lookup(k));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the place is the Map itself and the callee supplies its own key.  The navigation
+  ; accessor exists but its key is an ordinary parameter, so it carries no provenance
+  ; either; the root reference is what attributes these two accesses.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit peek(m: &Map<Bytes<32>, Counter>, n: &Map<Bytes<32>, Counter>, k: Bytes<32>): Uint<64> {"
+      "  n.lookup(k).increment(1);"
+      "  return m.lookup(k).read();"
+      "}"
+      "export circuit test(k: Bytes<32>): Uint<64> {"
+      "  return peek(&accounts, &accounts, k);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 10" "~a as both places ~s and ~s of ~a, which reads it at ~a after writing it at ~a; ~a" ("this call passes one location" m n peek "line 6 char 10" "line 5 char 3" "pass two different places")))
+    )
+
+  ; and the same two Maps kept distinct
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export ledger others: Map<Bytes<32>, Counter>;"
+      "circuit peek(m: &Map<Bytes<32>, Counter>, n: &Map<Bytes<32>, Counter>, k: Bytes<32>): Uint<64> {"
+      "  n.lookup(k).increment(1);"
+      "  return m.lookup(k).read();"
+      "}"
+      "export circuit test(k: Bytes<32>): Uint<64> {"
+      "  return peek(&accounts, &others, k);"
+      "}"
+      )
+    (succeeds)
     )
 )
 
@@ -72452,6 +73448,62 @@ groups than for single tests.
       irritants: '("testfile.compact line 1 char 16" "unbound identifier ~s" (MerkleTree)))
     )
 
+  ; END TO END: a place has to survive the whole pipeline, not just the analysis passes.
+  ; Every other place test stops at the pass it names, and the furthest of them reaches
+  ; check-place-aliasing -- 9th of 19 analysis passes.  So until these tests, nothing had
+  ; run determine-ledger-paths, propagate-ledger-paths, check-ledger-budgets,
+  ; expand-serialize, track-witness-data or the zkir and TypeScript back ends over a
+  ; program containing a place.  first-class-adts-design.md rests on the claim that
+  ; propagate-ledger-paths needs no change to accommodate `&`; these are the test of it.
+  ;
+  ; disclose(n) is the ordinary discipline, not a place-specific requirement: n is a
+  ; parameter of an exported circuit and reaches a ledger update.  The control test below
+  ; is the same contract written without `&` and needs exactly the same disclosure, which
+  ; is the point of having it -- the pair is a differential test that a place compiles to
+  ; the same obligations as the code a user would otherwise write by hand.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "circuit credit(acct: &Counter, n: Uint<16>): [] { acct.increment(n); }"
+      "export circuit deposit(k: Bytes<32>, n: Uint<16>): [] {"
+      "  credit(&accounts.lookup(k), disclose(n));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; CONTROL: the same contract with no place at all.  If this ever diverges from the one
+  ; above -- one compiling and the other not -- the desugaring has stopped being faithful.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "export circuit deposit(k: Bytes<32>, n: Uint<16>): [] {"
+      "  accounts.lookup(k).increment(disclose(n));"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; END TO END: transfer(from, to, amount), the example that motivated the whole feature.
+  ; Two places at one store, both writes; they commute, so the alias check accepts them
+  ; with no assertion -- E4's correct-when-aliased case, compiled all the way down.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger accounts: Map<Bytes<32>, Counter>;"
+      "circuit move(a: &Counter, b: &Counter, n: Uint<16>): [] {"
+      "  a.decrement(n);"
+      "  b.increment(n);"
+      "}"
+      "export circuit transfer(j: Bytes<32>, k: Bytes<32>, n: Uint<16>): [] {"
+      "  move(&accounts.lookup(j), &accounts.lookup(k), disclose(n));"
+      "}"
+      )
+    (succeeds)
+    )
+
   (test
     '(
       "export circuit foo() : Bytes<32> { nativeToken(); }"
@@ -90713,6 +91765,195 @@ groups than for single tests.
         "  expect((await contract.circuits.test1(context, 'Hello, Compact!')).result).toEqual([]);"
         "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test1(context, 0n)).rejects.toThrow('type error: ');"
+        "});"
+        ))
+    )
+
+  ; RUNNABLE: the tests that actually execute code compiled from a place.  Everything
+  ; else in the suite checks that a place compiles or that an IR has a shape; only these
+  ; observe a value.
+  ;
+  ; The spread matters as much as the cases.  A place has four independent dimensions --
+  ; how many keys are on the path (zero, one, several), which store it lands on, whether
+  ; the circuit taking it is generic, and how many places one circuit takes -- and the
+  ; unit tests cover all of them while executing none.  Zero keys is the degenerate one
+  ; worth naming: it produces an EMPTY keys tuple and a zero-member ttuple, which is the
+  ; shape codegen and serialization are most likely to mishandle.
+  ;
+  ; Lookup keys are not disclosed and insert keys are, following
+  ; doc/compact-reference.mdx:1678 -- see section 14 of place-references-impl-plan.md for
+  ; the open question about whether lookup keys should be.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger counters: Map<Field, Counter>;"
+      "ledger regions: Map<Field, Map<Field, Counter>>;"
+      "ledger solo: Counter;"
+      "ledger members: Set<Field>;"
+      ""
+      "circuit credit(acct: &Counter, n: Uint<16>): [] { acct.increment(n); }"
+      ""
+      "circuit move(a: &Counter, b: &Counter, n: Uint<16>): [] {"
+      "  a.decrement(n);"
+      "  b.increment(n);"
+      "}"
+      ""
+      "circuit addTo(s: &Set<Field>, x: Field): [] { s.insert(x); }"
+      ""
+      "circuit twice<T>(x: T, acct: &Counter): T {"
+      "  acct.increment(2);"
+      "  return x;"
+      "}"
+      ""
+      "export circuit init(k: Field): [] {"
+      "  counters.insert(disclose(k), default<Counter>);"
+      "}"
+      ""
+      "export circuit initRegion(r: Field): [] {"
+      "  regions.insert(disclose(r), default<Map<Field, Counter>>);"
+      "}"
+      ""
+      "export circuit initRegionCounter(r: Field, k: Field): [] {"
+      "  regions.lookup(r).insert(disclose(k), default<Counter>);"
+      "}"
+      ""
+      "export circuit viaPlace(k: Field, n: Uint<16>): [] {"
+      "  credit(&counters.lookup(k), disclose(n));"
+      "}"
+      ""
+      "export circuit viaHand(k: Field, n: Uint<16>): [] {"
+      "  counters.lookup(k).increment(disclose(n));"
+      "}"
+      ""
+      "export circuit transfer(j: Field, k: Field, n: Uint<16>): [] {"
+      "  move(&counters.lookup(j), &counters.lookup(k), disclose(n));"
+      "}"
+      ""
+      "export circuit creditSolo(n: Uint<16>): [] { credit(&solo, disclose(n)); }"
+      "export circuit soloValue(): Uint<64> { return solo.read(); }"
+      ""
+      "export circuit creditNested(r: Field, k: Field, n: Uint<16>): [] {"
+      "  credit(&regions.lookup(r).lookup(k), disclose(n));"
+      "}"
+      "export circuit nestedValue(r: Field, k: Field): Uint<64> {"
+      "  return regions.lookup(r).lookup(k).read();"
+      "}"
+      ""
+      "export circuit addMember(x: Field): [] { addTo(&members, disclose(x)); }"
+      "export circuit isMember(x: Field): Boolean { return members.member(disclose(x)); }"
+      ""
+      "circuit creditVia(acct: &Counter, n: Uint<16>): [] { credit(&acct, n); }"
+      ""
+      "circuit creditIn(m: &Map<Field, Counter>, k: Field, n: Uint<16>): [] {"
+      "  credit(&m.lookup(k), n);"
+      "}"
+      ""
+      "export circuit viaForward(k: Field, n: Uint<16>): [] {"
+      "  creditVia(&counters.lookup(k), disclose(n));"
+      "}"
+      ""
+      "export circuit viaExtend(r: Field, k: Field, n: Uint<16>): [] {"
+      "  creditIn(&regions.lookup(r), k, disclose(n));"
+      "}"
+      ""
+      "export circuit genericBump(k: Field, x: Field): Field {"
+      "  return twice<Field>(x, &counters.lookup(k));"
+      "}"
+      ""
+      "export circuit balanceOf(k: Field): Uint<64> {"
+      "  return counters.lookup(k).read();"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a place and the hand-written equivalent agree', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.init(Ctxt, 1n);"
+        "  t = await C.circuits.init(t.context, 2n);"
+        "  t = await C.circuits.viaPlace(t.context, 1n, 5n);"
+        "  t = await C.circuits.viaHand(t.context, 2n, 5n);"
+        "  t = await C.circuits.balanceOf(t.context, 1n);"
+        "  expect(t.result).toEqual(5n);"
+        "  t = await C.circuits.balanceOf(t.context, 2n);"
+        "  expect(t.result).toEqual(5n);"
+        "});"
+        "test('two places at one store keep their keys straight', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.init(Ctxt, 1n);"
+        "  t = await C.circuits.init(t.context, 2n);"
+        "  t = await C.circuits.viaPlace(t.context, 1n, 10n);"
+        "  t = await C.circuits.transfer(t.context, 1n, 2n, 3n);"
+        "  t = await C.circuits.balanceOf(t.context, 1n);"
+        "  expect(t.result).toEqual(7n);"
+        "  t = await C.circuits.balanceOf(t.context, 2n);"
+        "  expect(t.result).toEqual(3n);"
+        "});"
+        "test('one specialization used at two keys does not conflate them', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.init(Ctxt, 1n);"
+        "  t = await C.circuits.init(t.context, 2n);"
+        "  t = await C.circuits.viaPlace(t.context, 1n, 4n);"
+        "  t = await C.circuits.viaPlace(t.context, 2n, 7n);"
+        "  t = await C.circuits.balanceOf(t.context, 1n);"
+        "  expect(t.result).toEqual(4n);"
+        "  t = await C.circuits.balanceOf(t.context, 2n);"
+        "  expect(t.result).toEqual(7n);"
+        "});"
+        "test('zero keys: a place at a top-level field, empty keys tuple', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.creditSolo(Ctxt, 5n);"
+        "  t = await C.circuits.creditSolo(t.context, 6n);"
+        "  t = await C.circuits.soloValue(t.context);"
+        "  expect(t.result).toEqual(11n);"
+        "});"
+        "test('two keys: a place reached through a chained path', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.initRegion(Ctxt, 1n);"
+        "  t = await C.circuits.initRegionCounter(t.context, 1n, 2n);"
+        "  t = await C.circuits.initRegionCounter(t.context, 1n, 3n);"
+        "  t = await C.circuits.creditNested(t.context, 1n, 2n, 9n);"
+        "  t = await C.circuits.nestedValue(t.context, 1n, 2n);"
+        "  expect(t.result).toEqual(9n);"
+        "  t = await C.circuits.nestedValue(t.context, 1n, 3n);"
+        "  expect(t.result).toEqual(0n);"
+        "});"
+        "test('a store that is not a Counter', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.addMember(Ctxt, 42n);"
+        "  t = await C.circuits.isMember(t.context, 42n);"
+        "  expect(t.result).toEqual(true);"
+        "  t = await C.circuits.isMember(t.context, 43n);"
+        "  expect(t.result).toEqual(false);"
+        "});"
+        "test('forwarding: a place passed on to another circuit', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.init(Ctxt, 1n);"
+        "  t = await C.circuits.init(t.context, 2n);"
+        "  t = await C.circuits.viaForward(t.context, 1n, 8n);"
+        "  t = await C.circuits.balanceOf(t.context, 1n);"
+        "  expect(t.result).toEqual(8n);"
+        "  t = await C.circuits.balanceOf(t.context, 2n);"
+        "  expect(t.result).toEqual(0n);"
+        "});"
+        "test('forwarding with extension: keys are concatenated, not replaced', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.initRegion(Ctxt, 1n);"
+        "  t = await C.circuits.initRegionCounter(t.context, 1n, 2n);"
+        "  t = await C.circuits.initRegionCounter(t.context, 1n, 3n);"
+        "  t = await C.circuits.viaExtend(t.context, 1n, 2n, 6n);"
+        "  t = await C.circuits.nestedValue(t.context, 1n, 2n);"
+        "  expect(t.result).toEqual(6n);"
+        "  t = await C.circuits.nestedValue(t.context, 1n, 3n);"
+        "  expect(t.result).toEqual(0n);"
+        "});"
+        "test('a generic circuit taking a place', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var t = await C.circuits.init(Ctxt, 1n);"
+        "  t = await C.circuits.genericBump(t.context, 1n, 77n);"
+        "  expect(t.result).toEqual(77n);"
+        "  t = await C.circuits.balanceOf(t.context, 1n);"
+        "  expect(t.result).toEqual(2n);"
         "});"
         ))
     )

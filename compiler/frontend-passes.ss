@@ -44,6 +44,8 @@
 
   (include "frontend-passes/eliminate-boolean-connectives.ss")
 
+  (include "frontend-passes/expand-place-params.ss")
+
   (include "frontend-passes/prepare-for-expand.ss")
 
   (define-passes frontend-passes
@@ -56,5 +58,6 @@
     (reject-duplicate-bindings       Lhoisted)
     (eliminate-statements            Lexpr)
     (eliminate-boolean-connectives   Lnoandornot)
+    (expand-place-params             Lnoplace)
     (prepare-for-expand              Lpreexpand))
 )

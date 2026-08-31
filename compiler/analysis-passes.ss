@@ -25,6 +25,7 @@
           (nanopass)
           (only (nanopass-extension) strict-nanopass-case) 
           (langs)
+          (only (vm) expand-vm-code vminstr-op vminstr-arg*)
           (ledger)
           (natives)
           (events)
@@ -63,7 +64,11 @@
 
   (include "analysis-passes/propagate-ledger-paths.ss")
 
+  (include "analysis-passes/check-ledger-budgets.ss")
+
   (include "analysis-passes/track-witness-data.ss")
+
+  (include "analysis-passes/check-place-aliasing.ss")
 
   (include "analysis-passes/remove-disclose.ss")
 
@@ -80,11 +85,13 @@
     (reject-recursive-circuits       Loneledger)
     (recognize-let                   Lnodca)
     (check-sealed-fields             Lnodca)
+    (check-place-aliasing            Lnodca)
     (reject-constructor-emit         Lnodca)
     (reject-constructor-cc-calls     Lnodca)
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
+    (check-ledger-budgets            Lwithpaths)
     (track-witness-data              Lwithpaths)
     (remove-disclose                 Lnodisclose)
     (expand-serialize                Lnoserialize)

@@ -224,6 +224,8 @@
        `(tuple-slice ,src ,expr ,index ,tsize)]
       [(not ,src ,bang ,[expr])
        `(not ,src ,expr)]
+      [(place-ref ,src ,amp ,[expr])
+       `(place-ref ,src ,expr)]
       [(map ,src ,kwd ,lparen ,[fun] ,comma (,[expr] ,[expr*] ...) (,comma* ...) ,rparen)
        `(map ,src ,fun ,expr ,expr* ...)]
       [(fold ,src ,kwd ,lparen ,[fun] ,comma (,[expr0] ,[expr] ,[expr*] ...) (,comma* ...) ,rparen)
@@ -290,7 +292,9 @@
       [(tvector ,src ,kwd ,langle ,[tsize] ,comma ,[type] ,rangle)
        `(tvector ,src ,tsize ,type)]
       [(ttuple ,src ,lbracket (,[type*] ...) (,comma* ...) ,rbracket)
-       `(ttuple ,src ,type* ...)])
+       `(ttuple ,src ,type* ...)]
+      [(tplace ,src ,amp ,[type])
+       `(tplace ,src ,type)])
     (Type-Ref : Type-Ref (ir) -> Type-Ref ()
       [(type-ref ,src ,tvar-name ,generic-arg-list?)
        (let ([targ* (if generic-arg-list? (Generic-Arg-List generic-arg-list?) '())])

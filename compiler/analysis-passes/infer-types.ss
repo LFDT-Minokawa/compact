@@ -424,7 +424,9 @@
                             (map (lambda (generic-value)
                                    (nanopass-case (Lexpanded Generic-Value) generic-value
                                      [,type (format "type ~a" (format-type (Type type)))]
-                                     [,nat (format "size ~d" nat)]))
+                                     [,nat (format "size ~d" nat)]
+                                     [,ledger-field-name
+                                      (format "ledger field ~s" (id-sym ledger-field-name))]))
                                  generic-value*)
                             generic-failure*)))
                    (let ([arg-incompatible* (map (lambda (blob)
@@ -959,6 +961,10 @@
        (make-hashtable
          (lambda (ct) (symbol-hash (contract-name ct)))
          sametype?))
+     ; ledger declarations first: a tkeys type in a circuit's signature is resolved
+     ; against the ledger field's type, and a circuit may precede the field it names
+     (for-each Set-Ledger-Type! unused-pelt*)
+     (for-each Set-Ledger-Type! pelt*)
      (for-each Set-Program-Element-Type! unused-pelt*)
      (for-each Set-Program-Element-Type! pelt*)
      (for-each External-Contract-Declaration! ecdecl*)
@@ -979,6 +985,10 @@
                    (vector->list (hashtable-keys contract-type-ht)))])
            (for-each (contract-implements! pelt* export-name* name*) cidecl*)
            `(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...))))])
+  (Set-Ledger-Type! : Program-Element (ir) -> * (void)
+    [(public-ledger-declaration ,src ,ledger-field-name ,[type])
+     (set-idtype! ledger-field-name (Idtype-Base type))]
+    [else (void)])
   (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
     (definitions
       (define (build-function kind is-native name arg* type)
@@ -1034,8 +1044,70 @@
        `(,var-name ,type))])
   (Return-Type : Type (ir src what) -> Type ()
     [else (Non-ADT-Type ir src "~a return" what)])
-  (Generic-Value : Generic-Value (ir) -> Public-Ledger-ADT-Arg ())
+  (Generic-Value : Generic-Value (ir) -> Public-Ledger-ADT-Arg ()
+    ; a place argument can never be a ledger ADT's generic argument
+    [,ledger-field-name (assert cannot-happen)])
   (Type : Type (ir) -> Type ()
+    ; type2 is the T the user wrote in &T.  It has to be spelled with the Type
+    ; metavariable for nanopass to place it; declared-type below is the readable name.
+    [(tkeys ,src ,ledger-field-name (,elt-name* ...) ,[type2])
+     ; the tuple of key types along a place's access path, read off the signatures of
+     ; the accessors it applies
+     (let ([declared-type type2])
+     (let loop ([elt-name* elt-name*]
+                [type (Idtype-case (get-idtype src ledger-field-name)
+                        [(Idtype-Base type) type]
+                        [else (source-errorf src "~s does not name a ledger field"
+                                             (id-sym ledger-field-name))])]
+                [rtype* '()])
+       (if (null? elt-name*)
+           (let ([type* (reverse rtype*)])
+             ; The path is fully walked, so `type` is the store the place actually
+             ; reaches.  Check it against the T the user wrote in &T -- until now that
+             ; annotation was discarded, so a mismatch was caught only by whichever ops
+             ; the body happened to call, and `&Counter` supplied with a Set compiled
+             ; whenever the body used an operation both happen to have.
+             (unless (sametype? type declared-type)
+               (source-errorf src
+                 "this place is declared &~a but ~a reaches ~a"
+                 (format-type declared-type)
+                 (id-sym ledger-field-name)
+                 (format-type type)))
+             `(ttuple ,src ,type* ...))
+           (nanopass-case (Ltypes Type) (de-alias type #t)
+             [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+              (let scan ([adt-op^* adt-op*])
+                (if (null? adt-op^*)
+                    (source-errorf src "~a has no operation named ~s to navigate through"
+                                   adt-name (car elt-name*))
+                    (nanopass-case (Ltypes ADT-Op) (car adt-op^*)
+                      [(,ledger-op ,op-class ((,var-name* ,type^* ,discloses?*) ...) ,type^ ,vm-code)
+                       (if (eq? ledger-op (car elt-name*))
+                           (begin
+                             (unless (fx= (length type^*) 1)
+                               (source-errorf src
+                                 "~a ~s takes ~d arguments and cannot be used to navigate a place"
+                                 adt-name ledger-op (length type^*)))
+                             ; A place denotes a store, so every step of the path -- the last
+                             ; one included -- has to land on a ledger ADT.  Without this the
+                             ; loop would accept `&m.member(k)`: member takes one argument, so
+                             ; it is consumed as a navigation step, and the loop then exits on
+                             ; an empty elt-name* without ever looking at what it landed on.
+                             ; The place would denote a location "at" a Boolean.
+                             ;
+                             ; Testing the return type is also the forward-compatible form of
+                             ; C4's "nesting-capable op": today only Map.lookup qualifies, and
+                             ; once store-nesting-impl-plan.md adds the nav op class every nav
+                             ; op will qualify by construction, with no change here.
+                             (unless (public-adt? type^)
+                               (source-errorf src
+                                 "~a ~s returns ~a, which is not a ledger ADT, so it cannot \
+                                  be used to navigate a place"
+                                 adt-name ledger-op (format-type type^)))
+                             (loop (cdr elt-name*) type^ (cons (car type^*) rtype*)))
+                           (scan (cdr adt-op^*)))])))]
+             [else (source-errorf src "~a is not a ledger ADT type and cannot be navigated"
+                                  (format-type type))]))))]
     [(tboolean ,src) `(tboolean ,src)]
     [(tfield ,src ,[ftype]) `(tfield ,src ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,src ,nat)]

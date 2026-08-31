@@ -1250,6 +1250,9 @@
       [(not ,src ,bang ,expr)
        (// src
            (make-Qconcat #f (make-Qtoken bang) (Expression expr)))]
+      [(place-ref ,src ,amp ,expr)
+       (// src
+           (make-Qconcat #f (make-Qtoken amp) (Expression expr)))]
       [(map ,src ,kwd ,lparen ,fun ,comma (,expr ,expr* ...) (,comma* ...) ,rparen)
        (// src
            (make-Qconcat #f
@@ -1406,7 +1409,10 @@
        (// src
            (make-Qconcat #f
              (make-Qtoken lbracket)
-             (make-Qsep/closer #f comma* (map Type type*) #f rbracket)))])
+             (make-Qsep/closer #f comma* (map Type type*) #f rbracket)))]
+      [(tplace ,src ,amp ,type)
+       (// src
+           (make-Qconcat #f (make-Qtoken amp) (Type type)))])
     (Type-Ref : Type-Ref (ir) -> * (q)
       [(type-ref ,src ,tvar-name ,generic-arg-list?)
        (// src

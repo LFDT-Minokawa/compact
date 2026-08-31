@@ -281,7 +281,7 @@
           [else (ungetc c) (return-token 'binop #\>)])
         (define-state-case seen-ampersand c
           [#\& (return-token 'binop "&&")]
-          [else (unexpected c)])
+          [else (ungetc c) (return-token 'punctuation #\&)])
         (define-state-case seen-vertical-bar c
           [#\| (return-token 'binop "||")]
           [else (unexpected c)])

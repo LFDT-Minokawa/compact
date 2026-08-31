@@ -28,9 +28,10 @@
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
           Lexpr unparse-Lexpr Lexpr-pretty-formats
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
+          Lnoplace unparse-Lnoplace Lnoplace-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
+          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-place-name id-place-name-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
@@ -252,6 +253,7 @@
       (or src expr1 expr2)                                => (or expr1 3 expr2)
       (and src expr1 expr2)                               => (and expr1 4 expr2)
       (not src expr)                                      => (not expr)
+      (place-ref src expr)                                => (place-ref expr)
       (< src expr1 expr2)                                 => (< expr1 expr2)
       (<= src expr1 expr2)                                => (<= expr1 3 expr2)
       (> src expr1 expr2)                                 => (> expr1 expr2)
@@ -294,6 +296,7 @@
       (topaque src opaque-type)              => (topaque opaque-type)
       (tvector src tsize type)               => (tvector tsize type)
       (ttuple src type* ...)                 => (ttuple type* ...)
+      (tplace src type)                      => (tplace type)
       (tundeclared)                          => (tundeclared)
       )
     (Type-Ref (tref)
@@ -402,11 +405,31 @@
          (or src expr1 expr2)
          (not src expr))))
 
+  (define-language/pretty Lnoplace (extends Lnoandornot)
+    (Type (type)
+      (- (tplace src type))
+      ; the tuple of Map keys along a place parameter's access path.  Its width is
+      ; instance-dependent, so it stays symbolic until infer-types, which knows the
+      ; ledger field's type and can read the key types off the accessors' signatures.
+      ; type is the T the user wrote in &T.  It rides on tkeys because tkeys is the only
+      ; node that survives to a point where both the declared store type and the store the
+      ; access path actually reaches are known -- infer-types compares them there.  The
+      ; place parameter itself is erased by monomorphization long before that.
+      (+ (tkeys src tvar-name type) => (tkeys tvar-name type)))
+    (Expression (expr index)
+      (- (place-ref src expr)))
+    ; a place parameter is a generic parameter whose argument is a ledger field and a
+    ; sequence of accessors applied to it
+    (Type-Param (type-param)
+      (+ (place-valued src tvar-name) => (place-valued tvar-name)))
+    (Type-Argument (targ)
+      (+ (targ-place src var-name (elt-name* ...)) => (targ-place var-name (elt-name* ...)))))
+
   (define-record-type native-entry
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
-  (define-language/pretty Lpreexpand (extends Lnoandornot)
+  (define-language/pretty Lpreexpand (extends Lnoplace)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
@@ -459,18 +482,29 @@
       (+ (curve-secp256k1)))
     )
 
-  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
+  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-place-name id-place-name-set! id-prefix)
     (define id-prefix (make-parameter "%"))
     (define id-counter (make-parameter 0))
     (define-record-type id
+      ; place-name is the provenance of a place's keys parameter: the name the user
+      ; wrote for the place parameter (`from` in `circuit move(from: &Counter, ...)`),
+      ; stamped by expand-modules-and-types.  It is #f for every other id.
+      ;
+      ; It lives on the id rather than in the language because the keys parameter is an
+      ; ordinary Argument in Ltypes and Lnodca -- nothing structural distinguishes it --
+      ; and check-place-aliasing needs to say which place a ledger access came from,
+      ; long after monomorphization has erased the place parameters themselves.
+      ; Carrying it on the id keeps the attribution immune to renaming, where matching
+      ; on the "__compact_place_keys_" prefix would not be.
       (nongenerative)
-      (fields src sym (mutable refcount) (mutable flags) (mutable uniq $id-uniq $id-uniq-set!))
+      (fields src sym (mutable refcount) (mutable flags) (mutable uniq $id-uniq $id-uniq-set!)
+              (mutable place-name))
       (protocol
         (lambda (new)
           (lambda (src sym)
             (unless (source-object? src) (errorf 'make-id "~s is not a source object" src))
             (unless (symbol? sym) (errorf 'make-id "~s is not a symbol" sym))
-            (new src sym 0 0 #f)))))
+            (new src sym 0 0 #f #f)))))
     (module (id-exported? id-exported?-set!
              id-pure? id-pure?-set!
              id-sealed? id-sealed?-set!
@@ -588,7 +622,8 @@
     (Type-Param (type-param)
       (- (nat-valued src tvar-name))
       (- (type-valued src tvar-name))
-      (- (non-adt-type-valued src tvar-name)))
+      (- (non-adt-type-valued src tvar-name))
+      (- (place-valued src tvar-name)))
     (Argument (arg local)
       (- (src var-name type))
       (+ (var-name type) => (bracket var-name type)))
@@ -614,14 +649,18 @@
            (fref ((function-name** ...) ...))))
     (Generic-Value (generic-value)
       (+ nat
-         type))
+         type
+         ; a place argument: the ledger field the caller named
+         ledger-field-name))
     (Type (type)
       (- tref
          (tunsigned src tsize)
          (tunsigned src tsize tsize^)
          (tvector src tsize type)
          (tbytes src tsize))
+      (- (tkeys src tvar-name type))
       (+ tvar-name ; should appear only in external type declarations
+         (tkeys src ledger-field-name (elt-name* ...) type) => (tkeys ledger-field-name (elt-name* ...) type)
          (tunsigned src nat)    => (tunsigned nat) ; nat = max value
          (tvector src len type) => (tvector len type)
          (tbytes src len)       => (tbytes len)
@@ -641,7 +680,8 @@
          (type-size-ref src tsize-name)))
     (Type-Argument (targ)
       (- (targ-size src nat)
-         (targ-type src type))))
+         (targ-type src type)
+         (targ-place src var-name (elt-name* ...)))))
 
   (define-language/pretty Ltypes (entry Program)
     (terminals
