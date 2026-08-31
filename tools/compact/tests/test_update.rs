@@ -18,6 +18,7 @@ use crate::common::{
 };
 use std::collections::HashMap;
 use std::env;
+use std::fs;
 
 mod common;
 
@@ -103,6 +104,39 @@ fn test_compact_update_invalid_param_unzip() {
 fn test_compact_update_invalid_old_version() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
+
+    run_command(
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "update",
+            "0.19.0",
+        ],
+        None,
+        None,
+        Some("./output/update/err_old_version.txt"),
+        &[],
+        Some(1),
+    );
+}
+
+// Regression test for #739: a leftover version directory from an interrupted install must
+// not be treated as "already installed". Pre-populates the target directory with a placeholder
+// file (as an interrupted extraction would) but without the `compactc` binary. With the bug,
+// `dir.exists()` short-circuits to "already installed" (exit 0). With the fix, the check falls
+// through to `resolve_version`, which reports the same "Couldn't find version 0.19.0" error as
+// `test_compact_update_invalid_old_version` above.
+#[test]
+fn test_compact_update_partial_install_not_treated_as_installed() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
+    let partial_dir = temp_path
+        .join("versions")
+        .join("0.19.0")
+        .join(get_version());
+    fs::create_dir_all(&partial_dir).unwrap();
+    fs::write(partial_dir.join("artifact.zip"), b"").unwrap();
 
     run_command(
         &[
