@@ -35,7 +35,6 @@ import type {
 const COVERAGE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const TEST_ROOT = path.dirname(COVERAGE_DIR);
 const REPO_ROOT = path.dirname(TEST_ROOT);
-const FIXTURE_ROOT = path.join(TEST_ROOT, 'primitives');
 const OUTPUT_PATH = path.join(COVERAGE_DIR, 'usage.md');
 
 const COMPACT_LIBRARIES: readonly string[] = [
@@ -212,10 +211,13 @@ const assertEveryDeclarationSiteIsClaimed = (
     );
 };
 
-/** Fixtures, sorted so the report is byte-stable for the CI staleness check. */
+/**
+ * Every fixture in the package, not just `primitives`; the orchestrator
+ * discovers from the package root too. Sorted so the report is byte-stable
+ * for the CI staleness check.
+ */
 const collectFixtures = (): ContractFile[] =>
-    [...walk(FIXTURE_ROOT, '.compact')]
-        .filter((file) => !/[/\\]\.build|\.compact-test-build/.test(file))
+    [...walk(TEST_ROOT, '.compact')]
         .map((file) => ({
             absolutePath: file,
             path: path.relative(REPO_ROOT, file),
