@@ -38,7 +38,6 @@ futures = "0.3.31"
 ignore = "0.4.23"
 indicatif = "0.18.0"
 octocrab = "0.44.1"
-pretty_assertions = "1.4.1"
 regex = "1.11.1"
 reqwest = { version = "0.12.9", default-features = false, features = [
   "gzip",
@@ -53,7 +52,6 @@ similar = "2.7.0"
 tokio = { version = "1.42.0", features = ["full", "macros"] }
 
 [dev-dependencies]
-pretty_assertions = "1.4.1"
 tempfile = "3.20.0"
 wiremock = "0.6.4"
 
