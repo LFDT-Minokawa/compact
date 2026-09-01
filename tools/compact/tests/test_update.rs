@@ -288,3 +288,63 @@ fn test_compact_update_repairs_incomplete_installation() {
         "the default compiler symlink should resolve to a real file"
     );
 }
+
+/// Issue #739, last corner: the archive is only downloaded when it is not
+/// already on disk, so an archive that is complete but unreadable -- a bad
+/// checksum, a stitched resume -- made every retry fail in exactly the same
+/// way, with deleting it by hand the only way forward. That is the shape of the
+/// original report. An unreadable archive is now discarded and fetched again.
+#[test]
+fn test_compact_update_repairs_a_corrupt_archive() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+
+    run_command(
+        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        None,
+        Some("./output/update/std_update_other.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    let artifact_dir = temp_path
+        .join("versions")
+        .join(LATEST_COMPACTC_VERSION)
+        .join(get_version());
+
+    // Poison the archive and remove what it produced, so the retry has to read
+    // the archive rather than trust the directory.
+    fs::write(
+        artifact_dir.join("artifact.zip"),
+        b"not an archive any more",
+    )
+    .unwrap();
+    fs::remove_file(artifact_dir.join("compactc")).unwrap();
+    fs::remove_file(temp_path.join("bin").join("compactc")).unwrap();
+
+    run_command(
+        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        None,
+        Some("./output/update/std_repair_corrupt_archive.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    assert!(
+        artifact_dir.join("compactc").is_file(),
+        "the compiler should have been reinstalled from a freshly fetched archive"
+    );
+    assert!(
+        temp_path.join("bin").join("compactc").is_file(),
+        "the default compiler symlink should resolve to a real file"
+    );
+}

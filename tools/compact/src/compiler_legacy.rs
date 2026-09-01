@@ -19,6 +19,28 @@ use semver::Version;
 use std::path::{Path, PathBuf};
 use tokio::fs;
 
+/// Marker attached to a failure caused by the archive itself -- unreadable, or
+/// an entry that failed its checksum -- rather than by the machine unpacking
+/// it. A caller discards such an archive and fetches it again; it must not do
+/// that for a full disk or a permission error, which re-downloading cannot fix.
+#[derive(Debug)]
+pub struct CorruptArchive;
+
+impl std::fmt::Display for CorruptArchive {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("the downloaded archive could not be read")
+    }
+}
+
+impl std::error::Error for CorruptArchive {}
+
+/// Whether `error` was caused by the archive rather than by the machine.
+pub fn is_corrupt_archive(error: &anyhow::Error) -> bool {
+    // `downcast_ref' searches the context chain; `chain()' yields anyhow's own
+    // wrappers rather than the attached values, so it would never match.
+    error.downcast_ref::<CorruptArchive>().is_some()
+}
+
 /// The compiler binary, whose presence callers take as proof that a version is
 /// completely installed.
 const COMPILER_BIN: &str = "compactc";
@@ -68,11 +90,15 @@ fn extract_archive(dir: &Path, zip: &Path) -> Result<()> {
     let file = std::fs::File::open(zip).with_context(|| anyhow!("Failed to open `{zip:?}'"))?;
 
     let mut archive = zip::ZipArchive::new(file)
+        .map_err(anyhow::Error::new)
+        .context(CorruptArchive)
         .with_context(|| anyhow!("Failed to read `{zip:?}' as a zip archive"))?;
 
     for index in 0..archive.len() {
         let mut entry = archive
             .by_index(index)
+            .map_err(anyhow::Error::new)
+            .context(CorruptArchive)
             .with_context(|| anyhow!("Failed to read entry {index} of `{zip:?}'"))?;
 
         if entry.is_dir() {
@@ -93,6 +119,18 @@ fn extract_archive(dir: &Path, zip: &Path) -> Result<()> {
             .with_context(|| anyhow!("Failed to create `{target:?}'"))?;
 
         std::io::copy(&mut entry, &mut output)
+            .map_err(|error| {
+                // a bad checksum or a malformed compressed stream is the
+                // archive's fault; a full disk is not
+                let corrupt = error.kind() == std::io::ErrorKind::InvalidData;
+                let error = anyhow::Error::new(error);
+
+                if corrupt {
+                    error.context(CorruptArchive)
+                } else {
+                    error
+                }
+            })
             .with_context(|| anyhow!("Failed to write `{target:?}'"))?;
 
         // `unzip` restores the mode recorded in the archive. Nothing else does
@@ -205,7 +243,7 @@ async fn move_into(dir: &Path, path: &Path) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{extract_archive, install_archive};
+    use super::{extract_archive, install_archive, is_corrupt_archive};
 
     /// Compression method 0: the payload is stored verbatim.
     const STORED: u16 = 0;
@@ -583,6 +621,63 @@ mod tests {
                 .as_bytes()
         );
         assert_eq!(mode_of(&dir.path().join("compactc")), 0o755);
+    }
+
+    /// A wrong checksum means the bytes on disk are not the archive that was
+    /// published, so fetching it again is the way out. The caller keys its
+    /// retry off this, hence a test for the classification and not only for the
+    /// failure.
+    #[test]
+    fn a_failed_checksum_is_the_archives_fault() {
+        let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+        let path = zip_in(dir.path());
+
+        let mut bytes = std::fs::read(&path).expect("archive");
+        let at = bytes
+            .windows(8)
+            .position(|window| window == b"compiler")
+            .expect("payload");
+        bytes[at] = b'X';
+        std::fs::write(&path, &bytes).expect("Failed to corrupt the archive");
+
+        let error = extract_archive(dir.path(), &path).expect_err("A bad checksum must fail");
+
+        assert!(
+            is_corrupt_archive(&error),
+            "a bad checksum should be blamed on the archive: {error:#}"
+        );
+    }
+
+    #[test]
+    fn a_file_that_is_not_an_archive_is_the_archives_fault() {
+        let dir = tempfile::tempdir().expect("temporary directory");
+        std::fs::write(zip_in(dir.path()), b"this is not a zip file").expect("write");
+
+        let error =
+            extract_archive(dir.path(), &zip_in(dir.path())).expect_err("Not an archive must fail");
+
+        assert!(
+            is_corrupt_archive(&error),
+            "an unreadable file should be blamed on the archive: {error:#}"
+        );
+    }
+
+    /// The counterpart: a failure to write is the machine's problem, and
+    /// fetching the archive again would only waste the download.
+    #[test]
+    fn a_failure_to_write_is_not_the_archives_fault() {
+        let dir = artifact_dir(&[file("compactc", b"compiler", 0o755)]);
+
+        let error = extract_archive(
+            std::path::Path::new("/compact-test/no/such/directory"),
+            &zip_in(dir.path()),
+        )
+        .expect_err("Writing into a directory that does not exist must fail");
+
+        assert!(
+            !is_corrupt_archive(&error),
+            "a write failure should not be blamed on the archive: {error:#}"
+        );
     }
 
     #[test]

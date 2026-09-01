@@ -42,7 +42,7 @@ pub async fn read_parent_name_from_link(path: &PathBuf) -> Option<(PathBuf, Stri
     })
 }
 
-pub async fn remove_file_if_exists(path: &PathBuf) -> Result<()> {
+pub async fn remove_file_if_exists(path: &Path) -> Result<()> {
     if path.try_exists().context("Checking if path exists")? {
         tokio::fs::remove_file(path)
             .await
