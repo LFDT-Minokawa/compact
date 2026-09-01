@@ -19,8 +19,8 @@ For the CLI tool, you only need a Rust toolchain -- Nix is not required.
 The exact version is pinned in `rust-toolchain.toml`, and `rustup` installs
 and selects it automatically inside the repository, so a newer default
 toolchain on your machine will not be used. The pin tracks the `rust-version`
-declared in the workspace `Cargo.toml`; it exists so that `cargo clippy`
-reports the same lints locally and in CI.
+declared in the workspace `Cargo.toml`; it exists so that `cargo clippy` and
+cargo's feature resolution behave the same locally and in CI.
 
 ## Getting Started
 
