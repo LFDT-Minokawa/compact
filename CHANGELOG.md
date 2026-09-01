@@ -19,8 +19,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   recorded a provenance that cannot be resolved.
 
   The version a build reports is now a fact about the build rather than a
-  prediction. A development tree is unaffected: with no release tag to record,
-  the version prints exactly as before.
+  prediction. Builds that are not releases report `-dev': the scheduled build
+  and the on-demand dev publish have no release to name, and a dev publish is
+  installable, so one reporting the same shape as a finished release could pass
+  for it. `-dev' orders below every release of the same triple, so a tool handed
+  one where a release was expected rejects it. A working tree is unaffected --
+  nothing is stamped until a release build runs -- and prints exactly as before.
 
   Release candidates still satisfy the same `pragma compiler_version`
   constraints as the release they are candidates for -- the tag is printed but

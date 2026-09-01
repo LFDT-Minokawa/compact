@@ -25,7 +25,9 @@
 #
 # Usage: stamp-compiler-version.sh <tag> <commit> [file]
 #
-#   <tag>     the release tag, with or without a leading `v', or a dev tag
+#   <tag>     the release tag, with or without a leading `v'. Anything that is
+#             not a version -- a branch name, `dev-<commit>' -- marks the build
+#             `-dev'.
 #   <commit>  the commit being built, in whatever length you want reported
 #   [file]    defaults to compiler/compiler-version.ss
 
@@ -62,10 +64,21 @@ if [[ "$RAW" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(.*)$ ]]; then
     exit 1
   fi
   SUFFIX="${BASH_REMATCH[2]}"
+else
+  # A tag that carries no version is not a release: a scheduled build passes
+  # the branch name, and an on-demand dev publish passes `dev-<commit>'. Mark
+  # those `-dev', which orders them below every release of the same triple, so
+  # a tool handed one where a release was expected rejects it instead of
+  # accepting it as the release it was built from. Without the marker such a
+  # build reports the same shape as a finished release and only the commit
+  # distinguishes them -- and dev publishes are installable, so one can escape.
+  #
+  # The tag itself is deliberately not carried through: a sanitized branch name
+  # can contain characters a semver prerelease identifier may not, and the
+  # commit below already identifies the build exactly.
+  SUFFIX="-dev"
 fi
 
-# A dev tag carries no version, so such a build is identified by its commit
-# alone -- which is the only thing that identifies it anyway.
 STAMP="${SUFFIX}+g${COMMIT}"
 
 # GNU and BSD sed disagree about -i, and the macOS runners have BSD sed.
