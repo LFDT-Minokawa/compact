@@ -314,7 +314,7 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
             print!("{}", String::from_utf8_lossy(&output.stdout));
         } else {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("format-compact {} failed", flag);
+            bail!("format-compact {flag} failed");
         }
         return Ok(());
     }
@@ -421,7 +421,7 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
             print!("{}", String::from_utf8_lossy(&output.stdout));
         } else {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("fixup-compact {} failed", flag);
+            bail!("fixup-compact {flag} failed");
         }
         return Ok(());
     }
