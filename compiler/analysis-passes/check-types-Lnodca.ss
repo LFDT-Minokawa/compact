@@ -28,6 +28,7 @@
           [(boolean? x) `(tboolean ,src)]
           [(field? x) (if (<= x (max-unsigned)) `(tunsigned ,src ,x) `(tfield ,src (field-native)))]
           [(bytevector? x) `(tbytes ,src ,(bytevector-length x))]
+          [(opaque-constant? x) `(topaque ,src ,(opaque-constant-type x))]
           [else (internal-errorf 'datum-type "unexpected datum ~s" x)])))
     (define-datatype Idtype
       ; ordinary expression types

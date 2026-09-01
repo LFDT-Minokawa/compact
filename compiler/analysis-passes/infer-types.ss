@@ -1202,6 +1202,8 @@
             ; no need to check len? for the generated tbytes.  this is already caught in
             ; the parser
             `(tbytes ,src ,(bytevector-length datum))]
+           [(opaque-constant? datum)
+            `(topaque ,src ,(opaque-constant-type datum))]
            [else (assert cannot-happen)])))]
     [(var-ref ,src ,var-name)
      (values

@@ -2595,6 +2595,20 @@
         (parenthesize level (precedence new)
           (format "new Uint8Array([~{~a~^, ~}])"
             (bytevector->u8-list datum)))]
+       [(opaque-constant? datum)
+        (let ([opaque-type (opaque-constant-type datum)]
+              [content (opaque-constant-content datum)])
+          (case opaque-type
+            [("string")
+             (assert (string? content))
+             (format-javascript-string content)]
+            [("Uint8Array")
+             (assert (bytevector? content))
+             (parenthesize level (precedence new)
+               (format "new Uint8Array([~{~a~^, ~}])"
+                 (bytevector->u8-list content)))]
+            ; FIXME: what should happen with other opaque types?
+            [else (source-errorf src "opaque type ~a is not supported" opaque-type)]))]
        [else (assert cannot-happen)])]
     [(var-ref ,src ,var-name)
      (make-Qconcat/src src (format-id-reference var-name))]
