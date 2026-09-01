@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- `--help` output now wraps to the width of the terminal in the installed
+  binary, not only under `cargo test`. `clap`'s `wrap_help` feature was
+  never requested by this crate: it arrived through Cargo feature
+  unification with the `cargo-nextest` dev-dependency, so wrapped help
+  appeared in test builds while the binary users install printed one long
+  line. The expected-output files recorded the wrapped form, so the help
+  tests asserted output no user had ever seen. The feature is now
+  requested explicitly.
+
 ### Fixed
 
 - `compact update <version>` no longer treats a version as installed when only
