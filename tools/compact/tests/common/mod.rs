@@ -116,6 +116,14 @@ pub fn assert_command_output(
 
     let mut cmd = Command::new(binary);
 
+    // Clap wraps help to the terminal width. Under test there is no terminal,
+    // so it falls back to 100 columns, which makes the expected output depend
+    // on the length of `$HOME' and of the temporary directory path -- a test
+    // that passes in CI fails for a developer whose home or TMPDIR is longer.
+    // Ask for a width nothing wraps at, so help output is a function of its
+    // content alone. Set before the caller's variables so a test can override.
+    cmd.env("COLUMNS", "10000");
+
     if let Some(vars) = env {
         for (k, v) in vars {
             cmd.env(k, v);
@@ -156,6 +164,14 @@ pub fn assert_command_output_sorted(
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
     let mut cmd = Command::new(binary);
+
+    // Clap wraps help to the terminal width. Under test there is no terminal,
+    // so it falls back to 100 columns, which makes the expected output depend
+    // on the length of `$HOME' and of the temporary directory path -- a test
+    // that passes in CI fails for a developer whose home or TMPDIR is longer.
+    // Ask for a width nothing wraps at, so help output is a function of its
+    // content alone. Set before the caller's variables so a test can override.
+    cmd.env("COLUMNS", "10000");
 
     if let Some(vars) = env {
         for (k, v) in vars {
