@@ -77,6 +77,11 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
 
+      - name: Record the release in the compiler version
+        run: |
+          ./scripts/stamp-compiler-version.sh \
+            '${{ inputs.tag }}' "$(git rev-parse --short=8 HEAD)"
+
       - name: Create binary for specific system
         run: |
           ${{ inputs.buildCommand }}
