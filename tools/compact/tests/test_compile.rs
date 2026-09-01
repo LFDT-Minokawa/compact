@@ -20,8 +20,15 @@ mod common;
 
 #[test]
 fn test_compact_compile_no_param() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
@@ -97,8 +104,16 @@ fn test_compile_contract_no_compiler_installed() {
 
 #[test]
 fn test_compact_compile_invalid_param() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["compile", "latest"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "compile",
+            "latest",
+        ],
         None,
         None,
         Some("./output/compile/err_default.txt"),
