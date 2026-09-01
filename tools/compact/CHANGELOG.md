@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The toolchain archive is now unpacked by `compact` itself rather than by
+  running `unzip`. `unzip` is not installed by default on many systems -- the
+  machine in issue #739 had `curl`, `tar`, `xz`, `zstd` and `gzip` but not
+  `unzip`, so the toolchain could not be installed at all until a package was
+  added. There is no longer an external program to install.
+
 - `--help` output now wraps to the width of the terminal in the installed
   binary, not only under `cargo test`. `clap`'s `wrap_help` feature was
   never requested by this crate: it arrived through Cargo feature
