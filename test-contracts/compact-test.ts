@@ -108,6 +108,7 @@ type TestContract<Contract extends CompactContractConstructor> = {
 type ExpectedCompileError = RegExp | ((result: CompileResult) => boolean);
 
 type CompileTestOptions = {
+    compilerArgs?: string[];
     expectedError?: ExpectedCompileError;
 };
 
@@ -137,7 +138,10 @@ const compactTestFilePattern = /^(compile|runtime)\.(pass|fail)\.test\.ts$/;
  *
  * The orchestrator imports this metadata before registering Vitest cases. The
  * expected result is read from the file name, so the fixture outcome stays
- * visible in the directory listing.
+ * visible in the directory listing. A fixture that needs a non-default
+ * compiler mode declares the extra flags with `compilerArgs`, which are passed
+ * ahead of the contract and output paths on every compiler invocation for that
+ * fixture.
  */
 export function defineCompileTest(
     metaUrl: string,

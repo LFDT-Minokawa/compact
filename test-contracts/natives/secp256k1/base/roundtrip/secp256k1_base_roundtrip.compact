@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,23 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { fileURLToPath } from 'node:url';
+import CompactStandardLibrary;
 
-import { defineConfig } from 'vitest/config';
+export ledger stored: Secp256k1Base;
 
-export default defineConfig({
-    resolve: {
-        alias: {
-            '@test/compact-test': fileURLToPath(
-                new URL('./compact-test.ts', import.meta.url),
-            ),
-        },
-    },
-    test: {
-        include: ['compact-test-orchestrator.test.ts'],
-        exclude: ['**/.build/**', '**/.compact-test-build/**', 'node_modules/**'],
-        environment: 'node',
-        reporters: ['./compact-test-fixture-reporter.ts'],
-        testTimeout: 300_000,
-    },
-});
+// A Secp256k1Base survives a round trip through the ledger.
+//
+// The value does not fit in a native field element, so writing it splits it
+// across two field-aligned binary atoms -- 192 low-order bits then 64
+// high-order bits -- and reading it back applies the inverse decoding. The
+// assignment writes and the return reads, so both directions are exercised.
+export circuit secp256k1_base_roundtrip(value: Secp256k1Base): Secp256k1Base {
+    stored = disclose(value);
+    return stored;
+}

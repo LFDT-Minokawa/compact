@@ -449,7 +449,11 @@ async function compileFixtureUncached(
             recursive: true,
         });
 
-        const result = await compileContract(fixture.contractPath, fixture.outputDir);
+        const result = await compileContract(
+            fixture.contractPath,
+            fixture.outputDir,
+            fixture.compileDefinition.options.compilerArgs ?? [],
+        );
 
         return {
             contractPath: fixture.contractPath,
@@ -541,6 +545,7 @@ function releaseCompileSlot(exclusive: boolean) {
 function compileContract(
     contractPath: string,
     outputDir: string,
+    fixtureCompilerArgs: string[],
 ): Promise<{
     stderr: string;
     stdout: string;
@@ -550,7 +555,7 @@ function compileContract(
         const compilerPath = process.env.COMPACT_BINARY ?? 'compactc';
         const child = spawn(
             compilerPath,
-            compilerArgs(compilerPath, contractPath, outputDir),
+            compilerArgs(compilerPath, contractPath, outputDir, fixtureCompilerArgs),
             {
                 stdio: ['ignore', 'pipe', 'pipe'],
             },
@@ -578,16 +583,20 @@ function compileContract(
 }
 
 /**
- * Builds argv for either the Nix `compactc` binary or a `compact` wrapper.
+ * Builds argv for either the Nix `compactc` binary or a `compact` wrapper,
+ * keeping any fixture-declared compiler flags ahead of the paths.
  */
 function compilerArgs(
     compilerPath: string,
     contractPath: string,
     outputDir: string,
+    fixtureCompilerArgs: string[],
 ) {
+    const coreArgs = [...fixtureCompilerArgs, contractPath, outputDir];
+
     return path.basename(compilerPath) === 'compact'
-        ? ['compile', contractPath, outputDir]
-        : [contractPath, outputDir];
+        ? ['compile', ...coreArgs]
+        : coreArgs;
 }
 
 /**

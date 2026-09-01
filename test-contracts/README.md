@@ -49,6 +49,17 @@ import { defineCompileTest } from '@test/compact-test';
 export default defineCompileTest(import.meta.url);
 ```
 
+A fixture whose contract needs a non-default compiler mode declares the extra
+flags with `compilerArgs`. They are passed ahead of the contract and output
+paths for every compiler invocation of that fixture, including the `yarn lint`
+artifact preparation run:
+
+```ts
+export default defineCompileTest(import.meta.url, {
+    compilerArgs: ['--feature-zkir-v3'],
+});
+```
+
 For compile-fail fixtures, include the diagnostic that proves the expected
 failure happened:
 

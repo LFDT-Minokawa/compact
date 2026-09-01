@@ -14,15 +14,65 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { spawn } from 'node:child_process';
+import { spawn, type SpawnOptions } from 'node:child_process';
 import { constants as fsConstants } from 'node:fs';
 import fs from 'node:fs/promises';
+import { registerHooks } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
+
+import type { CompileTestDefinition } from './compact-test.js';
+
+type FixturePhase = 'compile' | 'runtime';
+type FixtureResult = 'pass' | 'fail';
+
+/**
+ * A fixture test file plus the phase and expectation named by its file name.
+ */
+type ParsedFixtureTestFile = {
+    filePath: string;
+    phase: FixturePhase;
+    result: FixtureResult;
+};
+
+/**
+ * A fixture directory grouped with the compile and runtime files it owns.
+ */
+type DiscoveredFixture = {
+    fixtureDir: string;
+    relativeFixtureDir: string;
+    compile: ParsedFixtureTestFile | undefined;
+    runtime: ParsedFixtureTestFile | undefined;
+};
+
+type RunnerArgs = {
+    filters: string[];
+    prepareArtifacts: boolean;
+    vitestArgs: string[];
+};
+
+type CompileOptions = {
+    compilerArgs?: string[];
+    skipZk?: boolean;
+};
+
+type CompileOutcome = {
+    stdout: string;
+    stderr: string;
+    exitCode: number;
+};
+
+type RuntimeManifest = {
+    main?: string;
+};
 
 const testRoot = path.dirname(fileURLToPath(import.meta.url));
 const compactTestFilePattern = /^(compile|runtime)\.(pass|fail)\.test\.ts$/;
 const prepareArtifactsFlag = '--prepare-artifacts';
+const compactTestAlias = '@test/compact-test';
+const compactTestModuleUrl = pathToFileURL(
+    path.join(testRoot, 'compact-test.ts'),
+).href;
 const optionsWithValues = new Set([
     '-t',
     '--environment',
@@ -33,6 +83,21 @@ const optionsWithValues = new Set([
     '--reporter',
     '--testNamePattern',
 ]);
+
+// Fixture tests reach the shared helpers through the `@test/compact-test`
+// alias that vitest.config.ts resolves. Node needs the same mapping so this
+// runner can import fixture compile metadata, such as fixture-declared
+// compiler flags, while preparing lint artifacts.
+registerHooks({
+    resolve(specifier, context, nextResolve) {
+        return specifier === compactTestAlias
+            ? {
+                url: compactTestModuleUrl,
+                shortCircuit: true,
+            }
+            : nextResolve(specifier, context);
+    },
+});
 
 const {
     filters,
@@ -53,9 +118,9 @@ if (prepareArtifacts) {
 /**
  * Splits path filters from Vitest options.
  */
-function parseRunnerArgs(args) {
-    const filters = [];
-    const vitestArgs = [];
+function parseRunnerArgs(args: string[]): RunnerArgs {
+    const filters: string[] = [];
+    const vitestArgs: string[] = [];
     let prepareArtifacts = false;
 
     for (let index = 0; index < args.length; index += 1) {
@@ -100,7 +165,7 @@ function parseRunnerArgs(args) {
 /**
  * Runs the single Vitest orchestrator and passes path filters through env.
  */
-async function runVitest(filters, vitestArgs) {
+async function runVitest(filters: string[], vitestArgs: string[]): Promise<void> {
     await cleanSelectedFixtureArtifacts(filters);
 
     const vitestEntry = path.join(testRoot, 'node_modules', 'vitest', 'vitest.mjs');
@@ -130,7 +195,7 @@ async function runVitest(filters, vitestArgs) {
 /**
  * Removes stale generated output before Vitest can transform fixture modules.
  */
-async function cleanSelectedFixtureArtifacts(filters) {
+async function cleanSelectedFixtureArtifacts(filters: string[]): Promise<void> {
     const fixtures = await discoverFixtures(testRoot);
     const selectedFixtures = fixtures.filter((fixture) => (
         filters.length === 0 ||
@@ -157,7 +222,7 @@ async function cleanSelectedFixtureArtifacts(filters) {
 /**
  * Compiles runtime fixture prerequisites so static generated imports typecheck.
  */
-async function prepareRuntimeArtifacts() {
+async function prepareRuntimeArtifacts(): Promise<void> {
     const fixtures = await discoverFixtures(testRoot);
     const runtimeFixtures = fixtures.filter((fixture) => fixture.runtime !== undefined);
 
@@ -175,9 +240,9 @@ async function prepareRuntimeArtifacts() {
 /**
  * Discovers fixture test files beneath the package root.
  */
-async function discoverFixtures(rootDir) {
+async function discoverFixtures(rootDir: string): Promise<DiscoveredFixture[]> {
     const testFiles = await findFixtureTestFiles(rootDir);
-    const byFixtureDir = new Map();
+    const byFixtureDir = new Map<string, ParsedFixtureTestFile[]>();
 
     for (const filePath of testFiles) {
         const parsed = parseFixtureTestFile(filePath);
@@ -196,11 +261,11 @@ async function discoverFixtures(rootDir) {
 /**
  * Walks the package tree and returns every compile/runtime fixture module.
  */
-async function findFixtureTestFiles(rootDir) {
+async function findFixtureTestFiles(rootDir: string): Promise<string[]> {
     const entries = await fs.readdir(rootDir, {
         withFileTypes: true,
     });
-    const files = [];
+    const files: string[] = [];
 
     for (const entry of entries) {
         if (
@@ -229,7 +294,10 @@ async function findFixtureTestFiles(rootDir) {
 /**
  * Groups compile/runtime files into a fixture record.
  */
-function buildDiscoveredFixture(fixtureDir, files) {
+function buildDiscoveredFixture(
+    fixtureDir: string,
+    files: ParsedFixtureTestFile[],
+): DiscoveredFixture {
     const compileFiles = files.filter((file) => file.phase === 'compile');
     const runtimeFiles = files.filter((file) => file.phase === 'runtime');
 
@@ -252,7 +320,7 @@ function buildDiscoveredFixture(fixtureDir, files) {
 /**
  * Parses phase and expected result directly from a fixture test file name.
  */
-function parseFixtureTestFile(filePath) {
+function parseFixtureTestFile(filePath: string): ParsedFixtureTestFile {
     const match = compactTestFilePattern.exec(path.basename(filePath));
 
     if (match === null) {
@@ -261,17 +329,18 @@ function parseFixtureTestFile(filePath) {
 
     return {
         filePath,
-        phase: match[1],
-        result: match[2],
+        phase: match[1] as FixturePhase,
+        result: match[2] as FixtureResult,
     };
 }
 
 /**
  * Compiles one fixture for TypeScript static import resolution.
  */
-async function compileFixtureForTypecheck(fixture) {
+async function compileFixtureForTypecheck(fixture: DiscoveredFixture): Promise<void> {
     const contractPath = await findFixtureContract(fixture.fixtureDir);
     const outputDir = fixtureOutputDir(fixture.fixtureDir);
+    const compileDefinition = await loadCompileDefinition(fixture.compile!.filePath);
 
     await fs.rm(outputDir, {
         recursive: true,
@@ -282,6 +351,7 @@ async function compileFixtureForTypecheck(fixture) {
     });
 
     const result = await compileContract(contractPath, outputDir, {
+        compilerArgs: compileDefinition.options.compilerArgs,
         skipZk: true,
     });
 
@@ -293,9 +363,37 @@ async function compileFixtureForTypecheck(fixture) {
 }
 
 /**
+ * Imports a compile fixture module, which should only export metadata.
+ */
+async function loadCompileDefinition(filePath: string): Promise<CompileTestDefinition> {
+    const module = await import(pathToFileURL(filePath).href) as {
+        default?: unknown;
+    };
+    const definition = module.default;
+
+    if (!isCompileDefinition(definition)) {
+        throw new Error(
+            `${filePath} must export default defineCompileTest(import.meta.url, ...)`,
+        );
+    }
+
+    return definition;
+}
+
+/**
+ * Narrows imported compile metadata.
+ */
+function isCompileDefinition(value: unknown): value is CompileTestDefinition {
+    return typeof value === 'object' &&
+        value !== null &&
+        'kind' in value &&
+        value.kind === 'compact-compile-test';
+}
+
+/**
  * Resolves the single `.compact` source owned by a fixture directory.
  */
-async function findFixtureContract(fixtureDir) {
+async function findFixtureContract(fixtureDir: string): Promise<string> {
     const entries = await fs.readdir(fixtureDir);
     const contracts = entries.filter((entry) => entry.endsWith('.compact'));
 
@@ -311,7 +409,11 @@ async function findFixtureContract(fixtureDir) {
 /**
  * Invokes the Compact compiler and captures stdout, stderr, and exit code.
  */
-function compileContract(contractPath, outputDir, options = {}) {
+function compileContract(
+    contractPath: string,
+    outputDir: string,
+    options: CompileOptions = {},
+): Promise<CompileOutcome> {
     return new Promise((resolve, reject) => {
         const args = compilerArgs(contractPath, outputDir, options);
         const child = spawn(
@@ -324,10 +426,10 @@ function compileContract(contractPath, outputDir, options = {}) {
         let stdout = '';
         let stderr = '';
 
-        child.stdout.on('data', (data) => {
+        child.stdout!.on('data', (data) => {
             stdout += data.toString();
         });
-        child.stderr.on('data', (data) => {
+        child.stderr!.on('data', (data) => {
             stderr += data.toString();
         });
         child.on('error', (error) => {
@@ -344,12 +446,20 @@ function compileContract(contractPath, outputDir, options = {}) {
 }
 
 /**
- * Builds argv for either the Nix `compactc` binary or a `compact` wrapper.
+ * Builds argv for either the Nix `compactc` binary or a `compact` wrapper,
+ * keeping any fixture-declared compiler flags ahead of the paths.
  */
-function compilerArgs(contractPath, outputDir, options = {}) {
-    const coreArgs = options.skipZk
-        ? ['--skip-zk', contractPath, outputDir]
-        : [contractPath, outputDir];
+function compilerArgs(
+    contractPath: string,
+    outputDir: string,
+    options: CompileOptions = {},
+): string[] {
+    const coreArgs = [
+        ...options.compilerArgs ?? [],
+        ...options.skipZk ? ['--skip-zk'] : [],
+        contractPath,
+        outputDir,
+    ];
 
     return path.basename(resolvedCompilerPath) === 'compact'
         ? ['compile', ...coreArgs]
@@ -359,14 +469,14 @@ function compilerArgs(contractPath, outputDir, options = {}) {
 /**
  * Builds the fixture-scoped output directory.
  */
-function fixtureOutputDir(fixtureDir) {
+function fixtureOutputDir(fixtureDir: string): string {
     return path.join(fixtureDir, '.build');
 }
 
 /**
  * Checks whether a fixture path matches any CLI path filter.
  */
-function matchesFilters(targetPath, selectedFilters) {
+function matchesFilters(targetPath: string, selectedFilters: string[]): boolean {
     const normalizedTarget = normalizePath(targetPath);
     const relativeTarget = normalizePath(path.relative(testRoot, targetPath));
 
@@ -383,14 +493,14 @@ function matchesFilters(targetPath, selectedFilters) {
 /**
  * Normalizes path separators for stable substring matching.
  */
-function normalizePath(value) {
+function normalizePath(value: string): string {
     return value.split(path.sep).join('/');
 }
 
 /**
  * Resolves a command to its real executable path, or null when not found.
  */
-async function resolveExecutable(binary) {
+async function resolveExecutable(binary: string): Promise<string | null> {
     const candidates = binary.includes(path.sep)
         ? [path.resolve(binary)]
         : (process.env.PATH ?? '')
@@ -413,7 +523,7 @@ async function resolveExecutable(binary) {
 /**
  * Resolves the locally built Compact compiler from the Nix compiler shell.
  */
-async function requireLocalCompactBinary() {
+async function requireLocalCompactBinary(): Promise<string> {
     const requested = process.env.COMPACT_BINARY ?? 'compactc';
     const compilerPath = await resolveExecutable(requested);
 
@@ -444,7 +554,7 @@ async function requireLocalCompactBinary() {
  * runtime: either the Nix package substituted from the cache (used by test.sh
  * and CI) or the working-tree build at ../runtime (local development).
  */
-async function requireLocalRuntimeBuild() {
+async function requireLocalRuntimeBuild(): Promise<void> {
     const localRuntimeDir = path.join(path.dirname(testRoot), 'runtime');
     const packageDir = path.join(
         testRoot,
@@ -453,7 +563,7 @@ async function requireLocalRuntimeBuild() {
         'compact-runtime',
     );
 
-    let resolvedDir;
+    let resolvedDir: string;
 
     try {
         resolvedDir = await fs.realpath(packageDir);
@@ -483,7 +593,7 @@ async function requireLocalRuntimeBuild() {
         );
     }
 
-    let manifest;
+    let manifest: RuntimeManifest;
 
     try {
         manifest = JSON.parse(
@@ -512,7 +622,7 @@ async function requireLocalRuntimeBuild() {
 /**
  * Prints an actionable setup failure and exits without a noisy stack trace.
  */
-function fail(message) {
+function fail(message: string): never {
     console.error(`\nCannot run Compact tests:\n\n${message}\n`);
     process.exit(1);
 }
@@ -520,7 +630,11 @@ function fail(message) {
 /**
  * Spawns a process and resolves with its exit code.
  */
-function spawnProcess(command, args, options) {
+function spawnProcess(
+    command: string,
+    args: string[],
+    options: SpawnOptions,
+): Promise<number> {
     return new Promise((resolve, reject) => {
         const child = spawn(command, args, options);
 

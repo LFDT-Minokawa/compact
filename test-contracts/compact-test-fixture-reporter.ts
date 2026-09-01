@@ -15,7 +15,36 @@
 
 import path from 'node:path';
 
+import type { SerializedError } from 'vitest';
+import type {
+    TestCase,
+    TestModule,
+    TestRunEndReason,
+    TestState,
+} from 'vitest/node';
 import { DefaultReporter } from 'vitest/reporters';
+
+/**
+ * Fixture metadata the orchestrator attaches to each orchestrated test case.
+ */
+type FixtureTestMetadata = {
+    durationMs?: number;
+    filePath: string;
+};
+
+type SlowCompileCase = {
+    duration: number;
+    filePath: string;
+};
+
+/**
+ * A fixture path split into tree headers plus the leaf line to print.
+ */
+type FixtureDisplay = {
+    groupParts: string[];
+    indent: string;
+    leafPath: string;
+};
 
 const orchestratorFile = 'compact-test-orchestrator.test.ts';
 const fixtureMetadataKey = 'compactFixture';
@@ -28,10 +57,10 @@ const ansiColors = {
 };
 
 export default class CompactTestFixtureReporter extends DefaultReporter {
-    lastHeaderParts = [];
-    slowCompileCases = [];
+    lastHeaderParts: string[] = [];
+    slowCompileCases: SlowCompileCase[] = [];
 
-    onTestCaseResult(testCase) {
+    onTestCaseResult(testCase: TestCase): void {
         const fixtureCase = fixtureCaseFromTest(testCase);
 
         if (fixtureCase === undefined) {
@@ -50,7 +79,7 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
         }
     }
 
-    onTestModuleEnd(testModule) {
+    onTestModuleEnd(testModule: TestModule): void {
         if (isOrchestratorModule(testModule.moduleId)) {
             return;
         }
@@ -58,12 +87,16 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
         super.onTestModuleEnd(testModule);
     }
 
-    onTestRunEnd(testModules, unhandledErrors, reason) {
+    onTestRunEnd(
+        testModules: ReadonlyArray<TestModule>,
+        unhandledErrors: ReadonlyArray<SerializedError>,
+        reason: TestRunEndReason,
+    ): void {
         this.logSlowCompileSummary();
         super.onTestRunEnd(testModules, unhandledErrors, reason);
     }
 
-    logFixtureCase(testCase, fixtureCase) {
+    logFixtureCase(testCase: TestCase, fixtureCase: FixtureTestMetadata): void {
         const display = fixtureDisplayFromPath(fixtureCase.filePath);
 
         for (const header of headerLines(display.groupParts, this.lastHeaderParts)) {
@@ -80,7 +113,7 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
         ));
     }
 
-    logSlowCompileSummary() {
+    logSlowCompileSummary(): void {
         if (this.slowCompileCases.length === 0) {
             return;
         }
@@ -88,7 +121,7 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
         this.log('');
         this.log('Slow compile fixtures');
 
-        let lastHeaderParts = [];
+        let lastHeaderParts: string[] = [];
 
         for (const fixtureCase of this.slowCompileCases.toSorted((left, right) => (
             left.filePath.localeCompare(right.filePath)
@@ -108,12 +141,12 @@ export default class CompactTestFixtureReporter extends DefaultReporter {
 /**
  * Maps an orchestrated Vitest test case back to its fixture test file.
  */
-function fixtureCaseFromTest(testCase) {
+function fixtureCaseFromTest(testCase: TestCase): FixtureTestMetadata | undefined {
     if (!isOrchestratorModule(testCase.module.moduleId)) {
         return undefined;
     }
 
-    const metadata = testCase.meta()[fixtureMetadataKey];
+    const metadata = (testCase.meta() as Record<string, unknown>)[fixtureMetadataKey];
 
     if (!isFixtureMetadata(metadata)) {
         return undefined;
@@ -125,7 +158,13 @@ function fixtureCaseFromTest(testCase) {
 /**
  * Formats one completed fixture case like Vitest's file-level output.
  */
-function formatFixtureLine(testCase, fixtureCase, leafPath, indent, reporter) {
+function formatFixtureLine(
+    testCase: TestCase,
+    fixtureCase: FixtureTestMetadata,
+    leafPath: string,
+    indent: string,
+    reporter: CompactTestFixtureReporter,
+): string {
     const duration = Math.round(
         fixtureCase.durationMs ?? testCase.diagnostic()?.duration ?? 0,
     );
@@ -149,7 +188,7 @@ function formatFixtureLine(testCase, fixtureCase, leafPath, indent, reporter) {
 /**
  * Converts one fixture path into tree headers plus its display leaf.
  */
-function fixtureDisplayFromPath(filePath) {
+function fixtureDisplayFromPath(filePath: string): FixtureDisplay {
     const parts = normalizePath(filePath).split('/');
     const fileName = parts.at(-1) ?? '';
     const phase = fileName.startsWith('runtime.')
@@ -170,7 +209,7 @@ function fixtureDisplayFromPath(filePath) {
 /**
  * Converts one slow fixture path into a tree summary without a phase root.
  */
-function slowSummaryDisplayFromPath(filePath) {
+function slowSummaryDisplayFromPath(filePath: string): FixtureDisplay {
     const parts = normalizePath(filePath).split('/');
     const groupParts = parts.slice(0, -2);
 
@@ -184,7 +223,7 @@ function slowSummaryDisplayFromPath(filePath) {
 /**
  * Returns the new tree headers needed after moving from the previous group.
  */
-function headerLines(groupParts, previousGroupParts) {
+function headerLines(groupParts: string[], previousGroupParts: string[]): string[] {
     const commonLength = commonPrefixLength(groupParts, previousGroupParts);
 
     return groupParts.slice(commonLength).map((part, index) => {
@@ -197,7 +236,7 @@ function headerLines(groupParts, previousGroupParts) {
 /**
  * Finds the shared prefix between two tree paths.
  */
-function commonPrefixLength(left, right) {
+function commonPrefixLength(left: string[], right: string[]): number {
     const maxLength = Math.min(left.length, right.length);
 
     for (let index = 0; index < maxLength; index += 1) {
@@ -212,7 +251,7 @@ function commonPrefixLength(left, right) {
 /**
  * Chooses a compact status marker for one finished test.
  */
-function stateMark(state) {
+function stateMark(state: TestState): string {
     if (state === 'passed') {
         return '✓';
     }
@@ -227,7 +266,7 @@ function stateMark(state) {
 /**
  * Applies a Vitest-like state color to one completed fixture line.
  */
-function colorByState(state, value, useColors) {
+function colorByState(state: TestState, value: string, useColors: boolean): string {
     if (state === 'passed') {
         return colorize(value, ansiColors.green, useColors);
     }
@@ -242,7 +281,11 @@ function colorByState(state, value, useColors) {
 /**
  * Chooses a duration color close to Vitest's default reporter.
  */
-function durationColor(state, duration, reporter) {
+function durationColor(
+    state: TestState,
+    duration: number,
+    reporter: CompactTestFixtureReporter,
+): string {
     if (state === 'failed') {
         return ansiColors.red;
     }
@@ -255,7 +298,7 @@ function durationColor(state, duration, reporter) {
 /**
  * Formats durations compactly while keeping long compiler work readable.
  */
-function formatDuration(duration) {
+function formatDuration(duration: number): string {
     return duration >= 1000
         ? `${(duration / 1000).toFixed(2)}s`
         : `${duration}ms`;
@@ -264,7 +307,7 @@ function formatDuration(duration) {
 /**
  * Colors text only when terminal output supports ANSI colors.
  */
-function colorize(value, color, useColors) {
+function colorize(value: string, color: string, useColors: boolean): string {
     return useColors
         ? `${color}${value}${ansiReset}`
         : value;
@@ -273,7 +316,7 @@ function colorize(value, color, useColors) {
 /**
  * Checks whether this reporter should emit ANSI color escapes.
  */
-function shouldUseColors(reporter) {
+function shouldUseColors(reporter: CompactTestFixtureReporter): boolean {
     if (process.env.FORCE_COLOR === '0') {
         return false;
     }
@@ -292,23 +335,23 @@ function shouldUseColors(reporter) {
 /**
  * Checks whether a reporter event belongs to the hidden orchestrator module.
  */
-function isOrchestratorModule(moduleId) {
+function isOrchestratorModule(moduleId: string): boolean {
     return normalizePath(moduleId).endsWith(`/${orchestratorFile}`);
 }
 
 /**
  * Checks whether Vitest task metadata has the fixture fields this reporter needs.
  */
-function isFixtureMetadata(value) {
+function isFixtureMetadata(value: unknown): value is FixtureTestMetadata {
     return typeof value === 'object' &&
         value !== null &&
-        typeof value.filePath === 'string';
+        typeof (value as FixtureTestMetadata).filePath === 'string';
 }
 
 /**
  * Checks whether a fixture result belongs in the slow compile summary.
  */
-function isSlowCompileCase(fixtureCase) {
+function isSlowCompileCase(fixtureCase: FixtureTestMetadata): boolean {
     const parts = normalizePath(fixtureCase.filePath).split('/');
     const fileName = parts.at(-1) ?? '';
 
@@ -318,6 +361,6 @@ function isSlowCompileCase(fixtureCase) {
 /**
  * Normalizes path separators for stable module matching.
  */
-function normalizePath(value) {
+function normalizePath(value: string): string {
     return value.split(path.sep).join('/');
 }
