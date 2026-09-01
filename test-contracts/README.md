@@ -78,17 +78,17 @@ and export metadata through `defineRuntimeTest`:
 import { expect } from 'vitest';
 
 import type { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest<typeof Contract>(import.meta.url, async (Contract) => {
-    const { contract, ctx } = await createTestContract(Contract);
-    const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
 
-    expect(Array.from(result)).toEqual([5]);
-});
+        expect(Array.from(result)).toEqual([5]);
+    },
+);
 ```
 
 The generated type import is valid during local typechecking because

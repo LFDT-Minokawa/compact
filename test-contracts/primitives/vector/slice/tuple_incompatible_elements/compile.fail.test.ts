@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /tuple slice with a non-constant index should be a vector but has a tuple type \[Boolean, Boolean,\s+Field\] that cannot be converted to a vector because its element types are unrelated/,
+    expectedError:
+        /tuple slice with a non-constant index should be a vector but has a tuple type \[Boolean, Boolean,\s+Field\] that cannot be converted to a vector because its element types are unrelated/,
 });

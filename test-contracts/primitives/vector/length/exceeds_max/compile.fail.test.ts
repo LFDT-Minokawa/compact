@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /vector type length[\s\S]*exceeds the maximum supported length 16777216/,
+    expectedError:
+        /vector type length[\s\S]*exceeds the maximum supported length 16777216/,
 });
