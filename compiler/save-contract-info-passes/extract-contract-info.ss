@@ -93,6 +93,9 @@
          "compiler-version"
          compiler-version-string)
        (cons
+         "compiler-commit"
+         compiler-version-commit)
+       (cons
          "language-version"
          language-version-string)
        (cons

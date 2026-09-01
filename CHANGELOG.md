@@ -5,6 +5,58 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.102, language 0.26.0, runtime 0.19.101]
+
+### Fixed
+
+- `compactc --version` now reports the release it was built from, including any
+  prerelease identifier and the commit. It previously reported only the
+  major.minor.bugfix triple committed in `compiler/compiler-version.ss`, so every
+  candidate for a release reported that release: a compiler built from
+  `compactc-v0.33.0-rc.2` said `0.33.0`. Since 0.33.0 was never published, that
+  named a release which does not exist -- and the same string is written into
+  `contract-info.json` and `contract-manifest.json`, so a deployed contract
+  recorded a provenance that cannot be resolved.
+
+  The version a build reports is now a fact about the build.
+  Builds that are not releases report `-dev`: the scheduled build
+  and the on-demand dev publish have no release to name, and a dev publish is
+  installable, so one reporting the same shape as a finished release could pass
+  for it. `-dev` sorts below every release of the same triple, so a version
+  check that wanted a release fails instead of passing. That is also the value
+  committed in `compiler/compiler-version.ss`, so a build nothing stamped cannot
+  pass for a release either.
+
+  The commit is reported beside the version rather than inside it --
+  `0.34.102-rc.2 (a1b2c3d4e 2026-09-10)`, the commit abbreviated and dated the
+  way `rustc --version` does it -- and is recorded in full in `contract-info.json` and
+  `contract-manifest.json` as a new `compiler-commit` field, leaving
+  `compiler-version` a valid semver string. That string is what gets pinned in
+  CI and compared by tooling, and semver build metadata is not reliably ignored
+  in comparison, so a version carrying it reads as a different version.
+
+  `compactc --version --verbose` reports `release`, `commit-hash`,
+  `commit-date`, `language-version` and `runtime-version` as separate fields,
+  so a script need not parse one out of the other and a bug report needs one
+  command rather than three. Fields the build did not record read `unknown`
+  rather than being dropped, so the set of fields does not depend on how the
+  compiler was built.
+
+  Release candidates still satisfy the same `pragma compiler_version`
+  constraints as the release they are candidates for -- the tag is printed but
+  never compared -- so source that compiles under 0.34.0 compiles under
+  0.34.0-rc.1.
+
+- The first of `--help`, `--version`, `--language-version`, `--ledger-version`
+  and `--runtime-version` on the command line is the one that acts. Flag
+  actions used to run mid-parse, so `--ledger-version --feature-zkir-v3`
+  reported the zkir-v2 ledger version -- the feature flag had not been seen
+  yet -- while the reverse order reported v3. Both orders now report v3.
+
+- `format-compact --version` and `fixup-compact --version` report the commit
+  and its date the same way as `compactc --version`: the three tools share one
+  version printer.
+
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
 ### Added

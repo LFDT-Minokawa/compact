@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       language_version:
-        description: 'Language version (e.g. v1.2.3)'
+        description: 'Language version as x.y.z -- callers read it from the released compactc, never from input'
         required: true
         type: string
       branch:

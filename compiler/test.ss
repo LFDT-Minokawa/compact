@@ -37395,6 +37395,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37462,6 +37463,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37505,6 +37507,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37651,6 +37654,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37735,6 +37739,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37794,6 +37799,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -39200,6 +39206,7 @@ groups than for single tests.
       `(
         "{"
         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
         ,(format "  \"language-version\": \"~a\"," language-version-string)
         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
         "  \"circuits\": ["
@@ -39761,6 +39768,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -72244,6 +72252,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -72302,6 +72311,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["

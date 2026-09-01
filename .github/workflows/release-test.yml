@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       branch:
-        description: 'Release branch'
+        description: 'Branch, tag or commit to test'
         required: true
         type: string
       platform:
