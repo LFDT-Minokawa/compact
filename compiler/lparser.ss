@@ -237,6 +237,7 @@
       (parenthesized src lparen expr rparen) => (parenthesized expr)
       (disclose src kwd lparen expr rparen) => (disclose expr)
       (assert src kwd lparen expr comma mesg rparen) => (assert #f expr #f mesg)
+      (opaque src kwd langle opaque-type comma opaque-value rangle) => (opaque opaque-type opaque-value)
       )
     (Function (fun)
       (fref src function-name (maybe generic-arg-list?)) => (fref function-name #f generic-arg-list?)
@@ -253,6 +254,9 @@
       (positional src expr) => expr
       (named src elt-name colon expr) => (elt-name expr)
       )
+    (Opaque-Value (opaque-value)
+      str
+      (include src kwd lparen file rparen))
     (Type (type)
       tref
       (tboolean src kwd) => (tboolean)

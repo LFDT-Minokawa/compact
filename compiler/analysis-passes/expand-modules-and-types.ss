@@ -701,7 +701,7 @@
                                     (set! outer-module-next-seqno (cons (fx1+ (car outer-module-next-seqno)) (cdr outer-module-next-seqno)))
                                     (set-cdr! a info)
                                     info))))
-                       (let* ([pathname (find-source-pathname src
+                       (let* ([pathname (find-source-pathname
                                           (if (symbol? import-name) (symbol->string import-name) import-name)
                                           (lambda (pathname) (source-errorf src "failed to locate file ~s" pathname)))]
                               [import-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]

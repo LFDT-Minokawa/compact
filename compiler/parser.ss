@@ -852,6 +852,10 @@
        (lambda (src kwd lparen expr rparen)
          (with-output-language (Lparser Expression)
            `(disclose ,src ,kwd ,lparen ,expr ,rparen)))]
+      [term-opaque :: src (KEYWORD Opaque) #\< str #\, opaque-value #\> =>
+       (lambda (src kwd langle opaque-type comma str rangle)
+         (with-output-language (Lparser Expression)
+           `(opaque ,src ,kwd ,langle ,opaque-type ,comma ,str ,rangle)))]
       [#f :: term => values])
     (Term (term)
       [term-ref :: src id =>
@@ -950,6 +954,12 @@
          (let-values ([(parg* sep*) (split-sep parg-sep*)])
            (with-output-language (Lparser Pattern-Argument-List)
              `(,langle (,parg* ...) (,sep* ...) ,rangle))))])
+    (Opaque-value (opaque-value)
+      [opaque-value-string :: str => values]
+      [opaque-value-include :: src (KEYWORD include) #\( file #\) =>
+       (lambda (src kwd lparen file rparen)
+         (with-output-language (Lparser Opaque-Value)
+           `(include ,src ,kwd ,lparen ,file ,rparen)))])
   )
 
   (define (parse token-stream)

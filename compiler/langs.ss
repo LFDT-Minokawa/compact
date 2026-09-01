@@ -17,6 +17,7 @@
 
 (library (langs)
   (export field-bytes max-unsigned unsigned-bits datum? path-index?
+          make-opaque-constant opaque-constant? opaque-constant-type opaque-constant-content
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
@@ -82,11 +83,16 @@
          (exact? x)
          (<= 0 x (field-bytes))))
 
+  (define-record-type opaque-constant
+    (nongenerative)
+    (fields type content))
+
   (define (datum? x)
     (or (boolean? x)
         (field? x)
         (and (bytevector? x)
-             (<= (bytevector-length x) (max-bytes/vector-length)))))
+             (<= (bytevector-length x) (max-bytes/vector-length)))
+        (opaque-constant? x)))
 
   (define max-bytes/vector-length (make-parameter (expt 2 24)))
 

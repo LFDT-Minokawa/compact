@@ -1293,6 +1293,15 @@
                (make-Qtoken lparen)
                (Expression expr)
                (add-closer 1 #f rparen '()))))]
+      [(opaque ,src ,kwd ,langle ,opaque-type ,comma ,opaque-value ,rangle)
+       (// src
+           (let ([qexpr* (list (make-Qtoken opaque-type) (Opaque-Value opaque-value))]
+                 [comma* (list comma)])
+             (make-Qconcat #f
+               (make-Qtoken kwd)
+               (make-Qconcat #f
+                 (make-Qtoken langle)
+                 (make-Qsep/closer #f comma* qexpr* -1 rangle)))))]
       [(parenthesized ,src ,lparen ,expr ,rparen)
        (// src
            (apply make-Qconcat #f
@@ -1348,6 +1357,16 @@
              (make-Qtoken lparen)
              (Function fun)
              (add-closer 1 #f rparen '())))])
+    (Opaque-Value : Opaque-Value (ir) -> * (q)
+      [,str (make-Qtoken str)]
+      [(include ,src ,kwd ,lparen ,file ,rparen)
+       (// src
+           (make-Qconcat #f
+             (make-Qtoken kwd)
+             (apply make-Qconcat #f
+               (make-Qtoken lparen)
+               (make-Qtoken file)
+               (add-closer 1 #f rparen '()))))])
     (Type : Type (ir) -> * (q)
       [,tref (Type-Ref tref)]
       [(tboolean ,src ,kwd)

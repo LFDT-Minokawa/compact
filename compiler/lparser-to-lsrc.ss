@@ -21,7 +21,8 @@
           (utils)
           (nanopass)
           (langs)
-          (lparser))
+          (lparser)
+          (only (pass-helpers) find-source-pathname))
 
   (define-pass Lparser->Lsrc : Lparser (ir) -> Lsrc ()
     (Program : Program (ir) -> Program ()
@@ -240,7 +241,44 @@
       [(disclose ,src ,kwd ,lparen ,[expr] ,rparen)
        `(disclose ,src ,expr)]
       [(assert ,src ,kwd ,lparen ,[expr] ,comma ,mesg ,rparen)
-       `(assert ,src ,expr ,(token-value mesg))])
+       `(assert ,src ,expr ,(token-value mesg))]
+      [(opaque ,src ,kwd ,langle ,opaque-type ,comma ,opaque-value ,rangle)
+       (define (hex-string->bytevector s)
+         (define (hex c)
+           (cond
+             [(char<=? #\0 c #\9) (char- c #\0)]
+             [(char<=? #\A c #\Z) (char- c #\A)]
+             [(char<=? #\a c #\z) (char- c #\z)]
+             [else (source-errorf src "hex string contains invalid character '~s': ~s" s)]))
+         (let ([n (string-length s)])
+           (unless (even? n)
+             (source-errorf src "hex string does not have an uneven number of characters: ~s" s))
+           (let ([bv (make-bytevector (fxsrl n 1))])
+             (do ([i 0 (fx+ i 1)])
+                 ((fx= i n) bv)
+               (bytevector-u8-set! bv (fxsll i 1)
+                 (fxlogand
+                   (fxsll (hex (string-ref s i)) 8)
+                   (hex (string-ref s (fx+ i 1)))))))))
+       (let ([type (token-value opaque-type)])
+         (unless (or (equal? type "string") (equal? type "Uint8Array"))
+           (source-errorf src "Opaque constant syntax is not defined for opaque type ~a" opaque-type))
+         `(quote ,src
+            ,(make-opaque-constant
+               type
+               (nanopass-case (Lparser Opaque-Value) opaque-value
+                 [,str (let ([str (token-value str)])
+                         (if (equal? type "string")
+                             str
+                             (hex-string->bytevector str)))]
+                 [(include ,src ,kwd ,lparen ,file ,rparen)
+                  (let ([pathname (find-source-pathname src file ""
+                                    (lambda (pathname)
+                                      (source-errorf src "failed to locate file ~s" pathname)))])
+                    (guard (c [else (error-accessing-file c "opening include file for Opaque constant")])
+                      (if (equal? type "string")
+                          (call-with-port (open-input-file pathname) get-string-all)
+                          (call-with-port (open-file-input-port pathname) get-bytevector-all))))]))))])
     (Function : Function (ir) -> Function ()
       (definitions
         (define (do-arrow src parg-list return-type? blck)

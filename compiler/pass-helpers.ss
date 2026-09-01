@@ -36,24 +36,27 @@
   ; for the print-TS pass.
   (define source-file-name (make-parameter #f))
 
-  (define (find-source-pathname src pathname err)
-    (define (try pathname)
-      (let ([ex? (file-exists? pathname)])
-        (when (trace-search)
-          (fprintf (current-error-port) "looking for ~a...~a\n"
-            pathname
-            (if ex? "found" "not found")))
-        (and ex? pathname)))
-    (let ([pathname (format "~a.compact" pathname)])
-      (or (if (path-absolute? pathname)
-              (try pathname)
-              (ormap
-                (lambda (dir)
-                  (try (if (equal? dir "")
-                           pathname
-                           (format "~a/~a" dir pathname))))
-                (cons (assert (relative-path)) (compact-path))))
-          (err pathname))))
+  (define find-source-pathname
+    (case-lambda
+      [(pathname err) (find-source-pathname pathname ".compact" err)]
+      [(pathname extension err)
+       (define (try pathname)
+         (let ([ex? (file-exists? pathname)])
+           (when (trace-search)
+             (fprintf (current-error-port) "looking for ~a...~a\n"
+               pathname
+               (if ex? "found" "not found")))
+           (and ex? pathname)))
+       (let ([pathname (format "~a~a" pathname extension)])
+         (or (if (path-absolute? pathname)
+                 (try pathname)
+                 (ormap
+                   (lambda (dir)
+                     (try (if (equal? dir "")
+                              pathname
+                              (format "~a/~a" dir pathname))))
+                   (cons (assert (relative-path)) (compact-path))))
+             (err pathname)))]))
 
   (define proof-circuit-names (make-parameter '()))
 

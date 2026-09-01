@@ -535,6 +535,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                    | \|      | `assert` `(` [*expr*](#expression) `,` [*str*](#string-literal) `)`                                                                      |
 |                    | \|      | `emit` `(` [*expr*](#expression) `)`                                                                                                     |
 |                    | \|      | `disclose` `(` [*expr*](#expression) `)`                                                                                                 |
+|                    | \|      | `Opaque` `<` [*str*](#string-literal) `,` [*opaque-value*](#opaque-value) `>`                                                            |
 |                    | \|      | [*term*](#term)                                                                                                                          |
 </div>
 
@@ -615,6 +616,15 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                        |         |                                                                                                                                                     |
 |------------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------|
 | *arrow-parameter-list* | &xrarr; | `(` [*optionally-typed-pattern*](#optionally-typed-pattern) `,` ⋯ `,` [*optionally-typed-pattern*](#optionally-typed-pattern) `,`<sup>opt</sup> `)` |
+</div>
+
+#### Opaque-value
+
+<div className="lang-ref-table">
+|                |         |                                             |
+|----------------|---------|---------------------------------------------|
+| *opaque-value* | &xrarr; | [*str*](#string-literal)                    |
+|                | \|      | `include` `(` [*file*](#string-literal) `)` |
 </div>
 
 </div>
