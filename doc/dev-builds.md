@@ -21,6 +21,12 @@ abbreviated, so the coordinate is unambiguous and cannot collide.
 The runtime is published under npm dist-tag `dev`, so it never moves `latest`.
 The binary release is flagged `prerelease`, so it never becomes "Latest release".
 
+The binary also identifies itself: dev builds are stamped like any other
+`release-build.yml` build, so `compactc --version` prints
+`<compiler triple>-dev (<first nine of the sha> <commit date>)` and
+`compactc --version --verbose` prints the full sha -- a downloaded dev build can
+be matched to its coordinate without trusting the filename.
+
 ## Trigger contract
 
 - **How:** Actions tab -> "On-demand dev publish of compact toolchain" -> Run
@@ -75,15 +81,17 @@ Dev builds are convenience artifacts, not supported releases.
   most recent handful, delete older ones. They are excluded from "Latest
   release" by the `prerelease` flag.
 
-Treat any `dev.<sha>` coordinate as "valid until pruned." For anything that must
-stay resolvable long-term, promote it to a real tagged release via the existing
-`internal-release` / `public-release` workflows.
+Treat any `dev.<sha>` coordinate as "valid until pruned." Anything that must stay
+resolvable long-term needs a real release of that commit: cut one with
+`internal-release.yml` -- a fresh, stamped build, not a renaming of the dev
+artifacts, which the release path never does (`RELEASING.md`).
 
 ## Relationship to the release workflows
 
 - `internal-release.yml` / `public-release.yml` -- the supported, versioned
-  release path (tag-driven, build all four platforms, GitHub releases on the
-  `midnight-ntwrk/artifacts` + public repos). Unchanged.
+  release path: dispatched by hand with a version input, builds up to four
+  platforms, publishes GitHub releases on `midnight-ntwrk/artifacts` and the
+  public repositories. `RELEASING.md` is its manual.
 - `dev-publish.yml` -- this on-demand path. Reuses the same reusable building
   blocks (`release-build.yml`, `release-test.yml`) for the binary, and the same
   `nix build .#runtime.forPublish` derivation for the runtime, so it does not
