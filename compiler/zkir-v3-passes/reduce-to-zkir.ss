@@ -212,6 +212,14 @@
              (assert (= (length var-name*) 1))
              (let ([x (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
+            [(secp256r1PointX)
+             (assert (= (length var-name*) 1))
+             (let ([y (make-temp-id src 'ignore)])
+               (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
+            [(secp256r1PointY)
+             (assert (= (length var-name*) 1))
+             (let ([x (make-temp-id src 'ignore)])
+               (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
             [(transientCommit)
              (assert (= (length var-name*) 1))
              ;; The last input needs to be moved first.

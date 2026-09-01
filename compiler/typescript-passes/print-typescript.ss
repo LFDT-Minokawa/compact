@@ -36,6 +36,12 @@
          "secp256k1ScalarAdd"
          "secp256k1ScalarMul"
          "secp256k1ScalarSub"
+         "secp256r1BaseAdd"
+         "secp256r1BaseMul"
+         "secp256r1BaseSub"
+         "secp256r1ScalarAdd"
+         "secp256r1ScalarMul"
+         "secp256r1ScalarSub"
          "subField"
          "typeError"
          ))
@@ -2590,22 +2596,34 @@
                        (printf "}\n"))
                      elt-name*
                      type*)]
-                  [(tpoint ,src (curve-jubjub))
-                   (print-indent indent)
-                   (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
-                   (print-indent (fx+ indent 2))
-                   (printf "return false;\n")
-                   (print-indent indent)
-                   (printf "}\n")]
-                  [(tpoint ,src (curve-secp256k1))
-                   (print-indent indent)
-                   (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
-                   (print-indent indent)
-                   (printf "if (y~s.identity || x~:*~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
-                   (print-indent (fx+ indent 2))
-                   (printf "return false;\n")
-                   (print-indent indent)
-                   (printf "}\n")]
+                  [(tpoint ,src ,ctype)
+                   (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                     [(curve-curve25519) (assert cannot-happen)]
+                     [(curve-jubjub)
+                      (print-indent indent)
+                      (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
+                      (print-indent (fx+ indent 2))
+                      (printf "return false;\n")
+                      (print-indent indent)
+                      (printf "}\n")]
+                     [(curve-secp256k1)
+                      (print-indent indent)
+                      (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
+                      (print-indent indent)
+                      (printf "if (y~s.identity || x~:*~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
+                      (print-indent (fx+ indent 2))
+                      (printf "return false;\n")
+                      (print-indent indent)
+                      (printf "}\n")]
+                     [(curve-secp256r1)
+                      (print-indent indent)
+                      (printf "if (x~s.identity) { return y~:*~s.identity; }\n" i)
+                      (print-indent indent)
+                      (printf "if (y~s.identity || x~:*~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
+                      (print-indent (fx+ indent 2))
+                      (printf "return false;\n")
+                      (print-indent indent)
+                      (printf "}\n")])]
                   [else
                    (print-indent indent)
                    (printf "if (x~s !== y~:*~s) { return false; }\n" i)])))))
@@ -2763,10 +2781,22 @@
     [(+ ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
                    ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
      (let ([fun (nanopass-case (Ltypescript Type) type
-                  ;; infer-types guarantees that these are the only possibilities.
-                  [(tfield ,src^ (field-native)) "addField"]
-                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseAdd"]
-                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarAdd"]
+                  ;; `cannot-happen` below is guaranteed by `infer-types`
+                  [(tfield ,src^ ,ftype)
+                   (strict-nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "addField"]
+                     [(field-base ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1BaseAdd"]
+                        [(curve-secp256r1) "secp256r1BaseAdd"])]
+                     [(field-scalar ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1ScalarAdd"]
+                        [(curve-secp256r1) "secp256r1ScalarAdd"])])]
                   [else (assert cannot-happen)])])
        (parenthesize level (precedence call)
          (make-Qconcat
@@ -2782,10 +2812,22 @@
     [(- ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
                    ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
      (let ([fun (nanopass-case (Ltypescript Type) type
-                  ;; infer-types guarantees that these are the only possibilities.
-                  [(tfield ,src^ (field-native)) "subField"]
-                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseSub"]
-                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarSub"]
+                  ;; `cannot-happen` below is guaranteed by `infer-types`
+                  [(tfield ,src^ ,ftype)
+                   (strict-nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "subField"]
+                     [(field-base ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1BaseSub"]
+                        [(curve-secp256r1) "secp256r1BaseSub"])]
+                     [(field-scalar ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1ScalarSub"]
+                        [(curve-secp256r1) "secp256r1ScalarSub"])])]
                   [else (assert cannot-happen)])])
        (parenthesize level (precedence call)
          (make-Qconcat
@@ -2801,10 +2843,22 @@
     [(* ,src ,type ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
                    ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
      (let ([fun (nanopass-case (Ltypescript Type) type
-                  ;; infer-types guarantees that these are the only possibilities.
-                  [(tfield ,src^ (field-native)) "mulField"]
-                  [(tfield ,src^ (field-base (curve-secp256k1))) "secp256k1BaseMul"]
-                  [(tfield ,src^ (field-scalar (curve-secp256k1))) "secp256k1ScalarMul"]
+                  ;; `cannot-happen` below is guaranteed by `infer-types`
+                  [(tfield ,src^ ,ftype)
+                   (strict-nanopass-case (Ltypescript Field-Type) ftype
+                     [(field-native) "mulField"]
+                     [(field-base ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1BaseMul"]
+                        [(curve-secp256r1) "secp256r1BaseMul"])]
+                     [(field-scalar ,ctype)
+                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
+                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-jubjub) (assert cannot-happen)]
+                        [(curve-secp256k1) "secp256k1ScalarMul"]
+                        [(curve-secp256r1) "secp256r1ScalarMul"])])]
                   [else (assert cannot-happen)])])
        (parenthesize level (precedence call)
          (make-Qconcat

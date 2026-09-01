@@ -1797,501 +1797,339 @@ groups than for single tests.
         ))
     )
 
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "ledger address: Bytes<20>;"
-  ;;     "ledger hash: Bytes<32>;"
-  ;;     "// This was the reported issue."
-  ;;     "export circuit test0(pt: Secp256r1Point): [] {"
-  ;;     "  address = disclose(secp256r1EthereumAddress(pt));"
-  ;;     "}"
-  ;;     "// This is the underlying issue, also testing nested points."
-  ;;     "export circuit test1(pt0: Secp256r1Point, pt1: Secp256r1Point): [] {"
-  ;;     "  hash = disclose(keccak256<[Secp256r1Point, Secp256r1Point]>([pt0, pt1]));"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Issue 608', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  const p0 = runtime.secp256r1MulGenerator(5n);"
-  ;;       "  const p1 = runtime.secp256r1MulGenerator(7n);"
-  ;;       "  await contract.circuits.test0(context, p0);"
-  ;;       "  await contract.circuits.test1(context, p0, p1);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit addb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 + b1);"
+      "  return base;"
+      "}"
+      "export circuit subb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 - b1);"
+      "  return base;"
+      "}"
+      "export circuit mulb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 * b1);"
+      "  return base;"
+      "}"
+      "export circuit adds(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 + s1);"
+      "  return scalar;"
+      "}"
+      "export circuit subs(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 - s1);"
+      "  return scalar;"
+      "}"
+      "export circuit muls(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 * s1);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (addb) ((%b0.9 "Base<Secp256r1>")
+                         (%b1.8 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (add %tmp.12 %b0.9 %b1.8)
+          (encode (%fld.13 %fld.14) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.15)
+          (encode (%fld.16 %fld.17) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.16 %fld.17)
+          (output %t.15))
+        (circuit (subb) ((%b0.11 "Base<Secp256r1>")
+                         (%b1.10 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (neg %neg.18 %b1.10)
+          (add %tmp.19 %b0.11 %neg.18)
+          (encode (%fld.20 %fld.21) %tmp.19)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.20 %fld.21)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.22)
+          (encode (%fld.23 %fld.24) %t.22)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.23 %fld.24)
+          (output %t.22))
+        (circuit (mulb) ((%b0.5 "Base<Secp256r1>")
+                         (%b1.4 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (mul %tmp.25 %b0.5 %b1.4)
+          (encode (%fld.26 %fld.27) %tmp.25)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.26 %fld.27)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.28)
+          (encode (%fld.29 %fld.30) %t.28)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.29 %fld.30)
+          (output %t.28))
+        (circuit (adds) ((%s0.7 "Scalar<Secp256r1>")
+                         (%s1.6 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (add %tmp.31 %s0.7 %s1.6)
+          (encode (%fld.32 %fld.33) %tmp.31)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.32 %fld.33)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.34)
+          (encode (%fld.35 %fld.36) %t.34)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.35 %fld.36)
+          (output %t.34))
+        (circuit (subs) ((%s0.1 "Scalar<Secp256r1>")
+                         (%s1.0 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (neg %neg.37 %s1.0)
+          (add %tmp.38 %s0.1 %neg.37)
+          (encode (%fld.39 %fld.40) %tmp.38)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.39 %fld.40)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.41)
+          (encode (%fld.42 %fld.43) %t.41)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.42 %fld.43)
+          (output %t.41))
+        (circuit (muls) ((%s0.3 "Scalar<Secp256r1>")
+                         (%s1.2 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (mul %tmp.44 %s0.3 %s1.2)
+          (encode (%fld.45 %fld.46) %tmp.44)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.45 %fld.46)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.47)
+          (encode (%fld.48 %fld.49) %t.47)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.48 %fld.49)
+          (output %t.47))))
+    (stage-javascript
+      ;; Test against some random base and scalar values.
+      (let ([base0 52584276415898193626173731049016156782780531967106776553089736481455217153711]
+            [base1 101724073669754816760231198588846155972783226750243314995576536951426993649219]
+            [scalar0 58103357790562692890356380673073847817029214593712501886367742447833320047597]
+            [scalar1 89767741681767092464929206432342796822339894083881471054469222796017018470626]
+            [expect
+              (lambda (circuit left right result)
+                (format
+                  "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
+                  circuit left right result))])
+        `(
+          "test('secp256r1 field arithmetic', async () => {"
+          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          ,(expect 'addb base0 0 base0)
+          ,(expect 'addb base1 0 base1)
+          ,(expect 'addb base0 (max-secp256r1-base) (1- base0))
+          ,(expect 'addb base1 (max-secp256r1-base) (1- base1))
+          ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'subb base0 0 base0)
+          ,(expect 'subb base1 0 base1)
+          ,(expect 'subb base0 (max-secp256r1-base) (1+ base0))
+          ,(expect 'subb base1 (max-secp256r1-base) (1+ base1))
+          ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base0 0 0)
+          ,(expect 'mulb base1 0 0)
+          ,(expect 'mulb base0 1 base0)
+          ,(expect 'mulb base1 1 base1)
+          ,(expect 'mulb base0 (max-secp256r1-base)
+             (modulo (* base0 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base1 (max-secp256r1-base)
+             (modulo (* base1 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'adds scalar0 0 scalar0)
+          ,(expect 'adds scalar1 0 scalar1)
+          ,(expect 'adds scalar0 (max-secp256r1-scalar) (1- scalar0))
+          ,(expect 'adds scalar1 (max-secp256r1-scalar) (1- scalar1))
+          ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+          ,(expect 'subs scalar0 0 scalar0)
+          ,(expect 'subs scalar1 0 scalar1)
+          ,(expect 'subs scalar0 (max-secp256r1-scalar) (1+ scalar0))
+          ,(expect 'subs scalar1 (max-secp256r1-scalar) (1+ scalar1))
+          ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar0 0 0)
+          ,(expect 'muls scalar1 0 0)
+          ,(expect 'muls scalar0 1 scalar0)
+          ,(expect 'muls scalar1 1 scalar1)
+          ,(expect 'muls scalar0 (max-secp256r1-scalar)
+             (modulo (* scalar0 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar1 (max-secp256r1-scalar)
+             (modulo (* scalar1 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+        "});"
+        )))
+    )
 
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "ledger checkResult: Bytes<20>;"
-  ;;     "export circuit test(pk: Secp256r1Point): Bytes<20> {"
-  ;;     "  const address = secp256r1EthereumAddress(pk);"
-  ;;     "  checkResult = disclose(address);"
-  ;;     "  return address;"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Ethereum address byte order', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  // A public key and (case insensitive) address from a random private key"
-  ;;       "  // (secp256r1 scalar), generated by"
-  ;;       "  // https://www.rfctools.com/ethereum-address-test-tool/."
-  ;;       "  const pt = {"
-  ;;       "    x: 0xd06cae31b20a8c528186917358a5eceac665029d8afc30eee8e3abaa5a24e9ean,"
-  ;;       "    y: 0x9cd8a23f97228ae2f1cb89cc93530783ac6970f2af443e5a87da50c835984f06n,"
-  ;;       "    identity: false,"
-  ;;       "  };"
-  ;;       "  const expected = new Uint8Array(["
-  ;;       "    0x3d, 0x81, 0xac, 0x81, 0x76, 0x4e, 0xb1, 0xa4, 0x4a, 0xfb,"
-  ;;       "    0xc2, 0x45, 0xfc, 0x1d, 0x92, 0x54, 0xc0, 0xd0, 0x77, 0x2a,"
-  ;;       "  ]);"
-  ;;       "  expect((await contract.circuits.test(context, pt)).result).toEqual(expected);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test0(pt: Secp256r1Point): Secp256r1Base {"
+      "  return secp256r1PointX(pt);"
+      "}"
+      "export circuit test1(pt: Secp256r1Point): Secp256r1Base {"
+      "  return secp256r1PointY(pt);"
+      "}"
+      "export circuit test2(pt: Secp256r1Point): [Secp256r1Base, Secp256r1Base] {"
+      "  return pt == default<Secp256r1Point>"
+      "      ? [default<Secp256r1Base>, default<Secp256r1Base>]"
+      "      : [secp256r1PointX(pt), secp256r1PointY(pt)];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on the identity', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 3n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  await expect(contract.circuits.test0(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity0)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity1)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
 
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export ledger owner: Bytes<20>;"
-  ;;     "witness recoverKey(digest: Bytes<32>,"
-  ;;     "                   sig: Secp256r1EcdsaSignature,"
-  ;;     "                   recoveryId: Uint<2>): Secp256r1Point;"
-  ;;     "export circuit setOwner(addr: Bytes<20>): [] {"
-  ;;     "  owner = disclose(addr);"
-  ;;     "}"
-  ;;     "// The Ethereum pattern: `require(ecrecover(hash, v, r, s) == owner)`."
-  ;;     "// Verification alone does not say *who* signed -- every recoverable id"
-  ;;     "// yields a key that verifies -- so the recovered key is additionally bound"
-  ;;     "// to an address the contract already trusts."
-  ;;     "export circuit verifyOwnerSignature(msg: Bytes<32>,"
-  ;;     "                                    sig: Secp256r1EcdsaSignature,"
-  ;;     "                                    recoveryId: Uint<2>): [] {"
-  ;;     "  const digest = keccak256<Bytes<32>>(msg);"
-  ;;     "  const pk = recoverKey(digest, sig, recoveryId);"
-  ;;     "  assert(secp256r1EcdsaVerify(digest, sig, pk), 'bad signature');"
-  ;;     "  assert(secp256r1EthereumAddress(pk) == owner, 'not the owner');"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "const msg = new Uint8Array(32);"
-  ;;       "for (let i = 0; i < 32; i++) msg[i] = i + 1;"
-  ;;       "const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
-  ;;       "// Signing is RFC 6979 deterministic and low-s normalised, so the signature"
-  ;;       "// and its recovery id are the same on every run."
-  ;;       "const SK = 7n;"
-  ;;       "// `recovered` format is the recovery byte followed by r and s."
-  ;;       "const sigBytes = secp256r1.sign(digest, secp256r1.Point.Fn.toBytes(SK), {"
-  ;;       "  prehash: false,"
-  ;;       "  format: 'recovered',"
-  ;;       "});"
-  ;;       "const recoveryId = sigBytes[0];"
-  ;;       "const parsed = secp256r1.Signature.fromBytes(sigBytes, 'recovered');"
-  ;;       "const sig = { r: parsed.r, s: parsed.s };"
-  ;;       "const ethAddress = (p: typeof secp256r1.Point.BASE): Uint8Array =>"
-  ;;       "  runtime.keccak256(new runtime.CompactTypeBytes(64), p.toBytes(false).subarray(1)).slice(12);"
-  ;;       "// Ethereum address of the signer, SK*G."
-  ;;       "const SIGNER = ethAddress(secp256r1.Point.BASE.multiplyUnsafe(SK));"
-  ;;       "// Ethereum address of the key recovered with the other recovery id, which"
-  ;;       "// verifies just as well but belongs to nobody in particular."
-  ;;       "const OTHER = ethAddress("
-  ;;       "  new secp256r1.Signature(sig.r, sig.s, recoveryId ^ 1).recoverPublicKey(digest));"
-  ;;       "// The malleated twin.  Negating s negates the nonce point R, and the"
-  ;;       "// recovery id carries R's parity, so (r, s, v) and (r, n - s, v ^ 1)"
-  ;;       "// recover the same key -- and therefore the same Ethereum address."
-  ;;       "const n = secp256r1.Point.Fn.ORDER;"
-  ;;       "const twinSig = { r: sig.r, s: n - sig.s };"
-  ;;       "// The witness takes the digest, the signature and the recovery id as"
-  ;;       "// arguments, so one implementation serves every case below.  A dApp would"
-  ;;       "// take the recovery id from the signature's v byte.  Uint<2> arrives as a"
-  ;;       "// bigint, while the runtime's recover expects a number."
-  ;;       "const witnesses = {"
-  ;;       "  recoverKey(wc: runtime.WitnessContext<{}, number>,"
-  ;;       "             digest: Uint8Array,"
-  ;;       "             sig: { r: bigint, s: bigint },"
-  ;;       "             recoveryId: bigint): [number, runtime.Secp256r1Point] {"
-  ;;       "    return [wc.privateState,"
-  ;;       "            runtime.secp256r1EcdsaRecover(digest, sig, Number(recoveryId))];"
-  ;;       "  },"
-  ;;       "};"
-  ;;       "const withOwner = async (addr: Uint8Array) => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
-  ;;       "  const r = await contract.circuits.setOwner(context, addr);"
-  ;;       "  return [contract, r.context] as const;"
-  ;;       "};"
-  ;;       "test('the owner\\'s signature is accepted', async () => {"
-  ;;       "  const [contract, context] = await withOwner(SIGNER);"
-  ;;       "  const r = await contract.circuits.verifyOwnerSignature("
-  ;;       "                    context, msg, sig, BigInt(recoveryId));"
-  ;;       "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(SIGNER);"
-  ;;       "});"
-  ;;       "test('the malleated twin signature is accepted for the same owner', async () => {"
-  ;;       "  // Binding the recovered key to a trusted address fixes *who* signed, but"
-  ;;       "  // it does not de-malleate the signature: the high-s twin clears both the"
-  ;;       "  // signature check and the address check.
-  ;;       "  expect(sig.s <= n / 2n).toBe(true);"
-  ;;       "  expect(twinSig.s > n / 2n).toBe(true);"
-  ;;       "  const [contract, context] = await withOwner(SIGNER);"
-  ;;       "  const r = await contract.circuits.verifyOwnerSignature("
-  ;;       "                    context, msg, twinSig, BigInt(recoveryId ^ 1));"
-  ;;       "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(SIGNER);"
-  ;;       "});"
-  ;;       "test('the wrong recovery id is caught by the address check', async () => {"
-  ;;       "  // This is the case secp256r1EcdsaVerify alone lets through: the other"
-  ;;       "  // id recovers a different key that still verifies, but its address is"
-  ;;       "  // not the owner's.  Contrast with the twin above, where negating s as"
-  ;;       "  // well as flipping the id lands back on the owner."
-  ;;       "  const [contract, context] = await withOwner(SIGNER);"
-  ;;       "  await expect(contract.circuits.verifyOwnerSignature("
-  ;;       "                 context, msg, sig, BigInt(recoveryId ^ 1))).rejects.toThrow();"
-  ;;       "});"
-  ;;       "test('a valid signature by a non-owner is rejected', async () => {"
-  ;;       "  const [contract, context] = await withOwner(OTHER);"
-  ;;       "  await expect(contract.circuits.verifyOwnerSignature("
-  ;;       "                 context, msg, sig, BigInt(recoveryId))).rejects.toThrow();"
-  ;;       "});"
-  ;;       ))
-  ;;   )
+  ;; impure circuit which generates zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export ledger y: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeX(): [] {"
+      "  x = secp256r1PointX(pt);"
+      "}"
+      "export circuit storeY(): [] {"
+      "  y = secp256r1PointY(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on a ledger point', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A Secp256r1Point ledger cell starts out holding the identity, which"
+        "  // has no coordinates."
+        "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
+        "  // The point G, whose coordinates are available."
+        "  const G = {"
+        "    x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "    y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "    identity: false,"
+        "  };"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual(G);"
+        "  const withX = await contract.circuits.storeX(stored.context);"
+        "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const withY = await contract.circuits.storeY(withX.context);"
+        "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
+        "  expect(L.y).toEqual(G.y);"
+        "  // Storing the identity again makes the coordinates unavailable again."
+        "  const back = await contract.circuits.storePoint(withY.context,"
+        "                                                  { x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
 
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export ledger base: Secp256r1Base;"
-  ;;     "export ledger scalar: Secp256r1Scalar;"
-  ;;     "export circuit addb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
-  ;;     "  base = disclose(b0 + b1);"
-  ;;     "  return base;"
-  ;;     "}"
-  ;;     "export circuit subb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
-  ;;     "  base = disclose(b0 - b1);"
-  ;;     "  return base;"
-  ;;     "}"
-  ;;     "export circuit mulb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
-  ;;     "  base = disclose(b0 * b1);"
-  ;;     "  return base;"
-  ;;     "}"
-  ;;     "export circuit adds(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
-  ;;     "  scalar = disclose(s0 + s1);"
-  ;;     "  return scalar;"
-  ;;     "}"
-  ;;     "export circuit subs(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
-  ;;     "  scalar = disclose(s0 - s1);"
-  ;;     "  return scalar;"
-  ;;     "}"
-  ;;     "export circuit muls(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
-  ;;     "  scalar = disclose(s0 * s1);"
-  ;;     "  return scalar;"
-  ;;     "}"
-  ;;     )
-  ;;   (pass-returns reduce-to-zkir
-  ;;     (program
-  ;;       (circuit (addb) ((%b0.9 "Base<Secp256r1>")
-  ;;                        (%b1.8 "Base<Secp256r1>"))
-  ;;         ("Base<Secp256r1>")
-  ;;         (add %tmp.12 %b0.9 %b1.8)
-  ;;         (encode (%fld.13 %fld.14) %tmp.12)
-  ;;         (impact 1 16 1 1 1 0)
-  ;;         (impact 1 17 1 2 24 8 %fld.13 %fld.14)
-  ;;         (impact 1 145)
-  ;;         (public_input "Base<Secp256r1>" %t.15)
-  ;;         (encode (%fld.16 %fld.17) %t.15)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 0)
-  ;;         (impact 1 12 2 24 8 %fld.16 %fld.17)
-  ;;         (output %t.15))
-  ;;       (circuit (subb) ((%b0.11 "Base<Secp256r1>")
-  ;;                        (%b1.10 "Base<Secp256r1>"))
-  ;;         ("Base<Secp256r1>")
-  ;;         (neg %neg.18 %b1.10)
-  ;;         (add %tmp.19 %b0.11 %neg.18)
-  ;;         (encode (%fld.20 %fld.21) %tmp.19)
-  ;;         (impact 1 16 1 1 1 0)
-  ;;         (impact 1 17 1 2 24 8 %fld.20 %fld.21)
-  ;;         (impact 1 145)
-  ;;         (public_input "Base<Secp256r1>" %t.22)
-  ;;         (encode (%fld.23 %fld.24) %t.22)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 0)
-  ;;         (impact 1 12 2 24 8 %fld.23 %fld.24)
-  ;;         (output %t.22))
-  ;;       (circuit (mulb) ((%b0.5 "Base<Secp256r1>")
-  ;;                        (%b1.4 "Base<Secp256r1>"))
-  ;;         ("Base<Secp256r1>")
-  ;;         (mul %tmp.25 %b0.5 %b1.4)
-  ;;         (encode (%fld.26 %fld.27) %tmp.25)
-  ;;         (impact 1 16 1 1 1 0)
-  ;;         (impact 1 17 1 2 24 8 %fld.26 %fld.27)
-  ;;         (impact 1 145)
-  ;;         (public_input "Base<Secp256r1>" %t.28)
-  ;;         (encode (%fld.29 %fld.30) %t.28)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 0)
-  ;;         (impact 1 12 2 24 8 %fld.29 %fld.30)
-  ;;         (output %t.28))
-  ;;       (circuit (adds) ((%s0.7 "Scalar<Secp256r1>")
-  ;;                        (%s1.6 "Scalar<Secp256r1>"))
-  ;;         ("Scalar<Secp256r1>")
-  ;;         (add %tmp.31 %s0.7 %s1.6)
-  ;;         (encode (%fld.32 %fld.33) %tmp.31)
-  ;;         (impact 1 16 1 1 1 1)
-  ;;         (impact 1 17 1 2 24 8 %fld.32 %fld.33)
-  ;;         (impact 1 145)
-  ;;         (public_input "Scalar<Secp256r1>" %t.34)
-  ;;         (encode (%fld.35 %fld.36) %t.34)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 1)
-  ;;         (impact 1 12 2 24 8 %fld.35 %fld.36)
-  ;;         (output %t.34))
-  ;;       (circuit (subs) ((%s0.1 "Scalar<Secp256r1>")
-  ;;                        (%s1.0 "Scalar<Secp256r1>"))
-  ;;         ("Scalar<Secp256r1>")
-  ;;         (neg %neg.37 %s1.0)
-  ;;         (add %tmp.38 %s0.1 %neg.37)
-  ;;         (encode (%fld.39 %fld.40) %tmp.38)
-  ;;         (impact 1 16 1 1 1 1)
-  ;;         (impact 1 17 1 2 24 8 %fld.39 %fld.40)
-  ;;         (impact 1 145)
-  ;;         (public_input "Scalar<Secp256r1>" %t.41)
-  ;;         (encode (%fld.42 %fld.43) %t.41)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 1)
-  ;;         (impact 1 12 2 24 8 %fld.42 %fld.43)
-  ;;         (output %t.41))
-  ;;       (circuit (muls) ((%s0.3 "Scalar<Secp256r1>")
-  ;;                        (%s1.2 "Scalar<Secp256r1>"))
-  ;;         ("Scalar<Secp256r1>")
-  ;;         (mul %tmp.44 %s0.3 %s1.2)
-  ;;         (encode (%fld.45 %fld.46) %tmp.44)
-  ;;         (impact 1 16 1 1 1 1)
-  ;;         (impact 1 17 1 2 24 8 %fld.45 %fld.46)
-  ;;         (impact 1 145)
-  ;;         (public_input "Scalar<Secp256r1>" %t.47)
-  ;;         (encode (%fld.48 %fld.49) %t.47)
-  ;;         (impact 1 48)
-  ;;         (impact 1 80 1 1 1)
-  ;;         (impact 1 12 2 24 8 %fld.48 %fld.49)
-  ;;         (output %t.47))))
-  ;;   (stage-javascript
-  ;;     ;; Test against some random base and scalar values.
-  ;;     (let ([base0 46650258000037232366158629642678773672890852140699407265360345715536022899553]
-  ;;           [base1 49961613701950065613888640415520526451680684154063724245984978230985445785591]
-  ;;           [scalar0 13185332814719467048625289428055336956216913103903703707915286873163564687413]
-  ;;           [scalar1 96181917743701203273367767841317204335168468443275911828686980079872884046249]
-  ;;           [expect
-  ;;             (lambda (circuit left right result)
-  ;;               (format
-  ;;                 "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
-  ;;                 circuit left right result))])
-  ;;       `(
-  ;;         "test('secp256r1 field arithmetic', async () => {"
-  ;;         "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;         ,(expect 'addb base0 0 base0)
-  ;;         ,(expect 'addb base1 0 base1)
-  ;;         ,(expect 'addb base0 (max-secp256r1-base) (1- base0))
-  ;;         ,(expect 'addb base1 (max-secp256r1-base) (1- base1))
-  ;;         ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-secp256r1-base))))
-  ;;         ,(expect 'subb base0 0 base0)
-  ;;         ,(expect 'subb base1 0 base1)
-  ;;         ,(expect 'subb base0 (max-secp256r1-base) (1+ base0))
-  ;;         ,(expect 'subb base1 (max-secp256r1-base) (1+ base1))
-  ;;         ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-secp256r1-base))))
-  ;;         ,(expect 'mulb base0 0 0)
-  ;;         ,(expect 'mulb base1 0 0)
-  ;;         ,(expect 'mulb base0 1 base0)
-  ;;         ,(expect 'mulb base1 1 base1)
-  ;;         ,(expect 'mulb base0 (max-secp256r1-base)
-  ;;            (modulo (* base0 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
-  ;;         ,(expect 'mulb base1 (max-secp256r1-base)
-  ;;            (modulo (* base1 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
-  ;;         ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-secp256r1-base))))
-  ;;         ,(expect 'adds scalar0 0 scalar0)
-  ;;         ,(expect 'adds scalar1 0 scalar1)
-  ;;         ,(expect 'adds scalar0 (max-secp256r1-scalar) (1- scalar0))
-  ;;         ,(expect 'adds scalar1 (max-secp256r1-scalar) (1- scalar1))
-  ;;         ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-secp256r1-scalar))))
-  ;;         ,(expect 'subs scalar0 0 scalar0)
-  ;;         ,(expect 'subs scalar1 0 scalar1)
-  ;;         ,(expect 'subs scalar0 (max-secp256r1-scalar) (1+ scalar0))
-  ;;         ,(expect 'subs scalar1 (max-secp256r1-scalar) (1+ scalar1))
-  ;;         ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-secp256r1-scalar))))
-  ;;         ,(expect 'muls scalar0 0 0)
-  ;;         ,(expect 'muls scalar1 0 0)
-  ;;         ,(expect 'muls scalar0 1 scalar0)
-  ;;         ,(expect 'muls scalar1 1 scalar1)
-  ;;         ,(expect 'muls scalar0 (max-secp256r1-scalar)
-  ;;            (modulo (* scalar0 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
-  ;;         ,(expect 'muls scalar1 (max-secp256r1-scalar)
-  ;;            (modulo (* scalar1 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
-  ;;         ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256r1-scalar))))
-  ;;       "});"
-  ;;       )))
-  ;;   )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXOfGenerator(k: Secp256r1Scalar): [] {"
+      "  x = disclose(secp256r1PointX(ecMulGenerator(k)));"
+      "}"
+      "export circuit storeXOfMul(k: Secp256r1Scalar): [] {"
+      "  x = disclose(secp256r1PointX(ecMul(pt, k)));"
+      "}"
+      "export circuit storeXOfSum(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  x = disclose(secp256r1PointX(ecAdd(a, b)));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on an identity computed in circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const G = runtime.secp256r1MulGenerator(1n);"
+        "  const negG = runtime.secp256r1Mul(G, runtime.SECP256R1_SCALAR_MODULUS - 1n);"
+        "  expect(runtime.secp256r1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const twoG = runtime.secp256r1MulGenerator(2n);"
+        "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
+        "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
+        "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
+        "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "});"
+        ))
+    )
 
-
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export circuit test0(pt: Secp256r1Point): Secp256r1Base {"
-  ;;     "  return secp256r1PointX(pt);"
-  ;;     "}"
-  ;;     "export circuit test1(pt: Secp256r1Point): Secp256r1Base {"
-  ;;     "  return secp256r1PointY(pt);"
-  ;;     "}"
-  ;;     "export circuit test2(pt: Secp256r1Point): [Secp256r1Base, Secp256r1Base] {"
-  ;;     "  return pt == default<Secp256r1Point>"
-  ;;     "      ? [default<Secp256r1Base>, default<Secp256r1Base>]"
-  ;;     "      : [secp256r1PointX(pt), secp256r1PointY(pt)];"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Secp256r1Point accessors on the identity', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  const identity0 = { x: 0n, y: 0n, identity: true };"
-  ;;       "  const identity1 = { x: 3n, y: 4n, identity: true };"
-  ;;       "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
-  ;;       "  await expect(contract.circuits.test0(context, identity0)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.test1(context, identity0)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  expect((await contract.circuits.test2(context, identity0)).result).toEqual([0n, 0n]);"
-  ;;       "  await expect(contract.circuits.test0(context, identity1)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.test1(context, identity1)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  expect((await contract.circuits.test2(context, identity1)).result).toEqual([0n, 0n]);"
-  ;;       "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
-
-  ;; ;; impure circuit which generates zkir
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export ledger pt: Secp256r1Point;"
-  ;;     "export ledger x: Secp256r1Base;"
-  ;;     "export ledger y: Secp256r1Base;"
-  ;;     "export circuit storePoint(p: Secp256r1Point): [] {"
-  ;;     "  pt = disclose(p);"
-  ;;     "}"
-  ;;     "export circuit storeX(): [] {"
-  ;;     "  x = secp256r1PointX(pt);"
-  ;;     "}"
-  ;;     "export circuit storeY(): [] {"
-  ;;     "  y = secp256r1PointY(pt);"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Secp256r1Point accessors on a ledger point', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  // A Secp256r1Point ledger cell starts out holding the identity, which"
-  ;;       "  // has no coordinates."
-  ;;       "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
-  ;;       "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  // The point G, whose coordinates are available."
-  ;;       "  const G = {"
-  ;;       "    x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
-  ;;       "    y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
-  ;;       "    identity: false,"
-  ;;       "  };"
-  ;;       "  const stored = await contract.circuits.storePoint(context, G);"
-  ;;       "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.pt).toEqual(G);"
-  ;;       "  const withX = await contract.circuits.storeX(stored.context);"
-  ;;       "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.x).toEqual(G.x);"
-  ;;       "  const withY = await contract.circuits.storeY(withX.context);"
-  ;;       "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.y).toEqual(G.y);"
-  ;;       "  // Storing the identity again makes the coordinates unavailable again."
-  ;;       "  const back = await contract.circuits.storePoint(withY.context,"
-  ;;       "                                                  { x: 0n, y: 0n, identity: true });"
-  ;;       "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export ledger pt: Secp256r1Point;"
-  ;;     "export ledger x: Secp256r1Base;"
-  ;;     "export circuit storePoint(p: Secp256r1Point): [] {"
-  ;;     "  pt = disclose(p);"
-  ;;     "}"
-  ;;     "export circuit storeXOfGenerator(k: Secp256r1Scalar): [] {"
-  ;;     "  x = disclose(secp256r1PointX(ecMulGenerator(k)));"
-  ;;     "}"
-  ;;     "export circuit storeXOfMul(k: Secp256r1Scalar): [] {"
-  ;;     "  x = disclose(secp256r1PointX(ecMul(pt, k)));"
-  ;;     "}"
-  ;;     "export circuit storeXOfSum(a: Secp256r1Point, b: Secp256r1Point): [] {"
-  ;;     "  x = disclose(secp256r1PointX(ecAdd(a, b)));"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Secp256r1Point accessors on an identity computed in circuit', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  const G = runtime.secp256r1MulGenerator(1n);"
-  ;;       "  const negG = runtime.secp256r1Mul(G, runtime.SECP256R1_SCALAR_MODULUS - 1n);"
-  ;;       "  expect(runtime.secp256r1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
-  ;;       "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
-  ;;       "      .rejects.toThrow(runtime.CompactError);"
-  ;;       "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
-  ;;       "      .rejects.toThrow(runtime.CompactError);"
-  ;;       "  const stored = await contract.circuits.storePoint(context, G);"
-  ;;       "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
-  ;;       "      .rejects.toThrow(runtime.CompactError);"
-  ;;       "  const twoG = runtime.secp256r1MulGenerator(2n);"
-  ;;       "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
-  ;;       "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.x).toEqual(G.x);"
-  ;;       "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
-  ;;       "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.x).toEqual(twoG.x);"
-  ;;       "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
-  ;;       "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.x).toEqual(twoG.x);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
-
-  ;; (test
-  ;;   '(
-  ;;     "import CompactStandardLibrary;"
-  ;;     "export ledger pt: Secp256r1Point;"
-  ;;     "export ledger x: Secp256r1Base;"
-  ;;     "export circuit storePoint(p: Secp256r1Point): [] {"
-  ;;     "  pt = disclose(p);"
-  ;;     "}"
-  ;;     "export circuit storeXChecked(): [] {"
-  ;;     "  assert(pt != default<Secp256r1Point>, 'the identity has no coordinates');"
-  ;;     "  x = secp256r1PointX(pt);"
-  ;;     "}"
-  ;;     )
-  ;;   (stage-javascript
-  ;;     '(
-  ;;       "test('Secp256r1Point accessors guarded by an assert', async () => {"
-  ;;       "  const [contract, context] = await startContract(contractCode, {}, 0);"
-  ;;       "  await expect(contract.circuits.storeXChecked(context))"
-  ;;       "      .rejects.toThrow(/the identity has no coordinates/);"
-  ;;       "  const G = runtime.secp256r1MulGenerator(1n);"
-  ;;       "  const stored = await contract.circuits.storePoint(context, G);"
-  ;;       "  const checked = await contract.circuits.storeXChecked(stored.context);"
-  ;;       "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
-  ;;       "  expect(L.x).toEqual(G.x);"
-  ;;       "});"
-  ;;       ))
-  ;;   )
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXChecked(): [] {"
+      "  assert(pt != default<Secp256r1Point>, 'the identity has no coordinates');"
+      "  x = secp256r1PointX(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors guarded by an assert', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.storeXChecked(context))"
+        "      .rejects.toThrow(/the identity has no coordinates/);"
+        "  const G = runtime.secp256r1MulGenerator(1n);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  const checked = await contract.circuits.storeXChecked(stored.context);"
+        "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
 
   ;; (test
   ;;   '(
