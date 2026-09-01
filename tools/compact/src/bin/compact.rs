@@ -250,9 +250,9 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             progress::progress(dl).await?;
         }
 
-        let unzip_future = compiler_asset.unzip();
+        let install_future = compiler_asset.install();
 
-        progress::future("Unpacking compiler", unzip_future).await?;
+        progress::future("Unpacking compiler", install_future).await?;
 
         installed = true;
     }
