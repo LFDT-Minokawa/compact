@@ -19,7 +19,7 @@ use std::{
 };
 
 use crate::{CommandLineArguments, Target, compiler::Compiler};
-use anyhow::{Context, Result, anyhow, ensure};
+use anyhow::{Context, Result, anyhow, bail, ensure};
 use semver::Version;
 use tokio::fs;
 
@@ -166,7 +166,28 @@ pub async fn get_current_compiler(cfg: &CommandLineArguments) -> Result<Option<C
 
     let file = match fs::read_link(&bin).await {
         Ok(file) => {
-            ensure!(file.is_file(), "Expecting a file: `{file:?}'");
+            // An installation interrupted before the compiler was in place used
+            // to leave this link pointing at a file that was never written, and
+            // then every command that resolves the default compiler failed with
+            // a bare `Expecting a file', which names no way out. `compact
+            // update' does repair it, so say which command to run.
+            if !file.is_file() {
+                let command = match file
+                    .parent()
+                    .and_then(Path::parent)
+                    .and_then(Path::file_name)
+                    .map(|version| version.to_string_lossy().into_owned())
+                {
+                    Some(version) => format!("compact update {version}"),
+                    None => "compact update".to_owned(),
+                };
+
+                bail!(
+                    "The default compiler is missing: `{bin:?}' points at `{file:?}', \
+                     which does not exist. Run `{command}' to reinstall it."
+                );
+            }
+
             file
         }
         Err(error) if error.kind() == ErrorKind::NotFound => {

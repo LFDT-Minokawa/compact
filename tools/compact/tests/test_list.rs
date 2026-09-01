@@ -15,9 +15,10 @@
 
 use crate::common::{
     COMPACT_VERSION, LATEST_COMPACTC_VERSION, OLDEST_COMPACTC_VERSION, PREVIOUS_COMPACTC_VERSION,
-    run_command,
+    get_version, run_command,
 };
 use std::env;
+use std::fs;
 
 mod common;
 
@@ -132,5 +133,46 @@ fn test_compact_list_param_v() {
         None,
         &[("[COMPACT_VERSION]", COMPACT_VERSION)],
         Some(0),
+    );
+}
+
+/// Issue #739: an installation interrupted before the compiler was in place
+/// left the default-compiler link pointing at a file that was never written,
+/// and every command that resolves it then failed with a bare
+/// `Expecting a file'. `compact update' repairs it, so the error has to say so
+/// rather than leaving the user to work it out.
+#[cfg(unix)]
+#[test]
+fn test_compact_list_installed_dangling_default() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+
+    let installed = temp_path
+        .join("versions")
+        .join(LATEST_COMPACTC_VERSION)
+        .join(get_version());
+    fs::create_dir_all(&installed).unwrap();
+    fs::create_dir_all(temp_path.join("bin")).unwrap();
+
+    // the link the old code left behind: created before it was validated, and
+    // pointing at a compiler that never arrived
+    std::os::unix::fs::symlink(
+        installed.join("compactc"),
+        temp_path.join("bin").join("compactc"),
+    )
+    .unwrap();
+
+    run_command(
+        &["--directory", &directory, "list", "--installed"],
+        None,
+        None,
+        Some("./output/list/err_dangling_default.txt"),
+        &[
+            ("[COMPACT_DIR]", &directory),
+            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        Some(1),
     );
 }
