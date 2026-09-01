@@ -247,22 +247,22 @@
          (define (hex c)
            (cond
              [(char<=? #\0 c #\9) (char- c #\0)]
-             [(char<=? #\A c #\Z) (char- c #\A)]
-             [(char<=? #\a c #\z) (char- c #\z)]
-             [else (source-errorf src "hex string contains invalid character '~s': ~s" s)]))
+             [(char<=? #\A c #\F) (fx+ (char- c #\A) 10)]
+             [(char<=? #\a c #\f) (fx+ (char- c #\a) 10)]
+             [else (source-errorf src "hex string contains invalid character ~s: ~s" c s)]))
          (let ([n (string-length s)])
            (unless (even? n)
-             (source-errorf src "hex string does not have an uneven number of characters: ~s" s))
+             (source-errorf src "hex string does not have an even number of characters: ~s" s))
            (let ([bv (make-bytevector (fxsrl n 1))])
-             (do ([i 0 (fx+ i 1)])
+             (do ([i 0 (fx+ i 2)])
                  ((fx= i n) bv)
-               (bytevector-u8-set! bv (fxsll i 1)
-                 (fxlogand
-                   (fxsll (hex (string-ref s i)) 8)
+               (bytevector-u8-set! bv (fxsrl i 1)
+                 (fxlogor
+                   (fxsll (hex (string-ref s i)) 4)
                    (hex (string-ref s (fx+ i 1)))))))))
        (let ([type (token-value opaque-type)])
          (unless (or (equal? type "string") (equal? type "Uint8Array"))
-           (source-errorf src "Opaque constant syntax is not defined for opaque type ~a" opaque-type))
+           (source-errorf src "Opaque constant syntax is not defined for opaque type ~s" type))
          `(quote ,src
             ,(make-opaque-constant
                type
@@ -272,13 +272,15 @@
                              str
                              (hex-string->bytevector str)))]
                  [(include ,src ,kwd ,lparen ,file ,rparen)
-                  (let ([pathname (find-source-pathname src file ""
+                  (let ([pathname (find-source-pathname (token-value file) ""
                                     (lambda (pathname)
                                       (source-errorf src "failed to locate file ~s" pathname)))])
-                    (guard (c [else (error-accessing-file c "opening include file for Opaque constant")])
+                    (guard (c [else (error-accessing-file c "reading include file for Opaque constant")])
                       (if (equal? type "string")
-                          (call-with-port (open-input-file pathname) get-string-all)
-                          (call-with-port (open-file-input-port pathname) get-bytevector-all))))]))))])
+                          (let ([x (call-with-port (open-input-file pathname) get-string-all)])
+                            (if (eof-object? x) "" x))
+                          (let ([x (call-with-port (open-file-input-port pathname) get-bytevector-all)])
+                            (if (eof-object? x) (bytevector) x)))))]))))])
     (Function : Function (ir) -> Function ()
       (definitions
         (define (do-arrow src parg-list return-type? blck)

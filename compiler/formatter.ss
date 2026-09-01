@@ -1301,7 +1301,7 @@
                (make-Qtoken kwd)
                (make-Qconcat #f
                  (make-Qtoken langle)
-                 (make-Qsep/closer #f comma* qexpr* -1 rangle)))))]
+                 (make-Qsep/closer #f comma* qexpr* #f rangle)))))]
       [(parenthesized ,src ,lparen ,expr ,rparen)
        (// src
            (apply make-Qconcat #f
