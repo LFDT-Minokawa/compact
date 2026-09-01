@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unzip`, so the toolchain could not be installed at all until a package was
   added. There is no longer an external program to install.
 
+- An archive that cannot be unpacked is now discarded and fetched again. The
+  archive was only downloaded when it was not already on disk, so a complete
+  but unreadable one -- a bad checksum, a resume stitched across a changed
+  artifact -- failed every retry identically, with deleting it by hand the only
+  way forward. Only the archive's own faults are retried: a full disk or a
+  permission error is reported as it happens, since fetching the file again
+  would not help.
+
 - `--help` output now wraps to the width of the terminal in the installed
   binary, not only under `cargo test`. `clap`'s `wrap_help` feature was
   never requested by this crate: it arrived through Cargo feature
