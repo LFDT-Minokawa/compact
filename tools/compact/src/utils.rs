@@ -81,6 +81,20 @@ pub async fn set_current_compiler(
 ) -> Result<Compiler> {
     // set compactc
     let source = compiler.path_compactc().to_path_buf();
+
+    // `fs::symlink' will happily point at a path that does not exist, and the
+    // validation below only runs once every link has been written. Linking an
+    // absent binary therefore leaves a dangling `<compact dir>/bin/compactc',
+    // which makes every later `check', `list --installed' and `compile' fail
+    // too. Refuse up front so one bad install cannot break the others.
+    let version = compiler.version();
+    ensure!(
+        source.is_file(),
+        "Refusing to set the default compiler: no compiler binary at `{source:?}'. \
+         The {version} installation is incomplete; run `compact update {version}' \
+         again to repair it."
+    );
+
     let target = cfg.directory.bin_dir().join("compactc");
 
     if target.is_symlink() {

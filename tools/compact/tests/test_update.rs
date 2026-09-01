@@ -18,6 +18,7 @@ use crate::common::{
 };
 use std::collections::HashMap;
 use std::env;
+use std::fs;
 
 mod common;
 
@@ -206,4 +207,84 @@ fn test_compact_update_env_dir() {
     );
 
     assert_path_contains_string(temp_path_env, &[LATEST_COMPACTC_VERSION, get_version()]);
+}
+
+/// Issue #739: an extraction that fails leaves the version directory in place
+/// holding nothing but `artifact.zip'. A retry used to see that directory,
+/// report "already installed", skip re-extraction and then fail on the missing
+/// binary -- and because the default symlink was written before it was
+/// validated, it left a dangling `bin/compactc' that broke every later command
+/// too. A retry has to re-extract and end up with a compiler that resolves.
+#[test]
+fn test_compact_update_repairs_incomplete_installation() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+    let directory = format!("{}", temp_path.display());
+
+    run_command(
+        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        None,
+        Some("./output/update/std_update_other.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    // Reproduce what a failed extraction leaves behind: the downloaded archive
+    // and nothing else.
+    let artifact_dir = temp_path
+        .join("versions")
+        .join(LATEST_COMPACTC_VERSION)
+        .join(get_version());
+
+    for entry in fs::read_dir(&artifact_dir).unwrap() {
+        let path = entry.unwrap().path();
+
+        if path.file_name().unwrap() == "artifact.zip" {
+            continue;
+        }
+
+        if path.is_dir() {
+            fs::remove_dir_all(&path).unwrap();
+        } else {
+            fs::remove_file(&path).unwrap();
+        }
+    }
+
+    fs::remove_file(temp_path.join("bin").join("compactc")).unwrap();
+
+    assert!(
+        artifact_dir.join("artifact.zip").is_file(),
+        "the archive should survive a failed extraction"
+    );
+    assert!(
+        !artifact_dir.join("compactc").exists(),
+        "a failed extraction leaves no compiler behind"
+    );
+
+    run_command(
+        &["--directory", &directory, "update", LATEST_COMPACTC_VERSION],
+        None,
+        Some("./output/update/std_reinstall_incomplete.txt"),
+        None,
+        &[
+            ("[COMPACTC_VERSION]", LATEST_COMPACTC_VERSION),
+            ("[SYSTEM_VERSION]", get_version()),
+        ],
+        None,
+    );
+
+    assert!(
+        artifact_dir.join("compactc").is_file(),
+        "the retry should have re-extracted the compiler"
+    );
+
+    // `is_file' follows the link, so this also rules out a dangling symlink.
+    assert!(
+        temp_path.join("bin").join("compactc").is_file(),
+        "the default compiler symlink should resolve to a real file"
+    );
 }

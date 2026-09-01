@@ -177,7 +177,11 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             .join(version.to_string())
             .join(cfg.target.to_string());
 
-        if dir.exists() {
+        // A version counts as installed only when the compiler binary itself is
+        // there. A previous run whose extraction failed leaves the directory
+        // behind holding nothing but `artifact.zip'; treating that as installed
+        // skips re-extraction and reports success for a broken install.
+        if dir.join("compactc").is_file() {
             let compiler = Compiler::create(cfg, version.clone(), cfg.target).await?;
 
             println!(
@@ -200,6 +204,18 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             }
 
             return Ok(());
+        } else if dir.exists() {
+            // The directory survives a failed extraction. Say so, rather than
+            // silently re-downloading, so the earlier failure is accounted for.
+            println!(
+                "{label}: {target} -- {version} -- {message}",
+                label = cfg.style.label(),
+                target = cfg.style.target(cfg.target),
+                version = cfg.style.version(version.clone()),
+                message = cfg
+                    .style
+                    .warn("previous installation is incomplete, reinstalling"),
+            );
         }
     }
 
