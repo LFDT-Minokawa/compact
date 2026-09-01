@@ -24,7 +24,11 @@ mod common;
 #[test]
 fn test_compact_list_no_param() {
     run_command(
-        &["list"],
+        &[
+            "--directory",
+            &format!("{}", tempfile::tempdir().unwrap().path().display()),
+            "list",
+        ],
         None,
         Some("./output/list/std_default.txt"),
         None,
@@ -40,7 +44,12 @@ fn test_compact_list_no_param() {
 #[test]
 fn test_compact_list_param_i_nothing_installed() {
     run_command(
-        &["list", "-i"],
+        &[
+            "--directory",
+            &format!("{}", tempfile::tempdir().unwrap().path().display()),
+            "list",
+            "-i",
+        ],
         None,
         Some("./output/list/std_list_installed.txt"),
         None,
@@ -52,7 +61,12 @@ fn test_compact_list_param_i_nothing_installed() {
 #[test]
 fn test_compact_list_param_installed_nothing_installed() {
     run_command(
-        &["list", "--installed"],
+        &[
+            "--directory",
+            &format!("{}", tempfile::tempdir().unwrap().path().display()),
+            "list",
+            "--installed",
+        ],
         None,
         Some("./output/list/std_list_installed.txt"),
         None,
