@@ -122,7 +122,6 @@ impl Compiler {
 
         let mut cmd = Command::new(program);
 
-        // execute the unzip command in the artifact directory
         cmd.current_dir(cwd);
 
         cmd.args(args);
