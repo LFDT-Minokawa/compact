@@ -553,8 +553,7 @@
            (with-output-language (Lflattened Statement)
              (list `(= ,test
                        (,var-name* ...)
-                       (call ,src ,function-name ,triv* ...)))))))]
-    )
+                       (call ,src ,function-name ,triv* ...)))))))])
   (Triv : Triv (ir) -> * (wump)
     [,var-name
      (or (hashtable-ref var-ht var-name #f)
