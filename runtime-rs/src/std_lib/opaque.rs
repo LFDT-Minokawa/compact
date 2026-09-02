@@ -72,7 +72,7 @@ impl FromFieldRepr for OpaqueString {
         // The on-chain atom is normalised — `AlignmentAtom::Compress` only
         // admits normal-form atoms, so trailing NUL bytes are
         // unrepresentable in the cell encoding — which makes stripping the
-        // zero padding the faithful inverse (A30).
+        // zero padding the faithful inverse.
         while bytes.last() == Some(&0) {
             bytes.pop();
         }

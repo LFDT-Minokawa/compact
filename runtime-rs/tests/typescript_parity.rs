@@ -42,7 +42,7 @@ use midnight_compact_runtime::*;
 /// where it is not the same function as hashing the Rust `FieldRepr`.
 #[test]
 fn hash_to_curve_hashes_the_field_aligned_representation() {
-    let s = OpaqueString::from("review-probe");
+    let s = OpaqueString::from("compact-runtime");
 
     let expected: JubjubPoint = transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(
         AlignedValue::from(s.clone()),
@@ -61,7 +61,7 @@ fn hash_to_curve_hashes_the_field_aligned_representation() {
 /// preimages, so two different curve points, for the same Compact value.
 #[test]
 fn the_field_repr_path_is_a_different_function_for_compress_aligned_types() {
-    let s = OpaqueString::from("review-probe");
+    let s = OpaqueString::from("compact-runtime");
 
     let aligned = hash_to_curve(s.clone());
     let via_field_repr: JubjubPoint = transient_crypto::hash::hash_to_curve(&s).into();
@@ -108,10 +108,10 @@ fn hash_to_curve_handles_the_empty_opaque_string() {
     assert_eq!(hash_to_curve(empty), expected);
 }
 
-/// `new_cell_bounded_uint` writes a `Uint<L..U>` at the declared
-/// byte-width. A value that does not fit is a domain violation in the
-/// value, so it comes back as an error the caller can propagate — it used
-/// to abort the process with `.expect`.
+/// `new_cell_bounded_uint` writes a `Uint<L..U>` at the declared byte-width.
+/// A value that does not fit is a property of the value, not a bug in this
+/// crate, so it comes back as an error the caller can propagate rather than
+/// aborting the process.
 #[test]
 fn writing_an_out_of_range_bounded_uint_is_an_error_not_a_panic() {
     // Uint<0..70000> — 17 bits, so 3 bytes on state.
@@ -139,9 +139,8 @@ fn writing_an_out_of_range_bounded_uint_is_an_error_not_a_panic() {
 /// }
 /// ```
 ///
-/// The writer used to take only the width, so it accepted `200` for a
-/// `Uint<0..100>` field — writing a cell that `decode_bounded_uint` would
-/// then refuse to read back.
+/// Taking only the width would accept `200` for a `Uint<0..100>` field, and
+/// write a cell that `decode_bounded_uint` then refuses to read back.
 #[test]
 fn writing_a_value_above_the_declared_maximum_is_rejected() {
     let err = new_cell_bounded_uint::<DefaultDB>(200, 1, 100)
@@ -173,8 +172,8 @@ fn bounded_uints_round_trip_through_the_ledger_encoding() {
     }
 }
 
-/// The parity the second review asked for by name: `constructJubjubPoint(1, 1)`
-/// is a value in TypeScript, so it must be a value here.
+/// `constructJubjubPoint(1, 1)` is a value in TypeScript, so it must be a
+/// value here.
 ///
 /// ```ts
 /// // NOTE that it does not check that the coordinates represent a
@@ -194,11 +193,11 @@ fn construct_jubjub_point_preserves_an_arbitrary_pair() {
 /// `field` atoms and returns them; a ledger cell holding an off-curve pair is
 /// readable in TypeScript and must be readable here.
 ///
-/// The old implementation did worse than reject such a cell. Upstream's
+/// Rejecting such a cell would not even be the worst outcome. Upstream's
 /// `EmbeddedGroupAffine::new` returns `None` only for a pair off the curve
 /// entirely; for one *on* the curve but outside the prime-order subgroup —
 /// `(1, 0)`, `(2, 3)` — it panics. Ledger state is untrusted input, so that
-/// was a reachable abort, not just a divergence.
+/// is a reachable abort, not merely a divergence.
 #[test]
 fn decoding_a_jubjub_point_preserves_arbitrary_coordinates() {
     for (x, y) in [(0u64, 0u64), (1, 1), (1, 0), (2, 3)] {

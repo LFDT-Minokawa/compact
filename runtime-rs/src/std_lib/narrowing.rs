@@ -28,27 +28,26 @@
 //       return t1;
 //     })(expr)
 //
-// The Rust backend used to lower the same cast to Rust's `as`, which does
-// not check anything. The two disagreed on every out-of-range value, in two
-// separate ways (MediaNoxLabs/compact#51):
+// Lowering the same cast to Rust's `as` does not check anything, and gets it
+// wrong in two separate ways:
 //
 //   * `as` widens the accepted range to the *Rust* type's bound rather than
-//     the Compact one. `Uint<0..100>` becomes `u8`, so 100..=255 was
-//     accepted unchanged — a value outside the declared type, with no
+//     the Compact one. `Uint<0..100>` is held in a `u8`, so 100..=255 passes
+//     through unchanged — a value outside the declared type, with no
 //     truncation to make it visible.
 //   * past that, `as` truncates. `300 as u8` is 44, so an out-of-range value
-//     silently became a different, in-range-looking one.
+//     becomes a different, in-range-looking one.
 //
-// TypeScript is normative, so both were Rust bugs. This helper restores
-// parity: same bound, same message, an error instead of a wrong value.
+// TypeScript is normative, so this helper matches it: same bound, same
+// message, an error rather than a wrong value.
 
 use crate::error::CompactError;
 
 /// Narrow `value` to `T`, failing if it exceeds `max`.
 ///
-/// `max` is the Compact type's upper bound, not the Rust type's — those
-/// differ whenever the declared bound is not exactly `uN::MAX`, which is the
-/// case that made the old lowering silently permissive.
+/// `max` is the Compact type's upper bound, not the Rust type's. The two
+/// differ whenever the declared bound is not exactly `uN::MAX`, and that gap
+/// is precisely where an unchecked `as` is silently permissive.
 ///
 /// `src` is the Compact source location, rendered into the message so a
 /// failure points at the cast rather than at generated code.

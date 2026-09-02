@@ -14,7 +14,7 @@
 // limitations under the License.
 
 //
-// R2 — the Compact `JubjubPoint` type and the EC / transient natives.
+// The Compact `JubjubPoint` type and the EC / transient natives.
 //
 // The compiler's `(rust "...")` annotations on `declare-native-entry` point
 // at the free functions here. Upstream exposes the underlying primitives as
@@ -58,10 +58,10 @@ use crate::{
 ///
 /// # Why this is not an alias for a validated curve point
 ///
-/// It used to be `pub use EmbeddedGroupAffine as JubjubPoint`, i.e. a point
-/// proven to lie in the embedded curve's prime-order subgroup. That is a
-/// strictly smaller set of values than Compact's type, and the gap was
-/// reachable three separate ways:
+/// Aliasing it to `EmbeddedGroupAffine` — a point proven to lie in the
+/// embedded curve's prime-order subgroup — would make it a strictly smaller
+/// set of values than Compact's type, and the gap is reachable three separate
+/// ways:
 ///
 /// * `constructJubjubPoint(1, 1)` is a value in TypeScript and was an error
 ///   here. The Compact builtin only packs two field elements; nothing in the

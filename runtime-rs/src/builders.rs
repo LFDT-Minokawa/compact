@@ -13,14 +13,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//
-// Ergonomic constructors and accessors that wrap upstream Midnight crate APIs
-// the generated Compact contract code uses pervasively. Each helper here
-// eliminates a specific friction point captured in the original codegen plan's
-// "upstream-API findings" section.
-//
-// These wrappers are zero-cost (single function call / re-export); the goal is
-// readability of generated code, not performance.
+//! Constructors for the `StateValue` shapes a contract's initial ledger state
+//! is built from, plus the small accessors generated code needs to read one
+//! back.
+//!
+//! Every helper here is a single function call or re-export over an upstream
+//! Midnight API. The purpose is that generated code reads as Compact rather
+//! than as `midnight-onchain-state` ceremony; there is no runtime cost to
+//! recover.
 
 use crate::{
     AlignedValue, Alignment, AlignmentAtom, Array, ChargedState, CompactError, ContractState,
@@ -83,11 +83,10 @@ pub fn new_cell<D: DB, T: Into<AlignedValue>>(v: T) -> StateValue<D> {
 /// already sit in a `Result`-returning body and propagate it with `?` the
 /// same way they propagate a failed assert.
 ///
-/// This helper previously took only `byte_len` while its documentation
-/// claimed to be the twin of the read-side bound. It was not: it accepted
-/// `new_cell_bounded_uint(200, 1)` for a `Uint<0..100>` field, writing a
-/// cell that `decode_bounded_uint` would then refuse to read back — the
-/// encoder and decoder disagreeing about the same type.
+/// Taking only `byte_len` would not be enough: it would accept
+/// `new_cell_bounded_uint(200, 1)` for a `Uint<0..100>` field and write a cell
+/// that [`crate::std_lib::decode_bounded_uint`] then refuses to read back,
+/// leaving the encoder and decoder disagreeing about the same type.
 pub fn new_cell_bounded_uint<D: DB>(
     value: u128,
     byte_len: usize,

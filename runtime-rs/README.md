@@ -16,20 +16,18 @@ without any Compact knowledge: it is an ordinary Rust library over the
 
 ## What this crate provides
 
-- **A curated prelude** (`use midnight_compact_runtime::*;`). Generated `lib.rs`
-  files reference upstream Midnight types via `midnight_compact_runtime`'s
-  re-exports — never directly. That keeps the codegen's `type-rust`
-  mapping lives in the compiler's Rust emitter, which is not in the tree yet
-  short and stable, and lets us replace upstream symbols without
-  regenerating every test fixture.
+- **A curated prelude** (`use midnight_compact_runtime::*;`). Generated
+  `lib.rs` files reach upstream Midnight types through this crate's re-exports
+  and never directly, so an upstream rename is absorbed here rather than in
+  every generated file.
 - **Facade aggregates** for the contract surface area: `Contract`'s
   `ConstructorContext` / `CircuitContext`, the matching `Result`
   envelopes, the `WitnessContext` plumbing, and the `CompactError`
   enum that every generated method returns through.
 - **The Compact standard library**, under [`src/std_lib/`](./src/std_lib/) —
-  ledger ADT wrappers (`Counter`), per-width decoders, the `Maybe<T>`
-  option type, `pad` / `disclose` helpers, byte-and-field-repr
-  bridges, Jubjub/EC native shims, Merkle path computation.
+  ledger ADT wrappers (`Counter`), the ledger decoders, the `Maybe<T>`
+  option type, `pad` / `disclose` helpers, byte-and-field-repr bridges,
+  Jubjub/EC natives, Merkle path computation.
 - **Builder helpers** in [`src/builders.rs`](./src/builders.rs) —
   `new_cell` / `new_map` / `new_merkle_tree` / `new_list` /
   `new_cell_bounded_uint` etc. The codegen calls these to seed the
@@ -43,13 +41,13 @@ without any Compact knowledge: it is an ordinary Rust library over the
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│  Generated contract (tests-e2e-rust/contracts/*/lib.rs)     │
-│  - Uses only items from midnight_compact_runtime's prelude.          │
+│  Generated contract  (emitted by `compactc --rust`)         │
+│  - Uses only items from this crate's prelude.               │
 └────────────────────────┬────────────────────────────────────┘
                          │
                          ▼
 ┌─────────────────────────────────────────────────────────────┐
-│  midnight-compact-runtime  (this crate)                              │
+│  midnight-compact-runtime  (this crate)                     │
 │  - Curates the prelude.                                     │
 │  - Adds the Compact-level facades (Maybe, Counter, …).      │
 │  - Wraps upstream so the codegen can stay schema-stable.    │
@@ -86,11 +84,139 @@ type, we update the prelude here, not in every generated file.
 | [`src/query.rs`](./src/query.rs) | `query_for_read` + `query_for_verify` — drive `QueryContext` through an op program. |
 | [`src/std_lib/`](./src/std_lib/) | Compact standard library — see below. |
 
+## Relationship to the TypeScript runtime
+
+`@midnight-ntwrk/compact-runtime` is normative. Where this crate and it could
+disagree, this crate is wrong by definition — the TypeScript runtime is what
+deployed contracts and the chain already agree on. Every rule below was read
+out of `runtime/src/` and is pinned by a test in
+[`tests/typescript_parity.rs`](./tests/typescript_parity.rs).
+
+That constraint settled, the two runtimes are not equivalent in what they can
+express, and the difference is concentrated in one place: **how much of a
+Compact type survives into the host language.**
+
+### Compact types across the two runtimes
+
+| Compact type | TypeScript | Rust |
+|---|---|---|
+| `Field` | `bigint` | `Fr` |
+| `Uint<0..255>` | `bigint` | `u8` |
+| `Uint<0..2^64-1>` | `bigint` | `u64` |
+| `Secp256k1Base` | `bigint` | its own type |
+| `Secp256k1Scalar` | `bigint` | its own type |
+| `Vector<3, Field>` | `bigint[]` | `[Fr; 3]` |
+| `Bytes<32>` | `Uint8Array` | `[u8; 32]` |
+| enum tag | `number` (floating point) | `u8` |
+| `JubjubPoint` | `{ x: bigint, y: bigint }` | `JubjubPoint { x: Fr, y: Fr }` |
+| witnesses | `Record<string, …>` | a `Witnesses<PS>` trait |
+| `WitnessContext` | `WitnessContext<L = any, PS = any>` | `WitnessContext<PS>` |
+
+The first five rows are the interesting ones. In TypeScript, `CompactTypeField`,
+`CompactTypeUnsignedInteger`, `CompactTypeSecp256k1Base` and
+`CompactTypeSecp256k1Scalar` are **all** declared as `CompactType<bigint>`, so
+four distinct Compact types share one host type. Passing a `Field` where a
+`Secp256k1Scalar` is expected type-checks; whether it then throws or silently
+succeeds depends on the runtime value. In Rust they are different types and the
+mix-up does not compile.
+
+### What that buys, concretely
+
+The TypeScript runtime contains **60 `throw` sites**. They fall into two groups,
+and the split is what this crate is for.
+
+**Checks that stop existing.** These are `toValue` failures — a program handing
+the runtime a value its own Compact type excludes:
+
+| TypeScript check | Why Rust cannot reach it |
+|---|---|
+| `expected ${this.length}-element array` | `[T; N]` — the length is in the type |
+| `expected Bytes[${this.length}]` | `[u8; N]` — same |
+| `!Number.isInteger(value)` on an enum tag | `u8` is an integer by construction; `number` is a float |
+| `value < 0n` on any unsigned type | `u8`/`u64`/`u128` have no negative values |
+| a missing or misspelled witness | `Witnesses<PS>` is a trait; the impl must be complete |
+| a runtime/compiler version mismatch | `check_runtime_version!` is a `const` assertion, so `cargo build` fails |
+
+The witness row is the clearest of these, because both backends emit code for
+it and the two can be read side by side. The TypeScript backend generates one
+runtime check per witness, plus one for the bag itself
+([`print-typescript.ss`](../compiler/typescript-passes/print-typescript.ss),
+`witness-checks`):
+
+```js
+if (typeof(witnesses) !== 'object') {
+  throw new CompactError('first (witnesses) argument to Contract constructor is not an object');
+}
+if (typeof(witnesses.getSchnorrReduction) !== 'function') {
+  throw new CompactError('… does not contain a function-valued field named getSchnorrReduction');
+}
+// … one more per witness
+```
+
+The Rust backend generates a trait and no checks at all:
+
+```rust
+pub trait Witnesses<PS> {
+    fn get_schnorr_reduction<'a>(
+        &self,
+        ctx: &WitnessContext<Ledger<'a>, PS>,
+        challenge_hash: Fr,
+    ) -> (PS, (u8, u128));
+    // … one method per witness
+}
+```
+
+A contract with *n* witnesses therefore ships *n + 1* generated checks in
+TypeScript and zero in Rust. The trait is also strictly stronger than what
+those checks test: `typeof x === 'function'` says nothing about how many
+arguments the witness takes or what it returns, whereas the signature above
+pins both — a witness that returns the wrong type fails to compile rather than
+producing a malformed transcript at proving time.
+
+`checkRuntimeVersion(…)` follows the same pattern. It is a statement in the
+generated TypeScript module, so it throws when the contract loads;
+`check_runtime_version!` expands to `const _: () = assert!(…)` and fails
+`cargo build`.
+
+**Checks that remain, but move into the signature.** Decoding ledger bytes is a
+genuine I/O boundary and stays fallible in any language. The difference is that
+TypeScript's `fromValue(value): bigint` promises a `bigint` and throws instead —
+nothing at the call site says it can fail — while these return
+`Result<_, CompactError>`, which a caller cannot silently drop.
+
+There is a second difference in that boundary. The TypeScript `CompactType`
+interface documents `fromValue` as converting *"destructively; (partially)
+consuming the input, and ignoring superfluous data for chaining"* — it calls
+`value.shift()` on the caller's array, at 12 sites. Decoding is therefore
+order-dependent, stateful, and not repeatable: the same value decoded twice
+gives different answers. The decoders here take `&AlignedValue`, so decoding
+cannot disturb what the caller still holds, and doing it twice gives the same
+result both times.
+
+### Where the two must not diverge
+
+Type safety does not help with encoding rules, and that is exactly where the
+subtle bugs live. Three worth knowing about, each with a test:
+
+- **`hashToCurve` hashes the field-aligned value, not the Rust `FieldRepr`.**
+  For a `Compress`-aligned type — `Opaque<"string">`, `Opaque<"Uint8Array">` —
+  those are different functions, so the two runtimes would return different
+  curve points for the same Compact value.
+- **A Compact type's domain is not its storage width.** `Uint<0..100>` and
+  `Uint<0..255>` are both one byte; `200` belongs to only one of them. Both the
+  reader and the writer take the declared bound.
+- **`JubjubPoint` is a coordinate pair, not a validated group element.**
+  `constructJubjubPoint` performs no curve check in either runtime, and a ledger
+  cell can hold any two field elements. Validation happens in
+  `JubjubPoint::to_group`, at the operations that need a group element.
+
 ## `std_lib` submodules
 
 | Submodule | What's here |
 |---|---|
-| [`adts.rs`](./src/std_lib/adts.rs) | `Counter` newtype + per-width decoders (`decode_u8`/`u16`/`u32`/`u64`/`u128`/`bool`/`fr`/`bytes`/`vector_fr`/`via_field_repr`). `serialize_contract_state` lives here too. |
+| [`adts.rs`](./src/std_lib/adts.rs) | `Counter`, and `serialize_contract_state`. |
+| [`decode.rs`](./src/std_lib/decode.rs) | The width-typed ledger decoders — `decode_bounded_uint`, `decode_u8`/`u16`/`u32`/`u64`/`u128`, `decode_bool`, `decode_fr`, `decode_bytes`, `decode_vector_*`, `decode_jubjub_point`. |
+| [`decode_field_repr.rs`](./src/std_lib/decode_field_repr.rs) | `decode_via_field_repr` and the alignment walk behind it, for composite types whose leaves span more than one field element. |
 | [`maybe.rs`](./src/std_lib/maybe.rs) | `Maybe<T>` option type + `some` / `none` constructors and trait impls (`Aligned`, `FieldRepr`, `FromFieldRepr`, `From<Maybe<T>>` for `Value`). |
 | [`bytes_pad_disclose.rs`](./src/std_lib/bytes_pad_disclose.rs) | `Bytes<N>` alias, `pad(width, s)`, `disclose`, `persistent_hash_aligned`. |
 | [`field_repr.rs`](./src/std_lib/field_repr.rs) | `bytes_from_field_repr`, `vec_u8_from_field_repr`, `array_from_field_repr` — the orphan-rule-safe deserialisers the codegen calls from inside generated struct `FromFieldRepr` bodies. |

@@ -13,35 +13,41 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-//! Module-1 (Schnorr) — Schnorr-on-Jubjub signature verification
-//! exposed in a shape the compact codegen can call directly.
+//! Schnorr-on-Jubjub signature verification, off circuit.
 //!
-//! This module used to vendor ~50 LOC of verifier because the pinned
-//! `midnight-transient-crypto 2.1.0` did not expose a `schnorr` module.
-//! On the ledger-9 line it does — this crate resolves transient-crypto
-//! **3.0.0** — so [`verify`] now delegates upstream instead.
+//! There are **two** Schnorr circuits in the Compact ecosystem, and they are
+//! not interchangeable. They derive the challenge from the same hash and then
+//! reduce it differently:
 //!
-//! Two things did *not* move upstream, and the reasons are worth keeping
-//! next to the code:
+//! | circuit | challenge reduction | off-circuit verifier |
+//! |---|---|---|
+//! | standard library `jubjubSchnorrVerify` | `cFull mod r_jubjub` | [`verify`] |
+//! | vendored `schnorr.compact` module | `cFull mod 2^248` | [`verify_truncated_challenge`] |
 //!
-//! - **The signature type stays local.** Ours declares `response: Fr`
-//!   because Compact declares that field `Field`; upstream's declares
-//!   `response: EmbeddedFr`. Codegen constructs these values by field
-//!   name and type, so the layout has to match the Compact struct. The
-//!   reduction between the two is [`fr_to_embedded_fr`], applied at the
-//!   call boundary in [`verify`].
+//! Since `2^248 < r_jubjub`, the two disagree whenever the hash is at least
+//! `2^248` — which is essentially always. A verifier substituted for the wrong
+//! circuit therefore rejects valid signatures, and computes a predicate that
+//! is not the one the on-chain proof enforces. Each verifier here is named for
+//! the circuit it corresponds to, and the tests pin the difference in both
+//! directions.
 //!
-//! - **[`jubjub_schnorr_verify`] keeps its own body**, and must. It
-//!   mirrors the 0.33 standard library's `jubjubSchnorrVerify` circuit,
-//!   which performs **no up-front identity rejection** — identity points
-//!   simply contribute zero coordinates to the hash. Upstream's `verify`
-//!   *does* reject identity. Routing that function through upstream would
-//!   make the Rust path refuse signatures the stdlib circuit accepts,
-//!   which is a new divergence rather than a fix. So the challenge
-//!   machinery below stays, serving that one caller.
+//! Two further asymmetries are deliberate:
 //!
-//! [`schnorr_verify_jubjub`] is the circuit-shaped wrapper codegen calls:
-//! it takes a `CircuitContext`, threads it through a no-op
+//! - **The signature type is local rather than a re-export.** Ours declares
+//!   `response: Fr` because Compact declares that field `Field`; upstream's
+//!   declares `response: EmbeddedFr`. Generated code constructs these values
+//!   by field name and type, so the layout has to match the Compact struct.
+//!   `fr_to_embedded_fr` is the reduction between them, applied at the call
+//!   boundary.
+//!
+//! - **[`jubjub_schnorr_verify`] does not reject the identity**, because the
+//!   standard library circuit it mirrors does not. Adding the guard would make
+//!   the Rust path refuse signatures that circuit accepts — a new divergence
+//!   rather than a fix. [`verify`] and [`verify_truncated_challenge`] do
+//!   reject it, because their circuits do.
+//!
+//! [`schnorr_verify_jubjub`] is the circuit-shaped wrapper generated code
+//! calls: it takes a `CircuitContext`, threads it through a no-op
 //! `query_for_verify`, and surfaces rejection as
 //! `CompactError::AssertionFailed`.
 
@@ -77,7 +83,7 @@ pub struct SchnorrSignature {
 /// Both circuits below hash exactly these field elements in exactly this
 /// order. They differ only in how they reduce the result into the Jubjub
 /// scalar field, so that reduction is the caller's choice — see
-/// [`fr_to_embedded_fr`] (mod `r`) and [`truncate_challenge`] (mod 2^248).
+/// `fr_to_embedded_fr` (mod `r`) and `truncate_challenge` (mod 2^248).
 fn challenge_hash(ann_x: Fr, ann_y: Fr, pk_x: Fr, pk_y: Fr, msg: &[Fr]) -> Fr {
     let mut hash_input = Vec::with_capacity(4 + msg.len());
     hash_input.push(ann_x);
@@ -97,7 +103,7 @@ fn challenge_hash(ann_x: Fr, ann_y: Fr, pk_x: Fr, pk_y: Fr, msg: &[Fr]) -> Fr {
 /// `jubjubSchnorrVerify` performs (`cNative as JubjubScalar`), so it is the
 /// one [`jubjub_schnorr_verify`] and [`verify`] use. It is *not* the
 /// vendored `schnorr.compact` module's reduction — see
-/// [`truncate_challenge`].
+/// `truncate_challenge`.
 fn fr_to_embedded_fr(fr: Fr) -> EmbeddedFr {
     crate::std_lib::jubjub_scalar_from_field(fr)
 }
@@ -144,29 +150,24 @@ fn truncate_challenge(c_full: Fr) -> EmbeddedFr {
     EmbeddedFr(midnight_transient_crypto::curve::embedded::Scalar::from_bytes_wide(&wide))
 }
 
-/// Off-circuit Schnorr verifier. Returns `true` iff the signature is
-/// valid for `(pk, msg)`. Identity public-key / announcement are
-/// rejected, matching the circuit's identity guards.
+/// Off-circuit verifier for the standard library's `jubjubSchnorrVerify`
+/// circuit, which reduces the challenge modulo `r_jubjub`. Returns `true` iff
+/// the signature is valid for `(pk, msg)`; an identity public key or
+/// announcement is rejected, matching that circuit's guards.
 ///
-/// This delegates to `midnight_transient_crypto::schnorr::verify` rather
-/// than repeating it. The module header used to explain that the pinned
-/// `midnight-transient-crypto 2.1.0` did not expose a `schnorr` module,
-/// so ~50 lines of verifier were vendored here until it did. On the
-/// ledger-9 line it does: this crate resolves transient-crypto **3.0.0**,
-/// which exports `pub mod schnorr` with the same challenge derivation
-/// (Poseidon over `[ann_x, ann_y, pk_x, pk_y, ..msg]`, reduced mod
-/// `r_jubjub`), the same verification equation, and the same up-front
-/// identity rejection this function documents.
+/// The body delegates to `midnight_transient_crypto::schnorr::verify` rather
+/// than repeating it. That crate derives the challenge the same way (Poseidon
+/// over `[ann_x, ann_y, pk_x, pk_y, ..msg]`, reduced mod `r_jubjub`), uses the
+/// same verification equation, and performs the same identity rejection —
+/// so keeping a local transcription would only create something that agrees
+/// today and can silently stop agreeing.
 ///
-/// So the stated precondition for deleting the vendored copy is met, and
-/// the security-critical path is now upstream's implementation rather
-/// than our transcription of it — which is the point. A copy that agrees
-/// today is a copy that can silently stop agreeing.
+/// The reduction from the Compact `Field`-typed `response` to the embedded
+/// scalar upstream expects is `fr_to_embedded_fr`, applied here at the
+/// boundary.
 ///
-/// The signature type still cannot be a re-export: ours carries
-/// `response: Fr` because Compact declares that field `Field`, while
-/// upstream's carries `response: EmbeddedFr`. The reduction between them
-/// is exactly `fr_to_embedded_fr`, applied here at the boundary.
+/// For the vendored `schnorr.compact` module's circuit, use
+/// [`verify_truncated_challenge`] instead — see the module header.
 ///
 /// A `pk` or `announcement` that is not a point in the prime-order subgroup
 /// yields `false` rather than reaching upstream. Both arrive as Compact
@@ -300,11 +301,11 @@ pub fn verify_truncated_challenge(pk: JubjubPoint, msg: &[Fr], sig: &SchnorrSign
 /// `query_for_verify` to produce a `CircuitResults<PS, ()>` shaped the
 /// same way an inlined Compact assert body would.
 ///
-/// The circuit it replaces is the vendored `schnorr` module's, so it
-/// verifies with [`verify_truncated_challenge`], not [`verify`]. It used to
-/// call [`verify`], which meant a signature the on-chain circuit accepts was
-/// rejected here (and vice versa) for essentially every message — the
-/// substitution did not compute the predicate it was substituted for.
+/// The circuit it replaces is the vendored `schnorr` module's, so it verifies
+/// with [`verify_truncated_challenge`] and not [`verify`]. Substituting the
+/// other one would reject signatures the on-chain circuit accepts, and accept
+/// none that it does — the wrapper would not be computing the predicate it
+/// was substituted for.
 pub fn schnorr_verify_jubjub<PS, const N: usize>(
     ctx: CircuitContext<PS>,
     msg: [Fr; N],
@@ -507,13 +508,12 @@ mod tests {
         )
     }
 
-    /// The reviewer's probe, as a test. A signature built against the
-    /// vendored circuit's 248-bit truncated challenge must verify on the
-    /// path that substitutes for that circuit — and must *not* verify under
-    /// the mod-`r` reduction, which is what the code used to call.
+    /// A signature built against the vendored circuit's 248-bit truncated
+    /// challenge must verify on the path that substitutes for that circuit,
+    /// and must *not* verify under the mod-`r` reduction.
     ///
-    /// The second assertion is the one that would have caught the bug: it
-    /// fails the moment `verify_truncated_challenge` is "simplified" back
+    /// The second assertion is the load-bearing one: it fails the moment
+    /// `verify_truncated_challenge` is "simplified" back
     /// into `verify`, because then both assertions describe the same
     /// function and they cannot both hold.
     #[test]

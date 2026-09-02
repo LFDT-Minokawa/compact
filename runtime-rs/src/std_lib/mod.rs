@@ -25,6 +25,8 @@
 
 mod adts;
 mod bytes_pad_disclose;
+mod decode;
+mod decode_field_repr;
 mod field_repr;
 mod jubjub;
 mod maybe;
@@ -33,14 +35,15 @@ mod narrowing;
 mod opaque;
 mod schnorr;
 
-pub use adts::{
-    decode_bool, decode_bounded_uint, decode_bytes, decode_fr, decode_jubjub_point, decode_u128,
-    decode_u16, decode_u32, decode_u64, decode_u8, decode_vector_fr, decode_vector_u64,
-    decode_via_field_repr, serialize_contract_state, Counter,
-};
+pub use adts::{serialize_contract_state, Counter};
 pub use bytes_pad_disclose::{
     disclose, pad, persistent_hash_aligned, transient_hash_aligned, Bytes,
 };
+pub use decode::{
+    decode_bool, decode_bounded_uint, decode_bytes, decode_fr, decode_jubjub_point, decode_u128,
+    decode_u16, decode_u32, decode_u64, decode_u8, decode_vector_fr, decode_vector_u64,
+};
+pub use decode_field_repr::decode_via_field_repr;
 pub use field_repr::{
     array_from_field_repr, bytes_field_size, bytes_from_field_repr, vec_u8_from_field_repr,
 };

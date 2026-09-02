@@ -41,19 +41,18 @@
 //!   [`std_lib::disclose`], the Jubjub / EC helpers, and the
 //!   width-typed `decode_*` helpers used by the generated ledger view.
 //!
-//! For a full walked-through example see
-//! [`doc/rust-codegen-user-guide.md`](https://github.com/LFDT-Minokawa/compact/blob/main/doc/rust-codegen-user-guide.md).
+//! The `--rust` backend that emits code against this crate is a separate,
+//! later contribution; this crate is the library half and stands on its own.
 //!
 //! # Internal structure
 //!
 //! At the top of this file is a curated prelude — re-exports of the
 //! upstream Midnight types (`AlignedValue`, `Fr`, `JubjubPoint`,
 //! `StateValue`, `Op`, …) under stable `midnight_compact_runtime::*` paths.
-//! Generated code only ever names types through this prelude; the
-//! codegen's `type-rust` mapping in
-//! [`compiler/rust-passes-types.ss`](https://github.com/LFDT-Minokawa/compact/blob/main/compiler/rust-passes-types.ss)
-//! always emits `midnight_compact_runtime::Foo`, never `midnight_xyz::Foo`. That
-//! lets us replace upstream symbols without regenerating fixtures.
+//! Generated code names types only through this prelude — always
+//! `midnight_compact_runtime::Foo`, never `midnight_xyz::Foo` — so an upstream
+//! symbol can be replaced or re-pointed here without regenerating a single
+//! fixture.
 //!
 //! The Rust-side facade modules add the Compact-level types that don't
 //! exist upstream:
@@ -241,8 +240,8 @@ pub use midnight_transient_crypto::hash::{transient_commit, transient_hash};
 ///
 /// # Why not `T: FieldRepr`
 ///
-/// This used to be `hash_to_curve(&value)` on the Rust `FieldRepr` impl,
-/// which is a different function for any `Compress`-aligned type. Upstream
+/// Hashing the Rust `FieldRepr` instead — `hash_to_curve(&value)` — is a
+/// different function for any `Compress`-aligned type. Upstream
 /// expands a `Compress` atom as a single `transient_commit(bytes, len)`
 /// field element, whereas `<[u8] as FieldRepr>` packs the raw bytes into
 /// 31-byte chunks. So `hashToCurve(OpaqueString("…"))` returned one point
@@ -300,8 +299,8 @@ pub use std_lib::{
     ec_mul,
     ec_mul_generator,
     ec_neg,
-    // R5a: orphan-safe repr helpers for JubjubPoint-typed struct fields,
-    // promoted to crate-root so codegen can spell
+    // Repr helpers for JubjubPoint-typed struct fields, promoted to the
+    // crate root so generated code can spell
     // `midnight_compact_runtime::jubjub_point_*` without the `std_lib::` segment.
     jubjub_point_binary_len,
     jubjub_point_binary_repr,
