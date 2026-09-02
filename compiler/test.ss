@@ -57,7 +57,7 @@ check. For example:
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          (block (return ,(string->utf8 "Hello world!"))))))
+          (block (return "Hello world!")))))
     )
 
 When replacing a check form with the one printed by the test driver, resist
@@ -904,6 +904,19 @@ groups than for single tests.
 
 (parameterize ([feature-zkir-v3 #t])
 (run-tests save-manifest
+  (test-group
+    ((create-file "loop.compact" '("include 'loop';")))
+    ((create-file "testfile.compact"
+       '(
+         "module M {"
+         "  include 'loop';"
+         "}"
+         ))
+     (oops
+       message: "~a:\n  ~?"
+       irritants: '("loop.compact line 1 char 1" "include cycle involving ~s" ("compiler/testdir/loop.compact")))
+     ))
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -913,7 +926,7 @@ groups than for single tests.
       "}"
       "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
       "  X = disclose(x);"
-      "  verifyProof<2>(vk(), p, [X, disclose(y)]);"
+      "  verifyProof<2>('testdir/testfile.verifier', p, [X, disclose(y)]);"
       "}"
       )
     (pass-returns infer-types '(what))
@@ -1027,7 +1040,7 @@ groups than for single tests.
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          (block (return ,(string->utf8 "Hello world!"))))))
+          (block (return "Hello world!")))))
     )
 
   (test
@@ -1790,10 +1803,7 @@ groups than for single tests.
           (block (for i (tuple 3 2 1) (+ i 1))))
         (circuit #f #f ballot_repr () ()
              (tbytes 32)
-          (block
-            (return
-              #vu8(121 101 115 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                   0 0 0 0 0 0 0))))
+          (block (return (pad 32 "yes"))))
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (block
@@ -4336,10 +4346,7 @@ groups than for single tests.
             (block
               (return
                 (call (fref persistent_hash (tvector 2 (tbytes 32)))
-                  (tuple
-                    #vu8(119 101 108 99 111 109 101 58 112 107 58 0 0 0 0 0 0 0
-                         0 0 0 0 0 0 0 0 0 0 0 0 0 0)
-                    sk))))))))
+                  (tuple (pad 32 "welcome:pk:") sk))))))))
     )
 
   (test
@@ -4614,7 +4621,7 @@ groups than for single tests.
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          (block (return ,(string->utf8 "Hello world!"))))))
+          (block (return "Hello world!")))))
     )
 
   (test ;; FIXME uncomment composable contract in test.compact
@@ -4761,10 +4768,7 @@ groups than for single tests.
           (block (for i (tuple 3 2 1) (+ i 1))))
         (circuit #f #f ballot_repr () ()
              (tbytes 32)
-          (block
-            (return
-              #vu8(121 101 115 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                   0 0 0 0 0 0 0))))
+          (block (return (pad 32 "yes"))))
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (block
@@ -5433,7 +5437,7 @@ groups than for single tests.
         (circuit #f #f foo () ()
              (tbytes 20)
           (block
-            (return ,(string->utf8 "bob's \"fish\"\r\x0;\b\f\t\v"))))))
+            (return "bob's \"fish\"\r\x0;\b\f\t\v")))))
     )
 
   (test
@@ -5442,7 +5446,8 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 57" "unexpected ~a" ("character 'q'"))))
+      irritants: '("testfile.compact line 1 char 57" "unexpected ~a" ("character 'q'")))
+    )
 
   (test
     '(
@@ -5938,84 +5943,6 @@ groups than for single tests.
 
   (test
     '(
-      "circuit foo(): Bytes<10> {"
-      "  return \"abc\x1234;def\";"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #f #f foo () ()
-             (tbytes 10)
-          (block (return #vu8(97 98 99 225 136 180 100 101 102))))))
-    )
-
-  (test
-    '(
-      "circuit foo(): Bytes<10> {"
-      "  return \"abc\xDC;def\";"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #f #f foo () ()
-             (tbytes 10)
-          (block (return #vu8(97 98 99 195 156 100 101 102))))))
-    )
-
-  (test
-    '(
-      "circuit foo(): Bytes<10> {"
-      "  return \"abc\\u1234def\";"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #f #f foo () ()
-             (tbytes 10)
-          (block (return #vu8(97 98 99 225 136 180 100 101 102))))))
-    )
-
-  (test
-    '(
-      "circuit foo(): Bytes<10> {"
-      "  return \"abc\\xDCdef\";"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #f #f foo () ()
-             (tbytes 10)
-          (block (return #vu8(97 98 99 195 156 100 101 102))))))
-    )
-
-  (test
-    '(
-      "export circuit foo(b: Boolean): [] {"
-      "  assert(b, 'abc\\u1234def');"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #t #f foo () ([b (tboolean)])
-             (ttuple)
-          (block (assert b "abcሴdef")))))
-    )
-
-  (test
-    '(
-      "export circuit foo(b: Boolean): [] {"
-      "  assert(b, 'abc\\xDCdef');"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #t #f foo () ([b (tboolean)])
-             (ttuple)
-          (block (assert b "abcÜdef")))))
-    )
-
-  (test
-    '(
       "export circuit foo(x : Field) : Field { return x + 3 - x + 4; }"
       )
     (returns
@@ -6036,31 +5963,6 @@ groups than for single tests.
         (circuit #t #f foo () ([x (tboolean)] [y (tboolean)])
              (tfield (field-native))
           (block (return (if x (+ 3 4) (if y (+ 5 6) 7)))))))
-    )
-
-  (test
-    '(
-      "export circuit foo(): Bytes<10> {"
-      "  return pad(10, 'abcdefghij');"
-      "}"
-      )
-    (returns
-      (program
-        (circuit #t #f foo () ()
-             (tbytes 10)
-          (block
-            (return #vu8(97 98 99 100 101 102 103 104 105 106))))))
-    )
-
-  (test
-    '(
-      "export circuit foo(): Bytes<10> {"
-      "  return pad(10, 'abcdefghijkl');"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length" ("abcdefghijkl" 10)))
     )
 
   (test
@@ -6312,7 +6214,7 @@ groups than for single tests.
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          (block (return ,(string->utf8 "Hello world!"))))))
+          (block (return "Hello world!")))))
     )
 
   (test
@@ -6955,10 +6857,7 @@ groups than for single tests.
             (const ([((((a b) a) (b1 b)) b2)
                      (tundeclared)
                      (call bar x1 x2 y z)]))
-            (return
-              (tuple
-                (if b1 a (* 2 a))
-                (if b2 b #vu8(104 101 108 108 111 33))))))))
+            (return (tuple (if b1 a (* 2 a)) (if b2 b "hello!")))))))
     )
 
   (test
@@ -8573,10 +8472,7 @@ groups than for single tests.
               (tundeclared)
               (tuple-ref __compact_pattern_tmp1 1))
             (block
-              (return
-                (tuple
-                  (if b1 a (* 2 a))
-                  (if b2 b #vu8(104 101 108 108 111 33)))))))
+              (return (tuple (if b1 a (* 2 a)) (if b2 b "hello!"))))))
         (circuit #t #f foo () ([x1 (tboolean)]
                                [x2 (tboolean)]
                                [y (tfield (field-native))]
@@ -8655,9 +8551,7 @@ groups than for single tests.
                           (tuple-ref __compact_pattern_tmp1 1))
                         (block
                           (return
-                            (tuple
-                              (if b1 a (* 2 a))
-                              (if b2 b #vu8(104 101 108 108 111 33)))))))
+                            (tuple (if b1 a (* 2 a)) (if b2 b "hello!"))))))
                 t))))))
     )
 
@@ -8807,7 +8701,7 @@ groups than for single tests.
           (tbytes 20)
           (block
             (const x (tundeclared) 5)
-            (return ,(string->utf8 "Hello world!"))))))
+            (return "Hello world!")))))
     )
 
   (test
@@ -8914,7 +8808,7 @@ groups than for single tests.
         (circuit #f #f foo () ([b (tboolean)])
              (tbytes 20)
           (block
-            (if b (return ,(string->utf8 "Hello world!")) (tuple))
+            (if b (return "Hello world!") (tuple))
             (const x (tundeclared) 5)))))
     )
 
@@ -8946,9 +8840,9 @@ groups than for single tests.
              (tbytes 20)
           (block
             (if b
-                (return ,(string->utf8 "Hello world!"))
+                (return "Hello world!")
                 (if (not b)
-                    (return ,(string->utf8 "Hola Mundo!"))
+                    (return "Hola Mundo!")
                     (assert b "oops")))
             (const x (tundeclared) 5)))))
     )
@@ -9049,7 +8943,7 @@ groups than for single tests.
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          (block () (return ,(string->utf8 "Hello world!")))))))
+          (block () (return "Hello world!"))))))
 
   (test
     '(
@@ -9223,10 +9117,7 @@ groups than for single tests.
           (block () (for i (tuple 3 2 1) (+ i 1))))
         (circuit #f #f ballot_repr () ()
              (tbytes 32)
-          (block ()
-            (return
-              #vu8(121 101 115 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                   0 0 0 0 0 0 0))))
+          (block () (return (pad 32 "yes"))))
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (block ()
@@ -9591,7 +9482,7 @@ groups than for single tests.
       (program
         (circuit #f #f foo () ()
             (tbytes 20)
-          ,(string->utf8 "Hello world!"))))
+          "Hello world!")))
   )
 
   (test
@@ -9664,7 +9555,7 @@ groups than for single tests.
                     (assert (== x 0) "oops 1")))
                 (assert b "oops 2"))
             (assert #t "oops 3")
-            #vu8(72 101 108 108 111 32 119 111 114 108 100 33)))))
+            "Hello world!"))))
     )
 
   (test
@@ -9817,10 +9708,7 @@ groups than for single tests.
         (circuit #f #f foosbar () ()
              (ttuple)
           (seq (for i (tuple 3 2 1) (seq (+ i 1) (tuple))) (tuple)))
-        (circuit #f #f ballot_repr () ()
-             (tbytes 32)
-          #vu8(121 101 115 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-               0 0 0 0 0 0 0))
+        (circuit #f #f ballot_repr () () (tbytes 32) (pad 32 "yes"))
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (or (or (or (or (< x 100) (<= x 10)) (> x 40)) (>= x 45))
@@ -10109,10 +9997,7 @@ groups than for single tests.
         (circuit #f #f foosbar () ()
              (ttuple)
           (seq (for i (tuple 3 2 1) (seq (+ i 1) (tuple))) (tuple)))
-        (circuit #f #f ballot_repr () ()
-             (tbytes 32)
-          #vu8(121 101 115 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-               0 0 0 0 0 0 0))
+        (circuit #f #f ballot_repr () () (tbytes 32) (pad 32 "yes"))
         (circuit #f #f check_rel_ops () ([x (tunsigned 16)])
              (tboolean)
           (if (if (if (if (< x 100) #t (<= x 10)) #t (> x 40))
@@ -15039,6 +14924,140 @@ groups than for single tests.
         (circuit %foo.0 ([%x.2 (tpoint (curve-jubjub))])
              (tpoint (curve-jubjub))
           %x.2)))
+    )
+
+  (test
+    '(
+      "export circuit foo() : Bytes<20> { return 'bob\\'s \"fish\"\\r\\0\\b\\f\\t\\v'; }"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 20)
+          #vu8(98 111 98 39 115 32 34 102 105 115 104 34 13 0 8 12 9
+               11))))
+    )
+
+  (test
+    '(
+      "circuit foo() : Bytes<20> { return 'bob\\'s \"fish\"\\r\\0\\b\\q\\t\\v'; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 57" "unexpected ~a" ("character 'q'")))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return pad(10, 'abcdefghijkl');"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length" ("abcdefghijkl" 10)))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return \"abc\x1234;def\";"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 10)
+          #vu8(97 98 99 225 136 180 100 101 102))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return \"abc\xDC;def\";"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 10)
+          #vu8(97 98 99 195 156 100 101 102))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return \"abc\\u1234def\";"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 10)
+          #vu8(97 98 99 225 136 180 100 101 102))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return \"abc\\xDCdef\";"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 10)
+          #vu8(97 98 99 195 156 100 101 102))))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  assert(b, 'abc\\u1234def');"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ([%b.1 (tboolean)])
+             (ttuple)
+          (seq (assert %b.1 "abcሴdef") (tuple)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  assert(b, 'abc\\xDCdef');"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ([%b.1 (tboolean)])
+             (ttuple)
+          (seq (assert %b.1 "abcÜdef") (tuple)))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return pad(10, 'abcdefghij');"
+      "}"
+      )
+    (returns
+      (program ((foo %foo.0))
+        (circuit %foo.0 ()
+             (tbytes 10)
+          #vu8(97 98 99 100 101 102 103 104 105 106))))
+    )
+
+  (test
+    '(
+      "export circuit foo(): Bytes<10> {"
+      "  return pad(10, 'abcdefghijkl');"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 10" "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length" ("abcdefghijkl" 10)))
     )
 )
 
@@ -26203,7 +26222,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a non-negative numeric constant"))))
+      irritants: '("testfile.compact line 2 char 14" "parse error: found ~a looking for~?" ("\"-\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a type size"))))
     )
 
   (test
@@ -26690,7 +26709,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "constructor(){"
-      "  const bob = default<CoinInfo>;"
+      "  const bob = default<ShieldedCoinInfo>;"
       "  const tom = pad(0b1000110101110110011101100011111, 'mABfLuWsISiQzXzpZMgaPXwnrnsy');"
       "  assert (tom == bob < bob, 'WFleWyhsudhbmة');"
       "}"

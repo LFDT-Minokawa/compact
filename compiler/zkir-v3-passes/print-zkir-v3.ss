@@ -185,7 +185,7 @@
     [(verify_proof ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
      `((op . "verify_proof")
        (guard . ,inp0)
-       (vk_hash . ,(format "0x~(~{~2,'0x~}~)" (bytevector->u8-list vk)))
+       (vk . ,(format "0x~(~{~2,'0x~}~)" (bytevector->u8-list (verifying-key-content vk))))
        (instance . ,(list->vector inp*))
        (proof . ,inp1))])
 

@@ -874,10 +874,10 @@
        (lambda (src str)
          (with-output-language (Lparser Expression)
            `(string ,src ,str)))]
-      [term-element-padded-string :: src (KEYWORD pad) #\( nat #\, str #\) =>
-       (lambda (src kwd lparen nat comma str rparen)
+      [term-element-padded-string :: src (KEYWORD pad) #\( tsize #\, str #\) =>
+       (lambda (src kwd lparen tsize comma str rparen)
          (with-output-language (Lparser Expression)
-           `(pad ,src ,kwd ,lparen ,nat ,comma ,str ,rparen)))]
+           `(pad ,src ,kwd ,lparen ,tsize ,comma ,str ,rparen)))]
       [term-element-default :: src (KEYWORD default) #\< type #\> =>
        (lambda (src kwd langle type rangle)
          (with-output-language (Lparser Expression)

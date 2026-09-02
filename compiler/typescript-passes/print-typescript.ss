@@ -3163,14 +3163,14 @@
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])]
     [(verify-proof ,src
+       ,vk
        ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
-       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2]
-       ,[Expr : expr3 (precedence add1 comma) outer-pure? -> * expr3])
+       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
      (parenthesize level (precedence call)
        (make-Qconcat
          (compact-stdlib "verifyProof")
            "("
-           ((make-Qsep ",") expr1 expr2 expr3)
+           ((make-Qsep ",") vk expr1 expr2)
            ")"))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)

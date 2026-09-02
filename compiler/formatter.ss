@@ -1120,13 +1120,13 @@
       [(false ,src ,kwd) (// src (make-Qtoken kwd))]
       [(field ,src ,nat) (make-Qtoken nat)]
       [(string ,src ,str) (make-Qtoken str)]
-      [(pad ,src ,kwd ,lparen ,nat ,comma ,str ,rparen)
+      [(pad ,src ,kwd ,lparen ,tsize ,comma ,str ,rparen)
        (// src
            (make-Qconcat #f
              (make-Qtoken kwd)
              (apply make-Qconcat #f
                (make-Qtoken lparen)
-               (make-Qtoken nat)
+               (Type-Size tsize)
                (add-punctuation comma
                  (cons*
                    nbsp (make-Qtoken str)

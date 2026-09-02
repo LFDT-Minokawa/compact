@@ -923,14 +923,14 @@
                (format "the value returned from exported circuit ~s" (id-sym disclosing-function-name?))
                witness*)))))
      abs]
-    [(verify-proof ,src ,[* abs1] ,[* abs2] ,[* abs3])
+    [(verify-proof ,src ,vk ,[* abs1] ,[* abs2])
      (unless (null? control-witness*)
        (record-leak! src "verifying this proof" control-witness*))
      (let ([witness* (abs->witnesses
                        (add-path-point src
                          "the proof verification"
                          "the result of verifying a proof involving"
-                         abs3))])
+                         abs2))])
        (unless (null? witness*)
          (record-leak! src "proof verification" witness*)))
      (Abs-atomic '())])
