@@ -177,7 +177,7 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             .join(version.to_string())
             .join(cfg.target.to_string());
 
-        if dir.exists() {
+        if dir.join("compactc").is_file() {
             let compiler = Compiler::create(cfg, version.clone(), cfg.target).await?;
 
             println!(
