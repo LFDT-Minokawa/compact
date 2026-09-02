@@ -25,7 +25,7 @@
 // `none()` helpers below construct values in the same shape Compact's
 // circuits do.
 
-use crate::{Aligned, Alignment, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
+use crate::{Aligned, Alignment, CompactError, FieldRepr, Fr, FromFieldRepr, MemWrite, Value};
 
 /// `Copy` is implemented when `T: Copy` so the struct composes cheaply
 /// with primitive payloads (e.g. `Maybe<Field>`, `Maybe<u64>`).
@@ -44,9 +44,29 @@ impl<T> Maybe<T> {
         self.is_some
     }
 
+    /// Returns the inner `value`, or an error if `is_some` is false.
+    ///
+    /// This is the form generated code and library code should use: an
+    /// absent value is data, so it travels on the same `Result` as every
+    /// other contract-level failure rather than unwinding.
+    #[inline]
+    pub fn try_unwrap(self) -> Result<T, CompactError> {
+        if !self.is_some {
+            return Err(CompactError::AssertionFailed(
+                "Maybe::unwrap on a None value".into(),
+            ));
+        }
+        Ok(self.value)
+    }
+
     /// Returns the inner `value`, panicking if `is_some` is false.
-    /// Matches the Compact `Maybe::unwrap` circuit's runtime check
-    /// semantics.
+    ///
+    /// Deliberately the `Option::unwrap` idiom: the caller asserts it has
+    /// already established `is_some`, and a panic here means that assertion
+    /// was wrong — a bug in the calling code, not a contract-level failure.
+    /// Use [`Maybe::try_unwrap`] where the discriminant is not already
+    /// known. Generated code uses neither; the emitter reads `is_some` and
+    /// `value` directly.
     #[inline]
     pub fn unwrap(self) -> T {
         if !self.is_some {
@@ -207,5 +227,19 @@ mod tests {
             <Maybe<u8> as FromFieldRepr>::FIELD_SIZE,
             1 + <u8 as FromFieldRepr>::FIELD_SIZE
         );
+    }
+
+    #[test]
+    fn try_unwrap_reports_a_none_rather_than_unwinding() {
+        let some: Maybe<u32> = Maybe {
+            is_some: true,
+            value: 7,
+        };
+        assert_eq!(some.try_unwrap().unwrap(), 7);
+
+        let err = none::<u32>()
+            .try_unwrap()
+            .expect_err("a None must not yield a value");
+        assert!(err.to_string().contains("Maybe::unwrap on a None value"));
     }
 }

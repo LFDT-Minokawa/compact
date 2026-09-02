@@ -59,60 +59,128 @@ impl Counter {
 // Width-typed decoders.
 // ---------------------------------------------------------------------------
 
-/// Decode an `AlignedValue` known to be a fixed-width unsigned integer
-/// to a u128. Accepts variable-length atoms (upstream strips trailing
-/// zero bytes) and zero-pads to the full target width. Internal helper
-/// for the typed decoders below.
+/// Decode an `AlignedValue` holding a Compact `Uint<0..max>`.
 ///
-/// The base-crypto `ValueAtom` encoding for primitive integers is
-/// little-endian with trailing zero bytes stripped via `normalize`
-/// (see `midnight_base_crypto::fab::conversions`), so e.g. a u64 may
-/// occupy 0..=8 bytes. We zero-pad and decode little-endian.
-fn decode_unsigned(av: &AlignedValue, max_bytes: usize) -> Result<u128, CompactError> {
+/// `max` is the **declared Compact bound**, not the storage width. The two
+/// are different numbers whenever the bound is not exactly `2^(8k) - 1`:
+/// `Uint<0..100>` is stored in one byte, so every value up to 255 fits the
+/// storage and only the bound rules out 101..=255.
+///
+/// This mirrors the normative decoder,
+/// `CompactTypeUnsignedInteger.fromValue`, which accumulates the atom's
+/// bytes little-endian and then rejects anything above `maxValue`:
+///
+/// ```ts
+/// if (res > this.maxValue) {
+///   throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+/// }
+/// ```
+///
+/// The width-typed helpers below pass `uN::MAX`, which is the right bound
+/// only for a Compact type declared at the full width. For anything
+/// narrower — every `Uint<0..n>` a contract actually writes — call this and
+/// pass the declared bound, or the ledger view will hand contract code a
+/// value its own type says cannot exist.
+///
+/// The byte-length check is retained on top of the value check. It cannot
+/// over-reject (the storage width is by construction wide enough for `max`),
+/// and it catches a malformed atom before the arithmetic rather than after.
+pub fn decode_bounded_uint(
+    av: &AlignedValue,
+    max_bytes: usize,
+    max: u128,
+) -> Result<u128, CompactError> {
     let bytes = aligned_bytes(av).ok_or_else(|| {
-        CompactError::AssertionFailed("decode_unsigned: aligned value is empty".into())
+        CompactError::AssertionFailed("decode_bounded_uint: aligned value is empty".into())
     })?;
     if bytes.len() > max_bytes {
         return Err(CompactError::AssertionFailed(format!(
-            "decode_unsigned: expected at most {max_bytes} bytes, got {}",
+            "decode_bounded_uint: expected at most {max_bytes} bytes, got {}",
             bytes.len()
         )));
     }
     let mut buf = [0u8; 16];
     buf[..bytes.len()].copy_from_slice(bytes);
-    Ok(u128::from_le_bytes(buf))
+    let value = u128::from_le_bytes(buf);
+    if value > max {
+        return Err(CompactError::AssertionFailed(format!(
+            "expected UnsignedInteger[<={max}], got {value}"
+        )));
+    }
+    Ok(value)
 }
 
-/// Decode an `AlignedValue` known to be a u8.
+/// Decode an `AlignedValue` known to be a u8, i.e. Compact `Uint<0..255>`.
+///
+/// For a narrower declared bound use [`decode_bounded_uint`].
 pub fn decode_u8(av: &AlignedValue) -> Result<u8, CompactError> {
-    decode_unsigned(av, 1).map(|n| n as u8)
+    decode_bounded_uint(av, 1, u8::MAX as u128).map(|n| n as u8)
 }
 
-/// Decode an `AlignedValue` known to be a u16.
+/// Decode an `AlignedValue` known to be a u16, i.e. Compact
+/// `Uint<0..65535>`.
+///
+/// For a narrower declared bound use [`decode_bounded_uint`].
 pub fn decode_u16(av: &AlignedValue) -> Result<u16, CompactError> {
-    decode_unsigned(av, 2).map(|n| n as u16)
+    decode_bounded_uint(av, 2, u16::MAX as u128).map(|n| n as u16)
 }
 
 /// Decode an `AlignedValue` known to be a u32.
+///
+/// For a narrower declared bound use [`decode_bounded_uint`].
 pub fn decode_u32(av: &AlignedValue) -> Result<u32, CompactError> {
-    decode_unsigned(av, 4).map(|n| n as u32)
+    decode_bounded_uint(av, 4, u32::MAX as u128).map(|n| n as u32)
 }
 
 /// Decode an `AlignedValue` known to be a u64.
+///
+/// For a narrower declared bound use [`decode_bounded_uint`].
 pub fn decode_u64(av: &AlignedValue) -> Result<u64, CompactError> {
-    decode_unsigned(av, 8).map(|n| n as u64)
+    decode_bounded_uint(av, 8, u64::MAX as u128).map(|n| n as u64)
 }
 
 /// Decode an `AlignedValue` known to be a u128.
+///
+/// For a narrower declared bound use [`decode_bounded_uint`].
 pub fn decode_u128(av: &AlignedValue) -> Result<u128, CompactError> {
-    decode_unsigned(av, 16)
+    decode_bounded_uint(av, 16, u128::MAX)
 }
 
-/// Decode an `AlignedValue` known to be a bool. Booleans encode as a
-/// single byte (0 or 1); we accept anything via the u8 decoder and
-/// coerce non-zero to true.
+/// Decode an `AlignedValue` known to be a Compact `Boolean`.
+///
+/// Booleans have exactly two encodings, and this accepts exactly those two.
+/// The normative decoder is `CompactTypeBoolean.fromValue`:
+///
+/// ```ts
+/// const val = value.shift();
+/// if (val == undefined || val.length > 1 || (val.length == 1 && val[0] != 1)) {
+///   throw new CompactError('expected Boolean');
+/// }
+/// return val.length == 1;
+/// ```
+///
+/// so `false` is the **empty** atom and `true` is the single byte `1`. A
+/// one-byte atom holding `0` is not a canonical `false`: `toValue(false)`
+/// produces `new Uint8Array(0)`, and `ValueAtom::normalize` strips the
+/// trailing zero on the Rust side too, so nothing that encodes a Compact
+/// boolean ever produces it.
+///
+/// This used to be `decode_u8(av).map(|n| n != 0)`, which turned every
+/// nonzero byte into `true`. A cell holding `2` — reachable by anything
+/// writing the ledger outside this crate — decoded as `true` here and threw
+/// in TypeScript, which is the worse half of a divergence: contract code
+/// carried on with a value the type system says is impossible instead of
+/// stopping.
 pub fn decode_bool(av: &AlignedValue) -> Result<bool, CompactError> {
-    decode_u8(av).map(|n| n != 0)
+    let bytes = aligned_bytes(av)
+        .ok_or_else(|| CompactError::AssertionFailed("expected Boolean, got no value".into()))?;
+    match bytes {
+        [] => Ok(false),
+        [1] => Ok(true),
+        other => Err(CompactError::AssertionFailed(format!(
+            "expected Boolean, got {other:?}"
+        ))),
+    }
 }
 
 /// Decode an `AlignedValue` known to be a `Vector<N, Field>` — i.e. N
@@ -373,7 +441,7 @@ fn expand_segments(
 /// converted atoms to `Fr`s 1:1, so any leaf wider than 31 bytes (and
 /// any multi-leaf struct containing one) could never decode. This
 /// walks `av.alignment` to expand each atom into exactly the chunks
-/// its leaf occupies (see [`expand_atom`] for the per-alignment rules).
+/// its leaf occupies (see `expand_atom` for the per-alignment rules).
 ///
 /// For fixed-size targets (`T::FIELD_SIZE > 0`) the expanded stream
 /// must have exactly `T::FIELD_SIZE` elements. A longer stream means
@@ -880,5 +948,132 @@ mod decoder_tests {
         crate::std_lib::jubjub_point_field_repr(&p, &mut frs);
         let av: AlignedValue = (frs[0], frs[1]).into();
         assert_eq!(decode_jubjub_point(&av).unwrap(), p);
+    }
+
+    // ---- Compact domains, not just storage widths -------------------------
+    //
+    // A ledger cell is bytes. The Compact type that names the cell says which
+    // of those byte patterns are values of that type, and the decoders are
+    // where the two meet. Accepting a pattern the type excludes hands
+    // contract code a value its own type says cannot exist — and does it
+    // silently, which is worse than refusing.
+
+    use crate::{Alignment, AlignmentAtom, Value, ValueAtom};
+
+    /// Build an `AlignedValue` with a chosen raw atom under a `Bytes{len}`
+    /// alignment — i.e. what a cell written by something other than this
+    /// crate can legitimately contain.
+    fn raw_cell(bytes: &[u8], len: u32) -> AlignedValue {
+        AlignedValue::new(
+            Value(vec![ValueAtom(bytes.to_vec())]),
+            Alignment::singleton(AlignmentAtom::Bytes { length: len }),
+        )
+        .expect("test atom must fit the declared alignment")
+    }
+
+    /// The two canonical boolean encodings, taken from our own encoder so
+    /// the test cannot drift from what the crate actually writes.
+    #[test]
+    fn bool_roundtrips_through_the_encoder() {
+        assert!(!decode_bool(&AlignedValue::from(false)).unwrap());
+        assert!(decode_bool(&AlignedValue::from(true)).unwrap());
+    }
+
+    /// `false` is the empty atom, not a zero byte: `toValue(false)` is
+    /// `new Uint8Array(0)` in TypeScript and `ValueAtom::normalize` strips
+    /// the trailing zero here.
+    #[test]
+    fn the_canonical_false_is_the_empty_atom() {
+        let av = AlignedValue::from(false);
+        assert_eq!(
+            av.value.0[0].0.len(),
+            0,
+            "if this changes, decode_bool's accepted set has to change with it"
+        );
+    }
+
+    /// The reviewer's probe. Byte `2` is not a Compact `Boolean`;
+    /// `CompactTypeBoolean.fromValue` throws on it. It used to decode as
+    /// `true` here, because the old body was `decode_u8(av).map(|n| n != 0)`.
+    #[test]
+    fn decode_bool_rejects_a_non_boolean_byte() {
+        for byte in [2u8, 3, 0xFF] {
+            let err = decode_bool(&raw_cell(&[byte], 1))
+                .expect_err("only the empty atom and [1] are Booleans");
+            assert!(err.to_string().contains("expected Boolean"), "got: {err}");
+        }
+    }
+
+    /// TypeScript also rejects a one-byte atom holding `0`
+    /// (`val.length == 1 && val[0] != 1`), and this decoder agrees with it
+    /// for a stronger reason than agreement: `Bytes{n}` alignment requires
+    /// the atom to be in normal form, so an atom with a trailing zero byte
+    /// cannot be part of a well-formed `AlignedValue` at all.
+    ///
+    /// That invariant is what makes "empty means false" safe to rely on,
+    /// so it is asserted rather than assumed. If it ever weakens,
+    /// `decode_bool` needs a `[0] => Ok(false)` arm and this test is where
+    /// that gets noticed.
+    #[test]
+    fn a_non_normal_form_atom_is_not_a_well_formed_aligned_value() {
+        for (bytes, len) in [(&[0u8][..], 1u32), (&[1u8, 0][..], 2)] {
+            assert!(
+                AlignedValue::new(
+                    Value(vec![ValueAtom(bytes.to_vec())]),
+                    Alignment::singleton(AlignmentAtom::Bytes { length: len }),
+                )
+                .is_none(),
+                "trailing zeros must be unrepresentable: {bytes:?}"
+            );
+        }
+    }
+
+    /// A two-byte atom is not a Boolean however its bytes read —
+    /// TypeScript rejects on `val.length > 1` before looking at them.
+    #[test]
+    fn decode_bool_rejects_an_overlong_atom() {
+        assert!(decode_bool(&raw_cell(&[1, 1], 2)).is_err());
+    }
+
+    /// The unsigned case: `200` fits one byte, so the storage width admits
+    /// it, but a `Uint<0..100>` does not contain it.
+    /// `CompactTypeUnsignedInteger.fromValue` throws
+    /// `expected UnsignedInteger[<=100]`.
+    #[test]
+    fn a_bounded_uint_rejects_a_value_above_its_declared_maximum() {
+        let av = raw_cell(&[200], 1);
+
+        assert_eq!(
+            decode_u8(&av).unwrap(),
+            200,
+            "the full-width helper is correct for Uint<0..255> and must keep \
+             accepting it"
+        );
+
+        let err = decode_bounded_uint(&av, 1, 100)
+            .expect_err("200 is outside Uint<0..100> whatever its storage width");
+        assert!(
+            err.to_string().contains("expected UnsignedInteger[<=100]"),
+            "message should name the declared bound, got: {err}"
+        );
+    }
+
+    #[test]
+    fn a_bounded_uint_accepts_its_boundary_value() {
+        assert_eq!(
+            decode_bounded_uint(&raw_cell(&[100], 1), 1, 100).unwrap(),
+            100
+        );
+        assert_eq!(decode_bounded_uint(&raw_cell(&[], 1), 1, 100).unwrap(), 0);
+    }
+
+    /// The bound and the storage width are independent checks, and the
+    /// width one still has to hold: `Uint<0..70000>` needs 3 bytes, so a
+    /// 4-byte atom is malformed even though 70000 would pass the bound.
+    #[test]
+    fn a_bounded_uint_still_rejects_an_overlong_atom() {
+        let err = decode_bounded_uint(&raw_cell(&[0x70, 0x11, 0x01, 0x02], 4), 3, 70_000)
+            .expect_err("4 bytes is wider than the declared 3");
+        assert!(err.to_string().contains("at most 3 bytes"), "got: {err}");
     }
 }

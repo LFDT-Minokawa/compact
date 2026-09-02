@@ -24,7 +24,7 @@
 
 use crate::base_crypto::hash::HashOutput;
 use crate::transient_crypto::hash as transient_hash_mod;
-use crate::{Fr, JubjubPoint, JubjubScalar};
+use crate::{CompactError, Fr, JubjubPoint, JubjubScalar};
 use midnight_base_crypto::repr::MemWrite;
 
 // R5a (2026-06-24): orphan-safe helpers for codegen of struct fields
@@ -159,12 +159,43 @@ pub fn ec_mul_generator(s: JubjubScalar) -> JubjubPoint {
     JubjubPoint::generator() * s
 }
 
-/// `constructJubjubPoint(x, y)` — checked affine constructor. Panics
-/// if `(x, y)` isn't on the curve, mirroring the TS runtime's
-/// assertion-style failure mode.
+/// `constructJubjubPoint(x, y)` — checked affine constructor.
+///
+/// Returns `Err(CompactError::AssertionFailed)` when `(x, y)` is not a
+/// point on the embedded curve.
+///
+/// # Divergence from the TypeScript runtime
+///
+/// TypeScript's `JubjubPoint` is a bare coordinate pair, and its
+/// `constructJubjubPoint` is documented as performing no check at all:
+///
+/// ```text
+/// // NOTE that it does not check that the coordinates represent a
+/// // valid point on the Jubjub curve.
+/// export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
+///   return { x, y };
+/// }
+/// ```
+///
+/// So `constructJubjubPoint(1, 1)` yields a usable value there and an error
+/// here. Closing that gap needs a Compact-level coordinate type distinct
+/// from the validated `JubjubPoint`, deferring validation to the operations
+/// that actually require a group element — a change to the type the codegen
+/// emits, not something this function can make on its own. Tracked on
+/// MediaNoxLabs/compact#17.
+///
+/// What it no longer does is panic. An off-curve pair is a value the caller
+/// can legitimately hold, not a bug in this crate, so it is reported
+/// through the same `Result` every other generated-code failure travels on
+/// instead of unwinding out of a circuit body. Rejecting it is still
+/// stricter than TypeScript; it is no longer *louder* than TypeScript.
 #[inline]
-pub fn construct_jubjub_point(x: Fr, y: Fr) -> JubjubPoint {
-    JubjubPoint::new(x, y).expect("constructJubjubPoint: (x, y) not on the embedded curve")
+pub fn construct_jubjub_point(x: Fr, y: Fr) -> Result<JubjubPoint, CompactError> {
+    JubjubPoint::new(x, y).ok_or_else(|| {
+        CompactError::AssertionFailed(format!(
+            "constructJubjubPoint: ({x}, {y}) is not a point on the embedded curve"
+        ))
+    })
 }
 
 /// `degradeToTransient(b)` — `(Bytes 32) -> Field`. Wraps the upstream
@@ -321,13 +352,28 @@ mod tests {
     #[test]
     fn construct_jubjub_point_accepts_a_real_point() {
         let p = point(19);
-        assert_eq!(construct_jubjub_point(p.x().unwrap(), p.y().unwrap()), p);
+        assert_eq!(
+            construct_jubjub_point(p.x().unwrap(), p.y().unwrap()).unwrap(),
+            p
+        );
     }
 
+    /// `(1, 1)` is off the curve. It must come back as an error the caller
+    /// can handle — the point of the test is that it does *not* unwind.
+    ///
+    /// The earlier version of this test asserted `#[should_panic]`, pinning
+    /// the panic in place as if it were the specification. It was not: the
+    /// TypeScript runtime returns the coordinate pair unchecked, so the
+    /// panic was a divergence being locked in by its own test.
     #[test]
-    #[should_panic(expected = "not on the embedded curve")]
-    fn construct_jubjub_point_panics_off_curve() {
-        construct_jubjub_point(Fr::from(1u64), Fr::from(1u64));
+    fn construct_jubjub_point_reports_an_off_curve_pair_as_an_error() {
+        let err = construct_jubjub_point(Fr::from(1u64), Fr::from(1u64))
+            .expect_err("(1, 1) is not on the embedded curve");
+        assert!(
+            err.to_string()
+                .contains("not a point on the embedded curve"),
+            "message should say what was wrong, got: {err}"
+        );
     }
 
     // ---- transient hash bridge -------------------------------------------

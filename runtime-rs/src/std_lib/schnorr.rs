@@ -71,17 +71,21 @@ pub struct SchnorrSignature {
     pub response: Fr,
 }
 
-/// Hash `(ann_x, ann_y, pk_x, pk_y, ...msg)` with the Poseidon-based
-/// transient hash and reduce modulo the Jubjub scalar field order.
-fn compute_challenge(ann_x: Fr, ann_y: Fr, pk_x: Fr, pk_y: Fr, msg: &[Fr]) -> EmbeddedFr {
+/// The full, unreduced challenge: `transientHash(ann_x, ann_y, pk_x, pk_y,
+/// ...msg)`.
+///
+/// Both circuits below hash exactly these field elements in exactly this
+/// order. They differ only in how they reduce the result into the Jubjub
+/// scalar field, so that reduction is the caller's choice — see
+/// [`fr_to_embedded_fr`] (mod `r`) and [`truncate_challenge`] (mod 2^248).
+fn challenge_hash(ann_x: Fr, ann_y: Fr, pk_x: Fr, pk_y: Fr, msg: &[Fr]) -> Fr {
     let mut hash_input = Vec::with_capacity(4 + msg.len());
     hash_input.push(ann_x);
     hash_input.push(ann_y);
     hash_input.push(pk_x);
     hash_input.push(pk_y);
     hash_input.extend_from_slice(msg);
-    let hash = transient_hash(&hash_input);
-    fr_to_embedded_fr(hash)
+    transient_hash(&hash_input)
 }
 
 /// Reduce a BLS12-381 scalar `Fr` modulo the Jubjub scalar field order,
@@ -89,23 +93,55 @@ fn compute_challenge(ann_x: Fr, ann_y: Fr, pk_x: Fr, pk_y: Fr, msg: &[Fr]) -> Em
 /// [`crate::std_lib::jubjub_scalar_from_field`], which is also what
 /// Compact's `as JubjubScalar` cast lowers to.
 ///
-/// # Warning: this is NOT the vendored circuit's challenge reduction
-///
-/// The doc comment this replaced claimed the function "mirrors what the
-/// matching circuit does via the `getSchnorrReduction` witness". It does
-/// not. The vendored `examples/did-05/jubjub-schnorr/src/schnorr.compact`
-/// derives its challenge by **248-bit truncation** — `cFull = q·2^248 +
-/// cTruncated` with `c = cTruncated`, i.e. `cFull mod 2^248` — whereas
-/// this is `cFull mod r_jubjub`. Since `2^248 < r_jubjub` the two differ
-/// whenever `cFull >= 2^248`, which is essentially always, so
-/// [`schnorr_verify_jubjub`] and that circuit disagree. No test currently
-/// covers the gap (`did-05`'s tests are constructor-scaffold/readback
-/// only). The 0.33 standard library's `jubjubSchnorrVerify` uses the
-/// mod-`r` form, so this function matches the STDLIB semantics and a
-/// coordinated migration off the vendored module is the eventual fix.
-/// Tracked on MediaNoxLabs/compact#17.
+/// This is the reduction the **0.33 standard library**'s
+/// `jubjubSchnorrVerify` performs (`cNative as JubjubScalar`), so it is the
+/// one [`jubjub_schnorr_verify`] and [`verify`] use. It is *not* the
+/// vendored `schnorr.compact` module's reduction — see
+/// [`truncate_challenge`].
 fn fr_to_embedded_fr(fr: Fr) -> EmbeddedFr {
     crate::std_lib::jubjub_scalar_from_field(fr)
+}
+
+/// Reduce a challenge by **248-bit truncation**: `cFull mod 2^248`.
+///
+/// This is the reduction the vendored
+/// `examples/did-05/jubjub-schnorr/src/schnorr.compact` module performs. It
+/// spells it as a witness plus two asserts rather than an operator:
+///
+/// ```compact
+/// const [q, cTruncated] = getSchnorrReduction(cFull);
+/// assert(disclose(q) < 116, "Schnorr quotient out of range");
+/// assert(disclose(q) * TWO_248 + (disclose(cTruncated) as Field) == cFull,
+///        "Invalid challenge reduction");
+/// const c: Field = disclose(cTruncated) as Field;
+/// ```
+///
+/// Those two asserts constrain `cTruncated` to be exactly `cFull mod 2^248`
+/// (the `q < 116` bound is implied by `cFull < r_bls ≈ 115.9 · 2^248`, so it
+/// restricts the witness, not the input, and has nothing to reproduce here).
+///
+/// `2^248` is `31` whole bytes, so on the canonical little-endian
+/// representation the reduction is simply "keep the low 31 bytes". The
+/// result is `< 2^248 < r_jubjub`, so widening it into the embedded scalar
+/// field is value-preserving — which is what the circuit's own
+/// `c as JubjubScalar` cast relies on.
+///
+/// # Security note
+///
+/// A 248-bit challenge is the vendored circuit's design, not a choice made
+/// here; reproducing it is what makes the off-circuit verifier agree with
+/// the on-circuit one. It is ~4 bits weaker than the mod-`r` form.
+fn truncate_challenge(c_full: Fr) -> EmbeddedFr {
+    const TRUNCATED_BYTES: usize = 31; // 248 bits
+    let le = c_full.as_le_bytes();
+    let keep = TRUNCATED_BYTES.min(le.len());
+    let mut wide = [0u8; 64];
+    wide[..keep].copy_from_slice(&le[..keep]);
+    // `from_bytes_wide` rather than the fallible `from_le_bytes`: the input
+    // is `< 2^248 < r_jubjub`, so the wide reduction is the identity here and
+    // this stays infallible rather than trading a panic for an `Option` that
+    // can never be `None`.
+    EmbeddedFr(midnight_transient_crypto::curve::embedded::Scalar::from_bytes_wide(&wide))
 }
 
 /// Off-circuit Schnorr verifier. Returns `true` iff the signature is
@@ -181,10 +217,55 @@ pub fn jubjub_schnorr_verify<const N: usize>(
     let pk_x = pk.x().unwrap_or_else(|| Fr::from(0u64));
     let pk_y = pk.y().unwrap_or_else(|| Fr::from(0u64));
 
-    let c = compute_challenge(ann_x, ann_y, pk_x, pk_y, &msg);
+    let c = fr_to_embedded_fr(challenge_hash(ann_x, ann_y, pk_x, pk_y, &msg));
 
     let lhs = JubjubPoint::generator() * fr_to_embedded_fr(signature.response);
     let rhs = signature.announcement + pk * c;
+    lhs == rhs
+}
+
+/// Off-circuit verifier for the **vendored** `schnorr` module's
+/// `schnorrVerify<#n>` circuit
+/// (`examples/did-05/jubjub-schnorr/src/schnorr.compact`). Returns `true`
+/// iff the signature satisfies that circuit's equation.
+///
+/// This is a different function from [`verify`], and deliberately so. The
+/// two circuits derive the challenge from the same hash but reduce it
+/// differently:
+///
+/// | | challenge reduction |
+/// |---|---|
+/// | 0.33 stdlib `jubjubSchnorrVerify` → [`verify`] | `cFull mod r_jubjub` |
+/// | vendored `schnorrVerify` → this function | `cFull mod 2^248` |
+///
+/// Since `2^248 < r_jubjub`, the two disagree whenever `cFull >= 2^248` —
+/// which is essentially every full-width hash. A verifier substituted for
+/// the wrong one of these rejects valid signatures and, worse, is not the
+/// predicate the on-chain proof actually enforces.
+///
+/// Beyond the reduction it reproduces the rest of the circuit body:
+/// identity `pk` or `announcement` is rejected up front (the circuit's
+/// `assert(pk != default<JubjubPoint> && announcement != …)`, which exists
+/// because `ecMul(O, c) == O` collapses the check to `response·G ==
+/// announcement` and drops the message entirely), then `response as
+/// JubjubScalar` is the mod-`r` cast, and the equation is
+/// `response·G == announcement + c·pk`.
+pub fn verify_truncated_challenge(pk: JubjubPoint, msg: &[Fr], sig: &SchnorrSignature) -> bool {
+    if pk.is_identity() || sig.announcement.is_identity() {
+        return false;
+    }
+    // Safe to unwrap-free: neither point is the identity, so both have
+    // coordinates. The `unwrap_or` mirrors `jubjubPointX`/`jubjubPointY`,
+    // which yield 0 for the identity.
+    let ann_x = sig.announcement.x().unwrap_or_else(|| Fr::from(0u64));
+    let ann_y = sig.announcement.y().unwrap_or_else(|| Fr::from(0u64));
+    let pk_x = pk.x().unwrap_or_else(|| Fr::from(0u64));
+    let pk_y = pk.y().unwrap_or_else(|| Fr::from(0u64));
+
+    let c = truncate_challenge(challenge_hash(ann_x, ann_y, pk_x, pk_y, msg));
+
+    let lhs = JubjubPoint::generator() * fr_to_embedded_fr(sig.response);
+    let rhs = sig.announcement + pk * c;
     lhs == rhs
 }
 
@@ -195,6 +276,12 @@ pub fn jubjub_schnorr_verify<const N: usize>(
 /// rejection, and otherwise threads `ctx` through a no-op
 /// `query_for_verify` to produce a `CircuitResults<PS, ()>` shaped the
 /// same way an inlined Compact assert body would.
+///
+/// The circuit it replaces is the vendored `schnorr` module's, so it
+/// verifies with [`verify_truncated_challenge`], not [`verify`]. It used to
+/// call [`verify`], which meant a signature the on-chain circuit accepts was
+/// rejected here (and vice versa) for essentially every message — the
+/// substitution did not compute the predicate it was substituted for.
 pub fn schnorr_verify_jubjub<PS, const N: usize>(
     ctx: CircuitContext<PS>,
     msg: [Fr; N],
@@ -204,7 +291,7 @@ pub fn schnorr_verify_jubjub<PS, const N: usize>(
 where
     PS: Clone,
 {
-    if !verify(pk, &msg, &sig) {
+    if !verify_truncated_challenge(pk, &msg, &sig) {
         return Err(CompactError::AssertionFailed(
             "Schnorr signature verification failed".into(),
         ));
@@ -318,6 +405,175 @@ mod tests {
         assert!(
             !verify(JubjubPoint::identity(), &msg, &sig),
             "…while the guarded verifier refuses the same pair"
+        );
+    }
+
+    // ---- the vendored circuit's truncated challenge ------------------------
+
+    /// Widen an embedded scalar into the outer field with the same integer
+    /// value. `r_jubjub < r_bls`, so every canonical embedded scalar has an
+    /// outer-field representative, and `fr_to_embedded_fr` maps it back
+    /// unchanged — which is exactly what the circuit's `response as
+    /// JubjubScalar` cast relies on.
+    fn widen(s: EmbeddedFr) -> Fr {
+        Fr::from_le_bytes(&s.as_le_bytes()).expect("r_jubjub < r_bls, so this always fits")
+    }
+
+    /// Produce a signature that satisfies the **vendored** circuit's
+    /// equation: `s = k + c·sk` with `c = cFull mod 2^248`.
+    fn sign_truncated(
+        sk: EmbeddedFr,
+        nonce: EmbeddedFr,
+        msg: &[Fr],
+    ) -> (JubjubPoint, SchnorrSignature) {
+        let pk = JubjubPoint::generator() * sk;
+        let announcement = JubjubPoint::generator() * nonce;
+        let c = truncate_challenge(challenge_hash(
+            announcement.x().unwrap(),
+            announcement.y().unwrap(),
+            pk.x().unwrap(),
+            pk.y().unwrap(),
+            msg,
+        ));
+        let response = widen(nonce + c * sk);
+        (
+            pk,
+            SchnorrSignature {
+                announcement,
+                response,
+            },
+        )
+    }
+
+    /// The same, reduced mod `r_jubjub` — what the 0.33 stdlib circuit and
+    /// upstream's `verify` expect.
+    fn sign_mod_r(
+        sk: EmbeddedFr,
+        nonce: EmbeddedFr,
+        msg: &[Fr],
+    ) -> (JubjubPoint, SchnorrSignature) {
+        let pk = JubjubPoint::generator() * sk;
+        let announcement = JubjubPoint::generator() * nonce;
+        let c = fr_to_embedded_fr(challenge_hash(
+            announcement.x().unwrap(),
+            announcement.y().unwrap(),
+            pk.x().unwrap(),
+            pk.y().unwrap(),
+            msg,
+        ));
+        let response = widen(nonce + c * sk);
+        (
+            pk,
+            SchnorrSignature {
+                announcement,
+                response,
+            },
+        )
+    }
+
+    fn keys() -> (EmbeddedFr, EmbeddedFr, [Fr; 4]) {
+        (
+            jubjub_scalar_from_field(Fr::from(0x00C0_FFEEu64)),
+            jubjub_scalar_from_field(Fr::from(0x0000_BEEFu64)),
+            [
+                Fr::from(1u64),
+                Fr::from(2u64),
+                Fr::from(3u64),
+                Fr::from(4u64),
+            ],
+        )
+    }
+
+    /// The reviewer's probe, as a test. A signature built against the
+    /// vendored circuit's 248-bit truncated challenge must verify on the
+    /// path that substitutes for that circuit — and must *not* verify under
+    /// the mod-`r` reduction, which is what the code used to call.
+    ///
+    /// The second assertion is the one that would have caught the bug: it
+    /// fails the moment `verify_truncated_challenge` is "simplified" back
+    /// into `verify`, because then both assertions describe the same
+    /// function and they cannot both hold.
+    #[test]
+    fn a_signature_for_the_vendored_circuit_verifies_only_under_truncation() {
+        let (sk, nonce, msg) = keys();
+        let (pk, sig) = sign_truncated(sk, nonce, &msg);
+
+        assert!(
+            verify_truncated_challenge(pk, &msg, &sig),
+            "the off-circuit verifier must accept what the circuit it \
+             replaces accepts"
+        );
+        assert!(
+            !verify(pk, &msg, &sig),
+            "…and the mod-r verifier must not: 2^248 < r_jubjub, so the two \
+             reductions differ for every challenge at or above 2^248"
+        );
+    }
+
+    /// The converse direction, so neither verifier can quietly become the
+    /// other.
+    #[test]
+    fn a_stdlib_signature_does_not_verify_under_truncation() {
+        let (sk, nonce, msg) = keys();
+        let (pk, sig) = sign_mod_r(sk, nonce, &msg);
+
+        assert!(verify(pk, &msg, &sig));
+        assert!(!verify_truncated_challenge(pk, &msg, &sig));
+    }
+
+    /// The vendored circuit asserts `pk != default<JubjubPoint> &&
+    /// announcement != default<JubjubPoint>`, so the off-circuit verifier
+    /// must refuse the same universal forgery.
+    #[test]
+    fn the_truncated_verifier_rejects_identity() {
+        let (sig, short_msg) = forgery_against_identity();
+        assert!(!verify_truncated_challenge(
+            JubjubPoint::identity(),
+            &short_msg,
+            &sig
+        ));
+
+        let (sk, _, msg) = keys();
+        let pk = JubjubPoint::generator() * sk;
+        let identity_ann = SchnorrSignature {
+            announcement: JubjubPoint::identity(),
+            response: Fr::from(1u64),
+        };
+        assert!(!verify_truncated_challenge(pk, &msg, &identity_ann));
+    }
+
+    /// `schnorr_verify_jubjub` is what the codegen substitutes for the
+    /// vendored circuit, so the predicate it applies is the thing that has
+    /// to be right. Driving it end to end pins the wiring, not just the
+    /// helper: re-pointing it at `verify` fails here even though every
+    /// test above still passes.
+    #[test]
+    fn schnorr_verify_jubjub_applies_the_truncated_predicate() {
+        use crate::{ChargedState, ContractAddress, QueryContext, StateValue, INITIAL_COST_MODEL};
+
+        let ctx = || CircuitContext::<()> {
+            current_private_state: (),
+            current_query_context: QueryContext::new(
+                ChargedState::new(StateValue::Null),
+                ContractAddress::default(),
+            ),
+            current_zswap_local_state: Default::default(),
+            cost_model: INITIAL_COST_MODEL,
+            gas_limit: None,
+        };
+
+        let (sk, nonce, msg) = keys();
+
+        let (pk, truncated) = sign_truncated(sk, nonce, &msg);
+        assert!(
+            schnorr_verify_jubjub(ctx(), msg, truncated, pk).is_ok(),
+            "must accept a signature the vendored circuit accepts"
+        );
+
+        let (pk, mod_r) = sign_mod_r(sk, nonce, &msg);
+        assert!(
+            schnorr_verify_jubjub(ctx(), msg, mod_r, pk).is_err(),
+            "must reject a signature the vendored circuit rejects"
         );
     }
 }

@@ -101,26 +101,28 @@ pub use midnight_onchain_state as onchain_state;
 pub use midnight_onchain_vm as onchain_vm;
 pub use midnight_storage as storage;
 pub use midnight_transient_crypto as transient_crypto;
-/// Re-export of `midnight_zswap`.
-///
-/// # Warning: proof verification is compiled out
-///
-/// The workspace builds `midnight-zswap` with `default-features = false`,
-/// which drops its `proof-verifying` feature (that feature pulls in
-/// `zkir_v2`, which needs a `midnight-transient-crypto ^2.2.0` that is not
-/// on crates.io). With the feature off, `zswap`'s
-/// `Offer::well_formed()` / `Input::well_formed()` and friends compile to
-/// the stub `{ Ok(()) }` — they accept **any** offer without checking a
-/// single proof.
-///
-/// `midnight-compact-runtime` itself only uses `zswap::local::State` (coin
-/// bookkeeping), which has no `proof-verifying` gates, so the crate's own
-/// behaviour is unaffected. But this re-export makes the stubbed verifier
-/// reachable as `midnight_compact_runtime::zswap::…`, so **do not use it to
-/// validate untrusted offers**. Note this differs from the ledger-8 line,
-/// where the fork took zswap's default features and the same calls did
-/// real verification.
-pub use midnight_zswap as zswap;
+
+// `midnight_zswap` is deliberately NOT re-exported as a module.
+//
+// The workspace builds it with `default-features = false`, which drops its
+// `proof-verifying` feature (that feature pulls in `zkir_v2`, which needs a
+// `midnight-transient-crypto ^2.2.0` that is not on crates.io). With the
+// feature off, `Offer::well_formed()` / `Input::well_formed()` and friends
+// compile to the stub `{ Ok(()) }` — they accept **any** offer without
+// checking a single proof.
+//
+// A `pub use midnight_zswap as zswap;` therefore put safe-looking, entirely
+// non-verifying verifier APIs one path segment away from every consumer, at
+// `midnight_compact_runtime::zswap::…`. A doc warning does not stop anyone
+// from calling them; not re-exporting them does. This crate needs exactly
+// one type out of zswap — `local::State`, coin bookkeeping, which has no
+// `proof-verifying` gates — and that is re-exported by name below as
+// `ZswapLocalState`. Generated code names no other zswap path.
+//
+// A consumer that genuinely wants the rest can depend on `midnight-zswap`
+// directly and choose its own features, which is where that decision
+// belongs. Note this differs from the ledger-8 line, where the fork took
+// zswap's default features and the same calls did real verification.
 
 pub use midnight_compact_runtime_macros::witnesses;
 
@@ -198,23 +200,62 @@ pub use midnight_storage::storage::HashMap as Map;
 pub use midnight_transient_crypto::merkle_tree::MerkleTree;
 
 // Hashes (re-exported as bare names — usability over fully-qualified paths).
+//
+// These are upstream's primitives verbatim: they hash `T`'s Rust `FieldRepr`.
+// They are NOT the Compact builtins of the same names, which hash the
+// *field-aligned* representation — TypeScript spells those
+// `ocrt.transientHash(rtType.alignment(), rtType.toValue(x))`. The two
+// coincide for `Field`- and `Bytes<N>`-aligned arguments and disagree for
+// `Compress`-aligned ones (`Opaque<"string">`, `Opaque<"Uint8Array">`), for
+// the reason spelled out on [`hash_to_curve`] below.
+//
+// The Compact builtins live elsewhere and already take the aligned path:
+// `std_lib::transient_hash_aligned` and `std_lib::persistent_hash_aligned`
+// are what the emitter lowers `transientHash<T>` / `persistentHash<T>` to.
+// These re-exports are for the cases that genuinely want the primitive —
+// notably hashing an `&[Fr]` preimage, as the Schnorr challenge does.
 pub use midnight_base_crypto::hash::{persistent_commit, persistent_hash};
 pub use midnight_transient_crypto::hash::{transient_commit, transient_hash};
 
-/// Compact's `hashToCurve<A>(value: A): JubjubPoint` — by-value wrapper
-/// around upstream `midnight_transient_crypto::hash::hash_to_curve`,
-/// which takes its argument by reference (`&T`). The codegen emits
-/// `hash_to_curve(arg)` (by value) from the `(rust …)` annotation in
-/// `compiler/midnight-natives.ss`, so this wrapper bridges the calling
-/// convention without forcing the emitter to thread `&` through every
-/// native callsite.
+/// Compact's `hashToCurve<A>(value: A): JubjubPoint`.
 ///
-/// `Sized` is required because we accept by value; for `?Sized`
-/// arguments (rare in generated code), users can call
-/// `midnight_transient_crypto::hash::hash_to_curve(&value)` directly.
+/// Hashes the **field-aligned representation** of `value`: the argument is
+/// converted to an `AlignedValue` and expanded under its own alignment,
+/// which is what the TypeScript runtime hashes:
+///
+/// ```ts
+/// ocrt.hashToCurve(rtType.alignment(), rtType.toValue(x))
+/// ```
+///
+/// and what that binding does on the Rust side is
+/// `hash_to_curve(&ValueReprAlignedValue(AlignedValue::new(value, align)))`
+/// (`onchain-runtime-wasm/src/primitives.rs`). Note `ValueRepr…`: the
+/// alignment guides the expansion but is not itself hashed.
+///
+/// # Why not `T: FieldRepr`
+///
+/// This used to be `hash_to_curve(&value)` on the Rust `FieldRepr` impl,
+/// which is a different function for any `Compress`-aligned type. Upstream
+/// expands a `Compress` atom as a single `transient_commit(bytes, len)`
+/// field element, whereas `<[u8] as FieldRepr>` packs the raw bytes into
+/// 31-byte chunks. So `hashToCurve(OpaqueString("…"))` returned one point
+/// in TypeScript and a different one here — a silent consensus split on
+/// exactly the values (opaque strings, byte buffers) the builtin exists to
+/// commit to. `Bytes<N>` and `Field` happen to agree between the two
+/// paths, which is why nothing caught it sooner.
+///
+/// The sibling builtins were already routed correctly:
+/// [`std_lib::transient_hash_aligned`] and
+/// [`std_lib::persistent_hash_aligned`] both hash
+/// `ValueReprAlignedValue`. `hashToCurve` was the one that was not.
+///
+/// The bound is `Into<AlignedValue>`, which every Compact type satisfies
+/// through upstream's blanket `impl<T: DynAligned> From<T> for AlignedValue
+/// where Value: From<T>` — the same conversion the ledger-cell builders
+/// already use.
 #[inline]
-pub fn hash_to_curve<T: midnight_transient_crypto::repr::FieldRepr>(value: T) -> JubjubPoint {
-    midnight_transient_crypto::hash::hash_to_curve(&value)
+pub fn hash_to_curve<T: Into<AlignedValue>>(value: T) -> JubjubPoint {
+    midnight_transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(value.into()))
 }
 
 // Zswap local state.

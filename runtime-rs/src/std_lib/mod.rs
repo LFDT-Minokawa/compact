@@ -34,9 +34,9 @@ mod opaque;
 mod schnorr;
 
 pub use adts::{
-    decode_bool, decode_bytes, decode_fr, decode_jubjub_point, decode_u128, decode_u16, decode_u32,
-    decode_u64, decode_u8, decode_vector_fr, decode_vector_u64, decode_via_field_repr,
-    serialize_contract_state, Counter,
+    decode_bool, decode_bounded_uint, decode_bytes, decode_fr, decode_jubjub_point, decode_u128,
+    decode_u16, decode_u32, decode_u64, decode_u8, decode_vector_fr, decode_vector_u64,
+    decode_via_field_repr, serialize_contract_state, Counter,
 };
 pub use bytes_pad_disclose::{
     disclose, pad, persistent_hash_aligned, transient_hash_aligned, Bytes,
@@ -73,7 +73,14 @@ pub use merkle_path::{
 };
 pub use narrowing::narrow;
 pub use opaque::OpaqueString;
+// Two off-circuit Schnorr verifiers, exported under names that say which
+// circuit each one agrees with. They are not interchangeable: the challenge
+// reductions differ (mod `r_jubjub` vs mod 2^248), so a signature valid
+// under one is not generally valid under the other. Exporting only the
+// first — which is what this did — left the second reachable by no name at
+// all while `schnorr_verify` looked like *the* verifier.
 pub use schnorr::{
-    jubjub_schnorr_verify, schnorr_verify_jubjub, verify as schnorr_verify, JubjubSchnorrSignature,
+    jubjub_schnorr_verify, schnorr_verify_jubjub, verify as schnorr_verify,
+    verify_truncated_challenge as schnorr_verify_truncated, JubjubSchnorrSignature,
     SchnorrSignature,
 };

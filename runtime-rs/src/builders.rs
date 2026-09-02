@@ -23,8 +23,8 @@
 // readability of generated code, not performance.
 
 use crate::{
-    AlignedValue, Alignment, AlignmentAtom, Array, ChargedState, ContractState, CostModel,
-    QueryResults, ResultMode, StateValue, Value, ValueAtom, DB, INITIAL_COST_MODEL,
+    AlignedValue, Alignment, AlignmentAtom, Array, ChargedState, CompactError, ContractState,
+    CostModel, QueryResults, ResultMode, StateValue, Value, ValueAtom, DB, INITIAL_COST_MODEL,
 };
 use midnight_onchain_state::state::{
     ContractMaintenanceAuthority, ContractOperation, EntryPointBuf,
@@ -61,14 +61,28 @@ pub fn new_cell<D: DB, T: Into<AlignedValue>>(v: T) -> StateValue<D> {
 /// by `ValueAtom::from(u128)`. Used by codegen for `Uint<L..U>` ledger
 /// fields and call-site cell values where the byte-width diverges from
 /// the Rust integer width.
-pub fn new_cell_bounded_uint<D: DB>(value: u128, byte_len: usize) -> StateValue<D> {
+///
+/// Returns `Err(CompactError::AssertionFailed)` if `value` does not fit
+/// `byte_len` bytes. That is the encode-side twin of the bound
+/// [`crate::std_lib::decode_bounded_uint`] enforces on the way out, and it
+/// is a property of the value being written, not a bug in this crate — so
+/// it is reported rather than panicked. Generated writes already sit in a
+/// `Result`-returning body, so the caller propagates it with `?` the same
+/// way it propagates a failed assert.
+pub fn new_cell_bounded_uint<D: DB>(
+    value: u128,
+    byte_len: usize,
+) -> Result<StateValue<D>, CompactError> {
     let atom = ValueAtom::from(value);
     let alignment = Alignment::singleton(AlignmentAtom::Bytes {
         length: byte_len as u32,
     });
-    let av = AlignedValue::new(Value(vec![atom]), alignment)
-        .expect("new_cell_bounded_uint: value exceeds declared byte_len");
-    StateValue::from(av)
+    let av = AlignedValue::new(Value(vec![atom]), alignment).ok_or_else(|| {
+        CompactError::AssertionFailed(format!(
+            "new_cell_bounded_uint: {value} does not fit the declared {byte_len}-byte width"
+        ))
+    })?;
+    Ok(StateValue::from(av))
 }
 
 /// Builds a `StateValue::Cell(...)` from a fixed-size array `[T; N]` of
@@ -76,12 +90,16 @@ pub fn new_cell_bounded_uint<D: DB>(value: u128, byte_len: usize) -> StateValue<
 /// `AlignedValue` into one. Used by codegen for Vector<N, T> ledger fields
 /// where `[T; N]: Into<AlignedValue>` isn't impl'd upstream — orphan rules
 /// block us from adding that impl directly, so we provide this helper.
+/// Takes the array by value and consumes it, so there is no `Copy` bound.
+/// Requiring `Copy` here would have excluded every owned Compact type a
+/// vector can legitimately hold — `OpaqueString`, generated user structs —
+/// for no benefit, since the array is owned already.
 pub fn new_cell_array<T, D, const N: usize>(v: [T; N]) -> StateValue<D>
 where
     D: DB,
-    T: Into<AlignedValue> + Copy,
+    T: Into<AlignedValue>,
 {
-    let avs: Vec<AlignedValue> = v.iter().copied().map(Into::into).collect();
+    let avs: Vec<AlignedValue> = v.into_iter().map(Into::into).collect();
     let av = AlignedValue::concat(avs.iter());
     StateValue::from(av)
 }
