@@ -1,0 +1,30 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+witness vector_witness(): Vector<4, Field>;
+
+// A witness may return a vector; the returned vector slices and indexes like any
+// other vector. Its values stay private (used only in constraints, not disclosed).
+export circuit vector_witness_return_semantics(): [] {
+    const w = vector_witness();
+
+    const window = slice<2>(w, 1);
+    assert(window[0] == 6 as Field, "Sliced witness element 0 should be 6");
+    assert(window[1] == 7 as Field, "Sliced witness element 1 should be 7");
+    assert(w[0] == 5 as Field, "Witness element 0 should be 5");
+    assert(w[3] == 8 as Field, "Witness element 3 should be 8");
+}

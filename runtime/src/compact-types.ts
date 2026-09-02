@@ -15,7 +15,7 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CompactError } from './error.js';
-import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR } from './constants.js';
+import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR, SECP256K1_LOW_LIMB_BOUND } from './constants.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -60,6 +60,69 @@ export interface Secp256k1Point {
 }
 
 /**
+ * Runtime type of {@link JubjubPoint}
+ */
+export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
+  alignment(): ocrt.Alignment {
+    return [
+      { tag: 'atom', value: { tag: 'field' } },
+      { tag: 'atom', value: { tag: 'field' } },
+    ];
+  },
+  fromValue(value: ocrt.Value): JubjubPoint {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
+      throw new CompactError('expected JubjubPoint');
+    }
+    const coordinates = value.splice(0, 2);
+    return {
+      x: ocrt.valueToBigInt([coordinates[0]]),
+      y: ocrt.valueToBigInt([coordinates[1]]),
+    };
+  },
+  toValue(value: JubjubPoint): ocrt.Value {
+    return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
+  },
+};
+
+/**
+ * Runtime type of {@link Secp256k1Point}
+ */
+export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
+  // One base containing the x cordinate
+  // One base containing the y cordinate
+  // One native field containing the identity flag
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256k1Base.alignment()
+      .concat(CompactTypeSecp256k1Base.alignment())
+      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
+  },
+  fromValue(value: ocrt.Value): Secp256k1Point {
+    if (value.length < 5) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    // This might throw CompactError('expected Secp256k1Base').
+    const x = CompactTypeSecp256k1Base.fromValue(value);
+    const y = CompactTypeSecp256k1Base.fromValue(value);
+    const identity = value.shift();
+    if (identity == undefined) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    const flag = ocrt.valueToBigInt([identity]);
+    if (flag != 0n && flag != 1n) {
+      throw new CompactError('expected Secp256k1Point');
+    }
+    return { x: x, y: y, identity: flag === 1n };
+  },
+  toValue(value: Secp256k1Point): ocrt.Value {
+    return CompactTypeSecp256k1Base.toValue(value.x)
+      .concat(CompactTypeSecp256k1Base.toValue(value.y))
+      .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
+  },
+};
+
+// These MerkleTree types and their descriptors are used by JS implementations
+// of MerkleTree ledger operations.
+/**
  * The hash value of a Merkle tree. TypeScript representation of the Compact
  * type of the same name
  */
@@ -84,81 +147,6 @@ export interface MerkleTreePath<A> {
   readonly leaf: A;
   readonly path: MerkleTreePathEntry[];
 }
-
-/**
- * The recipient of a coin produced by a circuit.
- */
-export interface Recipient {
-  /**
-   * Whether the recipient is a user or a contract.
-   */
-  readonly is_left: boolean;
-  /**
-   * The recipient's public key, if the recipient is a user.
-   */
-  readonly left: ocrt.CoinPublicKey;
-  /**
-   * The recipient's contract address, if the recipient is a contract.
-   */
-  readonly right: ocrt.ContractAddress;
-}
-
-/**
- * Runtime type of {@link JubjubPoint}
- */
-export const CompactTypeJubjubPoint: CompactType<JubjubPoint> = {
-  alignment(): ocrt.Alignment {
-    return [
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-    ];
-  },
-  fromValue(value: ocrt.Value): JubjubPoint {
-    const x = value.shift();
-    const y = value.shift();
-    if (x == undefined || y == undefined) {
-      throw new CompactError('expected JubjubPoint');
-    } else {
-      return {
-        x: ocrt.valueToBigInt([x]),
-        y: ocrt.valueToBigInt([y]),
-      };
-    }
-  },
-  toValue(value: JubjubPoint): ocrt.Value {
-    return ocrt.bigIntToValue(value.x).concat(ocrt.bigIntToValue(value.y));
-  },
-};
-
-/**
- * Runtime type of {@link Secp256k1Point}
- */
-export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
-  // One base containing the x cordinate
-  // One base containing the y cordinate
-  // One native field containing the identity flag
-  alignment(): ocrt.Alignment {
-    return CompactTypeSecp256k1Base.alignment()
-      .concat(CompactTypeSecp256k1Base.alignment())
-      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
-  },
-  fromValue(value: ocrt.Value): Secp256k1Point {
-    if (value.length != 5 || value[4] == undefined) {
-      throw new CompactError('expected Secp256k1Point');
-    }
-    // This might throw CompactError('expected Secp256k1Base').
-    return {
-      x: CompactTypeSecp256k1Base.fromValue(value.slice(0, 2)),
-      y: CompactTypeSecp256k1Base.fromValue(value.slice(2, 4)),
-      identity: ocrt.valueToBigInt(value.slice(4)) === 1n,
-    };
-  },
-  toValue(value: Secp256k1Point): ocrt.Value {
-    return CompactTypeSecp256k1Base.toValue(value.x)
-      .concat(CompactTypeSecp256k1Base.toValue(value.y))
-      .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
-  },
-};
 
 /**
  * Runtime type of {@link MerkleTreeDigest}
@@ -231,39 +219,6 @@ export class CompactTypeMerkleTreePath<A> implements CompactType<MerkleTreePath<
 }
 
 /**
- * A Schnorr signature over the JubJub curve. TypeScript representation of the
- * Compact type of the same name.
- */
-export interface JubjubSchnorrSignature {
-  readonly announcement: JubjubPoint;
-  readonly response: bigint;
-}
-
-/**
- * Runtime type of {@link JubjubSchnorrSignature}
- */
-export const CompactTypeJubjubSchnorrSignature: CompactType<JubjubSchnorrSignature> = {
-  alignment(): ocrt.Alignment {
-    return [
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-      { tag: 'atom', value: { tag: 'field' } },
-    ];
-  },
-  fromValue(value: ocrt.Value): JubjubSchnorrSignature {
-    const announcement = CompactTypeJubjubPoint.fromValue(value);
-    const responseVal = value.shift();
-    if (responseVal == undefined) {
-      throw new CompactError('expected JubjubSchnorrSignature');
-    }
-    return { announcement, response: ocrt.valueToBigInt([responseVal]) };
-  },
-  toValue(value: JubjubSchnorrSignature): ocrt.Value {
-    return CompactTypeJubjubPoint.toValue(value.announcement).concat(ocrt.bigIntToValue(value.response));
-  },
-};
-
-/**
  * Runtime type of the builtin `Field` type
  */
 export const CompactTypeField: CompactType<bigint> = {
@@ -297,12 +252,13 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Base');
     }
-    const low192 = ocrt.valueToBigInt([value[0]]);
-    const high64 = ocrt.valueToBigInt([value[1]]);
-    if (low192 >= 6277101735386680763835789423207666416102355444464034512896) {
+    const limbs = value.splice(0, 2);
+    const low192 = ocrt.valueToBigInt([limbs[0]]);
+    const high64 = ocrt.valueToBigInt([limbs[1]]);
+    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
       throw new CompactError('expected Secp256k1Base');
     }
     let res = high64 << 192n | low192;
@@ -320,8 +276,7 @@ export const CompactTypeSecp256k1Base: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
-    const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 192n) -1n))
+    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
       .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
@@ -340,12 +295,13 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
   },
 
   fromValue(value: ocrt.Value): bigint {
-    if (value.length != 2 || value[0] == undefined || value[1] == undefined) {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
       throw new CompactError('expected Secp256k1Scalar');
     }
-    const low192 = ocrt.valueToBigInt([value[0]]);
-    const high64 = ocrt.valueToBigInt([value[1]]);
-    if (low192 > (1n << 192n) - 1n) {
+    const limbs = value.splice(0, 2);
+    const low192 = ocrt.valueToBigInt([limbs[0]]);
+    const high64 = ocrt.valueToBigInt([limbs[1]]);
+    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
       throw new CompactError('expected Secp256k1Scalar');
     }
     let res = high64 << 192n | low192;
@@ -363,8 +319,7 @@ export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
     }
     // The ZKIR representation subtracts 1 from the value.
     value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
-    const mask = (1n << 192n) - 1n;
-    return ocrt.bigIntToValue(value & mask)
+    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
       .concat(ocrt.bigIntToValue(value >> 192n));
   },
 };
@@ -395,13 +350,16 @@ export class CompactTypeEnum implements CompactType<number> {
         res += (1 << (8 * i)) * val[i];
       }
       if (res > this.maxValue) {
-        throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+        throw new CompactError(`expected Enum[<=${this.maxValue}]`);
       }
       return res;
     }
   }
 
   toValue(value: number): ocrt.Value {
+    if (!Number.isInteger(value) || value < 0 || value > this.maxValue) {
+      throw new CompactError(`expected Enum[<=${this.maxValue}]`);
+    }
     return CompactTypeField.toValue(BigInt(value));
   }
 }
@@ -439,6 +397,9 @@ export class CompactTypeUnsignedInteger implements CompactType<bigint> {
   }
 
   toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > this.maxValue) {
+      throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+    }
     return CompactTypeField.toValue(value);
   }
 }
@@ -526,15 +487,17 @@ export class CompactTypeBytes implements CompactType<Uint8Array> {
     if (val == undefined || val.length > this.length) {
       throw new CompactError(`expected Bytes[${this.length}]`);
     }
-    if (val.length == this.length) {
-      return val;
-    }
+    // The atom belongs to the value we were handed, so copy it.
+    // Otherwise, mutating the decoded bytes mutates what they came from.
     const res = new Uint8Array(this.length);
     res.set(val, 0);
     return res;
   }
 
   toValue(value: Uint8Array): ocrt.Value {
+    if (value.length > this.length) {
+      throw new CompactError(`expected Bytes[${this.length}]`);
+    }
     let end = value.length;
     while (end > 0 && value[end - 1] == 0) {
       end -= 1;
@@ -551,7 +514,11 @@ export const CompactTypeOpaqueUint8Array: CompactType<Uint8Array> = {
     return [{ tag: 'atom', value: { tag: 'compress' } }];
   },
   fromValue(value: ocrt.Value): Uint8Array {
-    return value.shift() as Uint8Array;
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError("expected Opaque<'Uint8Array'>");
+    }
+    return val;
   },
   toValue(value: Uint8Array): ocrt.Value {
     return [value];
@@ -566,85 +533,14 @@ export const CompactTypeOpaqueString: CompactType<string> = {
     return [{ tag: 'atom', value: { tag: 'compress' } }];
   },
   fromValue(value: ocrt.Value): string {
-    return new TextDecoder('utf-8').decode(value.shift());
+    const val = value.shift();
+    if (val == undefined) {
+      throw new CompactError("expected Opaque<'string'>");
+    }
+    return new TextDecoder('utf-8').decode(val);
   },
   toValue(value: string): ocrt.Value {
     return [new TextEncoder().encode(value)];
-  },
-};
-
-/**
- * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
- * consumption.
- */
-
-export const Bytes32Descriptor = new CompactTypeBytes(32);
-
-export const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
-
-export const ShieldedCoinInfoDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
-  },
-  fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
-    return {
-      nonce: Bytes32Descriptor.fromValue(value),
-      color: Bytes32Descriptor.fromValue(value),
-      value: MaxUint8Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.nonce).concat(
-      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
-    );
-  },
-};
-
-export const ZswapCoinPublicKeyDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
-  },
-  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
-    return {
-      bytes: Bytes32Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
-  },
-};
-
-export const ContractAddressDescriptor = {
-  alignment(): ocrt.Alignment {
-    return Bytes32Descriptor.alignment();
-  },
-  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
-    return {
-      bytes: Bytes32Descriptor.fromValue(value),
-    };
-  },
-  toValue(value: { bytes: Uint8Array }): ocrt.Value {
-    return Bytes32Descriptor.toValue(value.bytes);
-  },
-};
-
-export const ShieldedCoinRecipientDescriptor = {
-  alignment(): ocrt.Alignment {
-    return CompactTypeBoolean.alignment().concat(
-      ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
-    );
-  },
-  fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
-    return {
-      is_left: CompactTypeBoolean.fromValue(value),
-      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
-      right: ContractAddressDescriptor.fromValue(value),
-    };
-  },
-  toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
-    return CompactTypeBoolean.toValue(value.is_left).concat(
-      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
-    );
   },
 };
 
@@ -656,7 +552,7 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
   const arrays = [];
   let length = 0;
   for (let i = 0; i < alignment.length; ++i) {
-    let segment = alignment[i];
+    const segment = alignment[i];
     if (segment.tag != 'atom') {
       // We are decoding our own FAB representation and we only use 'atom'.
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);

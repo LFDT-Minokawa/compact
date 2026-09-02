@@ -1,0 +1,35 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// A string literal denotes a Bytes value of its ASCII bytes. Single and double
+// quotes are equivalent, and the characters are taken literally rather than
+// interpreted (e.g. '0x00' is four characters, not the number zero).
+export circuit bytes_literal_string(): Bytes<8> {
+    const ascii: Bytes<8> = 'abcdefgh';
+    assert(ascii[0] == 97, "First character 'a' should be byte 97");
+    assert(ascii[7] == 104, "Last character 'h' should be byte 104");
+
+    const literal: Bytes<4> = '0x00';
+    assert(literal[0] == 48, "'0' should be byte 48");
+    assert(literal[1] == 120, "'x' should be byte 120, not interpreted as hex");
+
+    const doubleQuoted = "hi";
+    assert(doubleQuoted[0] == 104, "Double-quoted 'h' should be byte 104");
+    assert(doubleQuoted[1] == 105, "Double-quoted 'i' should be byte 105");
+
+    return ascii;
+}

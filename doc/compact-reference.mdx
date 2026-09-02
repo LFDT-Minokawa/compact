@@ -425,9 +425,6 @@ The following are the primitive types of Compact:
 | *type*  | &xrarr; | [*tref*](#primitive-types)                                                                |
 |         | \|      | `Boolean`                                                                                 |
 |         | \|      | `Field`                                                                                   |
-|         | \|      | `JubjubScalar`                                                                            |
-|         | \|      | `Secp256k1Base`                                                                           |
-|         | \|      | `Secp256k1Scalar`                                                                         |
 |         | \|      | `Uint` `<` [*tsize*](#primitive-types) `>`                                                |
 |         | \|      | `Uint` `<` [*tsize*](#primitive-types) `..` [*tsize*](#primitive-types) `>`               |
 |         | \|      | `Bytes` `<` [*tsize*](#primitive-types) `>`                                               |
@@ -458,8 +455,8 @@ The following are the primitive types of Compact:
   The current limit, if any, is given in
   [Implementation-specific limits](#implementation-specific-limits).
 
-- `Uint<`*n*`>`, where *n* is a non-zero natural number literal or generic natural-number
-  parameter bound to a non-zero natural number, is the type of
+- `Uint<`*n*`>`, where *n* is a natural number literal or generic natural-number
+  parameter, is the type of
   *sized unsigned integer* values with binary representations using up to *n*
   bits.  This is the same type as `Uint<0..`*m*`>` where *m* is equal to 2<sup>*n*</sup>.
   Sized integer types can be seen as a convenience for programmers.  `Uint<32>`,
@@ -501,8 +498,12 @@ The following are the primitive types of Compact:
 - `Opaque<`*s*`>`, where *s* is a string literal, is the type of _opaque_ values
   with tag *s*.
   `Opaque` types with different tags are different types.
-  Opaque values can be manipulated in witnesses but they are opaque to circuits.
-  They are represented in circuits as their hash.
+  Opaque values can be manipulated in witnesses and stored in the ledger,
+  but they are opaque to Compact.
+  They are represented in TypeScript as values whose type is the tag.
+  They are represented in cryptographic circuits as a hash of their value.
+  In the ledger, they are represented as a binary enocoding (not a hash)
+  of the underlying value.
   The only tags currently allowed are `"string"` and `"Uint8Array"`.
 
 ### Program-defined types
@@ -2539,8 +2540,12 @@ has a specific structure type, so does the other.
   the values are equal if the values of the corresponding fields are equal.
 - **Enumeration types:**
   the values are equal if they are the same enumeration member.
-- **`Opaque` types:**
+- **`Opaque<"string">`:**
   the values are equal if the run-time values are equal according to JavaScript's
+  strict equality (`===`) operator.
+- **`Opaque<"Uint8Array">`:**
+  the values are equal if the run-time values have the same length and
+  they are element-wise equal according to JavaScript's
   strict equality (`===`) operator.
 
 Otherwise the values are not equal.
@@ -3456,8 +3461,8 @@ export circuit deserializeShieldedSpend(x: Bytes<32>): ShieldedSpend {
 ```
 
 The emitted item is appended, in order of evaluation, to the events list of
-the enclosing exported circuit's return value, where it can be read
-from TypeScript via the `events` field of `CircuitResults` (see
+the enclosing exported circuit's context, where it can be read
+from TypeScript via the `events` field of `CircuitContext` (see
 [Interacting with Compact from TypeScript](#interacting-with-compact-from-typescript)).
 
 ### Explicit disclosure

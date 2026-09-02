@@ -43,9 +43,6 @@ export circuit right<A, B>(value: B): Either<A, B> {
   return Either<A, B>{ is_left: false, left: default<A>, right: value };
 }
 
-// Elliptic Curves
-export new type JubjubPoint = Opaque<'JubjubPoint'>;
-
 // Merkle trees
 export struct MerkleTreeDigest { field: Field; }
 

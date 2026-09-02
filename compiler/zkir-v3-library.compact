@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export new type Secp256k1Point = Opaque<'Secp256k1Point'>;
-
 // ECDSA signature over Secp256k1.
 export struct Secp256k1EcdsaSignature {
   r: Secp256k1Scalar,
@@ -77,11 +75,21 @@ circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
 //   P  = u1*G + u2*pk
 //   valid iff P.x == r as 32-byte big-endian integers
 //
+// Both low-s and high-s signatures are accepted.  FIPS 186-5, the Digital Signature
+// Standard, constrains s only to the interval [1, n - 1] in section 6.4.2 (ECDSA
+// Signature Verification Algorithm) and imposes no low-s requirement; that rule
+// comes from EIP-2 and BIP-62, not from the DSS.
+//   https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.186-5.pdf
+// Verification compares only P.x against r, and negating s negates P, so `(r, s)`
+// and `(r, n - s)` both verify against the same public key.  A caller that uses a
+// signature as a unique identifier MUST therefore constrain `s <= n / 2` itself.
+//
 // Note: To recover the address behind a signature (as recoverSigner / ecrecover do
 // in [EIP-1271](https://eips.ethereum.org/EIPS/eip-1271)) first recover the public
-// key off-circuit (e.g. with noble's Signature.recoverPublicKey), verify the 
-// signature using that public key, and then compute the address with compact 
-// function secp256k1EthereumAddress.
+// key off-circuit with the Compact runtime's `secp256k1EcdsaRecover(msgHash, sig,
+// recoveryId)`, pass it in as a witness or circuit argument, verify the signature
+// against it here, and then compute the address with compact function
+// secp256k1EthereumAddress.
 export circuit secp256k1EcdsaVerify(
                  msgHash: Bytes<32>,
                  sig: Secp256k1EcdsaSignature,
@@ -90,8 +98,8 @@ export circuit secp256k1EcdsaVerify(
   const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
-  const u1: Secp256k1Scalar = mul(z, w);
-  const u2: Secp256k1Scalar = mul(r, w);
+  const u1: Secp256k1Scalar = z * w;
+  const u2: Secp256k1Scalar = r * w;
   const point: Secp256k1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
   return (secp256k1PointX(point) as Bytes<32>) as Secp256k1Scalar == r;
 }
