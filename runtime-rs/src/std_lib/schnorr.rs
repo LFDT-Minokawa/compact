@@ -49,8 +49,8 @@ use midnight_transient_crypto::curve::{EmbeddedFr, Fr};
 use midnight_transient_crypto::hash::transient_hash;
 
 use crate::{
-    query_for_verify, CircuitContext, CircuitResults, CompactError, DefaultDB, JubjubPoint,
-    OpProgramVerify,
+    query_for_verify, CircuitContext, CircuitResults, CompactError, DefaultDB, EmbeddedGroupAffine,
+    JubjubPoint, OpProgramVerify,
 };
 
 /// A Schnorr signature over the embedded curve. Layout matches the
@@ -167,12 +167,21 @@ fn truncate_challenge(c_full: Fr) -> EmbeddedFr {
 /// `response: Fr` because Compact declares that field `Field`, while
 /// upstream's carries `response: EmbeddedFr`. The reduction between them
 /// is exactly `fr_to_embedded_fr`, applied here at the boundary.
+///
+/// A `pk` or `announcement` that is not a point in the prime-order subgroup
+/// yields `false` rather than reaching upstream. Both arrive as Compact
+/// `JubjubPoint`s — coordinate pairs, typically straight off the ledger — and
+/// converting one with `EmbeddedGroupAffine::new` would panic rather than
+/// fail. There is no signature to accept in that case anyway.
 pub fn verify(pk: JubjubPoint, msg: &[Fr], sig: &SchnorrSignature) -> bool {
+    let (Some(pk), Some(announcement)) = (pk.to_group(), sig.announcement.to_group()) else {
+        return false;
+    };
     midnight_transient_crypto::schnorr::verify(
         pk,
         msg,
         &midnight_transient_crypto::schnorr::SchnorrSignature {
-            announcement: sig.announcement,
+            announcement,
             response: fr_to_embedded_fr(sig.response),
         },
     )
@@ -204,23 +213,31 @@ pub struct JubjubSchnorrSignature {
 /// - `response as JubjubScalar` — same reduction;
 /// - valid iff `s·G == R + c·pk`.
 ///
-/// Identity points contribute zero coordinates to the hash (the
-/// `jubjubPointX`/`jubjubPointY` semantics), with no up-front identity
-/// rejection — exactly like the stdlib circuit.
+/// The identity contributes its own coordinates `(0, 1)` to the hash, with no
+/// up-front identity rejection — exactly like the stdlib circuit. A point
+/// outside the prime-order subgroup yields `false`: the group arithmetic
+/// below is undefined for it, and the circuit's own `ecMul` cannot be
+/// satisfied by one either.
 pub fn jubjub_schnorr_verify<const N: usize>(
     msg: [Fr; N],
     signature: JubjubSchnorrSignature,
     pk: JubjubPoint,
 ) -> bool {
-    let ann_x = signature.announcement.x().unwrap_or_else(|| Fr::from(0u64));
-    let ann_y = signature.announcement.y().unwrap_or_else(|| Fr::from(0u64));
-    let pk_x = pk.x().unwrap_or_else(|| Fr::from(0u64));
-    let pk_y = pk.y().unwrap_or_else(|| Fr::from(0u64));
+    let (Some(announcement), Some(pk_group)) = (signature.announcement.to_group(), pk.to_group())
+    else {
+        return false;
+    };
 
-    let c = fr_to_embedded_fr(challenge_hash(ann_x, ann_y, pk_x, pk_y, &msg));
+    let c = fr_to_embedded_fr(challenge_hash(
+        signature.announcement.x,
+        signature.announcement.y,
+        pk.x,
+        pk.y,
+        &msg,
+    ));
 
-    let lhs = JubjubPoint::generator() * fr_to_embedded_fr(signature.response);
-    let rhs = signature.announcement + pk * c;
+    let lhs = EmbeddedGroupAffine::generator() * fr_to_embedded_fr(signature.response);
+    let rhs = announcement + pk_group * c;
     lhs == rhs
 }
 
@@ -254,18 +271,24 @@ pub fn verify_truncated_challenge(pk: JubjubPoint, msg: &[Fr], sig: &SchnorrSign
     if pk.is_identity() || sig.announcement.is_identity() {
         return false;
     }
-    // Safe to unwrap-free: neither point is the identity, so both have
-    // coordinates. The `unwrap_or` mirrors `jubjubPointX`/`jubjubPointY`,
-    // which yield 0 for the identity.
-    let ann_x = sig.announcement.x().unwrap_or_else(|| Fr::from(0u64));
-    let ann_y = sig.announcement.y().unwrap_or_else(|| Fr::from(0u64));
-    let pk_x = pk.x().unwrap_or_else(|| Fr::from(0u64));
-    let pk_y = pk.y().unwrap_or_else(|| Fr::from(0u64));
+    // A key or announcement outside the prime-order subgroup is refused here
+    // rather than converted. Both are Compact `JubjubPoint`s — coordinate
+    // pairs an attacker can put in a ledger cell — and the group arithmetic
+    // below is undefined for one, so there is nothing to accept.
+    let (Some(pk_group), Some(announcement)) = (pk.to_group(), sig.announcement.to_group()) else {
+        return false;
+    };
 
-    let c = truncate_challenge(challenge_hash(ann_x, ann_y, pk_x, pk_y, msg));
+    let c = truncate_challenge(challenge_hash(
+        sig.announcement.x,
+        sig.announcement.y,
+        pk.x,
+        pk.y,
+        msg,
+    ));
 
-    let lhs = JubjubPoint::generator() * fr_to_embedded_fr(sig.response);
-    let rhs = sig.announcement + pk * c;
+    let lhs = EmbeddedGroupAffine::generator() * fr_to_embedded_fr(sig.response);
+    let rhs = announcement + pk_group * c;
     lhs == rhs
 }
 
@@ -327,7 +350,7 @@ mod tests {
     /// satisfies by construction, for any message, with no secret key.
     fn forgery_against_identity() -> (SchnorrSignature, [Fr; 2]) {
         let response = Fr::from(12345u64);
-        let announcement = JubjubPoint::generator() * jubjub_scalar_from_field(response);
+        let announcement = crate::std_lib::ec_mul_generator(jubjub_scalar_from_field(response));
         (
             SchnorrSignature {
                 announcement,
@@ -360,7 +383,7 @@ mod tests {
             announcement: JubjubPoint::identity(),
             response: Fr::from(1u64),
         };
-        let pk = JubjubPoint::generator() * jubjub_scalar_from_field(Fr::from(99u64));
+        let pk = crate::std_lib::ec_mul_generator(jubjub_scalar_from_field(Fr::from(99u64)));
         assert!(!verify(pk, &[Fr::from(1u64)], &sig));
     }
 
@@ -426,13 +449,13 @@ mod tests {
         nonce: EmbeddedFr,
         msg: &[Fr],
     ) -> (JubjubPoint, SchnorrSignature) {
-        let pk = JubjubPoint::generator() * sk;
-        let announcement = JubjubPoint::generator() * nonce;
+        let pk = crate::std_lib::ec_mul_generator(sk);
+        let announcement = crate::std_lib::ec_mul_generator(nonce);
         let c = truncate_challenge(challenge_hash(
-            announcement.x().unwrap(),
-            announcement.y().unwrap(),
-            pk.x().unwrap(),
-            pk.y().unwrap(),
+            announcement.x,
+            announcement.y,
+            pk.x,
+            pk.y,
             msg,
         ));
         let response = widen(nonce + c * sk);
@@ -452,13 +475,13 @@ mod tests {
         nonce: EmbeddedFr,
         msg: &[Fr],
     ) -> (JubjubPoint, SchnorrSignature) {
-        let pk = JubjubPoint::generator() * sk;
-        let announcement = JubjubPoint::generator() * nonce;
+        let pk = crate::std_lib::ec_mul_generator(sk);
+        let announcement = crate::std_lib::ec_mul_generator(nonce);
         let c = fr_to_embedded_fr(challenge_hash(
-            announcement.x().unwrap(),
-            announcement.y().unwrap(),
-            pk.x().unwrap(),
-            pk.y().unwrap(),
+            announcement.x,
+            announcement.y,
+            pk.x,
+            pk.y,
             msg,
         ));
         let response = widen(nonce + c * sk);
@@ -534,7 +557,7 @@ mod tests {
         ));
 
         let (sk, _, msg) = keys();
-        let pk = JubjubPoint::generator() * sk;
+        let pk = crate::std_lib::ec_mul_generator(sk);
         let identity_ann = SchnorrSignature {
             announcement: JubjubPoint::identity(),
             response: Fr::from(1u64),

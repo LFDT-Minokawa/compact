@@ -107,17 +107,17 @@ table.
 
 ## Testing
 
-112 tests, unit and integration, run on Linux and macOS. Both platforms on
+139 tests, unit and integration, run on Linux and macOS. Both platforms on
 purpose: this crate's job is producing bytes a chain will agree with, and an
 endianness or alignment mistake would pass on one and fail on the other.
 
-Line coverage is **64%**, and the shortfall is deliberate rather than
-outstanding. The tests target the places where a mistake produces a *wrong
-answer* rather than a crash:
+The tests target the places where a mistake produces a *wrong answer* rather
+than a crash, and coverage is uneven by design rather than by neglect:
 
 | Area | Why it is tested the way it is |
 |---|---|
-| Curve operations | Asserted as algebraic laws — commutativity, `p + (-p) = O`, `ec_mul` agreeing with repeated addition — so a transcription error cannot pass by coincidence. |
+| TypeScript parity | `tests/typescript_parity.rs` asserts Rust results against the normative TypeScript rule, one test per place the two once disagreed. This class of bug — a wrapper written against a real upstream primitive with the right-sounding name, which turned out to be a different function — is invisible to any test that only reads the Rust side. |
+| Curve operations | Asserted as algebraic laws — commutativity, `p + (-p) = O`, `ec_mul` agreeing with repeated addition — so a transcription error cannot pass by coincidence. Separately, that `JubjubPoint::to_group` rejects every non-subgroup pair without panicking, since a `JubjubPoint` can come straight from a ledger cell. |
 | Field representation | Round-trips, plus the boundaries of the 31-byte packing, plus rejection of short slices. A truncated ledger value must not decode into a plausible array. |
 | Ledger-read decoders | Values, not just success. Every width at its extremes, because a width mistake shows up at `u64::MAX`, not at 7. |
 | Merkle path folding | The `goes_left` argument order asserted against hand-computed hashes. Inverting it yields a different root that still looks valid. |
@@ -129,7 +129,6 @@ leaving it:
 
 - **The op-program builder's fluent setters.** Each is `self.ops.push(Op::X{…}); self`. A test asserting that `.push()` pushes is a test of the test. What actually matters is whether an assembled op program matches what the chain expects — and that is verified end-to-end against TypeScript-generated reference state, in the byte-parity corpus that arrives with the compiler side of this work.
 - **Trivial constructors and accessors** in `context.rs`, `witness.rs`, `results.rs`.
-- **The circuit-shaped Schnorr wrapper**, which needs a `CircuitContext`. Its security property — that an identity public key is refused — *is* covered, directly, because that one is a real vulnerability rather than plumbing.
 - **`narrowing`'s `TryFrom` fallback**, documented as unreachable while the emitter picks the target width, and reported rather than unwrapped precisely so a future emitter change surfaces instead of panicking.
 
 ## Versioning

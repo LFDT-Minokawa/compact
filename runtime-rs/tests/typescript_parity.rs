@@ -44,9 +44,10 @@ use midnight_compact_runtime::*;
 fn hash_to_curve_hashes_the_field_aligned_representation() {
     let s = OpaqueString::from("review-probe");
 
-    let expected = transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(
+    let expected: JubjubPoint = transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(
         AlignedValue::from(s.clone()),
-    ));
+    ))
+    .into();
 
     assert_eq!(hash_to_curve(s), expected);
 }
@@ -63,7 +64,7 @@ fn the_field_repr_path_is_a_different_function_for_compress_aligned_types() {
     let s = OpaqueString::from("review-probe");
 
     let aligned = hash_to_curve(s.clone());
-    let via_field_repr = transient_crypto::hash::hash_to_curve(&s);
+    let via_field_repr: JubjubPoint = transient_crypto::hash::hash_to_curve(&s).into();
 
     assert_ne!(
         aligned, via_field_repr,
@@ -81,14 +82,14 @@ fn the_two_paths_agree_for_field_and_bytes_aligned_types() {
     let bytes = [7u8; 32];
     assert_eq!(
         hash_to_curve(bytes),
-        transient_crypto::hash::hash_to_curve(&bytes),
+        JubjubPoint::from(transient_crypto::hash::hash_to_curve(&bytes)),
         "Bytes<32>"
     );
 
     let f = Fr::from(123_456_789u64);
     assert_eq!(
         hash_to_curve(f),
-        transient_crypto::hash::hash_to_curve(&f),
+        JubjubPoint::from(transient_crypto::hash::hash_to_curve(&f)),
         "Field"
     );
 }
@@ -100,9 +101,10 @@ fn the_two_paths_agree_for_field_and_bytes_aligned_types() {
 #[test]
 fn hash_to_curve_handles_the_empty_opaque_string() {
     let empty = OpaqueString::from("");
-    let expected = transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(
+    let expected: JubjubPoint = transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(
         AlignedValue::from(empty.clone()),
-    ));
+    ))
+    .into();
     assert_eq!(hash_to_curve(empty), expected);
 }
 
@@ -114,10 +116,10 @@ fn hash_to_curve_handles_the_empty_opaque_string() {
 fn writing_an_out_of_range_bounded_uint_is_an_error_not_a_panic() {
     // Uint<0..70000> — 17 bits, so 3 bytes on state.
     let ok: StateValue<DefaultDB> =
-        new_cell_bounded_uint(70_000, 3).expect("70000 fits three bytes");
+        new_cell_bounded_uint(70_000, 3, 70_000).expect("70000 fits three bytes");
     assert!(matches!(ok, StateValue::Cell(_)));
 
-    let err = new_cell_bounded_uint::<DefaultDB>(1 << 25, 3)
+    let err = new_cell_bounded_uint::<DefaultDB>(1 << 25, 3, u32::MAX as u128)
         .expect_err("2^25 needs four bytes and must not be written as three");
     assert!(
         err.to_string()
@@ -126,14 +128,41 @@ fn writing_an_out_of_range_bounded_uint_is_an_error_not_a_panic() {
     );
 }
 
+/// The storage width is not the Compact domain. `Uint<0..100>` and
+/// `Uint<0..255>` are both one byte, but `200` is a value of only the
+/// second, and the normative `CompactTypeUnsignedInteger.toValue` rejects
+/// it:
+///
+/// ```ts
+/// if (value < 0n || value > this.maxValue) {
+///   throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+/// }
+/// ```
+///
+/// The writer used to take only the width, so it accepted `200` for a
+/// `Uint<0..100>` field — writing a cell that `decode_bounded_uint` would
+/// then refuse to read back.
+#[test]
+fn writing_a_value_above_the_declared_maximum_is_rejected() {
+    let err = new_cell_bounded_uint::<DefaultDB>(200, 1, 100)
+        .expect_err("200 is outside Uint<0..100> however many bytes it needs");
+    assert!(
+        err.to_string().contains("expected UnsignedInteger[<=100]"),
+        "message should name the declared bound, got: {err}"
+    );
+
+    // …and the same value at the same width is fine when the type admits it.
+    assert!(new_cell_bounded_uint::<DefaultDB>(200, 1, 255).is_ok());
+}
+
 /// The round trip the two halves owe each other: what
-/// `new_cell_bounded_uint` writes at a declared width,
+/// `new_cell_bounded_uint` writes at a declared width and bound,
 /// `decode_bounded_uint` reads back at the same width and bound.
 #[test]
 fn bounded_uints_round_trip_through_the_ledger_encoding() {
     for value in [0u128, 1, 255, 256, 70_000] {
         let sv: StateValue<DefaultDB> =
-            new_cell_bounded_uint(value, 3).expect("all fit three bytes");
+            new_cell_bounded_uint(value, 3, 70_000).expect("all fit Uint<0..70000>");
         let StateValue::Cell(ref cell) = sv else {
             panic!("new_cell_bounded_uint must build a Cell");
         };
@@ -141,5 +170,56 @@ fn bounded_uints_round_trip_through_the_ledger_encoding() {
             std_lib::decode_bounded_uint(cell, 3, 70_000).unwrap(),
             value
         );
+    }
+}
+
+/// The parity the second review asked for by name: `constructJubjubPoint(1, 1)`
+/// is a value in TypeScript, so it must be a value here.
+///
+/// ```ts
+/// // NOTE that it does not check that the coordinates represent a
+/// // valid point on the Jubjub curve.
+/// export function constructJubjubPoint(x: bigint, y: bigint): JubjubPoint {
+///   return { x, y };
+/// }
+/// ```
+#[test]
+fn construct_jubjub_point_preserves_an_arbitrary_pair() {
+    let p = std_lib::construct_jubjub_point(Fr::from(1u64), Fr::from(1u64));
+    assert_eq!(std_lib::jubjub_point_x(p), Fr::from(1u64));
+    assert_eq!(std_lib::jubjub_point_y(p), Fr::from(1u64));
+}
+
+/// The same for the read path. `CompactTypeJubjubPoint.fromValue` reads two
+/// `field` atoms and returns them; a ledger cell holding an off-curve pair is
+/// readable in TypeScript and must be readable here.
+///
+/// The old implementation did worse than reject such a cell. Upstream's
+/// `EmbeddedGroupAffine::new` returns `None` only for a pair off the curve
+/// entirely; for one *on* the curve but outside the prime-order subgroup —
+/// `(1, 0)`, `(2, 3)` — it panics. Ledger state is untrusted input, so that
+/// was a reachable abort, not just a divergence.
+#[test]
+fn decoding_a_jubjub_point_preserves_arbitrary_coordinates() {
+    for (x, y) in [(0u64, 0u64), (1, 1), (1, 0), (2, 3)] {
+        let av: AlignedValue = (Fr::from(x), Fr::from(y)).into();
+        let p = std_lib::decode_jubjub_point(&av)
+            .unwrap_or_else(|e| panic!("({x}, {y}) must decode, got {e}"));
+        assert_eq!(std_lib::jubjub_point_x(p), Fr::from(x));
+        assert_eq!(std_lib::jubjub_point_y(p), Fr::from(y));
+    }
+}
+
+/// A `JubjubPoint` round-trips through the ledger encoding unchanged, on and
+/// off the curve alike.
+#[test]
+fn jubjub_points_round_trip_through_a_ledger_cell() {
+    for (x, y) in [(0u64, 1u64), (1, 1), (2, 3)] {
+        let p = std_lib::construct_jubjub_point(Fr::from(x), Fr::from(y));
+        let sv: StateValue<DefaultDB> = new_cell(p);
+        let StateValue::Cell(ref cell) = sv else {
+            panic!("new_cell must build a Cell");
+        };
+        assert_eq!(std_lib::decode_jubjub_point(cell).unwrap(), p);
     }
 }

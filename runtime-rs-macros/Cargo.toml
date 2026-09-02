@@ -24,6 +24,15 @@ repository    = "https://github.com/LFDT-Minokawa/compact"
 homepage      = "https://github.com/LFDT-Minokawa/compact"
 documentation = "https://docs.rs/midnight-compact-runtime-macros"
 readme        = "README.md"
+
+# Not publishable yet, for the same reason as `midnight-compact-runtime` and to
+# be lifted at the same time. Unlike the runtime, this crate has no
+# unpublishable dependency of its own, so without this line
+# `cargo publish -p midnight-compact-runtime-macros` succeeds on its own — it
+# would release half of a version-locked pair, which is precisely what this
+# crate's README tells users not to do. Drop this line together with the
+# runtime's.
+publish       = false
 keywords      = ["compact", "midnight", "macro", "proc-macro", "witnesses"]
 categories    = ["development-tools::procedural-macro-helpers", "cryptography::cryptocurrencies"]
 

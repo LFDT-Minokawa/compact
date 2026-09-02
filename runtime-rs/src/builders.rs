@@ -62,17 +62,42 @@ pub fn new_cell<D: DB, T: Into<AlignedValue>>(v: T) -> StateValue<D> {
 /// fields and call-site cell values where the byte-width diverges from
 /// the Rust integer width.
 ///
-/// Returns `Err(CompactError::AssertionFailed)` if `value` does not fit
-/// `byte_len` bytes. That is the encode-side twin of the bound
-/// [`crate::std_lib::decode_bounded_uint`] enforces on the way out, and it
-/// is a property of the value being written, not a bug in this crate — so
-/// it is reported rather than panicked. Generated writes already sit in a
-/// `Result`-returning body, so the caller propagates it with `?` the same
-/// way it propagates a failed assert.
+/// `max` is the **declared Compact bound**, and it is a separate constraint
+/// from `byte_len`: `Uint<0..100>` and `Uint<0..255>` are both one byte, but
+/// `200` is a value of only the second. Passing the width alone cannot tell
+/// them apart, so both are required.
+///
+/// Returns `Err(CompactError::AssertionFailed)` if `value` exceeds `max`, or
+/// if it does not fit `byte_len` bytes. This is the encode-side twin of
+/// [`crate::std_lib::decode_bounded_uint`], and it mirrors the normative
+/// `CompactTypeUnsignedInteger.toValue`, which rejects on the same bound:
+///
+/// ```ts
+/// if (value < 0n || value > this.maxValue) {
+///   throw new CompactError(`expected UnsignedInteger[<=${this.maxValue}]`);
+/// }
+/// ```
+///
+/// An out-of-domain value is a property of what is being written, not a bug
+/// in this crate, so it is reported rather than panicked. Generated writes
+/// already sit in a `Result`-returning body and propagate it with `?` the
+/// same way they propagate a failed assert.
+///
+/// This helper previously took only `byte_len` while its documentation
+/// claimed to be the twin of the read-side bound. It was not: it accepted
+/// `new_cell_bounded_uint(200, 1)` for a `Uint<0..100>` field, writing a
+/// cell that `decode_bounded_uint` would then refuse to read back — the
+/// encoder and decoder disagreeing about the same type.
 pub fn new_cell_bounded_uint<D: DB>(
     value: u128,
     byte_len: usize,
+    max: u128,
 ) -> Result<StateValue<D>, CompactError> {
+    if value > max {
+        return Err(CompactError::AssertionFailed(format!(
+            "expected UnsignedInteger[<={max}], got {value}"
+        )));
+    }
     let atom = ValueAtom::from(value);
     let alignment = Alignment::singleton(AlignmentAtom::Bytes {
         length: byte_len as u32,

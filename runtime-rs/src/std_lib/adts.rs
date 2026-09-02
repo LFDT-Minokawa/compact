@@ -481,15 +481,23 @@ pub fn decode_via_field_repr<T: FromFieldRepr>(av: &AlignedValue) -> Result<T, C
     })
 }
 
-/// Decode a `JubjubPoint` from a ledger `AlignedValue`.
+/// Decode a `JubjubPoint` from a ledger `AlignedValue`: two `field` atoms
+/// read back as the coordinate pair they are.
 ///
-/// `JubjubPoint` (`EmbeddedGroupAffine`) has no `FromFieldRepr` impl —
-/// orphan rules forbid one downstream — so it cannot go through
-/// `decode_via_field_repr`. This mirrors that decoder (AlignedValue atoms
-/// → `Fr` slice) but reconstructs the point via the orphan-safe
-/// `jubjub_point_from_field_repr` helper. Used by the codegen for
-/// JubjubPoint-typed ledger reads (e.g. did.compact 0.5.0's
-/// `controllerPublicKey` / `recoveryAuthorityPublicKey`).
+/// Curve membership is **not** checked, matching
+/// `CompactTypeJubjubPoint.fromValue`, which reads the two atoms and returns
+/// `{ x, y }`. A cell can hold any two field elements — Compact's
+/// `constructJubjubPoint` performs no check, and neither does the circuit —
+/// so refusing to read one back would make state written by the TypeScript
+/// runtime unreadable here.
+///
+/// This used to reconstruct a validated subgroup element, which failed for an
+/// off-curve pair and, for a point on the curve but outside the prime-order
+/// subgroup, *panicked* inside upstream's `into_subgroup`. Ledger state is
+/// untrusted input; it must not be able to abort the process.
+///
+/// Used by the codegen for JubjubPoint-typed ledger reads (e.g. did.compact
+/// 0.5.0's `controllerPublicKey` / `recoveryAuthorityPublicKey`).
 pub fn decode_jubjub_point(av: &AlignedValue) -> Result<JubjubPoint, CompactError> {
     let mut frs: Vec<Fr> = Vec::with_capacity(av.value.0.len());
     for (i, atom) in av.value.0.iter().enumerate() {
@@ -499,9 +507,10 @@ pub fn decode_jubjub_point(av: &AlignedValue) -> Result<JubjubPoint, CompactErro
         frs.push(fr);
     }
     jubjub_point_from_field_repr(&frs).ok_or_else(|| {
-        CompactError::AssertionFailed(
-            "decode_jubjub_point: jubjub_point_from_field_repr returned None".into(),
-        )
+        CompactError::AssertionFailed(format!(
+            "decode_jubjub_point: expected 2 field atoms, got {}",
+            frs.len()
+        ))
     })
 }
 

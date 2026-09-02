@@ -137,14 +137,21 @@ pub use midnight_base_crypto::fab::{
 
 // Field arithmetic + proof-system primitives.
 pub use midnight_base_crypto::repr::{BinaryHashRepr, MemWrite};
-pub use midnight_transient_crypto::curve::{
-    EmbeddedFr as JubjubScalar, EmbeddedGroupAffine as JubjubPoint, Fr,
-};
+pub use midnight_transient_crypto::curve::{EmbeddedFr as JubjubScalar, Fr};
+
+// `EmbeddedGroupAffine` is upstream's *validated* curve point: a member of the
+// embedded curve's prime-order subgroup. Compact's `JubjubPoint` is a bare
+// coordinate pair and is a wider type, so it is this crate's own — see
+// [`std_lib::JubjubPoint`]. The upstream type is re-exported under its own
+// name for code that wants the guarantee; convert with
+// `JubjubPoint::to_group`.
+pub use midnight_transient_crypto::curve::EmbeddedGroupAffine;
 pub use midnight_transient_crypto::fab::ValueReprAlignedValue;
 pub use midnight_transient_crypto::merkle_tree::{
     leaf_hash, MerklePath, MerklePathEntry, MerkleTreeDigest,
 };
 pub use midnight_transient_crypto::repr::{FieldRepr, FromFieldRepr};
+pub use std_lib::JubjubPoint;
 
 // Cost / gas.
 pub use midnight_base_crypto::cost_model::RunningCost;
@@ -255,7 +262,7 @@ pub use midnight_transient_crypto::hash::{transient_commit, transient_hash};
 /// already use.
 #[inline]
 pub fn hash_to_curve<T: Into<AlignedValue>>(value: T) -> JubjubPoint {
-    midnight_transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(value.into()))
+    midnight_transient_crypto::hash::hash_to_curve(&ValueReprAlignedValue(value.into())).into()
 }
 
 // Zswap local state.

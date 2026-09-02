@@ -92,8 +92,23 @@ midnight-zswap            = { workspace = true }
 midnight-serialize        = { workspace = true }
 midnight-storage          = { workspace = true }
 # `version = "=0.19.100"` is required for `cargo publish` to accept this
-# manifest — crates.io rejects path-only dependencies. The `=` pin keeps
-# the two crates lock-stepped: bumping `midnight-compact-runtime` to 0.18.108 must
-# also bump `midnight-compact-runtime-macros` to 0.18.108. See
-# docs/superpowers/notes/2026-06-02-crates-io-publication-plan.md.
+# manifest — crates.io rejects path-only dependencies. The `=` pin keeps the
+# two crates lock-stepped: any bump here must bump
+# `midnight-compact-runtime-macros` to the identical version in the same
+# commit. Both carry `publish = false` until the ledger-9 dependencies reach
+# crates.io, so neither can be released alone in the meantime.
 midnight-compact-runtime-macros    = { path = "../runtime-rs-macros", version = "=0.19.100" }
+
+# For exactly one thing: the `CircuitCurve` trait, whose `try_into_subgroup`
+# is the only non-panicking way to validate a coordinate pair as an embedded
+# curve point. `EmbeddedGroupAffine::new` returns `None` for a pair off the
+# curve but *panics* for one on the curve and outside the prime-order
+# subgroup, and a Compact `JubjubPoint` can hold either — see
+# `std_lib::JubjubPoint::to_group`.
+#
+# Not a new crate in the build: `midnight-transient-crypto 3.0.0` already
+# depends on this exact version, so the direct dependency unifies with the
+# existing resolution and adds a single line to Cargo.lock. The caret range
+# keeps it following transient-crypto within the major rather than pinning a
+# patch that could split into two copies.
+midnight-circuits = "7.2"

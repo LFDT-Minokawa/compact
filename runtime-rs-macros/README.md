@@ -21,22 +21,34 @@ what `midnight-compact-runtime` re-exports.
 
 | Macro | Purpose |
 |---|---|
-| `witnesses!` | Synthesises the `Witnesses<PS>` trait impl boilerplate for a hand-written witness module. Generated `compactc --rust` output references the trait directly; users implementing witnesses can use this macro to skip the per-method boilerplate. |
+| `#[witnesses(...)]` | Attribute macro. Synthesises the `Witnesses<PS>` trait impl boilerplate for a hand-written witness module. Generated `compactc --rust` output references the trait directly; users implementing witnesses can apply this attribute to skip the per-method boilerplate. |
+
+Applied to a module, naming the trait and the private-state type:
+
+```rust
+use midnight_compact_runtime_macros::witnesses;
+
+#[witnesses(MyWitnesses, PS = MyState)]
+mod my_witnesses {
+    // one free function per witness
+}
+```
 
 ## Versioning
 
-`midnight-compact-runtime-macros`'s version is lock-stepped to `midnight-compact-runtime`
-via an exact-version pin (`midnight-compact-runtime-macros = { version =
-"=0.16.100" }` in `midnight-compact-runtime`'s manifest). Bump them together; do
-not publish one without the other.
+`midnight-compact-runtime-macros`'s version is lock-stepped to
+`midnight-compact-runtime` via an exact-version pin
+(`midnight-compact-runtime-macros = { version = "=0.19.100" }` in
+`midnight-compact-runtime`'s manifest). Bump them together in the same commit.
 
-See the [crates.io publication
-plan](../docs/superpowers/notes/2026-06-02-crates-io-publication-plan.md)
-for the release procedure.
+Neither crate is published yet: both carry `publish = false`, because the
+midnight-ledger crates the runtime is built on are not on crates.io for the
+ledger-9 line. Lift both guards in the same commit that lifts the runtime's
+`[patch.crates-io]` section.
 
 ## Related
 
-- [`midnight-compact-runtime`](https://docs.rs/midnight-compact-runtime) — the runtime
-  crate that re-exports these macros.
+- `midnight-compact-runtime` — the runtime crate that re-exports these macros
+  (`../runtime-rs`).
 - [`compactc`](https://github.com/LFDT-Minokawa/compact) — the Compact
   compiler that emits Rust code consuming this runtime.

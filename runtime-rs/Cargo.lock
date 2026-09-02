@@ -1549,6 +1549,7 @@ name = "midnight-compact-runtime"
 version = "0.19.100"
 dependencies = [
  "midnight-base-crypto",
+ "midnight-circuits 7.2.4",
  "midnight-coin-structure",
  "midnight-compact-runtime-macros",
  "midnight-onchain-runtime",

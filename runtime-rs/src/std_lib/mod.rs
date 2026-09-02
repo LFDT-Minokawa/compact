@@ -51,10 +51,11 @@ pub use jubjub::{
     ec_mul,
     ec_mul_generator,
     ec_neg,
-    // R5a: orphan-safe repr helpers used by codegen for JubjubPoint-typed
-    // struct fields. Re-exported into `midnight_compact_runtime::std_lib::` so
-    // generated code can avoid `<JubjubPoint as FromFieldRepr>::*`
-    // syntax (which the orphan rule forbids us from impl'ing).
+    // Repr helpers used by codegen for JubjubPoint-typed struct fields. These
+    // existed because the orphan rule forbade impl'ing upstream traits on
+    // upstream's `EmbeddedGroupAffine`; now that `JubjubPoint` is our own type
+    // the trait impls are the real implementation and these delegate to them.
+    // Kept as the call shape generated code already uses.
     jubjub_point_binary_len,
     jubjub_point_binary_repr,
     jubjub_point_field_repr,
@@ -64,6 +65,7 @@ pub use jubjub::{
     jubjub_point_y,
     jubjub_scalar_from_field,
     upgrade_from_transient,
+    JubjubPoint,
     JUBJUB_POINT_BINARY_LEN,
     JUBJUB_POINT_FIELD_SIZE,
 };
