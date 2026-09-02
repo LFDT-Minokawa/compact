@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const fs = require('fs');
-const path = require('node:path');
-const {
+import fs from 'node:fs';
+import path from 'node:path';
+import {
     pickRandomNode,
     pickRandomVersion,
     pickRandomString,
@@ -24,11 +24,24 @@ const {
     randomMixedTable,
     generateNestedFor,
     generateNestedIf,
-    generateModules, generateLargeEnum,
-} = require('./generators.cjs');
+    generateModules,
+    generateLargeEnum,
+} from './generators';
+import { Grammar } from '../grammar/types';
+import { FuzzerConfig } from './config';
 
-class Fuzzer {
-    constructor(config) {
+export class Fuzzer {
+    private readonly startNode: string;
+    private readonly grammar: Grammar;
+    private readonly outputName: string;
+    private readonly contractAmount: number;
+    private readonly outputDir: string;
+    private readonly numberPower: number;
+    private readonly stringLength: number;
+    private readonly tableLength: number;
+    private readonly MAX_DEPTH = 100;
+
+    constructor(config: FuzzerConfig) {
         this.startNode = config.startNode;
         this.grammar = config.grammar;
         this.outputName = config.outputName;
@@ -37,21 +50,26 @@ class Fuzzer {
         this.numberPower = config.numberPower;
         this.stringLength = config.stringLength;
         this.tableLength = config.tableLength;
-        this.MAX_DEPTH = 100;
     }
 
-    #generate(node, depth = 0) {
+    #generate(node: string, depth = 0): string {
         if (depth > this.MAX_DEPTH) return '';
 
         if (!this.grammar[node]) {
             // TODO: how to configure that ?
             if (node === 'random_version') return pickRandomVersion();
-            if (node === 'random_string') return pickRandomString('random', { length: this.stringLength, exactLength: false });
-            if (node === 'random_number') return pickRandomNumber('random', { bigIntSize: this.numberPower });
-            if (node === 'very_small_random_number') return pickRandomNumber('ubigint', { bigIntSize: 10 }); // guarantee to get a number <= 2^10
-            if (node === 'small_random_number') return pickRandomNumber('random', { bigIntSize: 16 });
+            if (node === 'random_string') {
+                return pickRandomString('random', { length: this.stringLength, exactLength: false });
+            }
+            if (node === 'random_number') {
+                return String(pickRandomNumber('random', { bigIntSize: this.numberPower }));
+            }
+            if (node === 'very_small_random_number') return String(pickRandomNumber('ubigint', { bigIntSize: 10 })); // guarantee to get a number <= 2^10
+            if (node === 'small_random_number') {
+                return String(pickRandomNumber('random', { bigIntSize: 16 }));
+            }
             if (node === 'random_table') return pickRandomTable(this.tableLength);
-            if (node === 'random_mixed_table') return randomMixedTable(this.tableLength);
+            if (node === 'random_mixed_table') return String(randomMixedTable(this.tableLength));
             if (node === 'generate_nested_for') return generateNestedFor(8);
             if (node === 'generate_nested_if') return generateNestedIf(1000);
             if (node === 'generate_modules') return generateModules(10000);
@@ -59,21 +77,24 @@ class Fuzzer {
             return node;
         }
 
+        const alternatives = this.grammar[node];
+
         // handle terminal nodes differently, do not run recursion there
         const terminal_nodes = ['javascript_keywords', 'compact_keywords', 'other_keywords'];
         if (terminal_nodes.includes(node)) {
-            return pickRandomNode(this.grammar[node]);
+            return String(pickRandomNode(alternatives));
         }
 
-        const selected = pickRandomNode(this.grammar[node]);
+        const selected = pickRandomNode(alternatives);
+        if (!Array.isArray(selected)) return selected;
         return selected.map((subNode) => this.#generate(subNode, depth + 1)).join('');
     }
 
-    generate(node = this.startNode) {
+    generate(node: string = this.startNode): string {
         return this.#generate(node);
     }
 
-    saveContracts() {
+    saveContracts(): string[] {
         if (!fs.existsSync(this.outputDir)) {
             fs.mkdirSync(this.outputDir);
 
@@ -91,5 +112,3 @@ class Fuzzer {
         return fs.readdirSync(this.outputDir);
     }
 }
-
-module.exports = Fuzzer;

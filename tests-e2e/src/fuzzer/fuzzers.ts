@@ -13,25 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const fs = require('fs');
+import { ENTRY_POINTS, type FuzzerName } from './grammar';
+import { buildConfig } from './utils/config';
+import { Fuzzer } from './utils/fuzzer';
 
-function extractErrorMessages(filePath) {
-
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    const regex = /parse error:([^\n]+)/g;
-
-    let errorMessages = new Set;
-    let match;
-
-    while ((match = regex.exec(fileContent)) !== null) {
-        errorMessages.add(match[1].trim());
+/**
+ * Generate contracts for every fuzzer.
+ *
+ * All fuzzers share one grammar table (grammar/compact.ts); a fuzzer is just an
+ * entry nonterminal into it.
+ */
+export function generate(outputDir: string, amount: number): void {
+    for (const name of Object.keys(ENTRY_POINTS) as FuzzerName[]) {
+        new Fuzzer(buildConfig(name, outputDir, amount)).saveContracts();
     }
-    return errorMessages;
 }
-
-const filePath = 'build_parse.txt';
-const errors = extractErrorMessages(filePath);
-
-console.log(errors);
-
-fs.writeFileSync('output.txt', Array.from(errors).join('\n'));

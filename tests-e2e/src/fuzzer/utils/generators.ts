@@ -13,6 +13,30 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/*
+ * Terminal generators: the parts of the output that are produced rather than
+ * derived from a production. Everything structural lives in grammar/compact.ts.
+ */
+
+import { Alternative, Production, Token } from '../grammar/types';
+
+export type StringPreset =
+    | 'normal' | 'digits' | 'symbols' | 'polish' | 'chinese' | 'japanese' | 'korean'
+    | 'thai' | 'arabic' | 'hebrew' | 'emoji' | 'zalgo' | 'deseret' | 'bytes';
+
+export type NumberKind =
+    | 'zero' | 'int' | 'uint' | 'hex' | 'binary' | 'octal' | 'float' | 'ufloat' | 'bigint' | 'ubigint';
+
+export interface StringOptions {
+    length?: number;
+    exactLength?: boolean;
+    weights?: Partial<Record<StringPreset, number>>;
+}
+
+export interface NumberOptions {
+    bigIntSize?: number;
+}
+
 const majorVersion = 5;
 const minorVersion = 10;
 const patchVersion = 20;
@@ -25,7 +49,7 @@ const polish = 'ąćęłńóśźżĄĆĘŁŃÓŚŹŻ';
  * Simple generator for proper version of language or compiler.
  * Generates data in form of: major.minor.patch version.
  */
-function pickRandomVersion() {
+export function pickRandomVersion(): string {
     const major = Math.floor(Math.random() * majorVersion);
     const minor = Math.floor(Math.random() * minorVersion);
     const patch = Math.floor(Math.random() * patchVersion);
@@ -50,11 +74,11 @@ function pickRandomVersion() {
  * - deseret - rare alphabets like gothic
  * - bytes - malformed bytes
  */
-function pickRandomString(type = 'random', options = {}) {
+export function pickRandomString(type: StringPreset | 'random' = 'random', options: StringOptions = {}): string {
     const maxLength = options.length || 10;
     const length = options.exactLength ? maxLength : Math.floor(Math.random() * (maxLength + 1));
 
-    const presets = {
+    const presets: Record<StringPreset, string> = {
         normal: alphabet,
         digits: alphabet + digits,
         symbols: alphabet + signs,
@@ -71,7 +95,7 @@ function pickRandomString(type = 'random', options = {}) {
         bytes: Array.from({ length: 128 }, (_, i) => String.fromCharCode(i)).join(''),
     };
 
-    const weights = {
+    const weights: Record<StringPreset, number> = {
         normal: 1000,
         digits: 1,
         symbols: 1,
@@ -89,7 +113,7 @@ function pickRandomString(type = 'random', options = {}) {
         ...options.weights,
     };
 
-    const activePresets = Object.entries(weights).filter(([_, w]) => w > 0);
+    const activePresets = (Object.entries(weights) as [StringPreset, number][]).filter(([, w]) => w > 0);
     const totalWeight = activePresets.reduce((sum, [_, w]) => sum + w, 0);
 
     const pickPreset = () => {
@@ -105,7 +129,7 @@ function pickRandomString(type = 'random', options = {}) {
     let result = '';
 
     for (let i = 0; i < length; i++) {
-        const preset = type === 'random' ? pickPreset() : type;
+        const preset: StringPreset = type === 'random' ? pickPreset() : type;
         const charset = presets[preset];
         const char = charset[Math.floor(Math.random() * charset.length)];
         result += char;
@@ -117,7 +141,7 @@ function pickRandomString(type = 'random', options = {}) {
 /*
  * Helper function to choose random type to return, based on weights we provide.
  */
-function pickWeightedRandomType(weightedTypes) {
+function pickWeightedRandomType(weightedTypes: { type: NumberKind; weight: number }[]): NumberKind {
     const totalWeight = weightedTypes.reduce((sum, entry) => sum + entry.weight, 0);
     const rand = Math.random() * totalWeight;
 
@@ -136,7 +160,7 @@ function pickWeightedRandomType(weightedTypes) {
 /*
  * Generator for bigint numbers, with sign switching
  */
-function generateBigInt(options, signed) {
+function generateBigInt(options: NumberOptions, signed: boolean): bigint {
     const bits = options.bigIntSize || 1024;
     const sign = signed ? -1n : 1n;
 
@@ -160,8 +184,8 @@ function generateBigInt(options, signed) {
  * - float: signed, unsigned
  * - bigint: signed, unsigned up to 2*1024.
  */
-function pickRandomNumber(type = 'random', options = {}) {
-    const weightTypes = [
+export function pickRandomNumber(type: NumberKind | 'random' = 'random', options: NumberOptions = {}): string | number | bigint {
+    const weightTypes: { type: NumberKind; weight: number }[] = [
         { type: 'zero', weight: 3 },
         { type: 'int', weight: 1 },
         { type: 'uint', weight: 50 },
@@ -207,8 +231,8 @@ function pickRandomNumber(type = 'random', options = {}) {
 /*
  * Function to generate table for - for loop vector representation.
  */
-function pickRandomTable(size = 100) {
-    const array = [];
+export function pickRandomTable(size = 100): string {
+    const array: string[] = [];
 
     for (let i = 1; i < Math.random() * size; i++) {
         array.push(`${i}`);
@@ -220,7 +244,7 @@ function pickRandomTable(size = 100) {
 /*
  * Function to generate table with mixed data.
  */
-function randomMixedTable(size = 10) {
+export function randomMixedTable(size = 10): (string | number | bigint | boolean | undefined)[] {
     return Array.from( {length: size }, () => {
        const choice = Math.floor(Math.random() * 4);
        const number = pickRandomNumber('random', { bigIntSize: 128 });
@@ -241,7 +265,7 @@ function randomMixedTable(size = 10) {
 /*
  * Function to generate nested for loops.
  */
-function generateNestedFor(depth = 3) {
+export function generateNestedFor(depth = 3): string {
     let result = '';
     for (let i = 0; i < depth; i++) {
         result += 'for(const bob of 1..10) {\n';
@@ -258,7 +282,7 @@ function generateNestedFor(depth = 3) {
 /*
  * Function to generate nested if statements.
  */
-function generateNestedIf(depth = 3) {
+export function generateNestedIf(depth = 3): string {
     let result = '';
     for (let i = 0; i < depth; i++) {
         result += 'if (true != false) {\n';
@@ -275,7 +299,7 @@ function generateNestedIf(depth = 3) {
 /*
  * Function to generate multiple module statements.
  */
-function generateModules(depth = 3) {
+export function generateModules(depth = 3): string {
     let result = '';
     for (let i = 0; i < depth; i++) {
         result += `module var_${i} {\n}\n`;
@@ -287,7 +311,7 @@ function generateModules(depth = 3) {
 /*
  * Function to generate multiple module statements.
  */
-function generateLargeEnum(depth = 3) {
+export function generateLargeEnum(depth = 3): string {
     let result = 'export enum bob {';
 
     for (let i = 0; i < depth; i++) {
@@ -301,19 +325,6 @@ function generateLargeEnum(depth = 3) {
 /*
  * Function to pick random node from existing grammar.
  */
-function pickRandomNode(node) {
+export function pickRandomNode(node: Production): Alternative | Token {
     return node[Math.floor(Math.random() * node.length)];
 }
-
-module.exports = {
-    pickRandomVersion,
-    pickRandomNumber,
-    pickRandomString,
-    pickRandomTable,
-    randomMixedTable,
-    pickRandomNode,
-    generateNestedFor,
-    generateNestedIf,
-    generateModules,
-    generateLargeEnum,
-};
