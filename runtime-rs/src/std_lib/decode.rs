@@ -39,6 +39,49 @@
 //! A Compact type's *domain* is not the same as its storage width, so the
 //! decoders that need the declared bound take it as an argument — see
 //! [`decode_bounded_uint`].
+//!
+//! # Two bug classes these signatures remove
+//!
+//! Both of the following were real defects in the TypeScript runtime, and both
+//! are properties of the decoding contract rather than of anyone's care.
+//!
+//! **An absent atom cannot be laundered into a present one.** The TypeScript
+//! decoder for `Opaque<"Uint8Array">` read `return value.shift() as Uint8Array;`
+//! — `shift()` yields `Uint8Array | undefined`, and the cast silenced exactly
+//! the case the type was warning about, so an exhausted input produced
+//! `undefined` typed as `Uint8Array`. The nearest Rust spelling does not
+//! compile, because no cast turns an `Option<T>` into a `T`:
+//!
+//! ```compile_fail
+//! use midnight_compact_runtime::{AlignedValue, ValueAtom};
+//!
+//! fn first_atom(av: &AlignedValue) -> &ValueAtom {
+//!     av.value.0.first() as &ValueAtom
+//! }
+//! ```
+//!
+//! The absence has to be handled, and the only way to skip handling it —
+//! `unwrap()` — is loud, greppable, and fails rather than inventing a value.
+//!
+//! **A nested decode cannot forget to advance.** Because TypeScript's
+//! `fromValue` consumes from a shared array, every decoder carries an
+//! obligation to consume exactly its own atoms. `CompactTypeSecp256k1Point`
+//! read its coordinates with `value.slice(0, 2)`, which copies rather than
+//! consumes — correct in isolation, and wrong the moment the point was nested
+//! in a larger Compact type, because the *next* field then re-read the point's
+//! atoms. Nothing in the signature said the obligation existed.
+//!
+//! Here there is no obligation to forget: decoders borrow, so position is not
+//! theirs to advance, and the one place that does walk a composite tracks it
+//! explicitly ([`super::decode_via_field_repr`]). Decoding twice is the same
+//! as decoding once:
+//!
+//! ```
+//! use midnight_compact_runtime::{std_lib::decode_fr, AlignedValue, Fr};
+//!
+//! let av: AlignedValue = Fr::from(42u64).into();
+//! assert_eq!(decode_fr(&av).unwrap(), decode_fr(&av).unwrap());
+//! ```
 
 use crate::{
     aligned_bytes, jubjub_point_from_field_repr, AlignedValue, CompactError, Fr, JubjubPoint,

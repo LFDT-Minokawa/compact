@@ -537,4 +537,70 @@ mod tests {
         let got = decode_jubjub_point(&cell_av(p)).expect("jubjub decode");
         assert_eq!(got, p);
     }
+
+    // ---- agreement with upstream's own expansion --------------------------
+
+    /// What upstream produces for the same aligned value, via
+    /// `ValueReprAlignedValue`'s `FieldRepr` impl — the expansion the chain
+    /// uses when hashing.
+    fn upstream_expansion(av: &AlignedValue) -> Vec<Fr> {
+        use midnight_transient_crypto::repr::FieldRepr as _;
+        let mut frs: Vec<Fr> = Vec::new();
+        crate::ValueReprAlignedValue(av.clone()).field_repr(&mut frs);
+        frs
+    }
+
+    /// The walk in this module is not an independent invention: for every
+    /// alignment it can invert, it must produce exactly what upstream's own
+    /// expansion produces. Asserting that turns a reimplementation into a
+    /// checked invariant — if upstream changes the packing, this fails here
+    /// rather than as a wrong ledger read.
+    #[test]
+    fn the_walk_agrees_with_upstream_on_every_invertible_alignment() {
+        fn same<T: Into<AlignedValue> + Clone + midnight_transient_crypto::repr::FieldRepr>(
+            v: T,
+            what: &str,
+        ) {
+            let mut ours: Vec<Fr> = Vec::new();
+            v.clone().field_repr(&mut ours);
+            assert_eq!(upstream_expansion(&cell_av(v)), ours, "{what}");
+        }
+
+        let mut bytes = [0u8; 32];
+        for (i, b) in bytes.iter_mut().enumerate() {
+            *b = (i as u8) + 1;
+        }
+        same(bytes, "Bytes<32> — one atom, two field elements");
+        same(Fr::from(123_456_789u64), "Field");
+        same(7u64, "Uint<64>");
+        same(true, "Boolean");
+    }
+
+    /// …and the one alignment where it deliberately does not agree.
+    ///
+    /// Upstream expands a `Compress` leaf as `transient_commit(bytes, len)` —
+    /// a one-way commitment, which is right for hashing and useless for
+    /// decoding, because nothing can invert it. This module packs the bytes
+    /// instead, so the value can be recovered. The divergence is the reason
+    /// the walk exists at all rather than delegating wholesale.
+    #[test]
+    fn the_walk_deliberately_differs_from_upstream_on_compress_leaves() {
+        use midnight_transient_crypto::repr::FieldRepr as _;
+
+        let s = OpaqueString::from("hello");
+        let mut ours: Vec<Fr> = Vec::new();
+        s.field_repr(&mut ours);
+
+        assert_ne!(
+            upstream_expansion(&cell_av(s.clone())),
+            ours,
+            "if these ever agree, upstream's Compress expansion has become \
+             invertible and this walk can delegate to it"
+        );
+        // …and ours is the one that round-trips.
+        assert_eq!(
+            decode_via_field_repr::<OpaqueString>(&cell_av(s.clone())).unwrap(),
+            s
+        );
+    }
 }
