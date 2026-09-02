@@ -30,6 +30,9 @@
 /// from contracts today. The routing is in place for when the codegen
 /// migrates to use this upstream-shaped path directly (or via a
 /// conversion shim).
+#[cfg(test)]
+use crate::Fr;
+
 pub fn merkle_tree_path_root<T>(
     path: midnight_transient_crypto::merkle_tree::MerklePath<T>,
 ) -> midnight_transient_crypto::merkle_tree::MerkleTreeDigest
@@ -76,5 +79,100 @@ pub fn default_merkle_path<T: Default>() -> midnight_transient_crypto::merkle_tr
     midnight_transient_crypto::merkle_tree::MerklePath {
         leaf: T::default(),
         path: Vec::new(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use midnight_base_crypto::hash::HashOutput;
+    use midnight_transient_crypto::hash::{degrade_to_transient, transient_hash};
+    use midnight_transient_crypto::merkle_tree::{MerklePath, MerklePathEntry};
+
+    fn entry(sibling: u64, goes_left: bool) -> MerklePathEntry {
+        MerklePathEntry {
+            sibling: midnight_transient_crypto::merkle_tree::MerkleTreeDigest(Fr::from(sibling)),
+            goes_left,
+        }
+    }
+
+    #[test]
+    fn default_path_is_empty_with_a_default_leaf() {
+        let p: MerklePath<[u8; 32]> = default_merkle_path();
+        assert_eq!(p.leaf, [0u8; 32]);
+        assert!(p.path.is_empty());
+    }
+
+    /// With no entries the fold never runs, so the root is just the degraded
+    /// leaf. This is the base case the rest of the fold builds on.
+    #[test]
+    fn an_empty_path_roots_to_the_degraded_leaf() {
+        let leaf = [3u8; 32];
+        let got = merkle_tree_path_root_no_leaf_hash(MerklePath { leaf, path: vec![] });
+        assert_eq!(got.0, degrade_to_transient(HashOutput(leaf)));
+    }
+
+    /// `goes_left` decides the argument order of the combiner, and getting it
+    /// backwards produces a different root that still looks entirely valid.
+    /// So this asserts the order explicitly, against a hand-computed hash,
+    /// rather than merely that the two differ.
+    #[test]
+    fn goes_left_selects_the_combiner_argument_order() {
+        let leaf = [1u8; 32];
+        let acc = degrade_to_transient(HashOutput(leaf));
+        let sib = Fr::from(99u64);
+
+        let left = merkle_tree_path_root_no_leaf_hash(MerklePath {
+            leaf,
+            path: vec![entry(99, true)],
+        });
+        assert_eq!(
+            left.0,
+            transient_hash(&[acc, sib]),
+            "goes_left => (acc, sibling)"
+        );
+
+        let right = merkle_tree_path_root_no_leaf_hash(MerklePath {
+            leaf,
+            path: vec![entry(99, false)],
+        });
+        assert_eq!(
+            right.0,
+            transient_hash(&[sib, acc]),
+            "!goes_left => (sibling, acc)"
+        );
+
+        assert_ne!(left.0, right.0, "the two orders must not collide");
+    }
+
+    /// Entries fold in sequence, each consuming the previous accumulator.
+    /// A fold that applied them in reverse would pass the single-entry test
+    /// above and fail here.
+    #[test]
+    fn entries_fold_in_order() {
+        let leaf = [2u8; 32];
+        let acc0 = degrade_to_transient(HashOutput(leaf));
+        let acc1 = transient_hash(&[acc0, Fr::from(10u64)]);
+        let expected = transient_hash(&[Fr::from(20u64), acc1]);
+
+        let got = merkle_tree_path_root_no_leaf_hash(MerklePath {
+            leaf,
+            path: vec![entry(10, true), entry(20, false)],
+        });
+        assert_eq!(got.0, expected);
+    }
+
+    /// The leaf-hashing variant must NOT agree with the no-leaf-hash one:
+    /// that difference is the entire reason this module hand-writes the fold
+    /// instead of delegating to upstream's `root()`.
+    #[test]
+    fn the_leaf_hashing_variant_differs_from_the_raw_one() {
+        let leaf = [4u8; 32];
+        let raw = merkle_tree_path_root_no_leaf_hash(MerklePath { leaf, path: vec![] });
+        let hashed = merkle_tree_path_root(MerklePath { leaf, path: vec![] });
+        assert_ne!(
+            raw.0, hashed.0,
+            "root() leaf-hashes; the no-leaf-hash variant degrades the leaf directly"
+        );
     }
 }

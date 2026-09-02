@@ -78,3 +78,94 @@ where
     }
     v.try_into().ok()
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// The packing is 31 bytes per `Fr`, because an `Fr` cannot hold a full
+    /// 32 bytes. Every size below is a boundary of that: exact multiples,
+    /// one past, and one short.
+    #[test]
+    fn bytes_field_size_counts_31_byte_chunks() {
+        assert_eq!(bytes_field_size(0), 0);
+        assert_eq!(bytes_field_size(1), 1);
+        assert_eq!(bytes_field_size(30), 1);
+        assert_eq!(bytes_field_size(31), 1, "exactly one full chunk");
+        assert_eq!(bytes_field_size(32), 2, "one past a chunk needs a stray");
+        assert_eq!(bytes_field_size(62), 2);
+        assert_eq!(bytes_field_size(63), 3);
+    }
+
+    /// A slice shorter than the declared size must be refused rather than
+    /// read past — this is the guard that keeps a truncated ledger value from
+    /// decoding into a plausible-looking array.
+    #[test]
+    fn a_short_slice_is_rejected() {
+        assert_eq!(bytes_from_field_repr::<32>(&[]), None);
+        assert_eq!(
+            bytes_from_field_repr::<32>(&[Fr::from(0u64)]),
+            None,
+            "32 bytes needs 2 Fr, not 1"
+        );
+        assert_eq!(
+            bytes_from_field_repr::<64>(&[Fr::from(0u64); 2]),
+            None,
+            "64 bytes needs 3 Fr, not 2"
+        );
+    }
+
+    /// Exactly-sized and over-sized inputs both work: the decoder takes the
+    /// prefix it needs and ignores the rest, because a field is decoded from
+    /// the middle of a larger struct repr.
+    #[test]
+    fn an_exact_or_longer_slice_is_accepted() {
+        let two = [Fr::from(0u64); 2];
+        assert!(bytes_from_field_repr::<32>(&two).is_some());
+
+        let many = [Fr::from(0u64); 8];
+        assert!(
+            bytes_from_field_repr::<32>(&many).is_some(),
+            "trailing elements belong to the next field, not to this one"
+        );
+    }
+
+    #[test]
+    fn an_empty_vec_repr_decodes_to_an_empty_vec() {
+        assert_eq!(vec_u8_from_field_repr(&[]), Some(Vec::new()));
+    }
+
+    /// `vec_u8_from_field_repr` consumes the whole slice, so its output
+    /// length follows the 31-byte packing rather than the caller's intent.
+    #[test]
+    fn vec_u8_repr_length_follows_the_packing() {
+        let one = vec_u8_from_field_repr(&[Fr::from(0u64)]).expect("one Fr decodes");
+        assert_eq!(one.len(), 31);
+
+        let three = vec_u8_from_field_repr(&[Fr::from(0u64); 3]).expect("three Fr decode");
+        assert_eq!(three.len(), 93);
+    }
+
+    /// `array_from_field_repr` must reject when the slice cannot hold `N`
+    /// elements of `elt_size`, and must not silently return a short array.
+    #[test]
+    fn array_repr_rejects_a_slice_too_short_for_n_elements() {
+        // u64 has FIELD_SIZE 1 upstream, so 3 elements need 3 Fr.
+        let two = [Fr::from(1u64); 2];
+        assert_eq!(array_from_field_repr::<u64, 3>(&two, 1), None);
+
+        let three = [Fr::from(1u64); 3];
+        let got = array_from_field_repr::<u64, 3>(&three, 1);
+        assert_eq!(got, Some([1u64, 1, 1]));
+    }
+
+    #[test]
+    fn array_repr_reads_each_element_from_its_own_window() {
+        let src = [Fr::from(7u64), Fr::from(8u64), Fr::from(9u64)];
+        assert_eq!(
+            array_from_field_repr::<u64, 3>(&src, 1),
+            Some([7u64, 8, 9]),
+            "element i must come from window i, not from a repeated read"
+        );
+    }
+}

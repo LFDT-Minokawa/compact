@@ -119,6 +119,66 @@ pub fn none<T: Default>() -> Maybe<T> {
 
 #[cfg(test)]
 mod tests {
+
+    /// The field-repr round-trip is what generated code depends on for every
+    /// optional read out of ledger state. `is_some` is part of that
+    /// encoding, so a `None` must come back as a `None` rather than as a
+    /// `Some` holding a default — which is the failure this pins.
+    #[test]
+    fn field_repr_round_trips_both_states() {
+        let s = some(42u64);
+        let mut buf: Vec<Fr> = Vec::new();
+        s.field_repr(&mut buf);
+        assert_eq!(Maybe::<u64>::from_field_repr(&buf), Some(s));
+
+        let n: Maybe<u64> = none();
+        let mut buf: Vec<Fr> = Vec::new();
+        n.field_repr(&mut buf);
+        let decoded = Maybe::<u64>::from_field_repr(&buf).expect("none decodes");
+        assert!(!decoded.is_some(), "a None must not decode as Some");
+        assert_eq!(decoded, n);
+    }
+
+    /// `Some` and `None` must not encode identically, even when the payload
+    /// is the default value — otherwise the discriminant carries no
+    /// information and every `None` reads back as `Some(default)`.
+    #[test]
+    fn some_of_the_default_is_distinguishable_from_none() {
+        let s = some(0u64);
+        let n: Maybe<u64> = none();
+        assert_eq!(s.value, n.value, "same payload, by construction");
+
+        let mut a: Vec<Fr> = Vec::new();
+        let mut b: Vec<Fr> = Vec::new();
+        s.field_repr(&mut a);
+        n.field_repr(&mut b);
+        assert_ne!(a, b, "the discriminant has to survive encoding");
+    }
+
+    #[test]
+    fn field_size_matches_what_field_repr_writes() {
+        let s = some(7u64);
+        let mut buf: Vec<Fr> = Vec::new();
+        s.field_repr(&mut buf);
+        assert_eq!(buf.len(), s.field_size());
+    }
+
+    #[test]
+    fn a_truncated_repr_is_rejected() {
+        assert_eq!(Maybe::<u64>::from_field_repr(&[]), None);
+    }
+
+    #[test]
+    #[should_panic(expected = "Maybe::unwrap on None")]
+    fn unwrap_panics_on_none() {
+        let n: Maybe<u64> = none();
+        let _ = n.unwrap();
+    }
+
+    #[test]
+    fn unwrap_returns_the_payload_on_some() {
+        assert_eq!(some(5u64).unwrap(), 5);
+    }
     use super::*;
 
     #[test]

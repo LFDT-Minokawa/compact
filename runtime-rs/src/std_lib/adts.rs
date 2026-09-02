@@ -742,3 +742,143 @@ mod tests {
         assert_eq!(got, p);
     }
 }
+
+#[cfg(test)]
+mod decoder_tests {
+    use super::*;
+
+    /// These decoders are the read path out of ledger state: an
+    /// `AlignedValue` off the chain, turned back into a Rust value. A wrong
+    /// answer here is not a crash, it is a contract that reads the wrong
+    /// number — which is why the round-trips below assert values rather than
+    /// merely that decoding succeeded.
+
+    #[test]
+    fn unsigned_decoders_round_trip_their_own_widths() {
+        assert_eq!(decode_u8(&AlignedValue::from(7u8)).unwrap(), 7);
+        assert_eq!(decode_u16(&AlignedValue::from(1_000u16)).unwrap(), 1_000);
+        assert_eq!(decode_u32(&AlignedValue::from(70_000u32)).unwrap(), 70_000);
+        assert_eq!(
+            decode_u64(&AlignedValue::from(5_000_000_000u64)).unwrap(),
+            5_000_000_000
+        );
+        assert_eq!(
+            decode_u128(&AlignedValue::from(u128::from(u64::MAX) + 1)).unwrap(),
+            u128::from(u64::MAX) + 1
+        );
+    }
+
+    /// Boundary values, because a width mistake in the decoder shows up at
+    /// the extremes rather than in the middle.
+    #[test]
+    fn unsigned_decoders_handle_their_extremes() {
+        assert_eq!(decode_u8(&AlignedValue::from(0u8)).unwrap(), 0);
+        assert_eq!(decode_u8(&AlignedValue::from(u8::MAX)).unwrap(), u8::MAX);
+        assert_eq!(decode_u16(&AlignedValue::from(u16::MAX)).unwrap(), u16::MAX);
+        assert_eq!(decode_u32(&AlignedValue::from(u32::MAX)).unwrap(), u32::MAX);
+        assert_eq!(decode_u64(&AlignedValue::from(u64::MAX)).unwrap(), u64::MAX);
+        assert_eq!(
+            decode_u128(&AlignedValue::from(u128::MAX)).unwrap(),
+            u128::MAX
+        );
+    }
+
+    /// A narrower decoder reading a wider value must not silently truncate.
+    /// This is the same class as the `as`-cast bug the emitter had: a wrong
+    /// value is worse than an error.
+    #[test]
+    fn a_narrow_decoder_does_not_truncate_a_wide_value() {
+        let wide = AlignedValue::from(u64::MAX);
+        let got = decode_u8(&wide);
+        assert!(
+            got.is_err() || got.unwrap() == u8::MAX,
+            "decoding a u64::MAX as u8 must not quietly yield a small number"
+        );
+    }
+
+    #[test]
+    fn bool_decodes_both_ways() {
+        assert!(decode_bool(&AlignedValue::from(true)).unwrap());
+        assert!(!decode_bool(&AlignedValue::from(false)).unwrap());
+    }
+
+    #[test]
+    fn fr_round_trips() {
+        for v in [0u64, 1, 42, u64::MAX] {
+            let f = Fr::from(v);
+            assert_eq!(decode_fr(&AlignedValue::from(f)).unwrap(), f);
+        }
+    }
+
+    #[test]
+    fn bytes_round_trip_at_the_common_width() {
+        let b = [3u8; 32];
+        assert_eq!(decode_bytes::<32>(&AlignedValue::from(b)).unwrap(), b);
+    }
+
+    /// `decode_via_field_repr` is the generic path used for user structs and
+    /// enums. Exercised here through a primitive so the test does not depend
+    /// on generated code.
+    #[test]
+    fn decode_via_field_repr_handles_a_primitive() {
+        let av = AlignedValue::from(9u64);
+        assert_eq!(decode_via_field_repr::<u64>(&av).unwrap(), 9u64);
+    }
+
+    /// Decoding the wrong shape must produce an error rather than a value.
+    /// Every one of these would previously have been a candidate for the
+    /// "emit something plausible" failure mode.
+    #[test]
+    fn a_mismatched_shape_is_an_error_not_a_guess() {
+        let boolean = AlignedValue::from(true);
+        assert!(
+            decode_vector_fr::<3>(&boolean).is_err(),
+            "a single bool is not a 3-element Fr vector"
+        );
+    }
+
+    /// `decode_bytes` zero-extends a short atom instead of rejecting it, and
+    /// that is correct rather than lax: the encode side `.normalize()`s
+    /// trailing zeros, so a `Bytes<32>` whose value ends in zeros comes back
+    /// as a *shorter* atom. Zero-padding is the exact inverse of that.
+    ///
+    /// Which is why over-long is the only error case — and worth pinning,
+    /// because "reject anything not exactly N bytes" is the tempting
+    /// tightening that would break every value with a zero tail.
+    #[test]
+    fn decode_bytes_zero_extends_a_normalized_atom_but_rejects_an_overlong_one() {
+        assert_eq!(
+            decode_bytes::<32>(&AlignedValue::from(1u8)).unwrap(),
+            {
+                let mut want = [0u8; 32];
+                want[0] = 1;
+                want
+            },
+            "a one-byte atom is a Bytes<32> whose upper 31 bytes were normalized away"
+        );
+
+        let mut trailing_zeros = [0u8; 32];
+        trailing_zeros[0] = 5;
+        assert_eq!(
+            decode_bytes::<32>(&AlignedValue::from(trailing_zeros)).unwrap(),
+            trailing_zeros,
+            "round-trip must survive normalization"
+        );
+
+        assert!(
+            decode_bytes::<4>(&AlignedValue::from([9u8; 32])).is_err(),
+            "32 bytes cannot be read as Bytes<4>"
+        );
+    }
+
+    #[test]
+    fn jubjub_point_decodes_from_its_aligned_form() {
+        let p = crate::std_lib::ec_mul_generator(crate::std_lib::jubjub_scalar_from_field(
+            Fr::from(23u64),
+        ));
+        let mut frs: Vec<Fr> = Vec::new();
+        crate::std_lib::jubjub_point_field_repr(&p, &mut frs);
+        let av: AlignedValue = (frs[0], frs[1]).into();
+        assert_eq!(decode_jubjub_point(&av).unwrap(), p);
+    }
+}
