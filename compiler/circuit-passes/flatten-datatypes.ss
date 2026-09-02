@@ -19,6 +19,73 @@
   (definitions
     (define fun-ht (make-eq-hashtable))
     (define var-ht (make-eq-hashtable))
+    ;; Maps byte variables produced by an unconditional Bytes<32> -> Vector<32,
+    ;; Uint<8>> conversion to (source-limbs . byte-index).  Vector and tuple
+    ;; construction preserve the variables, so this metadata survives the
+    ;; source-level reverse idiom without adding a general-purpose provenance
+    ;; representation to Wump.
+    (define byte-provenance-ht (make-eq-hashtable))
+    ;; Track only the additional provenance needed for the exact numeric ABI
+    ;; word idiom. A qualifying source is the low limb produced by an
+    ;; unconditional native field->Bytes<16> conversion. Its exploded byte
+    ;; variables are tagged with byte-string indices. Bytes exploded from a
+    ;; literal-zero limb are tracked separately as proven zero.
+    (define bytes16-cast-ht (make-eq-hashtable))
+    (define numeric-byte-provenance-ht (make-eq-hashtable))
+    (define zero-byte-ht (make-eq-hashtable))
+    (define (record-bytes32-provenance! var-name* source-triv*)
+      (let loop ([var-name* var-name*] [index 0])
+        (unless (null? var-name*)
+          (hashtable-set! byte-provenance-ht (car var-name*)
+                          (cons source-triv* index))
+          (loop (cdr var-name*) (fx1+ index)))))
+    ;; Return the original high/low limbs when triv* is exactly the reversal of
+    ;; one recorded Bytes<32> value; otherwise return #f.
+    (define (reversed-bytes32-source triv*)
+      (and (fx= (length triv*) 32)
+           (let loop ([triv* triv*] [index 31] [source-triv* #f])
+             (if (null? triv*)
+                 source-triv*
+                 (let ([provenance
+                        (and (id? (car triv*))
+                             (hashtable-ref byte-provenance-ht (car triv*) #f))])
+                   (and provenance
+                        (fx= (cdr provenance) index)
+                        (or (not source-triv*)
+                            (equal? (car provenance) source-triv*))
+                        (loop (cdr triv*) (fx1- index)
+                              (or source-triv* (car provenance)))))))))
+    (define (record-numeric-byte-provenance! var-name* source)
+      (let loop ([var-name* var-name*] [index 0])
+        (unless (null? var-name*)
+          (hashtable-set! numeric-byte-provenance-ht (car var-name*)
+                          (cons source index))
+          (loop (cdr var-name*) (fx1+ index)))))
+    ;; Return the checked Bytes<16> limb when triv* is exactly sixteen zero
+    ;; bytes followed by bytes 15 through 0 from that one source.
+    (define (numeric-abi-word-source triv*)
+      (and (feature-zkir-v3)
+           (fx= (length triv*) 32)
+           (andmap (lambda (triv)
+                     (or (eqv? triv 0)
+                         (and (id? triv)
+                              (hashtable-contains? zero-byte-ht triv))))
+                   (list-head triv* 16))
+           (let loop ([triv* (list-tail triv* 16)]
+                      [index 15]
+                      [source #f])
+             (if (null? triv*)
+                 source
+                 (let ([provenance
+                        (and (id? (car triv*))
+                             (hashtable-ref numeric-byte-provenance-ht
+                                            (car triv*) #f))])
+                   (and provenance
+                        (fx= (cdr provenance) index)
+                        (or (not source)
+                            (eq? (car provenance) source))
+                        (loop (cdr triv*) (fx1- index)
+                              (or source (car provenance)))))))))
     (define (make-new-id id)
       (make-temp-id (id-src id) (id-sym id)))
     (define (make-new-ids id n)
@@ -155,6 +222,52 @@
     ;; tcontract cases of the (default …) Rhs handler.
     (define (bytes-default-limbs len)
       (make-list (quotient (+ len (- (field-bytes) 1)) (field-bytes)) 0))
+    ;; Convert one retained source segment into flattened limbs in byte-string
+    ;; order.  Wump-bytes stores its limbs high-first, while serialization
+    ;; consumes the low/full limbs first and the short high limb last.
+    (define (serialize-segment->width.triv* width wump)
+      (Wump-case wump
+        [(Wump-single triv)
+         (unless (fx= width 1)
+           (internal-errorf 'flatten-datatypes
+             "serialize-pack scalar has width ~s" width))
+         (list (cons width triv))]
+        [(Wump-bytes triv*)
+         (let-values ([(q r) (div-and-mod width (field-bytes))])
+           (let ([width* (append (make-list q (field-bytes))
+                           (if (fx= r 0) '() (list r)))]
+                 [triv* (reverse triv*)])
+             (unless (fx= (length width*) (length triv*))
+               (internal-errorf 'flatten-datatypes
+                 "serialize-pack Bytes<~s> has ~s flattened limbs"
+                 width (length triv*)))
+             (map cons width* triv*)))]
+        [else
+         (internal-errorf 'flatten-datatypes
+           "serialize-pack operand is not a byte or Bytes value")]))
+    ;; Collapse adjacent literal segments without crossing the native 31-byte
+    ;; limb width.  This preserves little-endian byte-string order and avoids
+    ;; emitting long mul/add chains for compiler-generated event tags/padding.
+    (define (coalesce-constant-serialize-segments width.triv*)
+      (let loop ([width.triv* width.triv*] [rwidth.triv* '()])
+        (cond
+          [(null? width.triv*) (reverse rwidth.triv*)]
+          [(not (integer? (cdar width.triv*)))
+           (loop (cdr width.triv*) (cons (car width.triv*) rwidth.triv*))]
+          [else
+           (let gather ([width (caar width.triv*)]
+                        [value (cdar width.triv*)]
+                        [width.triv* (cdr width.triv*)])
+             (if (and (not (null? width.triv*))
+                      (integer? (cdar width.triv*))
+                      (fx<= (fx+ width (caar width.triv*)) (field-bytes)))
+                 (gather
+                   (fx+ width (caar width.triv*))
+                   (+ value
+                      (* (cdar width.triv*) (expt 2 (* width 8))))
+                   (cdr width.triv*))
+                 (loop width.triv*
+                       (cons (cons width value) rwidth.triv*))))])))
     )
   (Program : Program (ir) -> Program ()
     [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -429,37 +542,119 @@
              (if (fx<= len (field-bytes))
                  (list var-name2)
                  (f (- len (fx* 2 (field-bytes))) (list var-name1 var-name2))))))
+       (when (and (feature-zkir-v3)
+                  (eqv? test 1)
+                  (fx= len 16)
+                  ;; Constants already fold more cheaply on the generic path.
+                  (id? triv)
+                  (nanopass-case (Lflattened Field-Type) ftype
+                    [(field-native) #t]
+                    [else #f]))
+         (hashtable-set! bytes16-cast-ht var-name2 #t))
        (with-output-language (Lflattened Statement)
          (list `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv)))))]
     [(bytes->vector ,len ,[* wump])
-     (let loop ([len len] [triv* (reverse (wump->elts wump))] [rvar-name** '()] [stmt* '()])
-       (if (fx= len 0)
-           (let ([var-name* (apply append (reverse rvar-name**))])
-             (hashtable-set! var-ht var-name (Wump-vector (map Wump-single var-name*)))
-             stmt*)
-           (let* ([n (fxmin len (field-bytes))]
-                  [this-var-name* (make-new-ids var-name n)])
-             (loop (fx- len n)
-                   (cdr triv*)
-                   (cons this-var-name* rvar-name**)
-                   (with-output-language (Lflattened Statement)
-                     (cons `(= ,test (,this-var-name* ...) (bytes->vector ,(car triv*)))
-                           stmt*))))))]
-    [(vector->bytes ,len ,[* wump])
-     (let loop ([len len] [triv* (wump->elts wump)] [var-name* '()] [stmt* '()])
-       (if (fx= len 0)
-           (begin
-             (hashtable-set! var-ht var-name (Wump-bytes var-name*))
-             stmt*)
-           (let* ([n (fxmin len (field-bytes))] [this-var-name (make-new-id var-name)])
-             (loop (fx- len n)
-                   (list-tail triv* n)
-                   (cons this-var-name var-name*)
-                   (let ([this-triv* (list-head triv* n)])
+     (let ([source-triv* (wump->elts wump)])
+       (let loop ([len len] [triv* (reverse source-triv*)] [rvar-name** '()] [stmt* '()])
+         (if (fx= len 0)
+             (let ([var-name* (apply append (reverse rvar-name**))])
+               ;; Guarded conversions remain on the existing lowering path.  The
+               ;; native ZKIR reverse has no guard, so only record provenance that
+               ;; can later produce an unconditional reverse.
+               (when (and (feature-zkir-v3)
+                          (eqv? test 1)
+                          (fx= (length var-name*) 32)
+                          (fx= (length source-triv*) 2))
+                 (record-bytes32-provenance! var-name* source-triv*))
+               (when (and (feature-zkir-v3)
+                          (eqv? test 1)
+                          (fx= (length var-name*) 16)
+                          (fx= (length source-triv*) 1))
+                 (let ([source (car source-triv*)])
+                   (cond
+                     [(and (id? source)
+                           (hashtable-contains? bytes16-cast-ht source))
+                      (record-numeric-byte-provenance! var-name* source)]
+                     [(eqv? source 0)
+                      (for-each
+                        (lambda (var-name)
+                          (hashtable-set! zero-byte-ht var-name #t))
+                        var-name*)])))
+               (hashtable-set! var-ht var-name (Wump-vector (map Wump-single var-name*)))
+               stmt*)
+             (let* ([n (fxmin len (field-bytes))]
+                    [this-var-name* (make-new-ids var-name n)])
+               (loop (fx- len n)
+                     (cdr triv*)
+                     (cons this-var-name* rvar-name**)
                      (with-output-language (Lflattened Statement)
-                       (cons
-                         `(= ,test ,this-var-name (vector->bytes ,(car this-triv*) ,(cdr this-triv*) ...))
-                         stmt*)))))))]
+                       (cons `(= ,test (,this-var-name* ...) (bytes->vector ,(car triv*)))
+                             stmt*)))))))]
+    [(serialize-pack ,src ,len (,nat* ,[* wump*]) ...)
+     (let* ([width.triv*
+             (coalesce-constant-serialize-segments
+               (apply append
+                 (map serialize-segment->width.triv* nat* wump*)))]
+            [nat^* (map car width.triv*)]
+            [triv^* (map cdr width.triv*)]
+            [var-name*
+             (make-new-ids var-name
+               (quotient (+ len (- (field-bytes) 1)) (field-bytes)))])
+       (unless (fx= len (fold-left fx+ 0 nat^*))
+         (internal-errorf 'flatten-datatypes
+           "serialize-pack segments occupy ~s bytes, expected ~s"
+           (fold-left fx+ 0 nat^*) len))
+       (hashtable-set! var-ht var-name (Wump-bytes var-name*))
+       (with-output-language (Lflattened Statement)
+         (list `(= ,test (,var-name* ...)
+                    (serialize-pack ,src ,len
+                      (,nat^* ,triv^*) ...)))))]
+    [(vector->bytes ,len ,[* wump])
+     (let* ([triv* (wump->elts wump)]
+            [source-triv*
+             (and (feature-zkir-v3)
+                  (eqv? test 1)
+                  (fx= len 32)
+                  (reversed-bytes32-source triv*))]
+            [numeric-source
+             (and (feature-zkir-v3)
+                  (eqv? test 1)
+                  (fx= len 32)
+                  (numeric-abi-word-source triv*))])
+       (cond
+         [source-triv*
+          (let ([var-name-hi (make-new-id var-name)]
+                [var-name-lo (make-new-id var-name)])
+            (hashtable-set! var-ht var-name
+              (Wump-bytes (list var-name-hi var-name-lo)))
+            (with-output-language (Lflattened Statement)
+              (list `(= 1 (,var-name-hi ,var-name-lo)
+                         (reverse-bytes32 ,(car source-triv*) ,(cadr source-triv*))))))]
+         [numeric-source
+          (let ([var-name-hi (make-new-id var-name)]
+                [var-name-lo (make-new-id var-name)])
+            (hashtable-set! var-ht var-name
+              (Wump-bytes (list var-name-hi var-name-lo)))
+            (with-output-language (Lflattened Statement)
+              (list `(= 1 (,var-name-hi ,var-name-lo)
+                         (numeric-abi-word ,numeric-source)))))]
+         [else
+          (let loop ([len len] [triv* triv*] [var-name* '()] [stmt* '()])
+            (if (fx= len 0)
+                (begin
+                  (hashtable-set! var-ht var-name (Wump-bytes var-name*))
+                  stmt*)
+                (let* ([n (fxmin len (field-bytes))]
+                       [this-var-name (make-new-id var-name)])
+                  (loop (fx- len n)
+                        (list-tail triv* n)
+                        (cons this-var-name var-name*)
+                        (let ([this-triv* (list-head triv* n)])
+                          (with-output-language (Lflattened Statement)
+                            (cons
+                              `(= ,test ,this-var-name
+                                  (vector->bytes ,(car this-triv*) ,(cdr this-triv*) ...))
+                              stmt*)))))))]))]
     [(cast-to-field ,src ,[ftype] ,[Single-Type : primitive-type] ,[Single-Triv : triv])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)

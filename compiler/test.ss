@@ -116,7 +116,7 @@ groups than for single tests.
 
 (module (run-tests test-group test oops warning returns pass-returns succeeds custom-check >output-file output-file stage-javascript run-javascript
          testdir show-last-successes show-successes show-all-passes show-stack-backtrace with-compact-path
-         with-parameter-values)
+         with-parameter-values file-contains?)
 
   (define-record-type feedback
     (nongenerative)
@@ -142,6 +142,18 @@ groups than for single tests.
   (define show-successes (make-parameter #f))
   (define show-all-passes (make-parameter #f))
   (define show-stack-backtrace (make-parameter #t))
+
+  (define (contains? haystack needle)
+    (let ([hlen (string-length haystack)] [nlen (string-length needle)])
+      (let loop ([i 0])
+        (and (fx<= (fx+ i nlen) hlen)
+             (or (string=? (substring haystack i (fx+ i nlen)) needle)
+                 (loop (fx1+ i)))))))
+
+  (define (file-contains? path needle)
+    (call-with-port
+      (open-input-file path)
+      (lambda (ip) (contains? (get-string-all ip) needle))))
 
   (define-record-type success
     (nongenerative)
@@ -62672,6 +62684,7 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
   )
 
 (parameterize ([feature-zkir-v3 #t])
@@ -62708,6 +62721,243 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/zerocash_mint.zkir"
                  "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir3")
   )
+
+  ;; Preserve the checked Uint<128> -> Bytes<16> conversion, but lower the
+  ;; exact numeric ABI zero-pad/reverse/rebuild shape through ZKIR's native
+  ;; 32-byte reversal.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "pure circuit numericAbiWord(value: Uint<128>): Bytes<32> {"
+      "  const le = (value as Bytes<16>) as Vector<16, Uint<8>>;"
+      "  return Bytes["
+      "    ...default<Bytes<16>>,"
+      "    le[15], le[14], le[13], le[12], le[11], le[10], le[9], le[8],"
+      "    le[7], le[6], le[5], le[4], le[3], le[2], le[1], le[0]"
+      "  ];"
+      "}"
+      "export circuit run(value: Uint<128>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return numericAbiWord(value);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/run.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%value.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%value.0\", \"bits\": 128 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"copy\", \"output\": \"%t.1\", \"val\": \"%value.0\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.1\", \"bits\": 128 },"
+        "    { \"op\": \"bytes32_from_low_high\", \"output\": \"%bytes.2\", \"inputs\": [\"%t.1\", \"0x00\"] },"
+        "    { \"op\": \"reverse_bytes\", \"output\": \"%bytes.3\", \"bytes\": \"%bytes.2\" },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%t.4\", \"%t.5\"], \"bytes\": \"%bytes.3\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\", \"%t.4\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; A direct Bytes<16> source has the same apparent byte permutation but not
+  ;; the checked Uint -> Bytes cast provenance, so it must stay generic.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "export circuit directBytes(leBytes: Bytes<16>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  const le = leBytes as Vector<16, Uint<8>>;"
+      "  return Bytes["
+      "    ...default<Bytes<16>>,"
+      "    le[15], le[14], le[13], le[12], le[11], le[10], le[9], le[8],"
+      "    le[7], le[6], le[5], le[4], le[3], le[2], le[1], le[0]"
+      "  ];"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (not (file-contains? "compiler/testdir/zkir/directBytes.zkir"
+                 "\"op\": \"reverse_bytes\""))
+          (file-contains? "compiler/testdir/zkir/directBytes.zkir"
+            "\"op\": \"div_mod_power_of_two\""))))
+    )
+
+  ;; Any nonzero leading byte breaks the ABI-word shape and must stay generic.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "export circuit nonzeroPad(value: Uint<128>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  const le = (value as Bytes<16>) as Vector<16, Uint<8>>;"
+      "  return Bytes["
+      "    1, ...default<Bytes<15>>,"
+      "    le[15], le[14], le[13], le[12], le[11], le[10], le[9], le[8],"
+      "    le[7], le[6], le[5], le[4], le[3], le[2], le[1], le[0]"
+      "  ];"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (not (file-contains? "compiler/testdir/zkir/nonzeroPad.zkir"
+                 "\"op\": \"reverse_bytes\""))
+          (file-contains? "compiler/testdir/zkir/nonzeroPad.zkir"
+            "\"op\": \"reconstitute_field\""))))
+    )
+
+  ;; Boundary constants remain on the existing constant-folding path. This
+  ;; also pins the flattened Bytes<32> limb values for zero and 2^128 - 1.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "pure circuit numericAbiWord(value: Uint<128>): Bytes<32> {"
+      "  const le = (value as Bytes<16>) as Vector<16, Uint<8>>;"
+      "  return Bytes["
+      "    ...default<Bytes<16>>,"
+      "    le[15], le[14], le[13], le[12], le[11], le[10], le[9], le[8],"
+      "    le[7], le[6], le[5], le[4], le[3], le[2], le[1], le[0]"
+      "  ];"
+      "}"
+      "export circuit zero(): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return numericAbiWord(0 as Uint<128>);"
+      "}"
+      "export circuit maximum(): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return numericAbiWord(340282366920938463463374607431768211455 as Uint<128>);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/zero.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"0x00\", \"0x00\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/maximum.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"0xff\", \"0x00000000000000000000000000000000ffffffffffffffffffffffffffffff\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; Recovering a let-bound aggregate must not evaluate an effectful Bytes
+  ;; producer a second time. The single impact group pins one ledger write.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "circuit effectful(): Bytes<2> {"
+      "  forceField = 9 as Field;"
+      "  return 0x0201 as Bytes<2>;"
+      "}"
+      "export circuit packEffectful(): Bytes<2> {"
+      "  const parts: Vector<2, Uint<8>> = ["
+      "    ...(effectful() as Vector<2, Uint<8>>)"
+      "  ];"
+      "  return parts as Bytes<2>;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/packEffectful.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"0x0102\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; Pin segment order, split direction, shift direction, and high-first output
+  ;; storage across Compact's 31-byte field-limb boundary.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "export circuit packBoundary(a: Bytes<30>, b: Bytes<2>, c: Uint<8>): Bytes<33> {"
+      "  forceField = 9 as Field;"
+      "  return Bytes[...a, ...b, c];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/packBoundary.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%b.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%c.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%a.0\", \"bits\": 240 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%b.1\", \"bits\": 16 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%c.2\", \"bits\": 8 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x09\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%rest.3\", \"%low.4\"], \"val\": \"%b.1\", \"bits\": 8 },"
+        "    { \"op\": \"mul\", \"output\": \"%shifted.5\", \"a\": \"%low.4\", \"b\": \"0x00000000000000000000000000000000000000000000000000000000000001\" },"
+        "    { \"op\": \"add\", \"output\": \"%sum.6\", \"a\": \"%a.0\", \"b\": \"%shifted.5\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.7\", \"val\": \"%sum.6\" },"
+        "    { \"op\": \"mul\", \"output\": \"%shifted.8\", \"a\": \"%c.2\", \"b\": \"0x0001\" },"
+        "    { \"op\": \"add\", \"output\": \"%sum.9\", \"a\": \"%rest.3\", \"b\": \"%shifted.8\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.10\", \"val\": \"%sum.9\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.10\", \"%t.7\"] }"
+        "  ]"
+        "}"))
+    )
 
   (test
     '(
@@ -70733,6 +70983,187 @@ groups than for single tests.
         "}"))
     )
 
+  ;; Compiler-generated serialization retains bounded Bytes segments and
+  ;; splits only the segment that crosses a 31-byte output-limb boundary.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Pair { left: Bytes<16>; right: Bytes<16>; }"
+      "ledger forceField: Field;"
+      "export circuit packSerializedPair(value: Pair): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return serialize<Pair, 32>(value);"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
+            "\"bits\": 120")
+          (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
+            "\"op\": \"mul\"")
+          (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
+            "\"op\": \"add\"")
+          (not (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
+                 "\"op\": \"reconstitute_field\""))))
+    )
+    )
+
+  ;; Scalar-only composite serialization uses the same path; each source
+  ;; element's Uint8 bound is re-checked by check-types/Lflattened.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "export circuit packScalarVector(value: Vector<32, Uint<8>>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return serialize<Vector<32, Uint<8>>, 32>(value);"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
+            "\"op\": \"mul\"")
+          (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
+            "\"op\": \"add\"")
+          (not (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
+                 "\"op\": \"div_mod_power_of_two\""))
+          (not (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
+                 "\"op\": \"reconstitute_field\""))))
+    )
+    )
+
+  ;; A-normalized emit serialization recovers a direct literal aggregate and
+  ;; evaluates the payload field selection once without exploding Bytes limbs
+  ;; into bytes.  This is the shape emitted for named Misc events.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "export circuit emitSerializedMisc(payload: Bytes<256>): [] {"
+      "  forceField = 1 as Field;"
+      "  return emit(disclose(Misc {name: pad(32, \"SerializerRegression\"), payload: payload}));"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (file-contains? "compiler/testdir/zkir/emitSerializedMisc.zkir"
+            "\"bits\": 240")
+          (file-contains? "compiler/testdir/zkir/emitSerializedMisc.zkir"
+            "\"op\": \"impact\"")
+          (not (file-contains? "compiler/testdir/zkir/emitSerializedMisc.zkir"
+                 "\"op\": \"reconstitute_field\""))))
+    )
+    )
+
+  ;; Guarded serialization keeps the established bytewise fallback until the
+  ;; specialized operation has explicit conditional ZKIR semantics.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Pair { left: Bytes<16>; right: Bytes<16>; }"
+      "ledger forceField: Field;"
+      "export circuit guardedSerializedPair(flag: Boolean, value: Pair): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  if (flag) {"
+      "    return serialize<Pair, 32>(value);"
+      "  } else {"
+      "    return default<Bytes<32>>;"
+      "  }"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (file-contains? "compiler/testdir/zkir/guardedSerializedPair.zkir"
+            "\"op\": \"div_mod_power_of_two\"")
+          (file-contains? "compiler/testdir/zkir/guardedSerializedPair.zkir"
+            "\"op\": \"reconstitute_field\""))))
+    )
+
+  ;; Exact Bytes<32> explode/reverse/rebuild idiom uses the native ZKIR
+  ;; reverse instead of splitting and reconstituting each byte.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "pure circuit reverse32(b: Bytes<32>): Bytes<32> {"
+      "  const v = b as Vector<32, Uint<8>>;"
+      "  return Bytes["
+      "    v[31], v[30], v[29], v[28], v[27], v[26], v[25], v[24],"
+      "    v[23], v[22], v[21], v[20], v[19], v[18], v[17], v[16],"
+      "    v[15], v[14], v[13], v[12], v[11], v[10], v[9], v[8],"
+      "    v[7], v[6], v[5], v[4], v[3], v[2], v[1], v[0]"
+      "  ];"
+      "}"
+      "export circuit runReverse32(b: Bytes<32>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return reverse32(b);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/runReverse32.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%b.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%b.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%b.1\", \"bits\": 248 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"bytes32_from_low_high\", \"output\": \"%bytes.2\", \"inputs\": [\"%b.1\", \"%b.0\"] },"
+        "    { \"op\": \"reverse_bytes\", \"output\": \"%bytes.3\", \"bytes\": \"%bytes.2\" },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%t.4\", \"%t.5\"], \"bytes\": \"%bytes.3\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.5\", \"%t.4\"] }"
+        "  ]"
+        "}"))
+    )
+
+  ;; A different 32-byte permutation must not select native reverse_bytes; it
+  ;; remains eligible for the general bounded segment packer.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field;"
+      "pure circuit rotate32(b: Bytes<32>): Bytes<32> {"
+      "  const v = b as Vector<32, Uint<8>>;"
+      "  return Bytes["
+      "    v[30], v[29], v[28], v[27], v[26], v[25], v[24], v[23],"
+      "    v[22], v[21], v[20], v[19], v[18], v[17], v[16], v[15],"
+      "    v[14], v[13], v[12], v[11], v[10], v[9], v[8], v[7],"
+      "    v[6], v[5], v[4], v[3], v[2], v[1], v[0], v[31]"
+      "  ];"
+      "}"
+      "export circuit runRotate32(b: Bytes<32>): Bytes<32> {"
+      "  forceField = 1 as Field;"
+      "  return rotate32(b);"
+      "}"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (and
+          (not (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
+                 "\"op\": \"reverse_bytes\""))
+          (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
+            "\"op\": \"mul\"")
+          (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
+            "\"op\": \"add\"")
+          (not (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
+                 "\"op\": \"reconstitute_field\""))))
+    )
+    )
+
   ;; LFDT-Minokawa/compact issue #609.  Two calls to secp256k1EcdsaVerify
   ;; triggered a failure in the circuit optimizer.
   (test
@@ -70758,151 +71189,66 @@ groups than for single tests.
           ()
           (constrain_bits %d.0 8)
           (constrain_bits %d.1 248)
-          (private_input "Scalar<Secp256k1>" %sig.39)
-          (private_input "Scalar<Secp256k1>" %sig.52)
-          (private_input "Point<Secp256k1>" %pk.53)
-          (copy %v.3 %d.0)
-          (div_mod_power_of_two %quo.54 %v.2 %d.1 8)
-          (div_mod_power_of_two %quo.55 %v.33 %quo.54 8)
-          (div_mod_power_of_two %quo.56 %v.32 %quo.55 8)
-          (div_mod_power_of_two %quo.57 %v.31 %quo.56 8)
-          (div_mod_power_of_two %quo.58 %v.30 %quo.57 8)
-          (div_mod_power_of_two %quo.59 %v.29 %quo.58 8)
-          (div_mod_power_of_two %quo.60 %v.28 %quo.59 8)
-          (div_mod_power_of_two %quo.61 %v.27 %quo.60 8)
-          (div_mod_power_of_two %quo.62 %v.26 %quo.61 8)
-          (div_mod_power_of_two %quo.63 %v.25 %quo.62 8)
-          (div_mod_power_of_two %quo.64 %v.24 %quo.63 8)
-          (div_mod_power_of_two %quo.65 %v.23 %quo.64 8)
-          (div_mod_power_of_two %quo.66 %v.22 %quo.65 8)
-          (div_mod_power_of_two %quo.67 %v.21 %quo.66 8)
-          (div_mod_power_of_two %quo.68 %v.20 %quo.67 8)
-          (div_mod_power_of_two %quo.69 %v.19 %quo.68 8)
-          (div_mod_power_of_two %quo.70 %v.18 %quo.69 8)
-          (div_mod_power_of_two %quo.71 %v.17 %quo.70 8)
-          (div_mod_power_of_two %quo.72 %v.16 %quo.71 8)
-          (div_mod_power_of_two %quo.73 %v.15 %quo.72 8)
-          (div_mod_power_of_two %quo.74 %v.14 %quo.73 8)
-          (div_mod_power_of_two %quo.75 %v.13 %quo.74 8)
-          (div_mod_power_of_two %quo.76 %v.12 %quo.75 8)
-          (div_mod_power_of_two %quo.77 %v.11 %quo.76 8)
-          (div_mod_power_of_two %quo.78 %v.10 %quo.77 8)
-          (div_mod_power_of_two %quo.79 %v.9 %quo.78 8)
-          (div_mod_power_of_two %quo.80 %v.8 %quo.79 8)
-          (div_mod_power_of_two %quo.81 %v.7 %quo.80 8)
-          (div_mod_power_of_two %quo.82 %v.6 %quo.81 8)
-          (div_mod_power_of_two %quo.83 %v.5 %quo.82 8)
-          (copy %v.4 %quo.83)
-          (copy %beReversed.35 %v.2)
-          (reconstitute_field %div.84 %v.33 %v.32 8)
-          (reconstitute_field %div.85 %div.84 %v.31 8)
-          (reconstitute_field %div.86 %div.85 %v.30 8)
-          (reconstitute_field %div.87 %div.86 %v.29 8)
-          (reconstitute_field %div.88 %div.87 %v.28 8)
-          (reconstitute_field %div.89 %div.88 %v.27 8)
-          (reconstitute_field %div.90 %div.89 %v.26 8)
-          (reconstitute_field %div.91 %div.90 %v.25 8)
-          (reconstitute_field %div.92 %div.91 %v.24 8)
-          (reconstitute_field %div.93 %div.92 %v.23 8)
-          (reconstitute_field %div.94 %div.93 %v.22 8)
-          (reconstitute_field %div.95 %div.94 %v.21 8)
-          (reconstitute_field %div.96 %div.95 %v.20 8)
-          (reconstitute_field %div.97 %div.96 %v.19 8)
-          (reconstitute_field %div.98 %div.97 %v.18 8)
-          (reconstitute_field %div.99 %div.98 %v.17 8)
-          (reconstitute_field %div.100 %div.99 %v.16 8)
-          (reconstitute_field %div.101 %div.100 %v.15 8)
-          (reconstitute_field %div.102 %div.101 %v.14 8)
-          (reconstitute_field %div.103 %div.102 %v.13 8)
-          (reconstitute_field %div.104 %div.103 %v.12 8)
-          (reconstitute_field %div.105 %div.104 %v.11 8)
-          (reconstitute_field %div.106 %div.105 %v.10 8)
-          (reconstitute_field %div.107 %div.106 %v.9 8)
-          (reconstitute_field %div.108 %div.107 %v.8 8)
-          (reconstitute_field %div.109 %div.108 %v.7 8)
-          (reconstitute_field %div.110 %div.109 %v.6 8)
-          (reconstitute_field %div.111 %div.110 %v.5 8)
-          (reconstitute_field %div.112 %div.111 %v.4 8)
-          (reconstitute_field %beReversed.34 %div.112 %v.3 8)
+          (private_input "Scalar<Secp256k1>" %sig.6)
+          (private_input "Scalar<Secp256k1>" %sig.24)
+          (private_input "Point<Secp256k1>" %pk.25)
+          (bytes32_from_low_high %bytes.26 %d.1 %d.0)
+          (reverse_bytes %bytes.27 %bytes.26)
+          (bytes32_into_low_high
+            %beReversed.2
+            %beReversed.3
+            %bytes.27)
+          (bytes32_from_low_high %tmp.28 %beReversed.2 %beReversed.3)
+          (from_bytes32 "Scalar<Secp256k1>" %z.5 %tmp.28)
+          (inv %w.4 %sig.24)
+          (mul %u1.29 %z.5 %w.4)
+          (mul %u2.30 %sig.6 %w.4)
+          (ec_mul_generator %t.31 %u1.29)
+          (ec_mul %t.32 %pk.25 %u2.30)
+          (add %point.33 %t.31 %t.32)
+          (into_coordinates %t.7 %ignore.34 %point.33)
+          (into_bytes32 %tmp.35 %t.7)
+          (bytes32_into_low_high %t.8 %t.9 %tmp.35)
+          (bytes32_from_low_high %tmp.36 %t.8 %t.9)
+          (from_bytes32 "Scalar<Secp256k1>" %t.10 %tmp.36)
+          (test_eq %t.11 %t.10 %sig.6)
+          (assert %t.11)
+          (private_input "Scalar<Secp256k1>" %sig.16)
+          (private_input "Scalar<Secp256k1>" %sig.37)
+          (private_input "Point<Secp256k1>" %pk.38)
+          (bytes32_from_low_high %bytes.39 %d.1 %d.0)
+          (reverse_bytes %bytes.40 %bytes.39)
+          (bytes32_into_low_high
+            %beReversed.12
+            %beReversed.13
+            %bytes.40)
           (bytes32_from_low_high
-            %tmp.113
-            %beReversed.34
-            %beReversed.35)
-          (from_bytes32 "Scalar<Secp256k1>" %z.114 %tmp.113)
-          (inv %w.115 %sig.52)
-          (mul %u1.116 %z.114 %w.115)
-          (mul %u2.117 %sig.39 %w.115)
-          (ec_mul_generator %t.118 %u1.116)
-          (ec_mul %t.119 %pk.53 %u2.117)
-          (add %point.120 %t.118 %t.119)
-          (into_coordinates %t.36 %ignore.121 %point.120)
-          (into_bytes32 %tmp.122 %t.36)
-          (bytes32_into_low_high %t.37 %t.38 %tmp.122)
-          (bytes32_from_low_high %tmp.123 %t.37 %t.38)
-          (from_bytes32 "Scalar<Secp256k1>" %t.40 %tmp.123)
-          (test_eq %t.41 %t.40 %sig.39)
-          (assert %t.41)
-          (private_input "Scalar<Secp256k1>" %sig.47)
-          (private_input "Scalar<Secp256k1>" %sig.124)
-          (private_input "Point<Secp256k1>" %pk.125)
-          (copy %beReversed.43 %v.2)
-          (reconstitute_field %div.126 %v.33 %v.32 8)
-          (reconstitute_field %div.127 %div.126 %v.31 8)
-          (reconstitute_field %div.128 %div.127 %v.30 8)
-          (reconstitute_field %div.129 %div.128 %v.29 8)
-          (reconstitute_field %div.130 %div.129 %v.28 8)
-          (reconstitute_field %div.131 %div.130 %v.27 8)
-          (reconstitute_field %div.132 %div.131 %v.26 8)
-          (reconstitute_field %div.133 %div.132 %v.25 8)
-          (reconstitute_field %div.134 %div.133 %v.24 8)
-          (reconstitute_field %div.135 %div.134 %v.23 8)
-          (reconstitute_field %div.136 %div.135 %v.22 8)
-          (reconstitute_field %div.137 %div.136 %v.21 8)
-          (reconstitute_field %div.138 %div.137 %v.20 8)
-          (reconstitute_field %div.139 %div.138 %v.19 8)
-          (reconstitute_field %div.140 %div.139 %v.18 8)
-          (reconstitute_field %div.141 %div.140 %v.17 8)
-          (reconstitute_field %div.142 %div.141 %v.16 8)
-          (reconstitute_field %div.143 %div.142 %v.15 8)
-          (reconstitute_field %div.144 %div.143 %v.14 8)
-          (reconstitute_field %div.145 %div.144 %v.13 8)
-          (reconstitute_field %div.146 %div.145 %v.12 8)
-          (reconstitute_field %div.147 %div.146 %v.11 8)
-          (reconstitute_field %div.148 %div.147 %v.10 8)
-          (reconstitute_field %div.149 %div.148 %v.9 8)
-          (reconstitute_field %div.150 %div.149 %v.8 8)
-          (reconstitute_field %div.151 %div.150 %v.7 8)
-          (reconstitute_field %div.152 %div.151 %v.6 8)
-          (reconstitute_field %div.153 %div.152 %v.5 8)
-          (reconstitute_field %div.154 %div.153 %v.4 8)
-          (reconstitute_field %beReversed.42 %div.154 %v.3 8)
-          (bytes32_from_low_high
-            %tmp.155
-            %beReversed.42
-            %beReversed.43)
-          (from_bytes32 "Scalar<Secp256k1>" %z.156 %tmp.155)
-          (inv %w.157 %sig.124)
-          (mul %u1.158 %z.156 %w.157)
-          (mul %u2.159 %sig.47 %w.157)
-          (ec_mul_generator %t.160 %u1.158)
-          (ec_mul %t.161 %pk.125 %u2.159)
-          (add %point.162 %t.160 %t.161)
-          (into_coordinates %t.44 %ignore.163 %point.162)
-          (into_bytes32 %tmp.164 %t.44)
-          (bytes32_into_low_high %t.45 %t.46 %tmp.164)
-          (bytes32_from_low_high %tmp.165 %t.45 %t.46)
-          (from_bytes32 "Scalar<Secp256k1>" %t.48 %tmp.165)
-          (test_eq %t.49 %t.48 %sig.47)
-          (assert %t.49)
-          (public_input "Scalar<BLS12-381>" %t.50)
+            %tmp.41
+            %beReversed.12
+            %beReversed.13)
+          (from_bytes32 "Scalar<Secp256k1>" %z.15 %tmp.41)
+          (inv %w.14 %sig.37)
+          (mul %u1.42 %z.15 %w.14)
+          (mul %u2.43 %sig.16 %w.14)
+          (ec_mul_generator %t.44 %u1.42)
+          (ec_mul %t.45 %pk.38 %u2.43)
+          (add %point.46 %t.44 %t.45)
+          (into_coordinates %t.17 %ignore.47 %point.46)
+          (into_bytes32 %tmp.48 %t.17)
+          (bytes32_into_low_high %t.18 %t.19 %tmp.48)
+          (bytes32_from_low_high %tmp.49 %t.18 %t.19)
+          (from_bytes32 "Scalar<Secp256k1>" %t.20 %tmp.49)
+          (test_eq %t.21 %t.20 %sig.16)
+          (assert %t.21)
+          (public_input "Scalar<BLS12-381>" %t.22)
           (impact 1 48)
           (impact 1 80 1 1 0)
-          (impact 1 12 1 8 %t.50)
-          (add %t.51 %t.50 1)
-          (constrain_bits %t.51 64)
-          (copy %tmp.166 %t.51)
+          (impact 1 12 1 8 %t.22)
+          (add %t.23 %t.22 1)
+          (constrain_bits %t.23 64)
+          (copy %tmp.50 %t.23)
           (impact 1 16 1 1 1 0)
-          (impact 1 17 1 1 8 %tmp.166)
+          (impact 1 17 1 1 8 %tmp.50)
           (impact 1 145)))))
 
     (test
@@ -70994,6 +71340,58 @@ groups than for single tests.
         "  ]"
         "}"))
       )
+
+  ;; A Bytes<32> value split into low/high limbs and immediately rebuilt is
+  ;; identical to the original typed ZKIR value.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceProof: Boolean;"
+      "export circuit cancelRoundTrip(b: Secp256k1Base): Secp256k1Scalar {"
+      "  forceProof = true;"
+      "  return (b as Bytes<32>) as Secp256k1Scalar;"
+      "}"
+      )
+    (pass-returns cancel-bytes32-conversions
+      (program
+        (circuit (cancelRoundTrip) ((%b.0 "Base<Secp256k1>"))
+          ("Scalar<Secp256k1>")
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 1 1)
+          (impact 1 145)
+          (into_bytes32 %tmp.3 %b.0)
+          (from_bytes32 "Scalar<Secp256k1>" %t.4 %tmp.3)
+          (output %t.4)))))
+
+  ;; The split must remain when either limb is consumed elsewhere, while the
+  ;; rebuilt typed alias can still be eliminated.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceProof: Boolean;"
+      "ledger savedBytes: Bytes<32>;"
+      "export circuit cancelRoundTripWithSharedLimbs(b: Secp256k1Base): Secp256k1Scalar {"
+      "  const bytes = b as Bytes<32>;"
+      "  const scalar = bytes as Secp256k1Scalar;"
+      "  forceProof = true;"
+      "  savedBytes = disclose(bytes);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns cancel-bytes32-conversions
+      (program
+        (circuit (cancelRoundTripWithSharedLimbs) ((%b.0 "Base<Secp256k1>"))
+          ("Scalar<Secp256k1>")
+          (into_bytes32 %tmp.3 %b.0)
+          (bytes32_into_low_high %bytes.1 %bytes.2 %tmp.3)
+          (from_bytes32 "Scalar<Secp256k1>" %scalar.4 %tmp.3)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 1 1)
+          (impact 1 145)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 1 32 %bytes.2 %bytes.1)
+          (impact 1 145)
+          (output %scalar.4)))))
   )
 )
 
@@ -89129,7 +89527,34 @@ groups than for single tests.
       "  emit(Misc { name: disclose(tag), payload: disclose(data) });"
       "}"
       )
-    (returns
+    (if (feature-zkir-v3)
+        (returns
+          (program
+            (kernel-declaration (%kernel.0 () (Kernel)))
+            (public-ledger-declaration ())
+            (circuit %ping.1 () (ty () ()) (= 1 () (emit 1 9 0)) ())
+            (circuit %note.2
+              ((argument (%tag.3 %tag.4) ,(lambda (x) #t))
+                (argument
+                  (%data.5 %data.6 %data.7 %data.8 %data.9 %data.10
+                    %data.11 %data.12 %data.13)
+                  ,(lambda (x) #t)))
+              (ty () ())
+              (= 1
+                 (%t.14 %t.15 %t.16 %t.17 %t.18 %t.19 %t.20 %t.21
+                   %t.22 %t.23)
+                 (serialize-pack
+                   ,(lambda (x) #t)
+                   288 (31 %tag.4) (1 %tag.3) (31 %data.13)
+                   (31 %data.12) (31 %data.11) (31 %data.10)
+                   (31 %data.9) (31 %data.8) (31 %data.7) (31 %data.6)
+                   (8 %data.5)))
+              (= 1
+                 ()
+                 (emit 1 10 288 %t.14 %t.15 %t.16 %t.17 %t.18 %t.19
+                   %t.20 %t.21 %t.22 %t.23))
+              ())))
+        (returns
       (program
         (kernel-declaration (%kernel.299 () (Kernel)))
         (public-ledger-declaration ())
@@ -89267,7 +89692,7 @@ groups than for single tests.
           (= 1 ()
              (emit 1 10 288 %t.302 %t.303 %t.304 %t.305 %t.306 %t.307
                %t.308 %t.309 %t.310 %t.311))
-          ())))
+          ()))))
     )
 
   (test

@@ -32,9 +32,12 @@
 
   (include "zkir-v3-passes/reduce-to-zkir.ss")
 
+  (include "zkir-v3-passes/cancel-bytes32-conversions.ss")
+
   (include "zkir-v3-passes/print-zkir-v3.ss")
 
   (define-passes zkir-v3-passes
     (reduce-to-zkir Lzkir)
+    (cancel-bytes32-conversions Lzkir)
     (print-zkir-v3  Lzkir))
   )
