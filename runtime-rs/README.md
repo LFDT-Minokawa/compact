@@ -1,7 +1,6 @@
 # `midnight-compact-runtime`
 
 [![CI](https://github.com/LFDT-Minokawa/compact/actions/workflows/midnight-compact-runtime.yml/badge.svg)](https://github.com/LFDT-Minokawa/compact/actions/workflows/midnight-compact-runtime.yml)
-[![docs.rs](https://img.shields.io/docsrs/midnight-compact-runtime)](https://docs.rs/midnight-compact-runtime)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
 
 Native Rust runtime for contracts emitted by `compactc --rust`. This
@@ -107,6 +106,11 @@ add a new stdlib symbol, expose it from `std_lib`, re-export it from
 table.
 
 ## Versioning
+
+**This crate is versioned in lockstep with the TypeScript runtime it mirrors.**
+`runtime/package.json` is at `0.19.100` and so is this crate, deliberately: the
+two are the same runtime for two languages, and a reader comparing them should
+not have to work out which pair of versions correspond.
 
 `COMPACT_RUNTIME_VERSION` is a compile-time string in
 [`src/version.rs`](./src/version.rs). Every generated `lib.rs` opens

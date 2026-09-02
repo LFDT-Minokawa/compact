@@ -61,6 +61,15 @@ repository    = "https://github.com/LFDT-Minokawa/compact"
 homepage      = "https://github.com/LFDT-Minokawa/compact"
 documentation = "https://docs.rs/midnight-compact-runtime"
 readme        = "README.md"
+
+# Not publishable yet, and this is a statement of fact rather than a policy.
+# `cargo publish` refuses a git dependency with no `version`, and the
+# midnight-ledger crates this is built on are not on crates.io for the
+# ledger-9 line — which is the same reason the `[patch.crates-io]` section
+# below has to exist. The publish metadata above is deliberately complete so
+# that flipping this is the only change needed once they are published; drop
+# this line at the same time as that patch section.
+publish       = false
 keywords      = ["compact", "midnight", "compactc", "zk", "blockchain"]
 categories    = ["cryptography::cryptocurrencies", "compilers"]
 
