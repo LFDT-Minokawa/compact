@@ -19,31 +19,18 @@ import { constants as fsConstants } from 'node:fs';
 import fs from 'node:fs/promises';
 import { registerHooks } from 'node:module';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
-import type { CompileTestDefinition } from './compact-test.js';
-
-type FixturePhase = 'compile' | 'runtime';
-type FixtureResult = 'pass' | 'fail';
-
-/**
- * A fixture test file plus the phase and expectation named by its file name.
- */
-type ParsedFixtureTestFile = {
-    filePath: string;
-    phase: FixturePhase;
-    result: FixtureResult;
-};
-
-/**
- * A fixture directory grouped with the compile and runtime files it owns.
- */
-type DiscoveredFixture = {
-    fixtureDir: string;
-    relativeFixtureDir: string;
-    compile: ParsedFixtureTestFile | undefined;
-    runtime: ParsedFixtureTestFile | undefined;
-};
+import type { DiscoveredFixture } from './types.ts';
+import {
+    compileContract,
+    discoverFixtures,
+    findFixtureContract,
+    fixtureOutputDir,
+    loadCompileDefinition,
+    matchesFilters,
+    testRoot,
+} from './utils.ts';
 
 type RunnerArgs = {
     filters: string[];
@@ -51,18 +38,10 @@ type RunnerArgs = {
     vitestArgs: string[];
 };
 
-type CompileOutcome = {
-    stdout: string;
-    stderr: string;
-    exitCode: number;
-};
-
 type RuntimeManifest = {
     main?: string;
 };
 
-const testRoot = path.dirname(fileURLToPath(import.meta.url));
-const compactTestFilePattern = /^(compile|runtime)\.(pass|fail)\.test\.ts$/;
 const prepareArtifactsFlag = '--prepare-artifacts';
 const compactTestAlias = '@test/compact-test';
 const skipZkArg = '--skip-zk';
@@ -234,105 +213,6 @@ async function prepareRuntimeArtifacts(): Promise<void> {
 }
 
 /**
- * Discovers fixture test files beneath the package root.
- */
-async function discoverFixtures(rootDir: string): Promise<DiscoveredFixture[]> {
-    const testFiles = await findFixtureTestFiles(rootDir);
-    const byFixtureDir = new Map<string, ParsedFixtureTestFile[]>();
-
-    for (const filePath of testFiles) {
-        const parsed = parseFixtureTestFile(filePath);
-        const fixtureDir = path.dirname(filePath);
-        const files = byFixtureDir.get(fixtureDir) ?? [];
-
-        files.push(parsed);
-        byFixtureDir.set(fixtureDir, files);
-    }
-
-    return [...byFixtureDir.entries()]
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([fixtureDir, files]) =>
-            buildDiscoveredFixture(fixtureDir, files),
-        );
-}
-
-/**
- * Walks the package tree and returns every compile/runtime fixture module.
- */
-async function findFixtureTestFiles(rootDir: string): Promise<string[]> {
-    const entries = await fs.readdir(rootDir, {
-        withFileTypes: true,
-    });
-    const files: string[] = [];
-
-    for (const entry of entries) {
-        if (
-            entry.name === '.build' ||
-            entry.name === '.compact-test-build' ||
-            entry.name === 'node_modules'
-        ) {
-            continue;
-        }
-
-        const entryPath = path.join(rootDir, entry.name);
-
-        if (entry.isDirectory()) {
-            files.push(...(await findFixtureTestFiles(entryPath)));
-            continue;
-        }
-
-        if (entry.isFile() && compactTestFilePattern.test(entry.name)) {
-            files.push(entryPath);
-        }
-    }
-
-    return files;
-}
-
-/**
- * Groups compile/runtime files into a fixture record.
- */
-function buildDiscoveredFixture(
-    fixtureDir: string,
-    files: ParsedFixtureTestFile[],
-): DiscoveredFixture {
-    const compileFiles = files.filter((file) => file.phase === 'compile');
-    const runtimeFiles = files.filter((file) => file.phase === 'runtime');
-
-    if (compileFiles.length > 1) {
-        throw new Error(`${fixtureDir} has multiple compile test files`);
-    }
-
-    if (runtimeFiles.length > 1) {
-        throw new Error(`${fixtureDir} has multiple runtime test files`);
-    }
-
-    return {
-        fixtureDir,
-        relativeFixtureDir: path.relative(testRoot, fixtureDir),
-        compile: compileFiles[0],
-        runtime: runtimeFiles[0],
-    };
-}
-
-/**
- * Parses phase and expected result directly from a fixture test file name.
- */
-function parseFixtureTestFile(filePath: string): ParsedFixtureTestFile {
-    const match = compactTestFilePattern.exec(path.basename(filePath));
-
-    if (match === null) {
-        throw new Error(`Invalid Compact test file name: ${filePath}`);
-    }
-
-    return {
-        filePath,
-        phase: match[1] as FixturePhase,
-        result: match[2] as FixtureResult,
-    };
-}
-
-/**
  * Compiles one fixture for TypeScript static import resolution.
  */
 async function compileFixtureForTypecheck(
@@ -352,14 +232,11 @@ async function compileFixtureForTypecheck(
         recursive: true,
     });
 
-    const args = new Set([
-        ...(compileDefinition.options.compilerArgs ?? []),
-        skipZkArg,
-    ]);
     const result = await compileContract(
+        resolvedCompilerPath,
         contractPath,
         outputDir,
-        Array.from(args),
+        [...(compileDefinition.options.compilerArgs ?? []), skipZkArg],
     );
 
     if (result.exitCode !== 0) {
@@ -367,141 +244,6 @@ async function compileFixtureForTypecheck(
             `${contractPath} failed to compile while preparing lint artifacts:\n${result.stdout}\n${result.stderr}`,
         );
     }
-}
-
-/**
- * Imports a compile fixture module, which should only export metadata.
- */
-async function loadCompileDefinition(
-    filePath: string,
-): Promise<CompileTestDefinition> {
-    const module = (await import(pathToFileURL(filePath).href)) as {
-        default?: unknown;
-    };
-    const definition = module.default;
-
-    if (!isCompileDefinition(definition)) {
-        throw new Error(
-            `${filePath} must export default defineCompileTest(import.meta.url, ...)`,
-        );
-    }
-
-    return definition;
-}
-
-/**
- * Narrows imported compile metadata.
- */
-function isCompileDefinition(value: unknown): value is CompileTestDefinition {
-    return (
-        typeof value === 'object' &&
-        value !== null &&
-        'kind' in value &&
-        value.kind === 'compact-compile-test'
-    );
-}
-
-/**
- * Resolves the single `.compact` source owned by a fixture directory.
- */
-async function findFixtureContract(fixtureDir: string): Promise<string> {
-    const entries = await fs.readdir(fixtureDir);
-    const contracts = entries.filter((entry) => entry.endsWith('.compact'));
-
-    if (contracts.length !== 1) {
-        throw new Error(
-            `${fixtureDir} must contain exactly one .compact contract, found ${contracts.length}`,
-        );
-    }
-
-    return path.join(fixtureDir, contracts[0]);
-}
-
-/**
- * Invokes the Compact compiler and captures stdout, stderr, and exit code.
- */
-function compileContract(
-    contractPath: string,
-    outputDir: string,
-    fixtureCompilerArgs: string[],
-): Promise<CompileOutcome> {
-    return new Promise((resolve, reject) => {
-        const args = compilerArgs(contractPath, outputDir, fixtureCompilerArgs);
-        const child = spawn(resolvedCompilerPath, args, {
-            stdio: ['ignore', 'pipe', 'pipe'],
-        });
-        let stdout = '';
-        let stderr = '';
-
-        child.stdout!.on('data', (data) => {
-            stdout += data.toString();
-        });
-        child.stderr!.on('data', (data) => {
-            stderr += data.toString();
-        });
-        child.on('error', (error) => {
-            reject(error);
-        });
-        child.on('close', (code) => {
-            resolve({
-                stdout,
-                stderr,
-                exitCode: code ?? 1,
-            });
-        });
-    });
-}
-
-/**
- * Builds argv for either the Nix `compactc` binary or a `compact` wrapper,
- * keeping compiler flags ahead of the paths.
- */
-function compilerArgs(
-    contractPath: string,
-    outputDir: string,
-    fixtureCompilerArgs: string[],
-): string[] {
-    const coreArgs = [...fixtureCompilerArgs, contractPath, outputDir];
-
-    return path.basename(resolvedCompilerPath) === 'compact'
-        ? ['compile', ...coreArgs]
-        : coreArgs;
-}
-
-/**
- * Builds the fixture-scoped output directory.
- */
-function fixtureOutputDir(fixtureDir: string): string {
-    return path.join(fixtureDir, '.build');
-}
-
-/**
- * Checks whether a fixture path matches any CLI path filter.
- */
-function matchesFilters(
-    targetPath: string,
-    selectedFilters: string[],
-): boolean {
-    const normalizedTarget = normalizePath(targetPath);
-    const relativeTarget = normalizePath(path.relative(testRoot, targetPath));
-
-    return selectedFilters.some((filter) => {
-        const normalizedFilter = normalizePath(filter);
-        const absoluteFilter = normalizePath(path.resolve(testRoot, filter));
-
-        return (
-            relativeTarget.includes(normalizedFilter) ||
-            normalizedTarget.includes(normalizedFilter) ||
-            normalizedTarget.includes(absoluteFilter)
-        );
-    });
-}
-
-/**
- * Normalizes path separators for stable substring matching.
- */
-function normalizePath(value: string): string {
-    return value.split(path.sep).join('/');
 }
 
 /**

@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import path from 'node:path';
-
 import type { SerializedError } from 'vitest';
 import type {
     TestCase,
@@ -24,13 +22,8 @@ import type {
 } from 'vitest/node';
 import { DefaultReporter } from 'vitest/reporters';
 
-/**
- * Fixture metadata the orchestrator attaches to each orchestrated test case.
- */
-type FixtureTestMetadata = {
-    durationMs?: number;
-    filePath: string;
-};
+import type { FixtureTestMetadata } from './types.ts';
+import { fixtureMetadataKey, normalizePath } from './utils.ts';
 
 type SlowCompileCase = {
     duration: number;
@@ -47,7 +40,6 @@ type FixtureDisplay = {
 };
 
 const orchestratorFile = 'compact-test-orchestrator.test.ts';
-const fixtureMetadataKey = 'compactFixture';
 const ansiReset = '\u001b[0m';
 const ansiColors = {
     dim: '\u001b[2m',
@@ -368,11 +360,4 @@ function isSlowCompileCase(fixtureCase: FixtureTestMetadata): boolean {
     const fileName = parts.at(-1) ?? '';
 
     return parts.includes('slow') && fileName.startsWith('compile.');
-}
-
-/**
- * Normalizes path separators for stable module matching.
- */
-function normalizePath(value: string): string {
-    return value.split(path.sep).join('/');
 }
