@@ -320,11 +320,18 @@ describe('checkConformance', () => {
     expect(checkConformance(declaration, impure)).toEqual({ outcome: 'Violation', circuitId: 'balance', check: 'Purity' });
   });
 
-  test('a declared-impure circuit may be implemented pure', () => {
-    // Declaring `pure` is a promise the caller relies on; declaring nothing isn't.
+  test('a declared-impure circuit implemented pure fails on provability', () => {
+    // Not independent flags: `provable` is membership in the impure export list,
+    // so `pure && provable` is unreachable and this is the only
+    // shape a pure implementation takes. Nothing is lost by rejecting it — a pure circuit has no
+    // verifier key for `checkImplementation` and no entry in `provableCircuits` to call.
     const declaredImpure: InterfaceDescriptor = { balance: decl(false, [], FIELD) };
-    const implementedPureAndProvable: CircuitSignatures = { balance: sig(true, true, [], FIELD) };
-    expect(checkConformance(declaredImpure, implementedPureAndProvable)).toEqual({ outcome: 'Conformant' });
+    const implementedPure: CircuitSignatures = { balance: sig(true, false, [], FIELD) };
+    expect(checkConformance(declaredImpure, implementedPure)).toEqual({
+      outcome: 'Violation',
+      circuitId: 'balance',
+      check: 'Provability',
+    });
   });
 
   test('a declared-impure circuit must be provable', () => {
@@ -493,5 +500,69 @@ describe('checkConformance: an unreadable module', () => {
     expect(signatureTypesEqual(FIELD, FUTURE)).toEqual(false);
     const impl: CircuitSignatures = { transfer: sig(false, true, [FUTURE], BOOL) };
     expect(checkConformance(declaration, impl)).toMatchObject({ outcome: 'Unreadable' });
+  });
+
+  // A known tag says how to read the rest, and the rest is still the module's word. Each of these
+  // left as a bare TypeError or RangeError naming neither the contract nor the call.
+  const malformed = (value: unknown): SignatureType => value as SignatureType;
+
+  const withArgument = (type: SignatureType): CircuitSignatures => ({
+    transfer: sig(false, true, [type], BOOL),
+  });
+
+  test('a known tag whose payload is missing reports that tag', () => {
+    const cases: readonly (readonly [string, SignatureType])[] = [
+      ['Struct', malformed({ tag: 'Struct', name: 'S' })],
+      ['Tuple', malformed({ tag: 'Tuple' })],
+      ['Contract', malformed({ tag: 'Contract', name: 'C' })],
+      ['Enum', malformed({ tag: 'Enum', name: 'E' })],
+      ['Vector', malformed({ tag: 'Vector', length: -1, type: FIELD })],
+    ];
+    for (const [unreadableTag, type] of cases) {
+      expect(checkConformance(declaration, withArgument(type))).toEqual({
+        outcome: 'Unreadable',
+        circuitId: 'transfer',
+        unreadableTag,
+        argumentIndex: 0,
+      });
+    }
+  });
+
+  test('a type that is not an object has no tag to report', () => {
+    for (const value of [undefined, null, 7, 'Field', { modulus: '7' }]) {
+      expect(checkConformance(declaration, withArgument(malformed(value)))).toEqual({
+        outcome: 'Unreadable',
+        circuitId: 'transfer',
+        unreadableTag: '(malformed)',
+        argumentIndex: 0,
+      });
+    }
+  });
+
+  test('a signature with no argument list is unreadable, not a crash', () => {
+    // Read before `argumentTypes.length`, which is the first thing the arity check reaches for.
+    const impl = { transfer: { pure: false, provable: true, resultType: BOOL } } as unknown as CircuitSignatures;
+    expect(checkConformance(declaration, impl)).toEqual({
+      outcome: 'Unreadable',
+      circuitId: 'transfer',
+      unreadableTag: '(malformed)',
+    });
+  });
+
+  test('a nested malformed payload is found through a readable one', () => {
+    const nested = malformed({ tag: 'Vector', length: 2, type: { tag: 'Tuple' } });
+    expect(checkConformance(declaration, withArgument(nested))).toEqual({
+      outcome: 'Unreadable',
+      circuitId: 'transfer',
+      unreadableTag: 'Tuple',
+      argumentIndex: 0,
+    });
+  });
+
+  test('a Vector is measured before its elements are built', () => {
+    // Lengths differ, so nothing is built. Materializing to measure would allocate two billion
+    // slots against a two-element tuple, and this test would die rather than fail.
+    const huge = malformed({ tag: 'Vector', length: 2 ** 31, type: FIELD });
+    expect(signatureTypesEqual(tuple(FIELD, FIELD), huge)).toEqual(false);
   });
 });

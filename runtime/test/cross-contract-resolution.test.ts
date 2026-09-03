@@ -55,13 +55,18 @@ const stateProviderFor = (address: ocrt.ContractAddress): ContractStateProvider 
 };
 
 /**
- * Make the call and return the resolution failure it raised. Fails the test if it raised something
- * else, or nothing: a case that stops failing has to be noticed rather than pass.
+ * Make the call and hand back the failure it raised together with the context it ran against. Fails
+ * the test if it raised something else, or nothing: a case that stops failing has to be noticed
+ * rather than pass.
  */
-const failureFrom = async (options: {
+const runFailingCall = async (options: {
   moduleProvider?: ContractModuleProvider;
   declaration?: InterfaceDescriptor;
-}): Promise<ModuleResolutionError['failure']> => {
+}): Promise<{
+  failure: ModuleResolutionError['failure'];
+  context: CircuitContext;
+  calleeAddress: ocrt.ContractAddress;
+}> => {
   const calleeAddress = ocrt.sampleContractAddress();
   const context: CircuitContext = createCircuitContext({
     circuitId: 'caller',
@@ -88,12 +93,18 @@ const failureFrom = async (options: {
     });
   } catch (error) {
     if (ModuleResolutionError.is(error)) {
-      return error.failure;
+      return { failure: error.failure, context, calleeAddress };
     }
     throw new Error(`expected a ModuleResolutionError, got ${String(error)}`);
   }
   throw new Error('expected the call to reject');
 };
+
+/** Just the failure, for the cases that only classify one. */
+const failureFrom = async (options: {
+  moduleProvider?: ContractModuleProvider;
+  declaration?: InterfaceDescriptor;
+}): Promise<ModuleResolutionError['failure']> => (await runFailingCall(options)).failure;
 
 /** A provider whose thunk rejects with `rejection`. */
 const rejectingProvider = (rejection: unknown): ContractModuleProvider => ({
@@ -270,5 +281,21 @@ describe('crossContractCall failure classification', () => {
         args: [1n],
       }),
     ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
+  });
+
+  test('a resolution failure records nothing about the callee', async () => {
+    // `ModuleResolutionError` is a catchable payload on purpose, so an application may catch one and
+    // carry on. The deployed state is read before the checks; entering the callee happens after
+    // them, so a rejected callee leaves no query context, no cost and no memoized state behind — and
+    // on a repeat call, no cleared effects.
+    const nonconformant = { Contract: class {}, circuitSignatures: {}, expectedVk: {} } as unknown as Module;
+    const { failure, context, calleeAddress } = await runFailingCall({
+      moduleProvider: providerFor(nonconformant),
+    });
+
+    expect(failure.kind).toEqual('NonconformantImplementation');
+    expect(context.queryContexts[calleeAddress]).toBeUndefined();
+    expect(context.gasCosts[calleeAddress]).toBeUndefined();
+    expect(context.contractStates?.[calleeAddress]).toBeUndefined();
   });
 });

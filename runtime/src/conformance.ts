@@ -20,6 +20,10 @@
  * and a Vault address passed where a Token was expected resolves to the Vault module, whose keys
  * agree with the chain perfectly and whose `transfer` means something else.
  *
+ * What it compares is shape, never identity. Two contract types whose circuits agree in name, arity
+ * and types are interchangeable here, and so are two structs or `new type`s that share a name and
+ * shape.
+ *
  * The comparison ports `sametype?`/`circuit-superset?` (analysis-passes/infer-types.ss:131-233) onto
  * the encoded signatures, deviating only where noted.
  */
@@ -51,9 +55,9 @@ export type ConformanceViolation = {
 };
 
 /**
- * A type constructor this build doesn't know, found in a module's signatures. Distinct from a
- * violation: a violation says something different from what was asked for, this says something we
- * can't read.
+ * A type in a module's signatures this build can't read: an unknown constructor, or a known one
+ * whose payload is not what that constructor carries. Distinct from a violation, which says
+ * something different from what was asked for; this says something we can't read at all.
  */
 export type UnreadableSignature = {
   readonly circuitId: CircuitId;
@@ -91,13 +95,34 @@ const KNOWN_SIGNATURE_TAGS: { readonly [K in SignatureType['tag']]: true } = {
   Contract: true,
 };
 
+/** Reported where a signature is not shaped like one at all, so it has no tag to name. */
+const MALFORMED = '(malformed)';
+
+/** `value` as a readable record, or `undefined` if it is not one. */
+const asRecord = (value: unknown): Record<string, unknown> | undefined =>
+  typeof value === 'object' && value !== null ? (value as Record<string, unknown>) : undefined;
+
+/** A `Vector`'s element count as encoded: anything else makes the type unreadable, not unequal. */
+const isEncodedLength = (value: unknown): boolean => typeof value === 'number' && Number.isSafeInteger(value) && value >= 0;
+
 /**
- * The first tag in `t` this build doesn't recognize, or `undefined` if the whole type is readable.
- * The tag is read as `string` rather than trusted: these signatures come from a module we didn't
- * compile.
+ * The first tag in `t` this build can't read, or `undefined` if the whole type is readable.
+ *
+ * `t` is a {@link SignatureType} by declaration only — it came from a module we didn't compile — so
+ * nothing here is trusted: the tag is read as `unknown`, and a known tag's payload is checked before
+ * it is walked. A malformed payload reports the tag that carries it, which keeps a junk module
+ * inside the `Unreadable` vocabulary instead of throwing a `TypeError` out of whichever field
+ * happened to be read first.
  */
 const firstUnreadableTag = (t: SignatureType): string | undefined => {
-  const tag = (t as { readonly tag: string }).tag;
+  const encoded = asRecord(t);
+  if (encoded === undefined) {
+    return MALFORMED;
+  }
+  const tag = encoded.tag;
+  if (typeof tag !== 'string') {
+    return MALFORMED;
+  }
   if (!Object.hasOwn(KNOWN_SIGNATURE_TAGS, tag)) {
     return tag;
   }
@@ -112,17 +137,21 @@ const firstUnreadableTag = (t: SignatureType): string | undefined => {
     case 'Uint':
     case 'Bytes':
     case 'Opaque':
-    case 'Enum':
       return undefined;
-    case 'Vector':
+    // Its elements are names rather than types, so there is nothing to walk — but
+    // `signatureTypesEqual` still reads them.
+    case 'Enum':
+      return Array.isArray(t.elements) ? undefined : t.tag;
     case 'Alias':
       return firstUnreadableTag(t.type);
+    case 'Vector':
+      return isEncodedLength(t.length) ? firstUnreadableTag(t.type) : t.tag;
     case 'Tuple':
-      return firstUnreadable(t.types);
+      return Array.isArray(t.types) ? firstUnreadable(t.types) : t.tag;
     case 'Struct':
-      return firstUnreadable(t.elements.map((e) => e.type));
+      return Array.isArray(t.elements) ? firstUnreadable(t.elements.map((e) => asRecord(e)?.type as SignatureType)) : t.tag;
     case 'Contract':
-      return firstUnreadableInDescriptor(t.circuits);
+      return asRecord(t.circuits) === undefined ? t.tag : firstUnreadableInDescriptor(t.circuits);
     default: {
       // Unreachable: unknown tags returned above, known ones all have a case. A new variant lands
       // here until it gets one.
@@ -145,6 +174,9 @@ const firstUnreadable = (types: readonly SignatureType[]): string | undefined =>
 const firstUnreadableInDescriptor = (descriptor: InterfaceDescriptor): string | undefined => {
   for (const name of Object.keys(descriptor)) {
     const declaration = descriptor[name];
+    if (!Array.isArray(asRecord(declaration)?.argumentTypes)) {
+      return MALFORMED;
+    }
     const tag = firstUnreadable([...declaration.argumentTypes, declaration.resultType]);
     if (tag !== undefined) {
       return tag;
@@ -154,18 +186,31 @@ const firstUnreadableInDescriptor = (descriptor: InterfaceDescriptor): string | 
 };
 
 /**
- * A sequence type's element types, or `undefined` if this is not a sequence.
+ * A sequence type's elements: how many, and which one is at an index.
+ *
+ * A view rather than an array because the length is compared first and is usually what differs. A
+ * `Vector` carries its length as a number, so building one to measure it lets a
+ * `{tag: 'Vector', length: 2 ** 30}` from an untrusted module allocate a billion slots against a
+ * two-element tuple.
+ */
+type SequenceView = {
+  readonly length: number;
+  readonly at: (index: number) => SignatureType;
+};
+
+/**
+ * A sequence type's elements, or `undefined` if this is not a sequence.
  *
  * The compiler identifies `Vector<n, T>` with an n-tuple of `T` (the `tvector`/`ttuple` cross-cases
  * in `sametype?`), so compare element lists rather than tags. The encoder canonicalizes both before
  * emission, so the cross-case should not arise.
  */
-const sequenceElements = (t: SignatureType): readonly SignatureType[] | undefined => {
+const sequenceElements = (t: SignatureType): SequenceView | undefined => {
   switch (t.tag) {
     case 'Vector':
-      return new Array<SignatureType>(t.length).fill(t.type);
+      return { length: t.length, at: () => t.type };
     case 'Tuple':
-      return t.types;
+      return { length: t.types.length, at: (index) => t.types[index] };
     default:
       return undefined;
   }
@@ -203,15 +248,27 @@ const contractCircuitsEqual = (a: InterfaceDescriptor, b: InterfaceDescriptor): 
 /**
  * Whether two encoded Compact types are the same type.
  *
- * Nominal for structs, enums and `new type` aliases, matching the compiler: those names are shared
- * across compilation units through the module declaring them. Structural for contract types, per
- * {@link contractCircuitsEqual}.
+ * Nominal for structs, enums and `new type` aliases, matching the compiler; structural for contract
+ * types, per {@link contractCircuitsEqual}.
+ *
+ * The name is all the nominal cases have. Nothing in the encoding records which module declared it,
+ * so two compilation units that each write `new type Meters = Uint<64>` are one type here. The
+ * underlying type is still compared, so an alias collision cannot smuggle a different
+ * representation past — but a struct agreeing in name and fields is accepted whatever it meant.
  */
 export function signatureTypesEqual(a: SignatureType, b: SignatureType): boolean {
   const aSeq = sequenceElements(a);
   if (aSeq !== undefined) {
     const bSeq = sequenceElements(b);
-    return bSeq !== undefined && aSeq.length === bSeq.length && aSeq.every((t, i) => signatureTypesEqual(t, bSeq[i]));
+    if (bSeq === undefined || aSeq.length !== bSeq.length) {
+      return false;
+    }
+    for (let index = 0; index < aSeq.length; index += 1) {
+      if (!signatureTypesEqual(aSeq.at(index), bSeq.at(index))) {
+        return false;
+      }
+    }
+    return true;
   }
   switch (a.tag) {
     case 'Boolean':
@@ -274,10 +331,7 @@ export function signatureTypesEqual(a: SignatureType, b: SignatureType): boolean
  * @param declaration The caller's `declaredInterfaces[T]` for the contract type being called through.
  * @param implementation The resolved module's `circuitSignatures`.
  */
-export function checkConformance(
-  declaration: InterfaceDescriptor,
-  implementation: CircuitSignatures,
-): ConformanceResult {
+export function checkConformance(declaration: InterfaceDescriptor, implementation: CircuitSignatures): ConformanceResult {
   for (const circuitId of Object.keys(declaration)) {
     const declared = declaration[circuitId];
     // Own-property, not `in` or a bare index: `constructor` and `toString` are legal circuit names,
@@ -286,6 +340,12 @@ export function checkConformance(
       return { outcome: 'Violation', circuitId, check: 'Existence' };
     }
     const implemented = implementation[circuitId];
+    // Also a module we didn't compile. `pure` and `provable` need no check — absent reads as false,
+    // which is the conservative answer — but `argumentTypes` is measured and indexed below, and
+    // `resultType` is walked.
+    if (!Array.isArray(asRecord(implemented)?.argumentTypes)) {
+      return { outcome: 'Unreadable', circuitId, unreadableTag: MALFORMED };
+    }
     if (declared.pure && !implemented.pure) {
       return { outcome: 'Violation', circuitId, check: 'Purity' };
     }

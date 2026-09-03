@@ -42,10 +42,7 @@ import { alignedConcat } from './built-ins.js';
  *
  * @internal
  */
-const failResolution: (context: ModuleResolutionContext, failure: ModuleResolutionFailure) => never = (
-  context,
-  failure,
-) => {
+const failResolution: (context: ModuleResolutionContext, failure: ModuleResolutionFailure) => never = (context, failure) => {
   throw new ModuleResolutionError(context, failure);
 };
 
@@ -233,46 +230,82 @@ const emptyEffects = (): ocrt.Effects => ({
 });
 
 /**
+ * The callee's deployed state at the pinned parent block.
+ *
+ * Reads and returns; records nothing. Whether this address holds the code the provider handed us is
+ * not known until {@link checkImplementation} has had this state to compare against, so nothing is
+ * committed to the circuit context until it has.
+ *
+ * Membership in `queryContexts` is what says the callee has been reached before, and that map has
+ * exactly three writers: the `createCircuitContext` seed (the entry contract), the create branch of
+ * {@link enterQueryContext} (which fills `contractStates` in the same branch), and
+ * `queryLedgerState` (the executing contract). The first and third write addresses that are in
+ * `activeContracts` by construction, and `assertNoReentrancy` has already refused any callee in
+ * that set. So a callee found here was put there by `enterQueryContext`, and `contractStates` has
+ * it. The assertion below is what a fourth writer would contradict — fetching instead would hide
+ * one behind a second read taken at a different point in the call.
+ *
  * @internal
  */
-const resolveQueryContext = async (
+const resolveDeployedState = async (context: CircuitContext, callee: ocrt.ContractAddress): Promise<ocrt.ContractState> => {
+  if (callee in context.queryContexts) {
+    const memoized = context.contractStates?.[callee];
+    assertDefined(memoized, `deployed contract state for callee '${callee}'`);
+    return memoized;
+  }
+  assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
+  assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
+  const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
+  assertDefined(contractState, `contract state for callee '${callee}'`);
+  return contractState;
+};
+
+/**
+ * The callee's query context: created on the first call to an address, reused on the next.
+ *
+ * This is where a call commits. Creating records the state, the context and a cost against the
+ * address; reusing clears the effects the previous call accumulated. Both are destructive to a
+ * caller that catches a {@link ModuleResolutionError} and carries on, which is why every check that
+ * can reject the callee runs before this and none after.
+ *
+ * @internal
+ */
+const enterQueryContext = (
   context: CircuitContext,
   callee: ocrt.ContractAddress,
-): Promise<ocrt.QueryContext> => {
+  deployedState: ocrt.ContractState,
+): ocrt.QueryContext => {
   const caller: ocrt.PublicAddress = { tag: 'contract', address: context.callContext.contractAddress };
-  let queryContext: ocrt.QueryContext;
   if (callee in context.queryContexts) {
     const cached = context.queryContexts[callee];
     // Keep the state and commitment indices. The second call has to see what the first left
     // behind, but not the effects. A transcript's effects are its start context's plus its own
     // ops', so carried forward the second call re-declares the first's receives; the ledger sums
-    // claims across transcripts and requires the offers to match as a multiset, and no offer carries one commitment twice.
+    // claims across transcripts and requires the offers to match as a multiset, and no offer
+    // carries one commitment twice.
     cached.block = { ...cached.block, caller };
     cached.effects = emptyEffects();
-    queryContext = cached;
-  } else {
-    assertDefined(context.stateProvider, `state provider for call to '${callee}'`);
-    assertDefined(context.callContext.parentBlockHash, `parent block hash to fetch state for callee '${callee}'`);
-    const contractState = await context.stateProvider.getContractState(context.callContext.parentBlockHash, callee);
-    assertDefined(contractState, `contract state for callee '${callee}'`);
-    // The cached query context drops the verifier keys, so keep the whole state for
-    // {@link checkImplementation}.
-    (context.contractStates ??= {})[callee] = contractState;
-    queryContext = createInitialQueryContext(
-      contractState,
-      callee,
-      context.callContext.time,
-      context.callContext.parentBlockHash,
-      caller,
-    );
-    context.queryContexts[callee] = queryContext;
-    context.gasCosts[callee] = emptyRunningCost();
+    return cached;
   }
+  assertDefined(context.callContext.parentBlockHash, `parent block hash to enter callee '${callee}'`);
+  // The cached query context drops the verifier keys, so keep the whole state for
+  // {@link checkImplementation}. Written in this branch and nowhere else, alongside the query
+  // context: that pairing is the invariant `resolveDeployedState` asserts against.
+  (context.contractStates ??= {})[callee] = deployedState;
+  const queryContext = createInitialQueryContext(
+    deployedState,
+    callee,
+    context.callContext.time,
+    context.callContext.parentBlockHash,
+    caller,
+  );
+  context.queryContexts[callee] = queryContext;
+  context.gasCosts[callee] = emptyRunningCost();
   return queryContext;
 };
 
 /**
- * Gets a contract's accumulated gas cost from the circuit context. {@link resolveQueryContext}
+ * Gets a contract's accumulated gas cost from the circuit context. {@link enterQueryContext}
  * always leaves a cost behind, so a miss is a bug.
  *
  * @internal
@@ -567,9 +600,7 @@ export const crossContractCall = async ({
 
   // 1. A circuit the contract type declares `pure` has no verifier key and is never a deployed
   //    operation, so there is nothing to call into.
-  const declared = Object.hasOwn(declaration, calleeCircuitId)
-    ? declaration[calleeCircuitId]
-    : undefined;
+  const declared = Object.hasOwn(declaration, calleeCircuitId) ? declaration[calleeCircuitId] : undefined;
   assertDefined(declared, `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`);
   if (declared.pure) {
     failResolution(resolutionContext, { kind: 'PureInterfaceCircuit' });
@@ -586,20 +617,22 @@ export const crossContractCall = async ({
   // 3. Re-entrancy guard. Must stay last before the `try`; the `finally` is its removal.
   assertNoReentrancy(circuitContext, calleeAddress);
   try {
-    // 4. Deployed state at the pinned parent block, memoized by address.
-    const calleeQueryContext = await resolveQueryContext(circuitContext, calleeAddress);
-    const deployedState = circuitContext.contractStates?.[calleeAddress];
-    assertDefined(deployedState, `deployed contract state for callee '${calleeAddress}'`);
+    // 4. Deployed state at the pinned parent block. Read only — see `resolveDeployedState`.
+    const deployedState = await resolveDeployedState(circuitContext, calleeAddress);
 
-    // 6. The module, from the provider.
+    // 5. The module, from the provider.
     const calleeModule = await resolveModule(moduleProvider, calleeAddress, resolutionContext);
 
-    // 7. Conformance before keys: a non-conformant module is an application mistake, a key mismatch
+    // 6. Conformance before keys: a non-conformant module is an application mistake, a key mismatch
     //    is the code and the chain having drifted.
     checkModuleConformance(declaration, calleeModule, resolutionContext);
 
-    // 5 and 8. The operation exists and carries a key, and its fingerprint agrees.
+    // 7. The operation exists and carries a key, and its fingerprint agrees.
     checkImplementation(deployedState, calleeModule, calleeCircuitId, resolutionContext);
+
+    // 8. The callee is who it claims to be, so commit to calling it. Everything above rejects
+    //    without touching the caller's context; nothing below can reject at all.
+    const calleeQueryContext = enterQueryContext(circuitContext, calleeAddress, deployedState);
 
     // 9. Construct the callee and run it.
     const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];

@@ -29,7 +29,11 @@ export type ModuleResolutionFailure =
   /** The circuit context carries no module provider. */
   | { readonly kind: 'ModuleProviderAbsent' }
   /** The contract type declares the called circuit `pure`, so it has no
-   *  verifier key and is never a deployed operation. */
+   *  verifier key and is never a deployed operation. The compiler accepts the
+   *  declaration and the call, so this is where one stops.
+   *
+   *  TODO: reject the declaration at compile time instead. A pure call has no
+   *  transcript, so its result reaches the caller's proof unconstrained. */
   | { readonly kind: 'PureInterfaceCircuit' }
   /** The contract deployed at the callee's address has no operation for this
    *  circuit, or its operation carries no verifier key. */
