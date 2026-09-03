@@ -203,6 +203,10 @@
      (values
        `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (idset-union-all (cons idset idset*)))]
+    [(verify-proof ,src ,vk ,[Value : expr1 idset1] ,[Value : expr2 idset2])
+     (values
+       `(verify-proof ,src ,vk ,expr1 ,expr2)
+       (idset-union idset1 idset2))]
     [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
   (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
     [(single ,src ,[Value : expr idset])

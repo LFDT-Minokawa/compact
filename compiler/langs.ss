@@ -30,6 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
+          make-verifying-key verifying-key? verifying-key-pathname verifying-key-content
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
@@ -47,6 +48,7 @@
           Lunrolled unparse-Lunrolled Lunrolled-pretty-formats
           Linlined unparse-Linlined Linlined-pretty-formats
           Lnosafecast unparse-Lnosafecast Lnosafecast-pretty-formats
+          verifying-key?
           Lnovectorref unparse-Lnovectorref Lnovectorref-pretty-formats
           Lcircuit unparse-Lcircuit Lcircuit-pretty-formats Lcircuit-Native-Declaration? Lcircuit-Witness-Declaration? Lcircuit-Circuit-Definition? Lcircuit-Kernel-Declaration? Lcircuit-Ledger-Declaration? Lcircuit-Triv?
           Lflattened unparse-Lflattened Lflattened-pretty-formats Lflattened-Triv? Lflattened-Circuit-Definition?
@@ -83,10 +85,15 @@
          (<= 0 x (field-bytes))))
 
   (define (datum? x)
+    ; Lexpanded through Lcircuit
     (or (boolean? x)
         (field? x)
         (and (bytevector? x)
              (<= (bytevector-length x) (max-bytes/vector-length)))))
+
+  (define (source-datum? x)
+    ; Lsrc through Lpreexpand datum also includes strings
+    (or (datum? x) (string? x)))
 
   (define max-bytes/vector-length (make-parameter (expt 2 24)))
 
@@ -121,8 +128,8 @@
       (field (nat))
       (boolean (exported sealed pure-dcl nominal))
       (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-      (string (prefix mesg opaque-type file))
-      (datum (datum))
+      (string (prefix mesg opaque-type file str))
+      (source-datum (datum))
       (source-object (src))
       )
     (Program (p)
@@ -233,6 +240,7 @@
       )
     (Expression (expr index)
       (quote src datum)                                   => datum
+      (pad src tsize str)                                 => (pad tsize str)
       (var-ref src var-name)                              => var-name
       (default src type)                                  => (default type)
       (if src expr0 expr1 expr2)                          => (if expr0 3 expr1 3 expr2)
@@ -406,19 +414,28 @@
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
+  (module (make-verifying-key verifying-key? verifying-key-pathname verifying-key-content)
+    (define-record-type verifying-key
+      (nongenerative)
+      (fields pathname content))
+    (record-writer (record-type-descriptor verifying-key)
+      (lambda (x p wr)
+        (fprintf p "VK<~a>" (verifying-key-pathname x)))))
+
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-         (string (prefix mesg opaque-type file)))
+         (string (prefix mesg opaque-type file str)))
       (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
-         (string (prefix mesg opaque-type file discloses))
-         (procedure (result-type runtime-code))
+         (string (prefix mesg opaque-type file str discloses))
+         (procedure (result-type runtime-code handler))
          (vm-expr (vm-expr))
          (vm-code (vm-code))
          (native-entry (native-entry))))
     (Program-Element (pelt)
       (+ ntdecl
          ndecl
+         nkdecl
          adt-defn
          fixup-alias-defn))
     (Native-Type-Declaration (ntdecl)
@@ -427,6 +444,9 @@
     (Native-Declaration (ndecl)
       (+ (native src exported? function-name native-entry (type-param* ...) (arg* ...) type) =>
            (native function-name (type-param* ...) (arg* 0 ...) 4 type)))
+    (Native-Keyword-Declaration (nkdecl)
+      (+ (native-keyword src exported? function-name handler) =>
+           (native-keyword function-name)))
     (ADT-Definition (adt-defn)
       (+ (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...)) =>
            (define-adt exported? adt-name #f (type-param* 0 ...) #f (adt-op* 0 ...) #f (adt-rt-op* 0 ...))))
@@ -503,13 +523,16 @@
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
       (+ (len (len)))
+      (+ (verifying-key (vk)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (boolean (exported sealed pure-dcl nominal))
-         (string (prefix mesg opaque-type file discloses)))
+         (string (prefix mesg opaque-type file str discloses))
+         (source-datum (datum)))
       (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
          (boolean (pure-dcl nominal))
          (id (name var-name function-name ledger-field-name))
-         (string (mesg opaque-type file discloses))))
+         (string (mesg opaque-type file discloses))
+         (datum (datum))))
     (Program (p)
       (- (program src pelt* ...))
       (+ (program src ((export-name* name*) ...) ((struct-name* type*) ...) (unused-pelt* ...) (ecdecl* ...) (cidecl* ...) pelt* ...)
@@ -524,11 +547,14 @@
          enumdef
          tdefn
          ntdecl
+         nkdecl
          adt-defn
          fixup-alias-defn)
       (+ export-tdefn))
     (Native-Type-Declaration (ntdecl)
       (- (native-type src exported? type-name type)))
+    (Native-Keyword-Declaration (nkdecl)
+      (- (native-keyword src exported? function-name handler)))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Fixup-Alias-Definition (fixup-alias-defn)
@@ -598,13 +624,15 @@
          (tuple-slice src expr index tsize)
          (for src var-name tsize0 tsize1 expr2)
          (serialize src tsize type expr)
-         (deserialize src tsize type expr))
+         (deserialize src tsize type expr)
+         (pad src tsize str))
       (+ (ledger-ref src ledger-field-name) => ledger-field-name
          (new src type new-field* ...)      => (new type #f new-field* ...)
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
-         (deserialize src len type expr)    => (deserialize len type expr)))
+         (deserialize src len type expr)    => (deserialize len type expr)
+         (verify-proof src vk expr1 expr2)  => (verify-proof vk expr1 expr2)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -659,6 +687,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -773,6 +802,7 @@
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
+      (verify-proof src vk expr1 expr2)       => (verify-proof vk expr1 expr2)
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
@@ -1050,6 +1080,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -1085,7 +1116,8 @@
       (var-name type) => (bracket var-name type))
     (Statement (stmt)
       (= test var-name rhs)             => (= test var-name 2 rhs)
-      (assert src test mesg)            => (assert test #f mesg))
+      (assert src test mesg)            => (assert test #f mesg)
+      (verify-proof src test vk triv1 triv2) => (verify-proof test vk triv1 triv2))
     (Rhs (rhs)
       triv
       (default type)
@@ -1185,7 +1217,9 @@
       ; nanopass limitation: swap the two clauses below and the (= (var-name ...) multiple) pattern
       ; is rejected. (reported to Andy Keep 01/02/2024)
       (+ (= test (var-name* ...) multiple) =>  (= test (var-name* 0 ...) 2 multiple)
-         (= test var-name single)          =>  (= test var-name 2 single)))
+         (= test var-name single)          =>  (= test var-name 2 single))
+      (- (verify-proof src test vk triv1 triv2))
+      (+ (verify-proof src test vk triv triv* ...) =>  (verify-proof src test vk triv triv* ...)))
     (Rhs (rhs)
       (- triv
          (default type)
@@ -1286,6 +1320,7 @@
       (id (var-name))
       (symbol (name))
       (string (zkir-type))
+      (verifying-key (vk))
       ;; TODO(661) Implement alignment in this language instead of using it from an earlier one.
       ;; https://github.com/LFDT-Minokawa/compact/issues/661
       (Lflattened-Alignment (alignment)))
@@ -1330,7 +1365,9 @@
       (reconstitute_field outp inp0 inp1 imm)
       (reverse_bytes outp inp)
       (test_eq outp inp0 inp1)
-      (transient_hash outp inp* ...))
+      (transient_hash outp inp* ...)
+      (inner_proof inp outp)
+      (verify_proof vk inp0 inp1 inp* ...))
     (Input (inp)
       fr
       var-name)

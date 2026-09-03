@@ -171,6 +171,7 @@
       (Info-native-type src type-name type p)
       (Info-ledger ledger-field-name)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
+      (Info-native-keyword handler)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
       (Info-var id)
       ; an Info-bogus represents an id scoped within a block but outside of its let binding
@@ -597,6 +598,7 @@
         [(Info-native-type src type-name type p) "type"]
         [(Info-ledger ledger-field-name) "ledger field"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
+        [(Info-native-keyword handler) "keyword"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
     (define (handle-type-ref src tvar-name info* p info)
       (with-output-language (Lexpanded Type)
@@ -679,6 +681,35 @@
                                                               native*))
                                                         (event-declarations)
                                                         (inline-declarations)
+                                                        (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)])
+                                                          (list
+                                                            (with-output-language (Lpreexpand Program-Element)
+                                                              `(native-keyword ,src #t verifyProof
+                                                                 ,(lambda (src p info* expr*)
+                                                                    (unless (null? info*)
+                                                                      (source-errorf src "verifyProof expects zero generic parameters, received ~d" (length info*)))
+                                                                    (let ([n (length expr*)])
+                                                                      (unless (fx= n 3)
+                                                                        (source-errorf src "verifyProof expects three subforms, received ~d" n)))
+                                                                    (let-values ([(vkp-expr proof-expr pi-expr) (apply values expr*)])
+                                                                      (let ([pathname (or (nanopass-case (Lpreexpand Expression) vkp-expr
+                                                                                            [(quote ,src ,datum)
+                                                                                             (guard (string? datum))
+                                                                                             datum]
+                                                                                            [else #f])
+                                                                                          (source-errorf src "verifyProof expects its first subform to be a string"))])
+                                                                        (with-output-language (Lexpanded Expression)
+                                                                          `(verify-proof ,src
+                                                                             ,(make-verifying-key
+                                                                                pathname
+                                                                                (let ([pathname (find-source-pathname "" pathname
+                                                                                                  (lambda (pathname)
+                                                                                                    (source-errorf src "failed to locate file ~s" pathname)))])
+                                                                                  (guard (c [else (error-accessing-file c "reading verifying key file")])
+                                                                                    (let ([x (call-with-port (open-file-input-port pathname) get-bytevector-all)])
+                                                                                      (if (eof-object? x) (bytevector) x)))))
+                                                                             ,(Expression proof-expr p)
+                                                                             ,(Expression pi-expr p))))))))))
                                                         (map (lambda (adt-defn)
                                                                 (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -701,7 +732,7 @@
                                     (set! outer-module-next-seqno (cons (fx1+ (car outer-module-next-seqno)) (cdr outer-module-next-seqno)))
                                     (set-cdr! a info)
                                     info))))
-                       (let* ([pathname (find-source-pathname src
+                       (let* ([pathname (find-source-pathname ".compact"
                                           (if (symbol? import-name) (symbol->string import-name) import-name)
                                           (lambda (pathname) (source-errorf src "failed to locate file ~s" pathname)))]
                               [import-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
@@ -871,6 +902,12 @@
                      (env-insert! p src type-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src type-name info) export*) export*)
+                           unresolved-export*))]
+                  [(native-keyword ,src ,exported? ,function-name ,handler)
+                   (let ([info (Info-native-keyword handler)])
+                     (env-insert! p src function-name info)
+                     (loop pelt* seqno*
+                           (if exported? (cons (make-exportit src function-name info) export*) export*)
                            unresolved-export*))]
                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                    (let ([info (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)])
@@ -1189,6 +1226,31 @@
   (Argument : Argument (ir p) -> Argument ()
     [(,src ,var-name ,[type]) `(,(make-source-id src var-name) ,type)])
   (Expression : Expression (ir p) -> Expression ()
+    [(quote ,src ,datum)
+     (if (string? datum)
+         ; convert string constants into their utf8 bytevector equivalents
+         (let* ([bv (string->utf8 datum)] [n (bytevector-length bv)])
+           (unless (len? n)
+             (source-errorf src "length ~d of the UTF-8 representation of string constant exceeds the maximum supported length ~d"
+                            n
+                            (max-bytes/vector-length)))
+           `(quote ,src ,bv))
+         `(quote ,src ,datum))]
+    [(pad ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,str)
+     ; convert padded string constants into their utf8 bytevector equivalents
+     (let* ([bv (string->utf8 str)] [n (bytevector-length bv)])
+       (unless (len? nat)
+         (source-errorf src "pad length ~d exceeds the maximum supported length ~d"
+                        nat
+                        (max-bytes/vector-length)))
+       (cond
+         [(= n nat) `(quote ,src ,bv)]
+         [(< n nat)
+          (let ([bv^ (make-bytevector nat 0)])
+            (bytevector-copy! bv 0 bv^ 0 n)
+            `(quote ,src ,bv^))]
+         [else (source-errorf src "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length"
+                              str nat)]))]
     [(var-ref ,src ,var-name)
      (Info-lookup (p src var-name)
        [(Info-var id) `(var-ref ,src ,id)]
@@ -1251,8 +1313,22 @@
               [else #f])]
            [else #f])
          `(elt-ref ,src ,(Expression expr p) ,elt-name^))]
-    [(call ,src ,[fun] ,expr* ...) ; force fun to be processed before expr* to get better error messages
-     `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)]
+    [(call ,src ,fun ,expr* ...)
+     (or (nanopass-case (Lpreexpand Function) fun
+           [(fref ,src^ ,function-name)
+            (Info-case (lookup p src^ function-name)
+              [(Info-native-keyword handler)
+               (handler src p '() expr*)]
+              [else #f])]
+           [(fref ,src^ ,function-name (,targ* ...))
+            (Info-case (lookup p src^ function-name)
+              [(Info-native-keyword handler)
+               (handler src p (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
+              [else #f])]
+           [else #f])
+         ; force fun to be processed before expr* to get better error messages
+         (let ([fun (Function fun p)])
+           `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)))]
     [(serialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])
      `(serialize ,src ,nat ,type ,expr)]
     [(deserialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])

@@ -25,23 +25,23 @@
   inputs = {
     zkir = {
       # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2"; # zkir-v2
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
+      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2"; # zkir-v3
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
+      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";

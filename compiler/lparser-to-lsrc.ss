@@ -154,35 +154,9 @@
       [(true ,src ,kwd) `(quote ,src #t)]
       [(false ,src ,kwd) `(quote ,src #f)]
       [(field ,src ,nat) `(quote ,src ,(token-value nat))]
-      [(string ,src ,str)
-       `(quote
-          ,src
-          ,(let* ([bv (string->utf8 (token-value str))]
-                  [n (bytevector-length bv)])
-             (unless (len? n)
-               (source-errorf src "length ~d of the UTF-8 representation of string constant exceeds the maximum supported length ~d"
-                              n
-                              (max-bytes/vector-length)))
-             bv))]
-      [(pad ,src ,kwd ,lparen ,nat ,comma ,str ,rparen)
-       `(quote
-          ,src
-          ,(let* ([nat (token-value nat)]
-                  [str (token-value str)]
-                  [bv (string->utf8 str)]
-                  [n (bytevector-length bv)])
-             (unless (len? nat)
-               (source-errorf src "pad length ~d exceeds the maximum supported length ~d"
-                              nat
-                              (max-bytes/vector-length)))
-             (cond
-               [(= n nat) bv]
-               [(< n nat)
-                (let ([bv^ (make-bytevector nat 0)])
-                  (bytevector-copy! bv 0 bv^ 0 n)
-                  bv^)]
-               [else (source-errorf src "cannot pad ~s to length ~s since its utf8-equivalent already exceeds that length"
-                                    str nat)])))]
+      [(string ,src ,str) `(quote ,src ,(token-value str))]
+      [(pad ,src ,kwd ,lparen ,[tsize] ,comma ,str ,rparen)
+       `(pad ,src ,tsize ,(token-value str))]
       [(var-ref ,src ,var-name)
        `(var-ref ,src ,(token-value var-name))]
       [(default ,src ,kwd ,langle ,[type] ,rangle)

@@ -36,7 +36,7 @@
   ; for the print-TS pass.
   (define source-file-name (make-parameter #f))
 
-  (define (find-source-pathname src pathname err)
+  (define (find-source-pathname extension pathname err)
     (define (try pathname)
       (let ([ex? (file-exists? pathname)])
         (when (trace-search)

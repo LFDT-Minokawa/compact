@@ -439,6 +439,10 @@
                          `(seq ,src ,index (tuple ,src ,(map (lambda (expr) `(single ,src ,expr)) expr*) ...))
                          (CTV-tuple no-var-name ctv*))))))))
            (source-errorf src "slice index did not reduce to a constant nonnegative value at compile time"))]
+    [(verify-proof ,src ,vk ,[expr1 expr1-ctv] ,[expr2 expr2-ctv])
+     (values
+       `(verify-proof ,src ,vk ,expr1 ,expr2)
+       (CTV-tuple no-var-name '()))]
     [(new ,src ,[type] ,[expr* ctv*] ...)
      (values
        `(new ,src ,type ,expr* ...)

@@ -212,7 +212,7 @@
       (false src kwd) => false
       (field src nat) => nat
       (string src str) => str
-      (pad src kwd lparen nat comma str rparen) => (pad nat str)
+      (pad src kwd lparen tsize comma str rparen) => (pad tsize str)
       (var-ref src var-name) => var-name
       (default src kwd langle type rangle) => (default type)
       (if src expr0 hook expr1 colon expr2) => (if expr0 3 expr1 3 expr2)

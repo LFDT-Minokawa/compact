@@ -1200,7 +1200,8 @@
                                datum))]
            [(bytevector? datum)
             ; no need to check len? for the generated tbytes.  this is already caught in
-            ; the parser
+            ; expand-modules-and-types, which converts string and pad constants to
+            ; bytevectors
             `(tbytes ,src ,(bytevector-length datum))]
            [else (assert cannot-happen)])))]
     [(var-ref ,src ,var-name)
@@ -1968,6 +1969,20 @@
      (values
        `(return ,src ,expr)
        type)]
+    [(verify-proof ,src ,vk ,[Care : expr1 type1] ,[Care : expr2 type2])
+     (unless (nanopass-case (Ltypes Type) (de-alias type1 #t)
+               [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected verify-proof proof argument to have type Opaque<'Uint8Array'>, received ~a"
+                      (format-type type1)))
+     (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
+               [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
+               [else #f])
+       (source-errorf src "expected verify-proof public-inputs argument to have type Vector<n, Field> for some n, received ~a"
+                      (format-type type2)))
+     (values
+       `(verify-proof ,src ,vk ,expr1 ,expr2)
+       (with-output-language (Ltypes Type) `(ttuple ,src)))]
     [else (internal-errorf 'Care "unexpected ir ~s" ir)])
   (Tuple-Argument : Tuple-Argument (ir) -> Expression (type kind nat elt-type*)
     [(single ,src ,[Care : expr type])
