@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Toolchain version (e.g. v1.2.3-rc.1, v1.2.3-alpha.0)'
+        description: 'Toolchain version: v1.2.3-rc.1 for a candidate, v1.2.3 for the final build to be promoted'
         required: true
         type: string
       branch:
@@ -132,8 +132,11 @@ jobs:
         env:
           INTERNAL: ${{ inputs.version }}
         run: |
-          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+$ ]]; then
-            echo "::error::version must match v*.*.*-* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
+          # A final release is built here too, and promoted by public-release.yml,
+          # so that what ships is a build made as the release rather than a
+          # candidate renamed. See issue #705.
+          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-.+)?$ ]]; then
+            echo "::error::version must match v*.*.* or v*.*.*-* (e.g. v1.2.3, v1.2.3-rc.1), got: $INTERNAL"
             exit 1
           fi
           echo "Internal version format is valid: $INTERNAL"
@@ -435,8 +438,12 @@ jobs:
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
+      # A draft for a final version would claim the same release name that
+      # public-release.yml creates when it promotes this build, so leave the
+      # public repository to that workflow. Candidates still get their draft.
       - name: Create Release on LFDT/Minokawa
         id: create_release_lfdt
+        if: ${{ contains(inputs.version || github.ref_name, '-') }}
         uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3.0.0
         with:
           repository: LFDT-Minokawa/compact
@@ -451,6 +458,7 @@ jobs:
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
       - name: Publish release on LFDT-Minokawa/compact
+        if: ${{ contains(inputs.version || github.ref_name, '-') }}
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
           RELEASE_ID: ${{ steps.create_release_lfdt.outputs.id }}

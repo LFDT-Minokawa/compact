@@ -30,7 +30,7 @@ axoupdater = { version = "0.9.0", default-features = false, features = [
   "github_releases",
 ] }
 bytes = "1.11.1"
-clap = { version = "4.5.23", features = ["derive", "env"] }
+clap = { version = "4.5.23", features = ["derive", "env", "wrap_help"] }
 console = "0.16.0"
 dialoguer = "0.11.0"
 dirs = "5.0.1"
@@ -38,7 +38,6 @@ futures = "0.3.31"
 ignore = "0.4.23"
 indicatif = "0.18.0"
 octocrab = "0.44.1"
-pretty_assertions = "1.4.1"
 regex = "1.11.1"
 reqwest = { version = "0.12.9", default-features = false, features = [
   "gzip",
@@ -51,10 +50,11 @@ serde = { version = "1.0.216", features = ["derive"] }
 serde_json = "1.0.133"
 similar = "2.7.0"
 tokio = { version = "1.42.0", features = ["full", "macros"] }
+# Read-only deflate: the launcher never writes an archive, so this avoids the
+# compressor and the second inflate backend that the `deflate' feature pulls in.
+zip = { version = "4", default-features = false, features = ["deflate-flate2"] }
 
 [dev-dependencies]
-cargo-nextest = "0.9.97"
-pretty_assertions = "1.4.1"
 tempfile = "3.20.0"
 wiremock = "0.6.4"
 

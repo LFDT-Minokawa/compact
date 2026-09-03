@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       internal_version:
-        description: 'Internal version (e.g. v1.2.3-rc.1, v1.2.3-alpha.0)'
+        description: 'Internal version to promote -- a final release, no prerelease identifier (e.g. v1.2.3)'
         required: true
         type: string
       language_version:
@@ -85,8 +85,13 @@ jobs:
         env:
           INTERNAL: ${{ inputs.internal_version }}
         run: |
-          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(rc|alpha|beta)\.[0-9]+$ ]]; then
-            echo "::error::internal_version must match v*.*.*-(rc|alpha|beta).* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
+          # This workflow copies an internal build; it never compiles one. So the
+          # build being promoted has to have been made as the release, or the
+          # binary reports a candidate version under a final tag. Cut an internal
+          # release with this exact version first. See issue #705.
+          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::internal_version must be a final release matching v*.*.* (e.g. v1.2.3), got: $INTERNAL"
+            echo "::error::run the internal release workflow with that version first, then promote it here"
             exit 1
           fi
           echo "Internal version format is valid: $INTERNAL"
@@ -106,13 +111,10 @@ jobs:
         env:
           INTERNAL: ${{ inputs.internal_version }}
         run: |
-          # Validate format
-          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+ ]]; then
-            echo "::error::internal_version must match v*.*.*-* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
-            exit 1
-          fi
-          # Strip everything after the first hyphen: v1.2.3-rc.1 -> v1.2.3
-          PUBLIC=$(echo "$INTERNAL" | sed 's/-.*//')
+          # Checked above: the internal release is already the final version, so
+          # the public version is the same string. Kept as its own output so the
+          # two roles stay legible to anyone reading the steps below.
+          PUBLIC="$INTERNAL"
           echo "Internal version: $INTERNAL"
           echo "Public version: $PUBLIC"
           echo "version=$PUBLIC" >> "$GITHUB_OUTPUT"
@@ -243,18 +245,12 @@ jobs:
           echo "Downloaded assets:"
           ls -la assets/
 
-      - name: Rename assets to public version
-        env:
-          INTERNAL: ${{ inputs.internal_version }}
-          PUBLIC: ${{ needs.setup.outputs.public_version }}
+      # The assets already carry the final version in their names, because the
+      # build they came from was made as the release. Nothing is rewritten.
+      - name: Collect assets for the public release
         run: |
           mkdir -p public-assets
-          for file in assets/*; do
-            FILENAME=$(basename "$file")
-            NEW_FILENAME=$(echo "$FILENAME" | sed "s/${INTERNAL}/${PUBLIC}/g")
-            cp "$file" "public-assets/$NEW_FILENAME"
-            echo "Renamed: $FILENAME -> $NEW_FILENAME"
-          done
+          cp assets/* public-assets/
           echo "Public assets:"
           ls -la public-assets/
 
@@ -310,28 +306,9 @@ jobs:
             --repo LFDT-Minokawa/compact \
             --draft=false
 
-      - name: Create public release -- midnight-ntwrk/artifacts
-        env:
-          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
-          PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
-          LANGUAGE_VERSION: ${{ inputs.language_version }}
-          RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
-          NO_RELEASE_NOTES: ${{ inputs.no_release_notes }}
-        run: |
-          CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
-          PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
-          CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
-          if [ "$NO_RELEASE_NOTES" = "true" ]; then
-            NOTES_ARGS=(--notes "")
-          else
-            NOTES_ARGS=(--notes-file "$RELEASE_NOTES_FILE")
-          fi
-          gh release create "$PUBLIC_TAG" \
-            --repo midnight-ntwrk/artifacts \
-            --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
-            "${NOTES_ARGS[@]}" \
-            --latest=false \
-            public-assets/*
+      # midnight-ntwrk/artifacts already holds this release: the internal run
+      # published it there under this exact tag, with these exact bytes. Creating
+      # it again would fail.
 
 
   generate-docs-after-release:

@@ -7,8 +7,7 @@ Arguments:
 
 Options:
   -c, --check                  Check if inputs need fixup without changing them
-      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
-                               [default: [COMPACT_DIR]]
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=] [default: [COMPACT_DIR]]
       --update-Uint-ranges     Adjust Uint range endpoints
       --vscode                 Format error messages as single line (for VS Code extension)
   -v, --verbose                Print verbose output

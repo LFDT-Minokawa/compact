@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.100]
+
+### Fixed
+
+- `compactc --version` now reports the release it was built from, including any
+  prerelease identifier and the commit. It previously reported only the
+  major.minor.bugfix triple committed in `compiler/compiler-version.ss`, so every
+  candidate for a release reported that release: a compiler built from
+  `compactc-v0.33.0-rc.2` said `0.33.0`. Since 0.33.0 was never published, that
+  named a release which does not exist -- and the same string is written into
+  `contract-info.json` and `contract-manifest.json`, so a deployed contract
+  recorded a provenance that cannot be resolved.
+
+  The version a build reports is now a fact about the build rather than a
+  prediction. Builds that are not releases report `-dev': the scheduled build
+  and the on-demand dev publish have no release to name, and a dev publish is
+  installable, so one reporting the same shape as a finished release could pass
+  for it. `-dev' orders below every release of the same triple, so a tool handed
+  one where a release was expected rejects it. A working tree is unaffected --
+  nothing is stamped until a release build runs -- and prints exactly as before.
+
+  Release candidates still satisfy the same `pragma compiler_version`
+  constraints as the release they are candidates for -- the tag is printed but
+  never compared -- so source that compiles under 0.34.0 compiles under
+  0.34.0-rc.1.
+
 ## [Toolchain 0.34.100, language 0.26.0, runtime 0.19.100]
 
 ### Fixed

@@ -20,8 +20,11 @@ mod common;
 
 #[test]
 fn test_compact_clean_nothing_installed() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["clean"],
+        &["--directory", &format!("{}", temp_path.display()), "clean"],
         None,
         Some("./output/clean/std_default.txt"),
         None,
@@ -44,8 +47,16 @@ fn test_compact_clean_invalid_version() {
 
 #[test]
 fn test_compact_clean_keep_nothing_installed() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["clean", "--keep-current"],
+        &[
+            "--directory",
+            &format!("{}", temp_path.display()),
+            "clean",
+            "--keep-current",
+        ],
         None,
         Some("./output/clean/std_default.txt"),
         None,
