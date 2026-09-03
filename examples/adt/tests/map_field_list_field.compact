@@ -22,16 +22,16 @@ export circuit test(): [] {
   assert(c.isEmpty() == true, "Structure should be empty");
   assert(c.size() == 0, "Size should be 0");
 
-  c.insert(0, default<List<Field>>);
+  c.insert(0 as Field, default<List<Field>>);
   assert(c.size() == 1, "Size should be 1");
-  assert(c.lookup(0).length() == 0, "Key 0 should have value 1");
+  assert(c.lookup(0 as Field).length() == 0, "Key 0 should have value 1");
 
-  c.insertDefault(1);
+  c.insertDefault(1 as Field);
   assert(c.size() == 2, "Size should be 2");
-  assert(c.lookup(1).length() == 0, "Key 1 should have value 0");
-  assert(c.member(1) == true, "Key 1 should be member");
+  assert(c.lookup(1 as Field).length() == 0, "Key 1 should have value 0");
+  assert(c.member(1 as Field) == true, "Key 1 should be member");
 
-  c.remove(0);
+  c.remove(0 as Field);
   assert(c.size() == 1, "Size should be 1");
 
   c.resetToDefault();

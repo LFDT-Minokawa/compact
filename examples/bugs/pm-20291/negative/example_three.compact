@@ -16,7 +16,7 @@
 // test19: same signature, mixed primitive return types
 module M19 {
   export circuit test19(n: Uint<16>): Boolean { return true; }
-  export circuit test19(n: Uint<16>): Field { return 1; }
+  export circuit test19(n: Uint<16>): Field { return 1 as Field; }
   export circuit test19(n: Uint<16>): Uint<8> { return 1; }
   export circuit test19(n: Uint<16>): Uint<32> { return 1; }
   export circuit call19a(): Boolean { return test19(1); }

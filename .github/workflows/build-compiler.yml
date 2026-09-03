@@ -266,7 +266,7 @@ jobs:
         run: |
           nix develop .#compiler --command compactc --version
           nix develop .#compiler --command compactc --help
-          nix develop .#compiler --command compactc ./test-center/compact/test.compact ./compact-output/
+          nix develop .#compiler --command compactc --feature-zkir-v3 ./test-center/compact/test.compact ./compact-output/
           nix develop .#compiler --command compactc ./examples/tiny.compact ./tiny-output/
 
       - name: Merge report as ZIP

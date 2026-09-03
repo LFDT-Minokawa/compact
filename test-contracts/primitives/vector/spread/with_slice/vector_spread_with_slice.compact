@@ -1,0 +1,27 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Spread composes with slice: each slice result is expanded into the new vector.
+export circuit vector_spread_with_slice(): Vector<4, Field> {
+    const source: Vector<5, Field> = [10 as Field, 20 as Field, 30 as Field, 40 as Field, 50 as Field];
+
+    const result: Vector<4, Field> = [...slice<2>(source, 0), ...slice<2>(source, 3)];
+    assert(result[0] == 10 as Field, "First element should be 10");
+    assert(result[3] == 50 as Field, "Last element should be 50");
+
+    return result;
+}

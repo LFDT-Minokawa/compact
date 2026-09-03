@@ -25,16 +25,16 @@ struct bob {
 }
 
 export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  if (disclose(b)) x = 1;
+  if (disclose(b)) x = 1 as Field;
 
   const p = disclose(c);
-  if (p) x = 1;
+  if (p) x = 1 as Field;
 
-  if(!disclose(c)) x = 1;
+  if(!disclose(c)) x = 1 as Field;
 
   const a = (() => {return disclose(c);})();
 
-  if (a) x = 1;
+  if (a) x = 1 as Field;
 
   set.insert(disclose(b) as Field);
   set.insert(p as Field);
@@ -43,5 +43,5 @@ export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
   counter.increment(disclose(d[2] as Uint<16>));
   counter.increment(disclose(e.x) as Uint<16>);
 
-  assert(e.x == 1, "not 1");
+  assert(e.x == 1 as Field, "not 1");
 }

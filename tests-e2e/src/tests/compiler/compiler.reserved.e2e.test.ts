@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import { Arguments, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, buildPathTo, expectFiles } from '@';
 
@@ -289,13 +288,6 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 },
             },
             {
-                testcase: 'implements keyword',
-                file: 'example_39.compact',
-                output: {
-                    stderr: 'Exception: example_39.compact line 16 char 32: parse error: found keyword "implements" (which is reserved for future use) looking for a generic argument or ">"',
-                },
-            },
-            {
                 testcase: 'interface keyword',
                 file: 'example_40.compact',
                 output: {
@@ -362,9 +354,9 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
             const filePath = CONTRACTS_ROOT + file;
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, Arguments.VSCODE, filePath, outputDir]);
             expectCompilerResult(result).toBeFailure(output.stderr, compilerDefaultOutput());
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

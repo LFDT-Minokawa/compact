@@ -17,44 +17,46 @@ const witnesses = {
   private$secret_key: ({ privateState }: any): [any, Uint8Array] => [privateState, new Uint8Array(32)]
 };
 
-test('Check for initial get', () => {
-  const [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: true, value: 64n })
+test('Check for initial get', async () => {
+  const [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: true, value: 64n })
 });
 
-test('Check for clear, set, get', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  Ctxt = c.circuits.clear(Ctxt).context;
-  Ctxt = c.circuits.set(Ctxt, 5n).context;
-  var q = c.circuits.get(Ctxt).result;
+test('Check for clear, set, get', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  Ctxt = (await c.circuits.clear(Ctxt)).context;
+  Ctxt = (await c.circuits.set(Ctxt, 5n)).context;
+  var q = (await c.circuits.get(Ctxt)).result;
   expect(q).toEqual({ is_some: true, value: 5n })
 });
 
-test('Check for clear, set, set', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  Ctxt = c.circuits.clear(Ctxt).context;
-  Ctxt = c.circuits.set(Ctxt, 5n).context;
-  expect(() => c.circuits.set(Ctxt, 7n)).toThrow(runtime.CompactError);
+test('Check for clear, set, set', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  Ctxt = (await c.circuits.clear(Ctxt)).context;
+  Ctxt = (await c.circuits.set(Ctxt, 5n)).context;
+  await expect(c.circuits.set(Ctxt, 7n)).rejects.toThrow(runtime.CompactError);
 });
 
-test('Check for clear, get', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  Ctxt = c.circuits.clear(Ctxt).context;
-  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: false, value: 0n })
+test('Check for clear, get', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  Ctxt = (await c.circuits.clear(Ctxt)).context;
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: false, value: 0n })
 });
 
-test('Check with actually big int', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  Ctxt = c.circuits.clear(Ctxt).context;
+test('Check with actually big int', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  Ctxt = (await c.circuits.clear(Ctxt)).context;
   const n = 1000000000000000000000000n
-  Ctxt = c.circuits.set(Ctxt, n).context;
-  expect(c.circuits.get(Ctxt).result).toEqual({ is_some: true, value: n });
+  Ctxt = (await c.circuits.set(Ctxt, n)).context;
+  expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: true, value: n });
 });
 
-test('Check resulting proofData', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  expect(c.circuits.get(Ctxt).proofData).toEqual(
+test('Check resulting proofData', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  expect((await c.circuits.get(Ctxt)).context.callProofDataTrace.at(-1)).toMatchObject(
     {
+      "contractAddress": Ctxt.callContext.contractAddress,
+      "circuitId": "get",
       "input":
         {
           "alignment": [],
@@ -96,8 +98,8 @@ test('Check resulting proofData', () => {
   )
 });
 
-test('Check ledger inspection', () => {
-  var [c, Ctxt] = startContract(contractCode, witnesses, 0, 64n);
-  const L = contractCode.ledger(Ctxt.currentQueryContext.state);
+test('Check ledger inspection', async () => {
+  var [c, Ctxt] = await startContract(contractCode, witnesses, 0, 64n);
+  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);
   expect(L.value).toEqual(64n);
 });

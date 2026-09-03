@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Casting a default-initialized Vector to Bytes yields all-zero bytes, both for
+// a Uint<8> element and for a narrower element width.
+export circuit vector_casts_to_bytes_default(): Bytes<4> {
+    const wide = default<Vector<4, Uint<8>>> as Bytes<4>;
+    assert(wide[0] == 0, "Default Uint<8> vector should cast to zero bytes");
+    assert(wide[3] == 0, "Default Uint<8> vector should cast to zero bytes");
+
+    const narrow = default<Vector<4, Uint<1>>> as Bytes<4>;
+    assert(narrow[0] == 0, "Default narrow vector should cast to zero bytes");
+
+    return wide;
+}

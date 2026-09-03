@@ -1,0 +1,32 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger spread_result: Bytes<12>;
+
+export circuit bytes_spread_nested(): Bytes<12> {
+    const bytes3 = Bytes[1, 2, 3];
+    const bytes6 = Bytes[...bytes3, ...bytes3];
+
+    spread_result = Bytes[...bytes6, ...bytes6];
+
+    assert(spread_result[0] == 1 as Uint<8>, "First element should be 1");
+    assert(spread_result[3] == 1 as Uint<8>, "Fourth element should be 1 (repeated)");
+    assert(spread_result[6] == 1 as Uint<8>, "Seventh element should be 1 (second repetition)");
+    assert(spread_result[11] == 3 as Uint<8>, "Last element should be 3");
+
+    return spread_result;
+}

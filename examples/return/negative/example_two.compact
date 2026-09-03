@@ -14,5 +14,5 @@
 // limitations under the License.
 
 export circuit test(): Field {
-  if(true) return 1;
+  if(true) return 1 as Field;
 }

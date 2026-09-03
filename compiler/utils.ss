@@ -25,12 +25,12 @@
           errorf internal-errorf external-errorf error-accessing-file pending-errorf source-errorf source-warningf
           assertf
           format-condition
-          maplr maplr2 compose shell string-prefix? rm-rf mkdir-p
+          maplr maplr2 compose shell sha256-file string-prefix? rm-rf mkdir-p
           to-camel-case
           source-error-condition?
           make-halt-condition halt-condition?
           pending-conditions
-          stdlib-sfd stdlib-src?
+          register-stdlib-sfd! get-stdlib-sfd stdlib-src?
           renaming-table record-alias!
           pretty-print/formats
           split-search-path)
@@ -48,8 +48,11 @@
                        "apparent use of an old standard-library / ledger operator name ~a:\n    the new name is ~a"
                        old-name new-name)]))
 
-  (define stdlib-sfd (make-parameter #f))
-  (define (stdlib-src? src) (eq? (source-object-sfd src) (stdlib-sfd)))
+  (module (register-stdlib-sfd! get-stdlib-sfd stdlib-src?)
+    (define stdlib-sfd* '())
+    (define (register-stdlib-sfd! sfd) (set! stdlib-sfd* (cons sfd stdlib-sfd*)))
+    (define (get-stdlib-sfd) (assert (not (null? stdlib-sfd*))) (car stdlib-sfd*))
+    (define (stdlib-src? src) (and (memq (source-object-sfd src) stdlib-sfd*) #t)))
 
   (define pending-conditions (make-parameter '()))
 
@@ -327,6 +330,125 @@
         (values
           (if (eof-object? stdout-stuff) "" stdout-stuff)
           (if (eof-object? stderr-stuff) "" stderr-stuff)))))
+
+  ;; Lowercase 64-character hex SHA-256 of a file's raw bytes. This is the same definition the
+  ;; midnight-js stack uses for verifier-key fingerprints (`hashVerifierKey` == sha256 of the bytes,
+  ;; hex), so a hash produced here over a `.verifier` file matches the runtime's hash of the deployed
+  ;; verifier key byte-for-byte. Hash in-process through Common Crypto or OpenSSL when available,
+  ;; retaining the external-command implementation as a fallback.
+  (module (sha256-file)
+    (define (bytevector->hex bytes)
+      (format "~(~{~2,'0x~}~)" (bytevector->u8-list bytes)))
+
+    (define (read-bytevector pathname)
+      (call-with-port (open-file-input-port pathname) get-bytevector-all))
+
+    (define (make-openssl-sha256-file libcrypto)
+      (guard (c [else
+                 (external-errorf "failed to initialize native SHA-256 via ~a: ~a"
+                   libcrypto
+                   (format-condition c))])
+        (load-shared-object libcrypto)
+        (let ([make-context (foreign-procedure "EVP_MD_CTX_new" () void*)]
+              [free-context (foreign-procedure "EVP_MD_CTX_free" (void*) void)]
+              [sha256-method ((foreign-procedure "EVP_sha256" () void*))]
+              [digest-init (foreign-procedure "EVP_DigestInit_ex" (void* void* void*) boolean)]
+              [digest-update (foreign-procedure "EVP_DigestUpdate" (void* u8* size_t) boolean)]
+              [digest-final (foreign-procedure "EVP_DigestFinal_ex" (void* u8* u32*) boolean)])
+          (lambda (pathname)
+            (let ([context (make-context)])
+              (when (eqv? context 0)
+                (external-errorf "failed to allocate native SHA-256 context"))
+              (with-exception-handler
+                (lambda (c)
+                  (free-context context)
+                  (raise-continuable c))
+                (lambda ()
+                  (unless (digest-init context sha256-method 0)
+                    (external-errorf "failed to initialize native SHA-256 context"))
+                  (let ([bytes (read-bytevector pathname)])
+                    (unless (eof-object? bytes)
+                      (unless (digest-update context bytes (bytevector-length bytes))
+                        (external-errorf "failed to update native SHA-256 digest"))))
+                  (let ([digest (make-bytevector 32)])
+                    (unless (digest-final context digest #f)
+                      (external-errorf "failed to finalize native SHA-256 digest"))
+                    (free-context context)
+                    (bytevector->hex digest)))))))))
+
+    ;; This path can be loadable from the macOS dyld shared cache even when it is not visible to
+    ;; file-exists?.
+    (define common-crypto "/usr/lib/system/libcommonCrypto.dylib")
+
+    (define (make-common-crypto-sha256-file library)
+      (guard (c [else
+                 (external-errorf "failed to initialize native SHA-256 via ~a: ~a"
+                   library
+                   (format-condition c))])
+        (load-shared-object library)
+        (let ([sha256 (foreign-procedure "CC_SHA256" (u8* unsigned-32 u8*) void*)])
+          (lambda (pathname)
+            (let* ([bytes (read-bytevector pathname)]
+                   [bytes (if (eof-object? bytes) #vu8() bytes)]
+                   [digest (make-bytevector 32)])
+              (when (eqv? (sha256 bytes (bytevector-length bytes) digest) 0)
+                (external-errorf "failed to compute native SHA-256 digest"))
+              (bytevector->hex digest))))))
+
+    (define libcrypto-candidates
+      '("libcrypto.so.3"
+        "libcrypto.so.1.1"
+        "libcrypto.so"
+        "/usr/local/lib/libcrypto.so.3"
+        "/usr/local/lib/libcrypto.so.1.1"
+        "/usr/local/lib/libcrypto.so"))
+
+    (define (try-native make-sha256-file library)
+      (guard (c [else #f])
+        (make-sha256-file library)))
+
+    (define (find-openssl-sha256-file)
+      (let loop ([library* libcrypto-candidates])
+        (and (not (null? library*))
+             (or (try-native make-openssl-sha256-file (car library*))
+                 (loop (cdr library*))))))
+
+    (define (find-native-sha256-file)
+      (or (try-native make-common-crypto-sha256-file common-crypto)
+          (find-openssl-sha256-file)
+          sha256-file/external))
+
+    (define (sha256-file/external pathname)
+      (define commands-to-try '("sha256sum -b" "shasum -a 256 -b"))
+      (define (hex-digit? c)
+        (or (char<=? #\0 c #\9)
+            (char<=? #\a c #\f)
+            (char<=? #\A c #\F)))
+      (let try ([command* commands-to-try]
+                [rfailure* '()])
+        (if (null? command*)
+            (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
+                             (reverse rfailure*))
+            (let ([command (car command*)] [command* (cdr command*)])
+              (let-values ([(stdout stderr) (shell (format "exec ~a '~a'" command pathname))])
+                (if (string=? stderr "")
+                    (if (>= (string-length stdout) 64)
+                        (let ([hash (substring stdout 0 64)])
+                          (if (andmap hex-digit? (string->list hash))
+                              (string-downcase hash)
+                              (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*))))
+                        (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
+                    (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
+
+    (define sha256-file-implementation
+      (delay
+        (let ([libcrypto (getenv "COMPACT_LIBCRYPTO")])
+          (if (and libcrypto (not (string=? libcrypto "")))
+              (make-openssl-sha256-file libcrypto)
+              (find-native-sha256-file)))))
+
+    (define (sha256-file pathname)
+      ((force sha256-file-implementation) pathname)))
 
   (define (string-prefix? prefix str)
     (let ([n (string-length prefix)])

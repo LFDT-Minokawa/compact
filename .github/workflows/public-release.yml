@@ -12,13 +12,18 @@ on:
         required: true
         type: string
       branch:
-        description: 'Branch to use for release notes'
+        description: 'Branch to use for tagging and release notes'
         required: true
         type: choice
         default: 'release/midnight'
         options:
           - main
           - release/midnight
+      no_release_notes:
+        description: 'No release notes'
+        required: true
+        type: boolean
+        default: false
       docs:
         description: 'Create branch with documentation in midnight-docs'
         required: true
@@ -123,6 +128,7 @@ jobs:
 
   check-release-notes-exist:
     name: Check if release notes file exists
+    if: ${{ !inputs.no_release_notes }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -215,6 +221,7 @@ jobs:
 
   make-internal-release-public:
     name: Copy internal release to public repo
+    if: ${{ always() && needs.check-internal-release-exists.result == 'success' && (needs.check-release-notes-exist.result == 'success' || needs.check-release-notes-exist.result == 'skipped') }}
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -257,14 +264,20 @@ jobs:
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
           LANGUAGE_VERSION: ${{ inputs.language_version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+          NO_RELEASE_NOTES: ${{ inputs.no_release_notes }}
         run: |
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
           PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
+          if [ "$NO_RELEASE_NOTES" = "true" ]; then
+            NOTES_ARGS=(--notes "")
+          else
+            NOTES_ARGS=(--notes-file "$RELEASE_NOTES_FILE")
+          fi
           gh release create "$PUBLIC_TAG" \
             --repo midnightntwrk/compact \
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
-            --notes-file "$RELEASE_NOTES_FILE" \
+            "${NOTES_ARGS[@]}" \
             --latest=false \
             public-assets/*
 
@@ -274,14 +287,22 @@ jobs:
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
           LANGUAGE_VERSION: ${{ inputs.language_version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+          BRANCH: ${{ needs.setup.outputs.branch }}
+          NO_RELEASE_NOTES: ${{ inputs.no_release_notes }}
         run: |
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
           PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
+          if [ "$NO_RELEASE_NOTES" = "true" ]; then
+            NOTES_ARGS=(--notes "")
+          else
+            NOTES_ARGS=(--notes-file "$RELEASE_NOTES_FILE")
+          fi
           gh release create "$PUBLIC_TAG" \
             --repo LFDT-Minokawa/compact \
+            --target "$BRANCH" \
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
-            --notes-file "$RELEASE_NOTES_FILE" \
+            "${NOTES_ARGS[@]}" \
             --latest=false \
             --draft \
             public-assets/*
@@ -295,14 +316,20 @@ jobs:
           PUBLIC_VERSION: ${{ needs.setup.outputs.public_version }}
           LANGUAGE_VERSION: ${{ inputs.language_version }}
           RELEASE_NOTES_FILE: ${{ needs.setup.outputs.release_notes_file }}
+          NO_RELEASE_NOTES: ${{ inputs.no_release_notes }}
         run: |
           CLEAN_PUBLIC="${PUBLIC_VERSION#v}"
           PUBLIC_TAG="compactc-${PUBLIC_VERSION}"
           CLEAN_LANGUAGE="${LANGUAGE_VERSION#v}"
+          if [ "$NO_RELEASE_NOTES" = "true" ]; then
+            NOTES_ARGS=(--notes "")
+          else
+            NOTES_ARGS=(--notes-file "$RELEASE_NOTES_FILE")
+          fi
           gh release create "$PUBLIC_TAG" \
             --repo midnight-ntwrk/artifacts \
             --title "Compact toolchain ${CLEAN_PUBLIC} (Compact language ${CLEAN_LANGUAGE})" \
-            --notes-file "$RELEASE_NOTES_FILE" \
+            "${NOTES_ARGS[@]}" \
             --latest=false \
             public-assets/*
 
@@ -322,7 +349,7 @@ jobs:
       draft_pr: false
 
   copy-release-notes-to-midnight-docs:
-    if: ${{ inputs.create_release_notes }}
+    if: ${{ always() && inputs.create_release_notes && !inputs.no_release_notes && needs.make-internal-release-public.result == 'success' }}
     name: Create branch in midnight-docs for release notes
     needs: [ setup, check-release-notes-exist, make-internal-release-public ]
     permissions:

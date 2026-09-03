@@ -18,7 +18,7 @@ module M1 {
   export circuit test1<#N>(bytes: Bytes<N>): Uint<8> { return bytes[N-1]; }
   export circuit test1<#N>(bytes: Bytes<N>): Uint<8> { return bytes[N-1]; }
   export circuit test1<#N, T>(n: Bytes<N>, t: T): Uint<8> { return default<Uint<8>>; }
-  export circuit call1(n: Uint<16>) : Uint<8> { return test1<8, Field>(default<Bytes<8>>, 1); }
+  export circuit call1(n: Uint<16>) : Uint<8> { return test1<8, Field>(default<Bytes<8>>, 1 as Field); }
 }
 
 import M1;
@@ -44,7 +44,7 @@ module M3 {
   export circuit test3<#N, #Z>(n: Vector<N, Vector<Z, Uint<32>>>): Boolean { return true; }
   export circuit call3a(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Field>>>); }
   // export circuit call3b(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<1>>>>); }
-  export circuit call3c(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<128>>>>); }
+  export circuit call3c(n: Uint<8>): Boolean { return test3<1, 1>(default<Vector<1, Vector<1, Uint<24>>>>); }
 }
 
 import M3;
@@ -54,7 +54,7 @@ export { call3a, call3c };
 module M4 {
   export circuit test4(n: Field): Boolean { return true; }
   export circuit test4<T>(n: T): Boolean { return false; }
-  export circuit call4a(): Boolean { return test4(1); }
+  export circuit call4a(): Boolean { return test4(1 as Field); }
   export circuit call4b(): Boolean { return test4<Uint<8>>(1); }
 }
 
@@ -78,8 +78,8 @@ struct Data { value: Field }
 module M6 {
   export circuit test6(n: Field): Uint<8> { return 1; }
   export circuit test6(d: Data): Uint<8> { return 2; }
-  export circuit call6a(): Uint<8> { return test6(1); }
-  export circuit call6b(): Uint<8> { return test6(Data { value: 1 }); }
+  export circuit call6a(): Uint<8> { return test6(1 as Field); }
+  export circuit call6b(): Uint<8> { return test6(Data { value: 1 as Field }); }
 }
 
 import M6;
@@ -89,8 +89,8 @@ export { call6a, call6b };
 module M7 {
   export circuit test7<T, U>(a: T, b: U): Boolean { return true; }
   export circuit test7<T>(a: T, b: T): Boolean { return false; }
-  export circuit call7a(): Boolean { return test7<Field, Uint<8>>(1, 2); }
-  export circuit call7b(): Boolean { return test7<Field>(1, 2); }
+  export circuit call7a(): Boolean { return test7<Field, Uint<8>>(1 as Field, 2); }
+  export circuit call7b(): Boolean { return test7<Field>(1 as Field, 2 as Field); }
 }
 
 import M7;
@@ -123,7 +123,7 @@ module M10 {
   export circuit test10<#N>(v: Vector<N, Field>): Boolean { return true; }
   export circuit test10<T>(v: T): Boolean { return false; }
   export circuit call10a(): Boolean { return test10<3>(default<Vector<3, Field>>); }
-  export circuit call10b(): Boolean { return test10<Field>(1); }
+  export circuit call10b(): Boolean { return test10<Field>(1 as Field); }
 }
 
 import M10;
@@ -134,9 +134,9 @@ module M11 {
   export circuit test11(a: Field): Boolean { return true; }
   export circuit test11(a: Field, b: Field): Boolean { return false; }
   export circuit test11(a: Field, b: Field, c: Field): Boolean { return true; }
-  export circuit call11a(): Boolean { return test11(1); }
-  export circuit call11b(): Boolean { return test11(1, 2); }
-  export circuit call11c(): Boolean { return test11(1, 2, 3); }
+  export circuit call11a(): Boolean { return test11(1 as Field); }
+  export circuit call11b(): Boolean { return test11(1 as Field, 2 as Field); }
+  export circuit call11c(): Boolean { return test11(1 as Field, 2 as Field, 3 as Field); }
 }
 
 import M11;
@@ -147,9 +147,9 @@ module M12 {
   export circuit test12<T>(a: T): Boolean { return true; }
   export circuit test12<T, U>(a: T, b: U): Boolean { return false; }
   export circuit test12<T, U, V>(a: T, b: U, c: V): Boolean { return true; }
-  export circuit call12a(): Boolean { return test12<Field>(1); }
-  export circuit call12b(): Boolean { return test12<Field, Uint<8>>(1, 2); }
-  export circuit call12c(): Boolean { return test12<Field, Uint<8>, Boolean>(1, 2, true); }
+  export circuit call12a(): Boolean { return test12<Field>(1 as Field); }
+  export circuit call12b(): Boolean { return test12<Field, Uint<8>>(1 as Field, 2); }
+  export circuit call12c(): Boolean { return test12<Field, Uint<8>, Boolean>(1 as Field, 2, true); }
 }
 
 import M12;

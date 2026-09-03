@@ -13,10 +13,29 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnight-ntwrk/onchain-runtime-v3';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext } from './circuit-context.js';
-import { Bytes32Descriptor, ShieldedCoinInfoDescriptor, ShieldedCoinRecipientDescriptor, Recipient } from './compact-types.js';
 import { toHex } from './utils.js';
+import { assertDefined, CompactError } from './error.js';
+import { CompactTypeBoolean, CompactTypeBytes, CompactTypeUnsignedInteger } from './compact-types.js';
+
+/**
+ * The recipient of a coin produced by a circuit.
+ */
+export interface Recipient {
+  /**
+   * Whether the recipient is a user or a contract.
+   */
+  readonly is_left: boolean;
+  /**
+   * The recipient's public key, if the recipient is a user.
+   */
+  readonly left: ocrt.CoinPublicKey;
+  /**
+   * The recipient's contract address, if the recipient is a contract.
+   */
+  readonly right: ocrt.ContractAddress;
+}
 
 /**
  * Tracks the coins consumed and produced throughout circuit execution.
@@ -198,6 +217,32 @@ export const decodeZswapLocalState = (state: EncodedZswapLocalState): ZswapLocal
   })),
 });
 
+const assertHasCurrentZswapLocalState = (circuitContext: CircuitContext): void => {
+  if (!circuitContext.callContext.currentZswapLocalState) {
+    throw new CompactError(`Zswap local state is undefined for contract '${circuitContext.callContext.contractAddress}'`);
+  }
+};
+
+/**
+ * Records a mutated Zswap local state on both the live call context and the per-address map
+ * threaded across the whole call tree, so a cross-contract callee's coin operations survive its
+ * return. Mirrors the write-back {@link queryLedgerState} performs for `queryContexts`.
+ *
+ * Unlike that one, this needs no "real context" guard: the generated ledger read-accessors build
+ * a minimal synthetic context with no address and no maps, but they never reach this function —
+ * only circuit bodies create Zswap inputs and outputs. A missing address or map here means the
+ * context was not built by {@link createCircuitContext}, which is a caller error worth surfacing.
+ *
+ * @internal
+ */
+const setCurrentZswapLocalState = (circuitContext: CircuitContext<unknown>, next: EncodedZswapLocalState): void => {
+  const address = circuitContext.callContext.contractAddress;
+  assertDefined(address, 'contract address on the executing call context');
+  assertDefined(circuitContext.zswapLocalStates, 'per-contract Zswap local states on the circuit context');
+  circuitContext.callContext.currentZswapLocalState = next;
+  circuitContext.zswapLocalStates[address] = next;
+};
+
 /**
  * Adds a coin to the list of inputs consumed by the circuit.
  *
@@ -208,12 +253,88 @@ export function createZswapInput(
   circuitContext: CircuitContext,
   qualifiedShieldedCoinInfo: EncodedQualifiedShieldedCoinInfo,
 ): [] {
-  circuitContext.currentZswapLocalState = {
-    ...circuitContext.currentZswapLocalState,
-    inputs: circuitContext.currentZswapLocalState.inputs.concat(qualifiedShieldedCoinInfo),
-  };
+  assertHasCurrentZswapLocalState(circuitContext);
+  setCurrentZswapLocalState(circuitContext, {
+    ...circuitContext.callContext.currentZswapLocalState,
+    inputs: circuitContext.callContext.currentZswapLocalState!.inputs.concat(qualifiedShieldedCoinInfo),
+  } as EncodedZswapLocalState);
   return [];
 }
+
+/**
+ * The following are type descriptors used to implement {@link createCoinCommitment}. They are not intended for direct
+ * consumption.
+ */
+
+const Bytes32Descriptor = new CompactTypeBytes(32);
+
+const MaxUint8Descriptor = new CompactTypeUnsignedInteger(18446744073709551615n, 8);
+
+const ShieldedCoinInfoDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment().concat(Bytes32Descriptor.alignment().concat(MaxUint8Descriptor.alignment()));
+  },
+  fromValue(value: ocrt.Value): { nonce: Uint8Array; color: Uint8Array; value: bigint } {
+    return {
+      nonce: Bytes32Descriptor.fromValue(value),
+      color: Bytes32Descriptor.fromValue(value),
+      value: MaxUint8Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { nonce: Uint8Array; color: Uint8Array; value: bigint }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.nonce).concat(
+      Bytes32Descriptor.toValue(value.color).concat(MaxUint8Descriptor.toValue(value.value)),
+    );
+  },
+};
+
+const ZswapCoinPublicKeyDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment();
+  },
+  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
+    return {
+      bytes: Bytes32Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { bytes: Uint8Array }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.bytes);
+  },
+};
+
+const ContractAddressDescriptor = {
+  alignment(): ocrt.Alignment {
+    return Bytes32Descriptor.alignment();
+  },
+  fromValue(value: ocrt.Value): { bytes: Uint8Array } {
+    return {
+      bytes: Bytes32Descriptor.fromValue(value),
+    };
+  },
+  toValue(value: { bytes: Uint8Array }): ocrt.Value {
+    return Bytes32Descriptor.toValue(value.bytes);
+  },
+};
+
+const ShieldedCoinRecipientDescriptor = {
+  alignment(): ocrt.Alignment {
+    return CompactTypeBoolean.alignment().concat(
+      ZswapCoinPublicKeyDescriptor.alignment().concat(ContractAddressDescriptor.alignment()),
+    );
+  },
+  fromValue(value: ocrt.Value): { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } } {
+    return {
+      is_left: CompactTypeBoolean.fromValue(value),
+      left: ZswapCoinPublicKeyDescriptor.fromValue(value),
+      right: ContractAddressDescriptor.fromValue(value),
+    };
+  },
+  toValue(value: { is_left: boolean; left: { bytes: Uint8Array }; right: { bytes: Uint8Array } }): ocrt.Value {
+    return CompactTypeBoolean.toValue(value.is_left).concat(
+      ZswapCoinPublicKeyDescriptor.toValue(value.left).concat(ContractAddressDescriptor.toValue(value.right)),
+    );
+  },
+};
 
 /**
  * Creates a coin commitment from the given coin information and recipient represented as an Impact value.
@@ -249,18 +370,19 @@ export function createZswapOutput(
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
 ): [] {
-  circuitContext.currentQueryContext = circuitContext.currentQueryContext.insertCommitment(
+  assertHasCurrentZswapLocalState(circuitContext);
+  circuitContext.callContext.currentQueryContext = circuitContext.callContext.currentQueryContext.insertCommitment(
     Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
-    circuitContext.currentZswapLocalState.currentIndex,
+    circuitContext.callContext.currentZswapLocalState!.currentIndex,
   );
-  circuitContext.currentZswapLocalState = {
-    ...circuitContext.currentZswapLocalState,
-    currentIndex: circuitContext.currentZswapLocalState.currentIndex + 1n,
-    outputs: circuitContext.currentZswapLocalState.outputs.concat({
+  setCurrentZswapLocalState(circuitContext, {
+    ...circuitContext.callContext.currentZswapLocalState,
+    currentIndex: circuitContext.callContext.currentZswapLocalState!.currentIndex + 1n,
+    outputs: circuitContext.callContext.currentZswapLocalState!.outputs.concat({
       coinInfo,
       recipient,
     }),
-  };
+  } as EncodedZswapLocalState);
   return [];
 }
 
@@ -270,7 +392,8 @@ export function createZswapOutput(
  * @param circuitContext The current circuit context.
  */
 export function ownPublicKey(circuitContext: CircuitContext<unknown>): EncodedCoinPublicKey {
-  return circuitContext.currentZswapLocalState.coinPublicKey;
+  assertHasCurrentZswapLocalState(circuitContext);
+  return circuitContext.callContext.currentZswapLocalState!.coinPublicKey;
 }
 
 /**
@@ -285,4 +408,6 @@ export const hasCoinCommitment = (
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
 ): boolean =>
-  context.currentQueryContext.comIndices.has(toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)));
+  context.callContext.currentQueryContext.comIndices.has(
+    toHex(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)),
+  );

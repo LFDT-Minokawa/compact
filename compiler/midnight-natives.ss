@@ -13,6 +13,10 @@
 ;;; See the License for the specific language governing permissions and
 ;;; limitations under the License.
 
+;; ==== Non-native fields and curve points
+(declare-native-type JubjubScalar tfield (field-scalar (curve-jubjub)))
+(declare-native-type JubjubPoint tpoint (curve-jubjub))
+
 ;; ==== Transient (Poseidon) hashing
 (declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"
@@ -25,7 +29,7 @@
    [rand Field (discloses nothing)])
   Field)
 
-;; ==== Persistent (SHA-256) hashing
+;; ==== Hashing
 (declare-native-entry circuit persistentHash [A]
   "__compactRuntime.persistentHash"
   ([value A (discloses "a hash of")])
@@ -47,21 +51,20 @@
   ([x Field (discloses "a converted form of")])
   (Bytes 32))
 
-;; ==== Other hashing circuits
 (declare-native-entry circuit keccak256 [A]
   "__compactRuntime.keccak256"
   ([value A (discloses "a hash of")])
   (Bytes 32))
 
-;; ====
+;; ==== Curves
 (declare-native-entry circuit jubjubPointX
   "__compactRuntime.jubjubPointX"
-  ([np (TypeRef JubjubPoint) (discloses "the X coordinate of")])
+  ([pt (TypeRef JubjubPoint) (discloses "the X coordinate of")])
   Field)
 
 (declare-native-entry circuit jubjubPointY
   "__compactRuntime.jubjubPointY"
-  ([np (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
+  ([pt (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
   Field)
 
 (declare-native-entry circuit ecAdd
@@ -78,12 +81,12 @@
 (declare-native-entry circuit ecMul
   "__compactRuntime.ecMul"
   ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
-   [b Field (discloses "an elliptic curve product including")])
+   [b (TypeRef JubjubScalar) (discloses "an elliptic curve product including")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.ecMulGenerator"
-  ([b Field (discloses "the product of the embedded group generator with")])
+  ([b (TypeRef JubjubScalar) (discloses "the product of the embedded group generator with")])
   (TypeRef JubjubPoint))
 
 (declare-native-entry circuit hashToCurve [A]
@@ -93,14 +96,9 @@
 
 (declare-native-entry circuit constructJubjubPoint
   "__compactRuntime.constructJubjubPoint"
-  ([x Field (discloses "a JubjubPoint containing x coordinate")]
-   [y Field (discloses "a JubjubPoint containing y coordinate")])
+  ([x Field (discloses "a JubjubPoint containing X coordinate")]
+   [y Field (discloses "a JubjubPoint containing Y coordinate")])
   (TypeRef JubjubPoint))
-
-(declare-native-entry circuit jubjubScalarFromNative
-  "__compactRuntime.reduceModJubjubOrder"
-  ([x Field (discloses "a JubJub scalar equivalent to")])
-  Field)
 
 (declare-native-entry witness ownPublicKey
   "__compactRuntime.ownPublicKey"
