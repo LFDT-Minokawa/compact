@@ -55,6 +55,11 @@ export type ContractCtor = new (witnesses: any) => ContractInstance;
  */
 export type Module = {
   readonly Contract: ContractCtor;
+  /**
+   * Read nowhere: a pure circuit in a contract type cannot be called, so nothing dispatches through
+   * this, and it is absent from the runtime's required exports so a module need not carry one.
+   * TODO: drop it, unless pure cross-contract calls are made sound — see `PureInterfaceCircuit`.
+   */
   readonly pureCircuits: PureCircuits;
   /** Verifier-key fingerprints by external circuit name, compared against what is deployed. */
   readonly expectedVk: Readonly<Record<CircuitId, string>>;
