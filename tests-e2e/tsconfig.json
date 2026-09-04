@@ -13,5 +13,5 @@
     "paths": { "@/*":  ["src/*"], "@": ["src/index.ts"]}
   },
   "include": ["src/**/*", "tests/**/*"],
-  "exclude": ["node_modules", "src/resources/**/*"]
+  "exclude": ["node_modules", "src/fuzzer/**/*", "src/resources/**/*"]
 }

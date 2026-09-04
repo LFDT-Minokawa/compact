@@ -13,19 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+const { common } = require('../grammar/common.cjs');
+
 /*
- * List combinators over grammar alternatives.
- *
- * Deliberately free of Compact syntax -- every literal token of the language
- * lives in compact.ts, so there is one place to look when the language changes.
+ * Create a simple config for fuzzer.
  */
+function buildConfig(grammar, startNode, outputDir, outputName, contractAmount) {
+    return {
+        grammar: Object.assign(grammar, common),
+        startNode: startNode,
+        outputDir: outputDir,
+        outputName: outputName,
+        contractAmount: contractAmount,
+        stringLength: 32,
+        numberPower: 128,
+        tableLength: 200,
+    };
+}
 
-import { Token } from './types';
-
-/** [a, b, c] with `sep` between each: [a, sep, b, sep, c] */
-export const join = (nodes: Token[], sep: Token): Token[] =>
-    nodes.flatMap((node, i) => (i ? [sep, node] : [node]));
-
-/** `node` repeated `count` times, separated by `sep` */
-export const repeat = (node: Token, count: number, sep: Token): Token[] =>
-    join(Array.from({ length: count }, () => node), sep);
+exports.buildConfig = buildConfig;

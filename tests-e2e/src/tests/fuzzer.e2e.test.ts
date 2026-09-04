@@ -16,13 +16,10 @@
 import { Arguments, compile, createTempFolder, ExitCodes, expectCompilerResult, expectFiles, getFileContent, isRelease } from '@';
 import path from 'node:path';
 import fs from 'fs';
-import { generate } from '../fuzzer/fuzzers';
+import { generate } from '../fuzzer/fuzzers.cjs';
 
 const contractsDir: string = createTempFolder();
-// `??` would let NO_OF_FUZZER_TESTS='' through as Number('') === 0, generating
-// nothing and leaving a suite that passes because it contains no tests
-const requestedContracts = Number(process.env.NO_OF_FUZZER_TESTS) || 1000;
-generate(contractsDir, requestedContracts);
+generate(contractsDir, process.env.NO_OF_FUZZER_TESTS || 1000);
 const generatedContracts = fs.readdirSync(contractsDir);
 const failDir = path.join(process.cwd(), 'failed-contracts');
 
