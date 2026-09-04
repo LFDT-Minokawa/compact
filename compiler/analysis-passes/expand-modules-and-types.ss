@@ -81,44 +81,58 @@
           [,type (type-hash type)]))
       (define (type-hash type)
         (define max-tuple-elts-to-hash 10)
-        (nanopass-case (Lexpanded Type) type
+        (strict-nanopass-case (Lexpanded Type) type
           [(tboolean ,src) 1]
           [(tfield ,src ,ftype)
-           (nanopass-case (Lexpanded Field-Type) ftype
+           (strict-nanopass-case (Lexpanded Field-Type) ftype
              [(field-native) 2]
-             [(field-scalar (curve-jubjub)) 3]
-             [(field-base (curve-secp256k1)) 4]
-             [(field-scalar (curve-secp256k1)) 5])]
-          [(tunsigned ,src ,nat) (+ 6 nat)]
-          [(tbytes ,src ,len) (+ 7 len)]
-          [(topaque ,src ,opaque-type) (+ 8 (string-hash opaque-type))]
+             [(field-base ,ctype)
+              (strict-nanopass-case (Lexpanded Curve-Type) ctype
+                [(curve-curve25519) 3]
+                [(curve-jubjub)
+                 ;; The base field of Jubjub is the native field type.
+                 (assertf cannot-happen
+                   "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+                [(curve-secp256k1) 4]
+                [(curve-secp256r1) 5])]
+             [(field-scalar ,ctype)
+              (strict-nanopass-case (Lexpanded Curve-Type) ctype
+                [(curve-curve25519) 6]
+                [(curve-jubjub) 7]
+                [(curve-secp256k1) 8]
+                [(curve-secp256r1) 9])])]
+          [(tunsigned ,src ,nat) (+ 10 nat)]
+          [(tbytes ,src ,len) (+ 11 len)]
+          [(topaque ,src ,opaque-type) (+ 12 (string-hash opaque-type))]
           ;; arrange for equivalent vectors and tuples to hash to same value with same elements,
           ;; limiting the cost in the case of large vectors
           [(tvector ,src ,len ,type)
-           (+ 9 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
+           (+ 13 (combine (make-list (min len max-tuple-elts-to-hash) (type-hash type))))]
           [(ttuple ,src ,type* ...)
-           (+ 9 (combine (map type-hash
-                              (if (fx<= (length type*) max-tuple-elts-to-hash)
-                                  type*
-                                  (list-head type* max-tuple-elts-to-hash)))))]
+           (+ 13 (combine (map type-hash
+                            (if (fx<= (length type*) max-tuple-elts-to-hash)
+                                type*
+                                (list-head type* max-tuple-elts-to-hash)))))]
           [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (+ 11 (combine (list (symbol-hash contract-name)
+           (+ 14 (combine (list (symbol-hash contract-name)
                             ;; contract elts are unordered, so just add their hashes
                             (apply + (map symbol-hash elt-name*)))))]
           [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
-           (+ 12 (combine (map symbol-hash (cons struct-name elt-name*))))]
+           (+ 15 (combine (map symbol-hash (cons struct-name elt-name*))))]
           [(tenum ,src ,enum-name ,elt-name ,elt-name* ...)
-           (+ 13 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
+           (+ 16 (combine (map symbol-hash (cons* enum-name elt-name elt-name*))))]
           [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-           (+ 14 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
+           (+ 17 (combine (cons (symbol-hash adt-name) (map gv-hash generic-value*))))]
           [(talias ,src ,nominal? ,type-name ,type)
            (if nominal?
-               (+ 15 (combine (list (symbol-hash type-name) (type-hash type))))
+               (+ 18 (combine (list (symbol-hash type-name) (type-hash type))))
                (type-hash type))]
           [(tpoint ,src ,ctype)
-           (nanopass-case (Lexpanded Curve-Type) ctype
-             [(curve-jubjub) 16]
-             [(curve-secp256k1) 17])]
+           (strict-nanopass-case (Lexpanded Curve-Type) ctype
+             [(curve-curve25519) 19]
+             [(curve-jubjub) 20]
+             [(curve-secp256k1) 21]
+             [(curve-secp256r1) 22])]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
@@ -301,7 +315,11 @@
                          elt-name1* pure-dcl1* type1** type1*))
                 elt-name2* pure-dcl2* type2** type2*))
       (define (same-curve-type? ctype1 ctype2)
-        (nanopass-case (Lexpanded Curve-Type) ctype1
+        (strict-nanopass-case (Lexpanded Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
           [(curve-jubjub)
            (nanopass-case (Lexpanded Curve-Type) ctype2
              [(curve-jubjub) #t]
@@ -309,6 +327,10 @@
           [(curve-secp256k1)
            (nanopass-case (Lexpanded Curve-Type) ctype2
              [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Lexpanded Curve-Type) ctype2
+             [(curve-secp256r1) #t]
              [else #f])]))
       (define (same-field-type? ftype1 ftype2)
         (nanopass-case (Lexpanded Field-Type) ftype1

@@ -15,7 +15,12 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CompactError } from './error.js';
-import { MAX_SECP256K1_BASE, MAX_SECP256K1_SCALAR, SECP256K1_LOW_LIMB_BOUND } from './constants.js';
+import {
+  MAX_SECP256K1_BASE,
+  MAX_SECP256K1_SCALAR,
+  MAX_SECP256R1_BASE,
+  MAX_SECP256R1_SCALAR,
+} from './constants.js';
 
 /**
  * A runtime representation of a type in Compact
@@ -54,6 +59,16 @@ export interface JubjubPoint {
  * Compact type of the same name.  When identity = true, x and y should be 0.
  */
 export interface Secp256k1Point {
+  readonly x: bigint;
+  readonly y: bigint;
+  readonly identity: boolean;
+}
+
+/**
+ * A point in the foreign secp256r1 elliptic curve. TypeScript representation of the
+ * Compact type of the same name.  When identity = true, x and y should be 0.
+ */
+export interface Secp256r1Point {
   readonly x: bigint;
   readonly y: bigint;
   readonly identity: boolean;
@@ -116,6 +131,42 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
   toValue(value: Secp256k1Point): ocrt.Value {
     return CompactTypeSecp256k1Base.toValue(value.x)
       .concat(CompactTypeSecp256k1Base.toValue(value.y))
+      .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
+  },
+};
+
+/**
+ * Runtime type of {@link Secp256r1Point}
+ */
+export const CompactTypeSecp256r1Point: CompactType<Secp256r1Point> = {
+  // One base containing the x cordinate
+  // One base containing the y cordinate
+  // One native field containing the identity flag
+  alignment(): ocrt.Alignment {
+    return CompactTypeSecp256r1Base.alignment()
+      .concat(CompactTypeSecp256r1Base.alignment())
+      .concat([{ tag: 'atom', value: { tag: 'field' } }]);
+  },
+  fromValue(value: ocrt.Value): Secp256r1Point {
+    if (value.length < 5) {
+      throw new CompactError('expected Secp256r1Point');
+    }
+    // This might throw CompactError('expected Secp256r1Base').
+    const x = CompactTypeSecp256r1Base.fromValue(value);
+    const y = CompactTypeSecp256r1Base.fromValue(value);
+    const identity = value.shift();
+    if (identity == undefined) {
+      throw new CompactError('expected Secp256r1Point');
+    }
+    const flag = ocrt.valueToBigInt([identity]);
+    if (flag != 0n && flag != 1n) {
+      throw new CompactError('expected Secp256r1Point');
+    }
+    return { x: x, y: y, identity: flag === 1n };
+  },
+  toValue(value: Secp256r1Point): ocrt.Value {
+    return CompactTypeSecp256r1Base.toValue(value.x)
+      .concat(CompactTypeSecp256r1Base.toValue(value.y))
       .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
   },
 };
@@ -238,91 +289,80 @@ export const CompactTypeField: CompactType<bigint> = {
   },
 };
 
-/**
- * Runtime type of the builtin `Secp256k1Base` type
- */
-export const CompactTypeSecp256k1Base: CompactType<bigint> = {
-  // One native field containing the low-order 192 bits
-  // One native field containing the high-order 64 bits
+// Implementation of foreign field values up to 32 bytes, encoded as the low 24
+// bytes (3 64-bit "limbs") and the high 8 bytes (one64-bit "limb"), and where
+// the encoded value has had 1 subtracted (in the field).
+class ForeignField8_24 implements CompactType<bigint> {
+  readonly max: bigint;
+  readonly name: string;
+
+  constructor(max: bigint, name: string) {
+    this.max = max;
+    this.name = name;
+  }
+
   alignment(): ocrt.Alignment {
+    // One native field containing the low-order 192 bits.
+    // One native field containing the high-order 64 bits.
     return [
       { tag: 'atom', value: { tag: 'bytes', length: 24 } },
       { tag: 'atom', value: { tag: 'bytes', length: 8 } },
     ];
-  },
+  }
 
   fromValue(value: ocrt.Value): bigint {
     if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
-      throw new CompactError('expected Secp256k1Base');
+      throw new CompactError(`expected ${this.name}`);
     }
     const limbs = value.splice(0, 2);
     const low192 = ocrt.valueToBigInt([limbs[0]]);
     const high64 = ocrt.valueToBigInt([limbs[1]]);
-    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
-      throw new CompactError('expected Secp256k1Base');
+    if (low192 >= 1n << 192n) {
+      throw new CompactError(`expected ${this.name}`);
     }
     let res = high64 << 192n | low192;
     // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_BASE) ? 0n : res + 1n;
-    if (res > MAX_SECP256K1_BASE) {
-      throw new CompactError('expected Secp256k1Base');
+    res = (res == this.max) ? 0n : res + 1n;
+    if (res > this.max) {
+      throw new CompactError(`expected ${this.name}`);
     }
     return res;
-  },
+  }
 
   toValue(value: bigint): ocrt.Value {
-    if (value < 0n || value > MAX_SECP256K1_BASE) {
-      throw new CompactError('expected Secp256k1Base');
+    if (value < 0n || value > this.max) {
+      throw new CompactError(`expected ${this.name}`);
     }
     // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_BASE : value - 1n;
+    value = (value == 0n) ? this.max : value - 1n;
     return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
       .concat(ocrt.bigIntToValue(value >> 192n));
-  },
-};
+  }
+}
 
 /**
- * Runtime type of the builtin `Secp256k1Scalar` type
+ * Runtime type of the standard library's `Secp256k1Base` type
  */
-export const CompactTypeSecp256k1Scalar: CompactType<bigint> = {
-  // One native field containing the low-order 192 bits
-  // One native field containing the high-order 64 bits
-  alignment(): ocrt.Alignment {
-    return [
-      { tag: 'atom', value: { tag: 'bytes', length: 24 } },
-      { tag: 'atom', value: { tag: 'bytes', length: 8 } },
-    ];
-  },
+export const CompactTypeSecp256k1Base: CompactType<bigint> =
+  new ForeignField8_24(MAX_SECP256K1_BASE, 'Secp256k1Base');
 
-  fromValue(value: ocrt.Value): bigint {
-    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
-      throw new CompactError('expected Secp256k1Scalar');
-    }
-    const limbs = value.splice(0, 2);
-    const low192 = ocrt.valueToBigInt([limbs[0]]);
-    const high64 = ocrt.valueToBigInt([limbs[1]]);
-    if (low192 >= SECP256K1_LOW_LIMB_BOUND) {
-      throw new CompactError('expected Secp256k1Scalar');
-    }
-    let res = high64 << 192n | low192;
-    // The ZKIR representation subtracts 1 from the value.
-    res = (res == MAX_SECP256K1_SCALAR) ? 0n : res + 1n;
-    if (res > MAX_SECP256K1_SCALAR) {
-      throw new CompactError('expected Secp256k1Scalar');
-    }
-    return res;
-  },
+/**
+ * Runtime type of the standard library's `Secp256k1Scalar` type
+ */
+export const CompactTypeSecp256k1Scalar: CompactType<bigint> =
+  new ForeignField8_24(MAX_SECP256K1_SCALAR, 'Secp256k1Scalar');
 
-  toValue(value: bigint): ocrt.Value {
-    if (value < 0n || value > MAX_SECP256K1_SCALAR) {
-      throw new CompactError('expected Secp256k1Scalar');
-    }
-    // The ZKIR representation subtracts 1 from the value.
-    value = (value == 0n) ? MAX_SECP256K1_SCALAR : value - 1n;
-    return ocrt.bigIntToValue(value & ((1n << 192n) - 1n))
-      .concat(ocrt.bigIntToValue(value >> 192n));
-  },
-};
+/**
+ * Runtime type of the standard library's `Secp256r1Base` type
+ */
+export const CompactTypeSecp256r1Base: CompactType<bigint> =
+  new ForeignField8_24(MAX_SECP256R1_BASE, 'Secp256r1Base');
+
+/**
+ * Runtime type of the standard library's `Secp256r1Scalar` type
+ */
+export const CompactTypeSecp256r1Scalar: CompactType<bigint> =
+  new ForeignField8_24(MAX_SECP256R1_SCALAR, 'Secp256r1Scalar');
 
 /**
  * Runtime type of an enum with a given number of entries
@@ -558,8 +598,8 @@ export function toBinaryRepr<A>(rtType: CompactType<A>, value: A): Uint8Array {
       throw new CompactError(`unexpected segment tag ${segment.tag} in toBinaryRepr`);
     }
     switch (segment.value.tag) {
-      // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
-      // the unhashed payload).  There's no correct way to encode them here.
+        // Compress atoms will be represented differently on-chain (as a Poseidon hash) and off (as
+        // the unhashed payload).  There's no correct way to encode them here.
       case 'compress':
         throw new CompactError('cannot convert JS opaque values in toBinaryRepr');
       case 'field': {

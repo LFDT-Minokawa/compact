@@ -84,28 +84,43 @@
             (nanopass-case (Lcircuit Type) type
               [(tboolean ,src) (cons `(abytes 1) a*)]
               [(tfield ,src ,ftype)
-               (nanopass-case (Lcircuit Field-Type) ftype
-                 [(field-native)
-                  (cons `(afield) a*)]
-                 [(field-scalar (curve-jubjub))
-                  (if (feature-zkir-v3)
-                      (cons `(anative "JubjubScalar") a*)
-                      (cons `(afield) a*))]
-                 [(field-base (curve-secp256k1))
-                  (cons `(anative "Secp256k1Base") a*)]
-                 [(field-scalar (curve-secp256k1))
-                  (cons `(anative "Secp256k1Scalar") a*)])]
+               (strict-nanopass-case (Lcircuit Field-Type) ftype
+                 [(field-native) (cons `(afield) a*)]
+                 [(field-base ,ctype)
+                  (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                    [(curve-curve25519) (cons `(anative "Curve25519Base") a*)]
+                    [(curve-jubjub)
+                     (assertf cannot-happen
+                       "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+                    [(curve-secp256k1) (cons `(anative "Secp256k1Base") a*)]
+                    [(curve-secp256r1) (cons `(anative "Secp256r1Base") a*)])]
+                 [(field-scalar ,ctype)
+                  (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                    [(curve-curve25519) (cons `(anative "Curve25519Scalar") a*)]
+                    [(curve-jubjub)
+                     (if (feature-zkir-v3)
+                         (cons `(anative "JubjubScalar") a*)
+                         (cons `(afield) a*))]
+                    [(curve-secp256k1) (cons `(anative "Secp256k1Scalar") a*)]
+                    [(curve-secp256r1) (cons `(anative "Secp256r1Scalar") a*)])])]
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
               [(tpoint ,src ,ctype)
-               (nanopass-case (Lcircuit Curve-Type) ctype
-                 [(curve-jubjub) (if (feature-zkir-v3)
-                                     (cons `(anative "JubjubPoint") a*)
-                                     (cons* `(afield) `(afield) a*))]
+               (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                 [(curve-curve25519)
+                  (assert (feature-zkir-v3))
+                  (cons `(anative "Curve25519Point") a*)]
+                 [(curve-jubjub)
+                  (if (feature-zkir-v3)
+                      (cons `(anative "JubjubPoint") a*)
+                      (cons* `(afield) `(afield) a*))]
                  [(curve-secp256k1)
                   (assert (feature-zkir-v3))
-                  (cons `(anative "Secp256k1Point") a*)])]
+                  (cons `(anative "Secp256k1Point") a*)]
+                 [(curve-secp256r1)
+                  (assert (feature-zkir-v3))
+                  (cons `(anative "Secp256r1Point") a*)])]
               [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
               [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
               [(tvector ,src ,len ,type)
@@ -259,9 +274,13 @@
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
                     [(tpoint ,src ,ctype)
                      (with-output-language (Lflattened Statement)
-                       (nanopass-case (Lcircuit Curve-Type) ctype
-                         [(curve-jubjub)
-                          (let ([t1 (make-new-id var-name)])
+                       (let ([t1 (make-new-id var-name)])
+                         (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                           [(curve-curve25519)
+                            (values
+                              (Wump-single t1)
+                              (list `(= ,test (,t1) (default "Curve25519Point"))))]
+                           [(curve-jubjub)
                             (if (feature-zkir-v3)
                                 (values
                                   (Wump-single t1)
@@ -269,12 +288,15 @@
                                 (let ([t2 (make-new-id var-name)])
                                   (values
                                     (Wump-vector (list (Wump-single t1) (Wump-single t2)))
-                                    (list `(= ,test (,t1 ,t2) (default "JubjubPoint")))))))]
-                         [(curve-secp256k1)
-                          (let ([t1 (make-new-id var-name)])
+                                    (list `(= ,test (,t1 ,t2) (default "JubjubPoint"))))))]
+                           [(curve-secp256k1)
                             (values
                               (Wump-single t1)
-                              (list `(= ,test (,t1) (default "Secp256k1Point")))))]))]
+                              (list `(= ,test (,t1) (default "Secp256k1Point"))))]
+                           [(curve-secp256r1)
+                            (values
+                              (Wump-single t1)
+                              (list `(= ,test (,t1) (default "Secp256r1Point"))))])))]
                     [(tbytes ,src ,len)
                      (trivial (Wump-bytes (bytes-default-limbs len)))]
                     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
@@ -383,14 +405,23 @@
                     [(Wump-bytes elt*) elt*]
                     [else (assert cannot-happen)])])
        (with-output-language (Lflattened Statement)
-         (define (make-secp256k1-cast)
-           ;; The only possible source type is Bytes<32>, which is two trivs.
-           (assert (= (length triv*) 2))
+         (define (make-foreign-field-cast ctype)
            (hashtable-set! var-ht var-name (Wump-single var-name))
-           (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,(car triv*) ,(cadr triv*)))))
-         (nanopass-case (Lflattened Field-Type) ftype
-           [(field-base (curve-secp256k1)) (make-secp256k1-cast)]
-           [(field-scalar (curve-secp256k1)) (make-secp256k1-cast)]
+           (strict-nanopass-case (Lflattened Curve-Type) ctype
+             [(curve-curve25519)
+              (assert (= (length triv*) 3))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
+             [(curve-jubjub)
+              (assertf cannot-happen "cannot cast byte vector to JubjubScalar")]
+             [(curve-secp256k1)
+              (assert (= (length triv*) 2))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
+             [(curve-secp256r1)
+              (assert (= (length triv*) 2))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]))
+         (strict-nanopass-case (Lflattened Field-Type) ftype
+           [(field-base ,ctype) (make-foreign-field-cast ctype)]
+           [(field-scalar ,ctype) (make-foreign-field-cast ctype)]
            [(field-native)
             (let ([n (length triv*)])
               (cond

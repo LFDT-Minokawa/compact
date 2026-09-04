@@ -53,8 +53,9 @@
                      (with-output-language (Lflattened Alignment)
                        (cons `(afield) new-alignment*))
                      (cons fld new-triv*)))]
-                [(anative ,zkir-type) (guard (or (string=? zkir-type "Secp256k1Base")
-                                                 (string=? zkir-type "Secp256k1Scalar")))
+                [(anative ,zkir-type)
+                 (guard (member zkir-type
+                          '("Secp256k1Base" "Secp256k1Scalar" "Secp256r1Base" "Secp256r1Scalar")))
                  (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -71,7 +72,8 @@
                      (with-output-language (Lflattened Alignment)
                        (cons* `(afield) `(afield) new-alignment*))
                      (cons* pt1 pt0 new-triv*)))]
-                [(anative ,zkir-type) (guard (string=? zkir-type "Secp256k1Point"))
+                [(anative ,zkir-type) (guard (or (string=? zkir-type "Secp256k1Point")
+                                                 (string=? zkir-type "Secp256r1Point")))
                  (let ([fld* (maplr (lambda (ignore) (make-temp-id src 'fld)) (make-list 5))])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -207,6 +209,14 @@
              (let ([y (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
             [(secp256k1PointY)
+             (assert (= (length var-name*) 1))
+             (let ([x (make-temp-id src 'ignore)])
+               (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
+            [(secp256r1PointX)
+             (assert (= (length var-name*) 1))
+             (let ([y (make-temp-id src 'ignore)])
+               (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
+            [(secp256r1PointY)
              (assert (= (length var-name*) 1))
              (let ([x (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
@@ -676,19 +686,26 @@
               [(argument (,var-name* ...) (ty (,alignment* ...) (,primitive-type* ...)))
                (values (append var-name* name*) (append primitive-type* type*))]))))
 
+    (define (curve-type->string ctype)
+      (strict-nanopass-case (Lflattened Curve-Type) ctype
+        [(curve-curve25519) "Curve25519"]
+        [(curve-jubjub) "Jubjub"]
+        [(curve-secp256k1) "Secp256k1"]
+        [(curve-secp256r1) "Secp256r1"]))
+
     (define (field-type->string ftype)
-      (nanopass-case (Lflattened Field-Type) ftype
+      (strict-nanopass-case (Lflattened Field-Type) ftype
         [(field-native) "Scalar<BLS12-381>"]
-        [(field-scalar (curve-jubjub)) "Scalar<Jubjub>"]
-        [(field-base (curve-secp256k1)) "Base<Secp256k1>"]
-        [(field-scalar (curve-secp256k1)) "Scalar<Secp256k1>"]))
+        [(field-base ,ctype)
+         ;; Base<Jubjub> is not a ZKIR type, it's not produced by the compiler.
+         (format "Base<~a>" (curve-type->string ctype))]
+        [(field-scalar ,ctype) (format "Scalar<~a>" (curve-type->string ctype))]))
 
     (define (type->string primitive-type)
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (field-type->string ftype)]
+        [(tpoint ,ctype) (format "Point<~a>" (curve-type->string ctype))]
         [(tunsigned ,nat) "Scalar<BLS12-381>"]
-        [(tpoint (curve-jubjub)) "Point<Jubjub>"]
-        [(tpoint (curve-secp256k1)) "Point<Secp256k1>"]
         [(topaque ,opaque-type) "Scalar<BLS12-381>"]
         [else (assert cannot-happen)])))
 
@@ -818,28 +835,35 @@
               instr*))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
-     ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
-     ;; NB: missing-guard-workarounds now implements a workaround that ensures
-     ;; field->bytes receives a large enough length that it won't produce
-     ;; constrain_bits when the test might be false
      (with-output-language (Lzkir Instruction)
-       (define (handle-secp256k1-field)
+       ;; Handle a 24-byte low / 8-byte high field encoding.
+       (define (handle-low-high-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(bytes32_into_low_high ,var-name1 ,var-name0 ,tmp)
              `(into_bytes32 ,tmp ,triv)
              instr*)))
-       (nanopass-case (Lflattened Field-Type) ftype
-         [(field-base (curve-secp256k1)) (handle-secp256k1-field)]
-         [(field-scalar (curve-secp256k1)) (handle-secp256k1-field)]
+       (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
+          ;; TODO(kmillikin): this needs to respect test because `constrain_bits` can fail.
+          ;; NB: missing-guard-workarounds now implements a workaround that ensures
+          ;; field->bytes receives a large enough length that it won't produce
+          ;; constrain_bits when the test might be false
           (if (<= len (field-bytes))
               (cons*
                 `(constrain_bits ,var-name1 ,(* len 8))
                 `(copy ,var-name1 ,triv)
                 instr*)
               (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
-                instr*))]))]
+                instr*))]
+         [(field-base ,ctype)
+          (nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-secp256k1) (handle-low-high-field)]
+            [(curve-secp256r1) (handle-low-high-field)])]
+         [(field-scalar ,ctype)
+          (nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-secp256k1) (handle-low-high-field)]
+            [(curve-secp256r1) (handle-low-high-field)])]))]
     [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
      (with-output-language (Lzkir Instruction)
        (cons
@@ -933,24 +957,31 @@
            instr*)))]
     [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
-       (define (handle-secp256k1-field)
+       ;; Handle a 24-byte low / 8-byte high field encoding.
+       (define (handle-low-high-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
              `(bytes32_from_low_high ,tmp ,triv1 ,triv0)
              instr*)))
-       (nanopass-case (Lflattened Field-Type) ftype
-         [(field-base (curve-secp256k1)) (handle-secp256k1-field)]
-         [(field-scalar (curve-secp256k1)) (handle-secp256k1-field)]
+       (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
           ;; TODO(kmillikin): This should respect test and be conditional in the ZKIR output.
           ;; NB: missing-guard-workarounds now implements a workaround that ensures
           ;; bytes->field receives inputs that can't cause reconstitute_field
           ;; to fail when test turns out to be false
-          (with-output-language (Lzkir Instruction)
-            ;; flatten-datatype takes care of this case.
-            (assert (> len (field-bytes)))
-            (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*))]))]
+
+          ;; flatten-datatype takes care of this case.
+          (assert (> len (field-bytes)))
+          (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*)]
+         [(field-base ,ctype)
+          (nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-secp256k1) (handle-low-high-field)]
+            [(curve-secp256r1) (handle-low-high-field)])]
+         [(field-scalar ,ctype)
+          (nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-secp256k1) (handle-low-high-field)]
+            [(curve-secp256r1) (handle-low-high-field)])]))]
     [(vector->bytes ,triv ,triv* ...)
      (with-output-language (Lzkir Instruction)
        (if (null? triv*)

@@ -800,6 +800,8 @@
              ; flattened-datatype takes care of this case, so this line can't presently be reached
              (print-gate "copy" `[var ,triv2])
              (print-gate "reconstitute_field" `[divisor ,triv1] `[modulus ,triv2] `[bits ,(* 8 (field-bytes))]))]
+        [(bytes->field ,src ,ftype ,len ,triv ...)
+         (assertf cannot-happen "bytes->field in ZKIR 2 with other than two inputs")]
         [(vector->bytes ,[* triv] ,[* triv*] ...)
          (if (null? triv*)
              (print-gate "copy" `[var ,triv])

@@ -46,15 +46,29 @@
       (nanopass-case (Lflattened Argument) arg
         [(argument (,var-name* ...) ,type) (type->primitive-types type)]))
     (define (format-field-type ftype)
-      (nanopass-case (Lflattened Field-Type) ftype
+      (strict-nanopass-case (Lflattened Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub)
+            ;; The base field of Jubjub is the native field type.
+            (assertf cannot-happen
+              "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
     (define (format-point-type ctype)
-      (nanopass-case (Lflattened Curve-Type) ctype
+      (strict-nanopass-case (Lflattened Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
         [(curve-jubjub) "JubjubPoint"]
-        [(curve-secp256k1) "Secp256k1Point"]))
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-primitive-type primitive-type)
       (define (format-type type)
         (format "(~{~a~^, ~})" (map format-primitive-type (type->primitive-types type))))
@@ -79,6 +93,38 @@
         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
          (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
         [else (internal-errorf 'format-primitive-type "unexpected primitive type ~s" primitive-type)]))
+      (define (same-curve-type? ctype1 ctype2)
+        (strict-nanopass-case (Lflattened Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
+          [(curve-jubjub)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256r1) #t]
+             [else #f])]))
+      (define (same-field-type? ftype1 ftype2)
+        (strict-nanopass-case (Lflattened Field-Type) ftype1
+          [(field-native)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-native) #t]
+             [else #f])]
+          [(field-base ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]))
     (define (subtype? type1 type2)
       (let ([primitive-type1* (type->primitive-types type1)]
             [primitive-type2* (type->primitive-types type2)])
@@ -94,18 +140,26 @@
                [(tunsigned ,nat) (<= (max-field) nat)])]
            [(field-scalar ,ctype)
             (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-curve25519)
+               (T primitive-type2 [(tfield (field-scalar (curve-curve25519))) #t])]
               [(curve-jubjub)
                (T primitive-type2
                   [(tfield (field-native)) #t]
                   [(tfield (field-scalar (curve-jubjub))) #t]
                   [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
               [(curve-secp256k1)
-               (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])])]
+               (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])]
+              [(curve-secp256r1)
+               (T primitive-type2 [(tfield (field-scalar (curve-secp256r1))) #t])])]
            [(field-base ,ctype)
             (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-curve25519)
+               (T primitive-type2 [(tfield (field-base (curve-curve25519))) #t])]
+              [(curve-jubjub) (assert cannot-happen)]
               [(curve-secp256k1)
                (T primitive-type2 [(tfield (field-base (curve-secp256k1))) #t])]
-              [else (assert cannot-happen)])])]
+              [(curve-secp256r1)
+               (T primitive-type2 [(tfield (field-base (curve-secp256r1))) #t])])])]
         [(tunsigned ,nat1)
          (T primitive-type2
            [(tfield (field-native)) (<= nat1 (max-field))]
@@ -119,8 +173,10 @@
             (eqv? nat1 0)])]
         [(tpoint ,ctype)
          (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) (T primitive-type2 [(tpoint (curve-curve25519)) #t])]
            [(curve-jubjub) (T primitive-type2 [(tpoint (curve-jubjub)) #t])]
-           [(curve-secp256k1) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])])]
+           [(curve-secp256k1) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])]
+           [(curve-secp256r1) (T primitive-type2 [(tpoint (curve-secp256r1)) #t])])]
         [(topaque ,opaque-type1)
          (T primitive-type2
             [(topaque ,opaque-type2)
@@ -166,16 +222,12 @@
                       (T primitive-type2
                         [(tfield (field-native)) #t]
                         [(tunsigned ,nat) #t])])]
-                  [(tfield (field-base (curve-secp256k1)))
+                  [(tfield (field-scalar (curve-jubjub))) #f]
+                  [(tfield ,ftype)
                    (T primitive-type1
-                     [(tfield (field-base (curve-secp256k1)))
+                     [(tfield ,ftype1) (guard (same-field-type? ftype ftype1))
                       (T primitive-type2
-                        [(tfield (field-base (curve-secp256k1))) #t])])]
-                  [(tfield (field-scalar (curve-secp256k1)))
-                   (T primitive-type1
-                     [(tfield (field-scalar (curve-secp256k1)))
-                      (T primitive-type2
-                        [(tfield (field-scalar (curve-secp256k1))) #t])])]
+                        [(tfield ,ftype2) (same-field-type? ftype ftype2)])])]
                   [(tunsigned ,nat)
                    (T primitive-type1
                      [(tunsigned ,nat1)
@@ -319,27 +371,46 @@
                 (assert (= (length var-name*) 2))
                 (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
                 (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native))))))]
+         [("Curve25519Point")
+          (assert (feature-zkir-v3))
+          (assert (= (length var-name*) 1))
+          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-curve25519))))]
          [("Secp256k1Point")
           (assert (feature-zkir-v3))
           (assert (= (length var-name*) 1))
           (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-secp256k1))))]
+         [("Secp256r1Point")
+          (assert (feature-zkir-v3))
+          (assert (= (length var-name*) 1))
+          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-secp256r1))))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
-     (verify-test src test)
-     (unless (nanopass-case (Lflattened Field-Type) ftype
-               [(field-native)
-                [T primitive-type [(tfield (field-native)) #t] [(tunsigned ,nat) #t]]]
-               [(field-base (curve-secp256k1))
-                (T primitive-type [(tfield (field-base (curve-secp256k1))) #t])]
-               [(field-scalar (curve-secp256k1))
-                (T primitive-type [(tfield (field-scalar (curve-secp256k1))) #t])])
-       (type-error (format "argument to field->bytes at ~a" (format-source-object src))
-         (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
-         primitive-type))
-     (assert (not (= len 0)))
-     (with-output-language (Lflattened Primitive-Type)
-       (set-idtype! var-name1 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
-       (set-idtype! var-name2 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1))))))]
+     (let ()
+       (define (check-length ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) (eqv? len 64)]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) (eqv? len 32)]
+           [(curve-secp256r1) (eqv? len 32)]))
+       (verify-test src test)
+       (unless (nanopass-case (Lflattened Field-Type) ftype
+                 [(field-native)
+                  [T primitive-type [(tfield (field-native)) #t] [(tunsigned ,nat) #t]]]
+                 [(field-base ,ctype1)
+                  (T primitive-type
+                    [(tfield (field-base ,ctype2)) (and (same-curve-type? ctype1 ctype2)
+                                                        (check-length ctype1))])]
+                 [(field-scalar ,ctype1)
+                  (T primitive-type
+                    [(tfield (field-scalar ,ctype2)) (and (same-curve-type? ctype1 ctype2)
+                                                          (check-length ctype1))])])
+         (type-error (format "argument to field->bytes at ~a" (format-source-object src))
+           (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
+           primitive-type))
+       (assert (not (= len 0)))
+       (with-output-language (Lflattened Primitive-Type)
+         (set-idtype! var-name1 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
+         (set-idtype! var-name2 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1)))))))]
     [(= ,test (,var-name1 ,var-name2) (div-mod-power-of-two ,[* primitive-type] ,bits))
      (verify-test program-src test)
      (unless (T primitive-type

@@ -53,15 +53,29 @@
       (nanopass-case (Lnodca Argument) arg
         [(,var-name ,type) type]))
     (define (format-field-type ftype)
-      (nanopass-case (Lnodca Field-Type) ftype
+      (strict-nanopass-case (Lnodca Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub)
+            ;; The base field of Jubjub is the native field type.
+            (assertf cannot-happen
+              "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
     (define (format-point-type ctype)
-      (nanopass-case (Lnodca Curve-Type) ctype
+      (strict-nanopass-case (Lnodca Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
         [(curve-jubjub) "JubjubPoint"]
-        [(curve-secp256k1) "Secp256k1Point"]))
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-type type)
       (define (format-adt-arg adt-arg)
         (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg
@@ -108,7 +122,11 @@
          (de-alias type)]
         [else type]))
     (define (same-curve-type? ctype1 ctype2)
-      (nanopass-case (Lnodca Curve-Type) ctype1
+      (strict-nanopass-case (Lnodca Curve-Type) ctype1
+        [(curve-curve25519)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-curve25519) #t]
+           [else #f])]
         [(curve-jubjub)
          (nanopass-case (Lnodca Curve-Type) ctype2
            [(curve-jubjub) #t]
@@ -116,9 +134,13 @@
         [(curve-secp256k1)
          (nanopass-case (Lnodca Curve-Type) ctype2
            [(curve-secp256k1) #t]
+           [else #f])]
+        [(curve-secp256r1)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-secp256r1) #t]
            [else #f])]))
     (define (same-field-type? ftype1 ftype2)
-      (nanopass-case (Lnodca Field-Type) ftype1
+      (strict-nanopass-case (Lnodca Field-Type) ftype1
         [(field-native)
          (nanopass-case (Lnodca Field-Type) ftype2
            [(field-native) #t]
@@ -268,6 +290,12 @@
          type]
         [else (assert cannot-happen)]))
      (define (arithmetic-binop src op result-type expr1 expr2)
+       (define (check-curve-type ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) #t]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) #t]
+           [(curve-secp256r1) #t]))
        (let ([type1 (Care expr1)] [type2 (Care expr2)])
          (let ([unaliased-type1 (de-alias type1)] [unaliased-type2 (de-alias type2)])
            (unless (and (same-type? result-type unaliased-type1)
@@ -276,8 +304,8 @@
                (format-type type1) op (format-type type2) (format-type result-type)))
            (unless (T result-type
                      [(tfield ,src (field-native)) #t]
-                     [(tfield ,src (field-base (curve-secp256k1))) #t]
-                     [(tfield ,src (field-scalar (curve-secp256k1))) #t]
+                     [(tfield ,src (field-base ,ctype)) (check-curve-type ctype)]
+                     [(tfield ,src (field-scalar ,ctype)) (check-curve-type ctype)]
                      [(tunsigned ,src ,nat) #t])
              (source-errorf src "invalid operation type ~a for ~s" (format-type result-type) op)))
          result-type))
@@ -750,20 +778,26 @@
                             (format-type type^))])
      type]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
-     (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
-     (unless (nanopass-case (Lnodca Type) (de-alias type)
-               [(tfield ,src^ ,ftype^)
-                (and (same-field-type? ftype ftype^)
-                     (nanopass-case (Lnodca Field-Type) ftype
-                       [(field-native) #t]
-                       [(field-base (curve-secp256k1)) (eqv? len 32)]
-                       [(field-scalar (curve-secp256k1)) (eqv? len 32)]
-                       [else #f]))]
-               [else #f])
-       (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
-         (format-type type)
-         (format-field-type ftype)))
-     (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+     (let ()
+       (define (check-length ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) (eqv? len 64)]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) (eqv? len 32)]
+           [(curve-secp256r1) (eqv? len 32)]))
+       (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
+       (unless (nanopass-case (Lnodca Type) (de-alias type)
+                 [(tfield ,src^ ,ftype^)
+                  (and (same-field-type? ftype ftype^)
+                       (strict-nanopass-case (Lnodca Field-Type) ftype
+                         [(field-native) #t]
+                         [(field-base ,ctype) (check-length ctype)]
+                         [(field-scalar ,ctype) (check-length ctype)]))]
+                 [else #f])
+         (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
+           (format-type type)
+           (format-field-type ftype)))
+       (with-output-language (Lnodca Type) `(tbytes ,src ,len)))]
     [(bytes->vector ,src ,len ,[Care : expr -> * type])
      (unless (nanopass-case (Lnodca Type) (de-alias type)
                [(tbytes ,src ,len^) (= len^ len)]
