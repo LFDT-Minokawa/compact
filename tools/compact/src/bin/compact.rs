@@ -13,19 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{path::PathBuf, str::FromStr, sync::Arc};
+use std::{
+    path::{Path, PathBuf},
+    str::FromStr,
+    sync::Arc,
+};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use axoupdater::AxoUpdater;
 use clap::Parser;
 use compact::{
     COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, CompileCommand,
-    Compiler, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand, VersionSpec,
+    Compiler, CompilerAsset, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand,
+    VersionSpec,
     fetch::{self, MidnightArtifacts},
     file,
     fixup::{self, FixupStatus, fixup_file},
     formatter::{self, FormatStatus, format_file},
-    http, progress,
+    http, is_corrupt_archive, progress,
     utils::{self, set_current_compiler},
 };
 use indicatif::ProgressStyle;
@@ -177,7 +182,11 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             .join(version.to_string())
             .join(cfg.target.to_string());
 
-        if dir.exists() {
+        // A version counts as installed only when the compiler binary itself is
+        // there. A previous run whose extraction failed leaves the directory
+        // behind holding nothing but `artifact.zip'; treating that as installed
+        // skips re-extraction and reports success for a broken install.
+        if dir.join("compactc").is_file() {
             let compiler = Compiler::create(cfg, version.clone(), cfg.target).await?;
 
             println!(
@@ -200,6 +209,18 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             }
 
             return Ok(());
+        } else if dir.exists() {
+            // The directory survives a failed extraction. Say so, rather than
+            // silently re-downloading, so the earlier failure is accounted for.
+            println!(
+                "{label}: {target} -- {version} -- {message}",
+                label = cfg.style.label(),
+                target = cfg.style.target(cfg.target),
+                version = cfg.style.version(version.clone()),
+                message = cfg
+                    .style
+                    .warn("previous installation is incomplete, reinstalling"),
+            );
         }
     }
 
@@ -216,27 +237,13 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
     let target = cfg.target;
 
     let compiler = Compiler::create(cfg, version.clone(), target).await?;
-    let zip_file = file::File::new(compiler.path_zip());
 
     let mut installed = false;
 
     if !compiler.path_compactc().is_file() {
         let compiler_asset = artifact.compiler(cfg)?;
 
-        if !zip_file.exist() {
-            let client = http::Client::new()?;
-
-            let download_url = compiler_asset.download_url().clone();
-            let download_future = client.download_to_file(download_url, zip_file);
-
-            let dl = progress::future("Downloading artifact", download_future).await?;
-
-            progress::progress(dl).await?;
-        }
-
-        let unzip_future = compiler_asset.unzip();
-
-        progress::future("Unpacking compiler", unzip_future).await?;
+        download_and_install(cfg, &version, &compiler_asset, &compiler.path_zip()).await?;
 
         installed = true;
     }
@@ -272,6 +279,66 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
     Ok(())
 }
 
+/// Fetch the archive unless it is already here, then unpack it.
+///
+/// An archive that cannot be read is discarded and fetched once more. The
+/// archive is otherwise reused whenever it is on disk, so a corrupt one would
+/// fail every retry in exactly the same way and leave deleting it by hand as
+/// the only way forward -- which is the shape of the failure reported in issue
+/// #739. Only the archive's own faults are retried: a full disk or a
+/// permission error is reported as it happens, because fetching the file again
+/// would not help.
+async fn download_and_install(
+    cfg: &CommandLineArguments,
+    version: &semver::Version,
+    compiler_asset: &CompilerAsset,
+    zip_path: &Path,
+) -> Result<()> {
+    if !file::File::new(zip_path.to_path_buf()).exist() {
+        download_archive(compiler_asset, zip_path).await?;
+    }
+
+    let Err(error) = progress::future("Unpacking compiler", compiler_asset.install()).await else {
+        return Ok(());
+    };
+
+    if !is_corrupt_archive(&error) {
+        return Err(error);
+    }
+
+    println!(
+        "{label}: {target} -- {version} -- {message}",
+        label = cfg.style.label(),
+        target = cfg.style.target(cfg.target),
+        version = cfg.style.version(version.clone()),
+        message = cfg
+            .style
+            .warn("downloaded archive is unreadable, downloading it again"),
+    );
+
+    utils::remove_file_if_exists(zip_path)
+        .await
+        .with_context(|| anyhow!("Failed to discard the unreadable archive `{zip_path:?}'"))?;
+
+    download_archive(compiler_asset, zip_path).await?;
+
+    progress::future("Unpacking compiler", compiler_asset.install()).await
+}
+
+async fn download_archive(compiler_asset: &CompilerAsset, zip_path: &Path) -> Result<()> {
+    let client = http::Client::new()?;
+
+    let download_url = compiler_asset.download_url().clone();
+    let download_future =
+        client.download_to_file(download_url, file::File::new(zip_path.to_path_buf()));
+
+    let dl = progress::future("Downloading artifact", download_future).await?;
+
+    progress::progress(dl).await?;
+
+    Ok(())
+}
+
 async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<()> {
     let bin = cfg.directory.bin_dir().join("format-compact");
 
@@ -298,7 +365,7 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
             print!("{}", String::from_utf8_lossy(&output.stdout));
         } else {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("format-compact {} failed", flag);
+            bail!("format-compact {flag} failed");
         }
         return Ok(());
     }
@@ -405,7 +472,7 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
             print!("{}", String::from_utf8_lossy(&output.stdout));
         } else {
             eprint!("{}", String::from_utf8_lossy(&output.stderr));
-            bail!("fixup-compact {} failed", flag);
+            bail!("fixup-compact {flag} failed");
         }
         return Ok(());
     }
