@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /mismatch between actual type Uint<13> and declared type Uint<0\.\.13>/,
+    expectedError:
+        /mismatch between actual type Uint<13> and declared type Uint<0\.\.13>/,
 });

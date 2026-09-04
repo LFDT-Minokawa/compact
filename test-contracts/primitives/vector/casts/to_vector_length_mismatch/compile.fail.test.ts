@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /cannot cast from type \[Boolean, Boolean, Boolean, Boolean, Boolean, Boolean\]/,
+    expectedError:
+        /cannot cast from type \[Boolean, Boolean, Boolean, Boolean, Boolean, Boolean\]/,
 });

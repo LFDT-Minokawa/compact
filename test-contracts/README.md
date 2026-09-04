@@ -49,6 +49,17 @@ import { defineCompileTest } from '@test/compact-test';
 export default defineCompileTest(import.meta.url);
 ```
 
+A fixture whose contract needs a non-default compiler mode declares the extra
+flags with `compilerArgs`. They are passed ahead of the contract and output
+paths for every compiler invocation of that fixture, including the `yarn lint`
+artifact preparation run:
+
+```ts
+export default defineCompileTest(import.meta.url, {
+    compilerArgs: ['--feature-zkir-v3'],
+});
+```
+
 For compile-fail fixtures, include the diagnostic that proves the expected
 failure happened:
 
@@ -67,17 +78,17 @@ and export metadata through `defineRuntimeTest`:
 import { expect } from 'vitest';
 
 import type { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest<typeof Contract>(import.meta.url, async (Contract) => {
-    const { contract, ctx } = await createTestContract(Contract);
-    const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
 
-    expect(Array.from(result)).toEqual([5]);
-});
+        expect(Array.from(result)).toEqual([5]);
+    },
+);
 ```
 
 The generated type import is valid during local typechecking because

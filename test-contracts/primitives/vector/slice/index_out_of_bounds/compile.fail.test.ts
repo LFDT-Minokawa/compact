@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /slice index 100 plus length 4 is out-of-bounds for a vector of length 8/,
+    expectedError:
+        /slice index 100 plus length 4 is out-of-bounds for a vector of length 8/,
 });

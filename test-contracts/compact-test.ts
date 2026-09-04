@@ -22,122 +22,31 @@ import {
     dummyContractAddress,
 } from '@midnight-ntwrk/compact-runtime';
 
-type TestPhase = 'compile' | 'runtime';
-export type TestResult = 'pass' | 'fail';
-
-type TestExpectation = {
-    phase: TestPhase;
-    result: TestResult;
-};
-
-export type CompileResult = {
-    contractPath: string;
-    outputDir: string;
-    stderr: string;
-    stdout: string;
-    exitCode: number;
-};
-
-export type CompactContract<PrivateState = any> = {
-    initialState(
-        context: any,
-        ...args: any[]
-    ):
-        | Promise<CompactConstructorResult<PrivateState>>
-        | CompactConstructorResult<PrivateState>;
-};
-
-type CompactConstructorResult<PrivateState = any> = {
-    currentContractState: any;
-    currentPrivateState: PrivateState;
-    currentZswapLocalState: {
-        coinPublicKey: any;
-    };
-};
-
-export type CompactContractConstructor<
-    Contract extends CompactContract<any> = CompactContract<any>,
-    Witnesses = any,
-> = new (witnesses: Witnesses) => Contract;
-
-type ContractConstructorResult<Contract> = Contract extends {
-    initialState(context: any, ...args: any[]): infer Result;
-}
-    ? Awaited<Result>
-    : {
-          currentContractState: any;
-          currentPrivateState: any;
-          currentZswapLocalState: {
-              coinPublicKey: any;
-          };
-      };
-
-type ContractPrivateState<Contract> =
-    ContractConstructorResult<Contract> extends {
-        currentPrivateState: infer PrivateState;
-    }
-        ? PrivateState
-        : any;
-
-type ContractWitnesses<Contract extends CompactContractConstructor> =
-    ConstructorParameters<Contract> extends [infer Witnesses, ...unknown[]]
-        ? Witnesses
-        : never;
-
-type ContractCircuitContextFromCircuits<Circuits> =
-    Circuits[keyof Circuits] extends (
-        context: infer Context,
-        ...args: any[]
-    ) => any
-        ? Context
-        : any;
-
-type ContractCircuitContext<Contract> = Contract extends {
-    circuits: infer Circuits;
-}
-    ? ContractCircuitContextFromCircuits<Circuits>
-    : Contract extends { impureCircuits: infer Circuits }
-      ? ContractCircuitContextFromCircuits<Circuits>
-      : any;
-
-type TestContract<Contract extends CompactContractConstructor> = {
-    contract: InstanceType<Contract>;
-    ctx: ContractCircuitContext<InstanceType<Contract>>;
-};
-
-type ExpectedCompileError = RegExp | ((result: CompileResult) => boolean);
-
-type CompileTestOptions = {
-    expectedError?: ExpectedCompileError;
-};
-
-type RuntimeTestOptions = {
-    expectedError?: RegExp | ((error: unknown) => boolean);
-};
-
-export type CompileTestDefinition = {
-    kind: 'compact-compile-test';
-    result: TestResult;
-    options: CompileTestOptions;
-};
-
-export type RuntimeTestDefinition<
-    Contract extends CompactContractConstructor = CompactContractConstructor,
-> = {
-    kind: 'compact-runtime-test';
-    result: TestResult;
-    options: RuntimeTestOptions;
-    run: (Contract: Contract) => Promise<void> | void;
-};
-
-const compactTestFilePattern = /^(compile|runtime)\.(pass|fail)\.test\.ts$/;
+import type {
+    CompactContractConstructor,
+    CompileTestDefinition,
+    CompileTestOptions,
+    ContractCircuitContext,
+    ContractPrivateState,
+    ContractWitnesses,
+    RuntimeTestDefinition,
+    RuntimeTestOptions,
+    TestContract,
+    TestExpectation,
+    TestPhase,
+    TestResult,
+} from './types.ts';
+import { compactTestFilePattern } from './utils.ts';
 
 /**
  * Defines a compile-phase Compact fixture.
  *
  * The orchestrator imports this metadata before registering Vitest cases. The
  * expected result is read from the file name, so the fixture outcome stays
- * visible in the directory listing.
+ * visible in the directory listing. A fixture that needs a non-default
+ * compiler mode declares the extra flags with `compilerArgs`, which are passed
+ * ahead of the contract and output paths on every compiler invocation for that
+ * fixture.
  */
 export function defineCompileTest(
     metaUrl: string,
