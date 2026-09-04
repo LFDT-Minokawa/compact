@@ -13,8 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ENTRY_POINTS, type FuzzerName } from './grammar';
-import { buildConfig } from './utils/config';
+import { ENTRY_POINTS, validate, type FuzzerName } from './grammar';
 import { Fuzzer } from './utils/fuzzer';
 
 /**
@@ -22,9 +21,20 @@ import { Fuzzer } from './utils/fuzzer';
  *
  * All fuzzers share one grammar table (grammar/compact.ts); a fuzzer is just an
  * entry nonterminal into it.
+ *
+ * The table is checked first. Every problem `validate()` reports is one that
+ * quietly degrades what the fuzzer generates rather than failing -- an undefined
+ * nonterminal is emitted as its own name, a production defined twice loses one
+ * definition -- so a contract built on a broken table tests nothing, and it is
+ * better to stop here than to spend a suite compiling junk.
  */
 export function generate(outputDir: string, amount: number): void {
+    const problems = validate();
+    if (problems.length > 0) {
+        throw new Error(`fuzzer grammar is invalid:\n  ${problems.join('\n  ')}`);
+    }
+
     for (const name of Object.keys(ENTRY_POINTS) as FuzzerName[]) {
-        new Fuzzer(buildConfig(name, outputDir, amount)).saveContracts();
+        new Fuzzer(name, outputDir, amount).saveContracts();
     }
 }

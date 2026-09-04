@@ -21,9 +21,9 @@
  */
 
 import { Alternative, Grammar, Token } from './types';
-import { CATEGORIES, ENTRY_POINTS, TERMINALS, compact, type Category, type FuzzerName } from './compact';
+import { CATEGORIES, ENTRY_POINTS, TERMINALS, compact, type Category, type FuzzerName, type Terminal } from './compact';
 
-export { CATEGORIES, ENTRY_POINTS, TERMINALS, type Category, type FuzzerName };
+export { CATEGORIES, ENTRY_POINTS, TERMINALS, type Category, type FuzzerName, type Terminal };
 
 export const grammar: Grammar = compact;
 
@@ -68,6 +68,35 @@ const INTENTIONAL_LITERALS = new Set([
 /** Written like a nonterminal: lowercase snake_case with at least one underscore. */
 const looksLikeNonterminal = (token: Token): boolean => /^[a-z][a-z0-9]*(_[a-z0-9]+)+$/.test(token);
 
+/*
+ * Entry points that predate the naming convention below. They are reachable only
+ * as `ENTRY_POINTS` values, never written inside an alternative, so nothing can
+ * emit a literal that collides with them.
+ */
+const BARE_NAMES_ALLOWED = new Set(['statements', 'statement']);
+
+/**
+ * A production named without an underscore cannot be distinguished from a literal
+ * the grammar means to emit, because `looksLikeNonterminal` -- the only thing that
+ * decides whether a token is checked at all -- requires one.
+ *
+ * This is not hypothetical. The ADT productions were once named `kernel`,
+ * `counter`, `set`, ...; the `for` grammar emits a literal `counter` referring to
+ * the ledger counter it declares. Merging the two into one table silently turned
+ * that literal into a nonterminal, and the `for` fuzzer started generating a whole
+ * statement inside its loop header. Neither `tsc` nor the checks below could see
+ * it. Keeping every production name underscored makes the collision impossible.
+ */
+function bareProductionNames(table: Grammar): string[] {
+    return Object.keys(table)
+        .filter((name) => !name.includes('_') && !BARE_NAMES_ALLOWED.has(name))
+        .map(
+            (name) =>
+                `'${name}' (${categoryOf(name)}) has no underscore, so a literal '${name}' anywhere in the ` +
+                'grammar would silently expand into it instead of being emitted as text',
+        );
+}
+
 /**
  * A production defined in two categories: `Object.assign` keeps the last one
  * silently. TypeScript catches a duplicate key *within* one object literal
@@ -104,7 +133,7 @@ function unreachable(table: Grammar): string[] {
 }
 
 export function validate(table: Grammar = grammar): string[] {
-    const problems: string[] = [...crossCategoryCollisions()];
+    const problems: string[] = [...crossCategoryCollisions(), ...bareProductionNames(table)];
     const defined = new Set<string>([...Object.keys(table), ...TERMINALS]);
 
     const reported = new Set<string>();

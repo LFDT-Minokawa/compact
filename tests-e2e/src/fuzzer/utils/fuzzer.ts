@@ -15,77 +15,46 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
-import {
-    pickRandomNode,
-    pickRandomVersion,
-    pickRandomString,
-    pickRandomNumber,
-    pickRandomTable,
-    randomMixedTable,
-    generateNestedFor,
-    generateNestedIf,
-    generateModules,
-    generateLargeEnum,
-} from './generators';
+import { pickRandomNode, TERMINAL_GENERATORS, TERMINAL_LIMITS, type TerminalLimits } from './generators';
+import { ENTRY_POINTS, grammar, type FuzzerName, type Terminal } from '../grammar';
 import { Grammar } from '../grammar/types';
-import { FuzzerConfig } from './config';
 
+/**
+ * Expands the grammar into contracts.
+ *
+ * Every fuzzer shares the one grammar table and the one set of limits; a fuzzer is
+ * just an entry nonterminal into that table plus a name for its output files.
+ */
 export class Fuzzer {
     private readonly startNode: string;
     private readonly grammar: Grammar;
-    private readonly outputName: string;
-    private readonly contractAmount: number;
-    private readonly outputDir: string;
-    private readonly numberPower: number;
-    private readonly stringLength: number;
-    private readonly tableLength: number;
+    private readonly limits: TerminalLimits;
     private readonly MAX_DEPTH = 100;
 
-    constructor(config: FuzzerConfig) {
-        this.startNode = config.startNode;
-        this.grammar = config.grammar;
-        this.outputName = config.outputName;
-        this.contractAmount = config.contractAmount;
-        this.outputDir = config.outputDir;
-        this.numberPower = config.numberPower;
-        this.stringLength = config.stringLength;
-        this.tableLength = config.tableLength;
+    constructor(
+        private readonly name: FuzzerName,
+        private readonly outputDir: string,
+        private readonly contractAmount: number,
+        options: { grammar?: Grammar; limits?: TerminalLimits } = {},
+    ) {
+        this.startNode = ENTRY_POINTS[name];
+        this.grammar = options.grammar ?? grammar;
+        this.limits = options.limits ?? TERMINAL_LIMITS;
     }
 
     #generate(node: string, depth = 0): string {
         if (depth > this.MAX_DEPTH) return '';
 
-        if (!this.grammar[node]) {
-            // TODO: how to configure that ?
-            if (node === 'random_version') return pickRandomVersion();
-            if (node === 'random_string') {
-                return pickRandomString('random', { length: this.stringLength, exactLength: false });
-            }
-            if (node === 'random_number') {
-                return String(pickRandomNumber('random', { bigIntSize: this.numberPower }));
-            }
-            if (node === 'very_small_random_number') return String(pickRandomNumber('ubigint', { bigIntSize: 10 })); // guarantee to get a number <= 2^10
-            if (node === 'small_random_number') {
-                return String(pickRandomNumber('random', { bigIntSize: 16 }));
-            }
-            if (node === 'random_table') return pickRandomTable(this.tableLength);
-            if (node === 'random_mixed_table') return String(randomMixedTable(this.tableLength));
-            if (node === 'generate_nested_for') return generateNestedFor(8);
-            if (node === 'generate_nested_if') return generateNestedIf(1000);
-            if (node === 'generate_modules') return generateModules(10000);
-            if (node === 'generate_large_enum') return generateLargeEnum(10000);
-            return node;
-        }
-
         const alternatives = this.grammar[node];
-
-        // handle terminal nodes differently, do not run recursion there
-        const terminal_nodes = ['javascript_keywords', 'compact_keywords', 'other_keywords'];
-        if (terminal_nodes.includes(node)) {
-            return String(pickRandomNode(alternatives));
+        if (!alternatives) {
+            const terminal = TERMINAL_GENERATORS[node as Terminal];
+            // an unknown node is emitted as its own name, which is how the grammar
+            // spells the handful of identifiers it means literally
+            return terminal ? terminal(this.limits) : node;
         }
 
         const selected = pickRandomNode(alternatives);
+        // a keyword list holds bare strings rather than sequences: nothing to expand
         if (!Array.isArray(selected)) return selected;
         return selected.map((subNode) => this.#generate(subNode, depth + 1)).join('');
     }
@@ -94,21 +63,18 @@ export class Fuzzer {
         return this.#generate(node);
     }
 
+    /** Writes this fuzzer's contracts and returns the paths written. */
     saveContracts(): string[] {
-        if (!fs.existsSync(this.outputDir)) {
-            fs.mkdirSync(this.outputDir);
+        fs.mkdirSync(this.outputDir, { recursive: true });
 
-            console.log(`directory: '${this.outputDir}' created.`);
-        } else {
-            console.log(`directory: '${this.outputDir}' already exists.`);
-        }
-
+        const written: string[] = [];
         for (let i = 0; i < this.contractAmount; i++) {
-            const contract = this.generate();
-            fs.writeFileSync(path.join(this.outputDir, `${this.outputName}_contract_${i}.compact`), contract);
-            console.log(`generated contract: ${i} for: ${this.outputName}`);
+            const filePath = path.join(this.outputDir, `${this.name}_contract_${i}.compact`);
+            fs.writeFileSync(filePath, this.generate());
+            written.push(filePath);
         }
 
-        return fs.readdirSync(this.outputDir);
+        console.log(`generated ${written.length} contracts for '${this.name}' in ${this.outputDir}`);
+        return written;
     }
 }

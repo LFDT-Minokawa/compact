@@ -19,7 +19,10 @@ import fs from 'fs';
 import { generate } from '../fuzzer/fuzzers';
 
 const contractsDir: string = createTempFolder();
-generate(contractsDir, Number(process.env.NO_OF_FUZZER_TESTS ?? 1000));
+// `??` would let NO_OF_FUZZER_TESTS='' through as Number('') === 0, generating
+// nothing and leaving a suite that passes because it contains no tests
+const requestedContracts = Number(process.env.NO_OF_FUZZER_TESTS) || 1000;
+generate(contractsDir, requestedContracts);
 const generatedContracts = fs.readdirSync(contractsDir);
 const failDir = path.join(process.cwd(), 'failed-contracts');
 
