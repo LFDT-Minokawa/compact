@@ -1,0 +1,301 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Which failure `crossContractCall` raises for each way a call can break before the callee is
+// entered. `module-resolution.test.ts` covers the failure values themselves; anything needing a
+// real module or a deployed key is `test-center`'s.
+
+import { describe, expect, test } from 'vitest';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import {
+  CircuitContext,
+  ContractModuleProvider,
+  ContractStateProvider,
+  InterfaceDescriptor,
+  Module,
+  ModuleResolutionError,
+  ModuleThunk,
+  PartialProofData,
+  createCircuitContext,
+  crossContractCall,
+} from '../src/index.js';
+
+const COIN_PUBLIC_KEY = '0'.repeat(64);
+const PARENT_BLOCK_HASH = '0'.repeat(64);
+const CIRCUIT_ID = 'add';
+
+/** A contract type declaring one impure circuit, as the caller's `declaredInterfaces` would hold. */
+const DECLARATION: InterfaceDescriptor = {
+  [CIRCUIT_ID]: { pure: false, argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
+};
+
+const emptyProofData = (): PartialProofData => ({
+  input: { value: [], alignment: [] },
+  publicTranscript: [],
+  privateTranscriptOutputs: [],
+});
+
+/** A chain holding one contract, deployed at `address`, with `add` as an operation. */
+const stateProviderFor = (address: ocrt.ContractAddress): ContractStateProvider => {
+  const state = new ocrt.ContractState();
+  state.setOperation(CIRCUIT_ID, new ocrt.ContractOperation());
+  return { getContractState: async (_blockHash, queried) => (queried === address ? state : undefined) };
+};
+
+/**
+ * Make the call and hand back the failure it raised together with the context it ran against. Fails
+ * the test if it raised something else, or nothing: a case that stops failing has to be noticed
+ * rather than pass.
+ */
+const runFailingCall = async (options: {
+  moduleProvider?: ContractModuleProvider;
+  declaration?: InterfaceDescriptor;
+}): Promise<{
+  failure: ModuleResolutionError['failure'];
+  context: CircuitContext;
+  calleeAddress: ocrt.ContractAddress;
+}> => {
+  const calleeAddress = ocrt.sampleContractAddress();
+  const context: CircuitContext = createCircuitContext({
+    circuitId: 'caller',
+    contractAddress: ocrt.sampleContractAddress(),
+    coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+    contractState: new ocrt.ContractState(),
+    privateState: 0,
+    time: 0,
+    parentBlockHash: PARENT_BLOCK_HASH,
+    crossContract:
+      options.moduleProvider === undefined
+        ? undefined
+        : { stateProvider: stateProviderFor(calleeAddress), moduleProvider: options.moduleProvider },
+  });
+  try {
+    await crossContractCall({
+      context,
+      interfaceName: 'Inner',
+      declaration: options.declaration ?? DECLARATION,
+      calleeCircuitId: CIRCUIT_ID,
+      calleeAddress,
+      partialProofData: emptyProofData(),
+      args: [1n],
+    });
+  } catch (error) {
+    if (ModuleResolutionError.is(error)) {
+      return { failure: error.failure, context, calleeAddress };
+    }
+    throw new Error(`expected a ModuleResolutionError, got ${String(error)}`);
+  }
+  throw new Error('expected the call to reject');
+};
+
+/** Just the failure, for the cases that only classify one. */
+const failureFrom = async (options: {
+  moduleProvider?: ContractModuleProvider;
+  declaration?: InterfaceDescriptor;
+}): Promise<ModuleResolutionError['failure']> => (await runFailingCall(options)).failure;
+
+/** A provider whose thunk rejects with `rejection`. */
+const rejectingProvider = (rejection: unknown): ContractModuleProvider => ({
+  resolve: () => () => Promise.reject(rejection),
+});
+
+/** A provider whose thunk resolves to `module`. */
+const providerFor = (module: Module): ContractModuleProvider => ({
+  resolve: () => () => Promise.resolve(module),
+});
+
+describe('crossContractCall failure classification', () => {
+  test('no module provider on the context', async () => {
+    expect((await failureFrom({})).kind).toEqual('ModuleProviderAbsent');
+  });
+
+  test('the contract type declares the called circuit pure', async () => {
+    const failure = await failureFrom({
+      moduleProvider: rejectingProvider(new Error('never reached')),
+      declaration: { [CIRCUIT_ID]: { pure: true, argumentTypes: [], resultType: { tag: 'Field' } } },
+    });
+    // Ahead of everything else: a pure circuit has no verifier key and is never a deployed operation,
+    // so there is nothing to resolve rather than something that fails to resolve.
+    expect(failure.kind).toEqual('PureInterfaceCircuit');
+  });
+
+  test('the provider has no binding for the address', async () => {
+    const failure = await failureFrom({ moduleProvider: { resolve: () => undefined } });
+    expect(failure.kind).toEqual('UnsupportedImplementation');
+  });
+
+  test('the provider throws', async () => {
+    const cause = new Error('table not loaded');
+    const failure = await failureFrom({
+      moduleProvider: {
+        resolve: () => {
+          throw cause;
+        },
+      },
+    });
+    if (failure.kind !== 'ProviderThrew') {
+      throw new Error(`expected ProviderThrew, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBe(cause);
+  });
+
+  test('the provider returns something that is not a thunk', async () => {
+    // Returning the module instead of a thunk for it is the provider's defect, not a load failure.
+    const notAThunk = { Contract: class {} } as unknown as ModuleThunk;
+    const failure = await failureFrom({ moduleProvider: { resolve: () => notAThunk } });
+    if (failure.kind !== 'ProviderThrew') {
+      throw new Error(`expected ProviderThrew, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBe(notAThunk);
+  });
+
+  test('the thunk rejects', async () => {
+    const cause = new Error('chunk 42 failed');
+    const failure = await failureFrom({ moduleProvider: rejectingProvider(cause) });
+    if (failure.kind !== 'ModuleLoadRejected') {
+      throw new Error(`expected ModuleLoadRejected, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBe(cause);
+  });
+
+  test('a wrapped rejection is passed through whole, not unwrapped or inspected', async () => {
+    const wrapped = new Error('outer', { cause: new Error('inner', { cause: new Error('ECONNRESET') }) });
+    const failure = await failureFrom({ moduleProvider: rejectingProvider(wrapped) });
+    if (failure.kind !== 'ModuleLoadRejected') {
+      throw new Error(`expected ModuleLoadRejected, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBe(wrapped);
+  });
+
+  test('the thunk resolves to nothing', async () => {
+    // `Object.hasOwn` throws on nullish, so without a guard this is a bare TypeError that names
+    // neither the callee nor the circuit. A provider whose loader forgets to return is the way in.
+    const failure = await failureFrom({ moduleProvider: providerFor(undefined as unknown as Module) });
+    if (failure.kind !== 'ProviderThrew') {
+      throw new Error(`expected ProviderThrew, got ${failure.kind}`);
+    }
+    expect(failure.cause).toBeUndefined();
+  });
+
+  test('a module that is a primitive is reported as missing every export', async () => {
+    // Not a crash, so it stays on the `missing` path rather than the guard above it.
+    const failure = await failureFrom({ moduleProvider: providerFor(42 as unknown as Module) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['Contract', 'circuitSignatures', 'expectedVk']);
+  });
+
+  test('an export bound to undefined is reported as lacking, not dereferenced', async () => {
+    // Present by name, unusable by value. checkImplementation indexes `expectedVk` and
+    // checkModuleConformance reads `circuitSignatures`; both throw on nullish, a frame past the
+    // point where anything still knows which contract is being resolved.
+    const hollow = { Contract: class {}, circuitSignatures: {}, expectedVk: undefined } as unknown as Module;
+    const failure = await failureFrom({ moduleProvider: providerFor(hollow) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['expectedVk']);
+  });
+
+  test('a module built before dynamic resolution names what it lacks', async () => {
+    const stale = { Contract: class {} } as unknown as Module;
+    const failure = await failureFrom({ moduleProvider: providerFor(stale) });
+    if (failure.kind !== 'IncompleteModule') {
+      throw new Error(`expected IncompleteModule, got ${failure.kind}`);
+    }
+    expect(failure.missing).toEqual(['circuitSignatures', 'expectedVk']);
+  });
+
+  test('a rejection that is not an Error is carried too', async () => {
+    const failure = await failureFrom({ moduleProvider: rejectingProvider('offline') });
+    if (failure.kind !== 'ModuleLoadRejected') {
+      throw new Error(`expected ModuleLoadRejected, got ${failure.kind}`);
+    }
+    expect(failure.cause).toEqual('offline');
+  });
+
+  test('every failure names the call it could not bind', async () => {
+    const calleeAddress = ocrt.sampleContractAddress();
+    const callerAddress = ocrt.sampleContractAddress();
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: callerAddress,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(calleeAddress), moduleProvider: { resolve: () => undefined } },
+    });
+    const error = await crossContractCall({
+      context,
+      interfaceName: 'Inner',
+      declaration: DECLARATION,
+      calleeCircuitId: CIRCUIT_ID,
+      calleeAddress,
+      partialProofData: emptyProofData(),
+      args: [1n],
+    }).then(
+      () => undefined,
+      (e: unknown) => e,
+    );
+    if (!ModuleResolutionError.is(error)) {
+      throw new Error(`expected a ModuleResolutionError, got ${String(error)}`);
+    }
+    expect(error.context).toEqual({ calleeAddress, calleeCircuitId: CIRCUIT_ID, interfaceName: 'Inner', callerAddress });
+  });
+
+  test('re-entry is refused before the callee is resolved, not after', async () => {
+    const self = ocrt.sampleContractAddress();
+    const context: CircuitContext = createCircuitContext({
+      circuitId: 'caller',
+      contractAddress: self,
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+      privateState: 0,
+      time: 0,
+      parentBlockHash: PARENT_BLOCK_HASH,
+      crossContract: { stateProvider: stateProviderFor(self), moduleProvider: { resolve: () => undefined } },
+    });
+    await expect(
+      crossContractCall({
+        context,
+        interfaceName: 'Inner',
+        declaration: DECLARATION,
+        calleeCircuitId: CIRCUIT_ID,
+        calleeAddress: self,
+        partialProofData: emptyProofData(),
+        args: [1n],
+      }),
+    ).rejects.toThrow(`Contract re-entrancy detected: '${self}'`);
+  });
+
+  test('a resolution failure records nothing about the callee', async () => {
+    // `ModuleResolutionError` is a catchable payload on purpose, so an application may catch one and
+    // carry on. The deployed state is read before the checks; entering the callee happens after
+    // them, so a rejected callee leaves no query context, no cost and no memoized state behind — and
+    // on a repeat call, no cleared effects.
+    const nonconformant = { Contract: class {}, circuitSignatures: {}, expectedVk: {} } as unknown as Module;
+    const { failure, context, calleeAddress } = await runFailingCall({
+      moduleProvider: providerFor(nonconformant),
+    });
+
+    expect(failure.kind).toEqual('NonconformantImplementation');
+    expect(context.queryContexts[calleeAddress]).toBeUndefined();
+    expect(context.gasCosts[calleeAddress]).toBeUndefined();
+    expect(context.contractStates?.[calleeAddress]).toBeUndefined();
+  });
+});
