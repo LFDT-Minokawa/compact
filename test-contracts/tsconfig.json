@@ -1,7 +1,9 @@
 {
     "compilerOptions": {
+        "allowImportingTsExtensions": true,
         "allowJs": true,
         "esModuleInterop": true,
+        "noEmit": true,
         "module": "esnext",
         "moduleResolution": "bundler",
         "paths": {
