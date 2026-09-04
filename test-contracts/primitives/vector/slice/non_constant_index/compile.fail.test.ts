@@ -16,5 +16,6 @@
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
-    expectedError: /slice index did not reduce to a constant nonnegative value at compile time/,
+    expectedError:
+        /slice index did not reduce to a constant nonnegative value at compile time/,
 });
