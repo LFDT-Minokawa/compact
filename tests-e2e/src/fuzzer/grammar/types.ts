@@ -13,25 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const fs = require('fs');
+/*
+ * The shape of the grammar.
+ */
 
-function extractErrorMessages(filePath) {
+/** A single piece of a production: either literal output or a nonterminal name. */
+export type Token = string;
 
-    const fileContent = fs.readFileSync(filePath, 'utf8');
-    const regex = /parse error:([^\n]+)/g;
+/** One way to expand a production: a sequence of tokens. */
+export type Alternative = Token[];
 
-    let errorMessages = new Set;
-    let match;
+/**
+ * A production's alternatives. Most are `Alternative[]`; the keyword lists are a
+ * flat `Token[]`, which the generator returns from without recursing.
+ */
+export type Production = (Alternative | Token)[];
 
-    while ((match = regex.exec(fileContent)) !== null) {
-        errorMessages.add(match[1].trim());
-    }
-    return errorMessages;
-}
-
-const filePath = 'build_parse.txt';
-const errors = extractErrorMessages(filePath);
-
-console.log(errors);
-
-fs.writeFileSync('output.txt', Array.from(errors).join('\n'));
+export type Grammar = Record<string, Production>;
