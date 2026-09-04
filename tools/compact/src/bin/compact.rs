@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-use std::{path::PathBuf, str::FromStr, sync::Arc};
+use std::{collections::HashSet, path::PathBuf, str::FromStr, sync::Arc};
 
 use anyhow::{Context as _, Result, anyhow, bail};
 use axoupdater::AxoUpdater;
@@ -307,17 +307,20 @@ async fn format(cfg: &CommandLineArguments, command: &FormatCommand) -> Result<(
 
     let bin = Arc::new(bin);
     let check_mode = command.check;
+    let mut seen = HashSet::new();
 
     for file_path in &command.files {
         let path = PathBuf::from_str(file_path).unwrap();
 
         if path.is_dir() {
             for path in formatter::compact_files_excluding_gitignore(&path) {
-                let bin = Arc::clone(&bin);
+                if seen.insert(path.clone()) {
+                    let bin = Arc::clone(&bin);
 
-                join_set.spawn(async move { format_file(&bin, check_mode, path).await });
+                    join_set.spawn(async move { format_file(&bin, check_mode, path).await });
+                }
             }
-        } else {
+        } else if seen.insert(path.clone()) {
             let bin = Arc::clone(&bin);
 
             join_set.spawn(async move { format_file(&bin, check_mode, path).await });
@@ -416,18 +419,21 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
     let check_mode = command.check;
     let update_uint_ranges = command.update_uint_ranges;
     let vscode = command.vscode;
+    let mut seen = HashSet::new();
 
     for file_path in &command.files {
         let path = PathBuf::from_str(file_path).unwrap();
 
         if path.is_dir() {
             for path in fixup::compact_files_excluding_gitignore(&path) {
-                let bin = Arc::clone(&bin);
-                join_set.spawn(async move {
-                    fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
-                });
+                if seen.insert(path.clone()) {
+                    let bin = Arc::clone(&bin);
+                    join_set.spawn(async move {
+                        fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
+                    });
+                }
             }
-        } else {
+        } else if seen.insert(path.clone()) {
             let bin = Arc::clone(&bin);
             join_set.spawn(async move {
                 fixup_file(&bin, check_mode, path, update_uint_ranges, vscode).await
