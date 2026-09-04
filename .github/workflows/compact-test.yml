@@ -55,6 +55,37 @@ jobs:
       - name: Run Clippy
         run: cargo clippy --all-targets --all-features -- -D warnings
 
+  # `rust-toolchain.toml' pins the MSRV, and cargo honours it whatever the
+  # runner installed -- so the checks above are pinned too, and lints added by
+  # later stable releases would go unseen until the pin moves. This job is the
+  # usual way to keep that signal: it reports, it does not gate. RUSTUP_TOOLCHAIN
+  # takes precedence over the toolchain file, which is what overrides the pin.
+  lint-on-stable:
+    name: Lint on stable (advisory)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    permissions:
+      contents: read
+    env:
+      RUSTUP_TOOLCHAIN: stable
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable (branch)
+
+      - name: Install Rust components
+        run: rustup component add clippy --toolchain stable
+
+      - name: Report the toolchain in use
+        run: |
+          rustc --version
+          cargo clippy --version
+
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
   # Main test matrix
   test:
     name: Test
