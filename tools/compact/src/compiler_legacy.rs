@@ -136,9 +136,19 @@ fn extract_archive(dir: &Path, zip: &Path) -> Result<()> {
         // `unzip` restores the mode recorded in the archive. Nothing else does
         // it for us, and a `compactc` without its executable bit is an
         // installation that looks complete and cannot run.
+        //
+        // The recorded mode is archive data, so it is masked before use. A
+        // crafted entry could otherwise ask for group- or world-writable --
+        // letting another local user rewrite a file before it is run -- or for
+        // setuid or setgid. A symlink entry records 0o120777, which `from_mode'
+        // would turn into a world-writable regular file. Masking keeps what the
+        // release archives actually rely on, including the read-only 0o555 that
+        // the nix store ships, and drops the rest.
         #[cfg(unix)]
         if let Some(mode) = entry.unix_mode() {
             use std::os::unix::fs::PermissionsExt;
+
+            let mode = mode & 0o755;
 
             std::fs::set_permissions(&target, std::fs::Permissions::from_mode(mode))
                 .with_context(|| anyhow!("Failed to set the mode of `{target:?}'"))?;
@@ -415,6 +425,41 @@ mod tests {
     /// ...and the mode is taken from the archive rather than applied to
     /// everything, so a data file does not come out executable.
     #[cfg(unix)]
+    #[test]
+    fn a_hostile_mode_in_the_archive_is_not_honoured() {
+        // 0o4777 asks for setuid and writable-by-anyone; 0o2775 for setgid
+        // and group-writable; 0o120777 is what a symlink entry records, and
+        // `from_mode' would keep its 0o777.
+        let dir = artifact_dir(&[
+            file("compactc", b"compiler", 0o4777),
+            file("shared.bin", b"data", 0o2775),
+            file("link", b"../../../etc/passwd", 0o120777),
+        ]);
+
+        extract_archive(dir.path(), &zip_in(dir.path())).expect("Extraction should succeed");
+
+        for name in ["compactc", "shared.bin", "link"] {
+            let target = dir.path().join(name);
+
+            assert_eq!(
+                mode_of(&target),
+                0o755,
+                "`{name}' kept a mode the archive asked for"
+            );
+
+            // and the symlink entry is a regular file holding the target as its
+            // bytes, not a link: nothing here can create one
+            assert!(
+                target
+                    .symlink_metadata()
+                    .expect("stat")
+                    .file_type()
+                    .is_file(),
+                "`{name}' is not a regular file"
+            );
+        }
+    }
+
     #[test]
     fn a_file_that_is_not_executable_in_the_archive_stays_that_way() {
         let dir = artifact_dir(&[file("public_params.bin", b"params", 0o644)]);
