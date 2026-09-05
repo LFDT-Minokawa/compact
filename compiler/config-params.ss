@@ -41,4 +41,7 @@
 
   ; feature flags
   (export-parameter feature-zkir-v3 #f)
+
+  ; hooks
+  (export-parameter ir-hook #f)
 )
