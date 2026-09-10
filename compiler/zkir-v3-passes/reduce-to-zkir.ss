@@ -833,6 +833,14 @@
               `(from_bytes32 "Scalar<Secp256k1>" ,tmp1 ,tmp0)
               `(into_bytes32 ,tmp0 0)
               instr*))]
+         [("Secp256r1Point")
+          (let* ([tmp0 (make-temp-id default-src 'tmp)]
+                 [tmp1 (make-temp-id default-src 'tmp)])
+            (cons*
+              `(ec_mul_generator ,var-name ,tmp1)
+              `(from_bytes32 "Scalar<Secp256r1>" ,tmp1 ,tmp0)
+              `(into_bytes32 ,tmp0 0)
+              instr*))          ]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
      (with-output-language (Lzkir Instruction)
