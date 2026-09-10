@@ -20,7 +20,7 @@
     (define already-seen '()))
   (expand-pelt : Program-Element (ir pelt*) -> * (pelt*)
     [(include ,src ,file)
-     (let ([pathname (find-source-pathname src file
+     (let ([pathname (find-source-pathname ".compact" file
                        (lambda (pathname)
                          (if (string=? file "std")
                              (source-errorf src "failed to locate file ~s: possibly replace include with import CompactStandardLibrary" pathname)

@@ -541,16 +541,16 @@ A version literal takes the form nat.nat representing major and minor versions o
 #### Term
 
 <div className="lang-ref-table">
-|        |         |                                                                    |
-|--------|---------|--------------------------------------------------------------------|
-| *term* | &xrarr; | [*id*](#identifier)                                                |
-|        | \|      | `true`                                                             |
-|        | \|      | `false`                                                            |
-|        | \|      | [*nat*](#field-literal)                                            |
-|        | \|      | [*str*](#string-literal)                                           |
-|        | \|      | `pad` `(` [*nat*](#field-literal) `,` [*str*](#string-literal) `)` |
-|        | \|      | `default` `<` [*type*](#type) `>`                                  |
-|        | \|      | `(` [*expr-seq*](#expression-sequence) `)`                         |
+|        |         |                                                                  |
+|--------|---------|------------------------------------------------------------------|
+| *term* | &xrarr; | [*id*](#identifier)                                              |
+|        | \|      | `true`                                                           |
+|        | \|      | `false`                                                          |
+|        | \|      | [*nat*](#field-literal)                                          |
+|        | \|      | [*str*](#string-literal)                                         |
+|        | \|      | `pad` `(` [*tsize*](#type-size) `,` [*str*](#string-literal) `)` |
+|        | \|      | `default` `<` [*type*](#type) `>`                                |
+|        | \|      | `(` [*expr-seq*](#expression-sequence) `)`                       |
 </div>
 
 #### Tuple-argument
