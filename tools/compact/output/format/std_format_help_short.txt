@@ -7,8 +7,7 @@ Arguments:
 
 Options:
   -c, --check                  Check if inputs are formatted without changing them
-      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
-                               [default: [USER_DIR]/.compact]
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=] [default: [USER_DIR]/.compact]
   -v, --verbose                Print each file seen by the formatter
   -V, --version                Print the toolchain version
       --language-version       Print the language version

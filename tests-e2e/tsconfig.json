@@ -1,17 +1,17 @@
 {
   "compilerOptions": {
-    "baseUrl": ".",
     "target": "esnext",
     "module": "esnext",
     "strict": true,
     "allowJs": true,
     "esModuleInterop": true,
     "outDir": "./dist",
+    "rootDir": "./src",
     "strictPropertyInitialization": false,
-    "moduleResolution": "node",
+    "moduleResolution": "bundler",
     "types": ["vitest/globals"],
-    "paths": { "@/*":  ["src/*"], "@": ["src/index.ts"]}
+    "paths": { "@/*":  ["./src/*"], "@": ["./src/index.ts"]}
   },
-  "include": ["src/**/*", "tests/**/*"],
+  "include": ["src/**/*"],
   "exclude": ["node_modules", "src/fuzzer/**/*", "src/resources/**/*"]
 }

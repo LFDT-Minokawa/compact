@@ -14,6 +14,7 @@
 // limitations under the License.
 
 use crate::common::{COMPACT_VERSION, run_command};
+use std::collections::HashMap;
 use std::env;
 
 mod common;
@@ -38,6 +39,15 @@ fn test_compact_self_check() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
 
+    // `self check' and `self update' load the install receipt written by the
+    // official installer. A developer who installed `compact' that way has one,
+    // so the receipt is found, the command succeeds, and the expected failure
+    // never happens -- these two tests only passed on a machine that had never
+    // installed the tool. `AXOUPDATER_CONFIG_PATH' short-circuits the receipt
+    // search ahead of `XDG_CONFIG_HOME' and the home directory, so pointing it
+    // at an empty directory makes "no receipt" true by construction.
+    let receipt_dir = tempfile::tempdir().unwrap();
+
     run_command(
         &[
             "--directory",
@@ -45,7 +55,10 @@ fn test_compact_self_check() {
             "self",
             "check",
         ],
-        None,
+        Some(HashMap::from([(
+            "AXOUPDATER_CONFIG_PATH".to_string(),
+            receipt_dir.path().display().to_string(),
+        )])),
         None,
         Some("./output/self/err_no_releases.txt"),
         &[],
@@ -58,6 +71,15 @@ fn test_compact_self_update() {
     let temp_dir = tempfile::tempdir().unwrap();
     let temp_path = temp_dir.path();
 
+    // `self check' and `self update' load the install receipt written by the
+    // official installer. A developer who installed `compact' that way has one,
+    // so the receipt is found, the command succeeds, and the expected failure
+    // never happens -- these two tests only passed on a machine that had never
+    // installed the tool. `AXOUPDATER_CONFIG_PATH' short-circuits the receipt
+    // search ahead of `XDG_CONFIG_HOME' and the home directory, so pointing it
+    // at an empty directory makes "no receipt" true by construction.
+    let receipt_dir = tempfile::tempdir().unwrap();
+
     run_command(
         &[
             "--directory",
@@ -65,7 +87,10 @@ fn test_compact_self_update() {
             "self",
             "update",
         ],
-        None,
+        Some(HashMap::from([(
+            "AXOUPDATER_CONFIG_PATH".to_string(),
+            receipt_dir.path().display().to_string(),
+        )])),
         None,
         Some("./output/self/err_no_releases.txt"),
         &[],

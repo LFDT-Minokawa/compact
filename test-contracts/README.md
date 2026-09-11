@@ -118,10 +118,21 @@ COMPACT_TEST_KEEP_ARTIFACTS=1 yarn test primitives/bytes/slice/basic/runtime.pas
 
 ## Commands
 
-Run from this package directory:
+Run this from the repository root — it is what CI runs, and the only command
+that needs no setup first:
 
 ```sh
-corepack yarn install --immutable
+./test-contracts/test.sh
+```
+
+The wrapper enters the `.#test-contracts` Nix shell, links the runtime that
+shell provides, installs this package with Corepack/Yarn, and runs the fixtures
+with the Nix-built `compactc`.
+
+Once it has run once, the per-fixture commands work from this package directory,
+because the symlink it created is still there:
+
+```sh
 yarn lint
 yarn test
 yarn test primitives/bytes/slice/basic/runtime.pass.test.ts
@@ -132,21 +143,23 @@ fixture or test-file path filters. Selecting a runtime test also selects its
 compile prerequisite, so a runtime-only filtered run still compiles the fixture
 inside Vitest before importing the generated contract value.
 
-The package links `@midnight-ntwrk/compact-runtime` through the
-`.compact-runtime` symlink, which points at a locally built runtime — the
-prebuilt Nix package substituted from the cache (CI) or the working-tree build
-at `../runtime` (local development). The easiest command from the repository
-root is:
-
-```sh
-./test-contracts/test.sh
-```
-
-That wrapper links the runtime the `.#test-contracts` Nix shell pulled from the
-cache (`$COMPACT_RUNTIME_PKG`, falling back to `../runtime`), installs this
-package with Corepack/Yarn, and runs the fixtures with the Nix-built `compactc`
-compiler. Compile hang
+`yarn lint` prepares generated imports with `--skip-zk`; `yarn test` uses full
+compiler runs so compile tests still cover proving-key generation. Compile hang
 protection is owned by Vitest and CI through `testTimeout` in
-`vitest.config.ts`. `yarn lint` prepares generated imports with `--skip-zk`;
-`yarn test` uses full compiler runs so compile tests still cover proving-key
-generation.
+`vitest.config.ts`.
+
+## The Linked Runtime
+
+The package links `@midnight-ntwrk/compact-runtime` through the
+`.compact-runtime` symlink, which the wrapper points at `$COMPACT_RUNTIME_PKG` —
+set by the `.#test-contracts` shell to a Nix-built runtime substituted from the
+cache. Set it yourself to test against a runtime you built; it falls back to
+`../runtime`.
+
+Generated contracts typecheck against that runtime's own declarations. Nothing
+local stands in for them, so a compiler change that makes generated code
+reference a new runtime type is caught here, and whichever runtime is linked
+must be built — the wrapper checks for `dist/index.d.ts` and stops with a
+message naming the path if it is missing. The Nix package always is; a working
+tree at `../runtime` is only built once `npm run build` has run there, which
+needs the `.#runtime` shell for Chez.
