@@ -34,6 +34,7 @@ export enum Arguments {
     RUNTIME_VERSION = '--runtime-version',
     VSCODE = '--vscode',
     LINES_LENGTH = '--line-length',
+    IR_HOOK = '--ir-hook',
 }
 
 type FailedContract = {
