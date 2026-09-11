@@ -5,6 +5,37 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.102, language 0.26.100, runtime 0.19.102]
+
+### Added
+
+- The standard library now has support for the secp256r1 (also known as P256)
+  curve.  It exports two new field types, `Secp256r1Base` and `Secp256r1Scalar`,
+  and a new point type `Secp256r1Point`.  These behave exactly as the similar
+  secp256k1 curve.
+
+  The fields support equals and not-equals comparisons (not relational
+  comparisons) and the full set of arithmetic operations `+`, (binary) `-`, `*`,
+  `neg`, and `inv`.  The point cannot be constructed in Compact code but it has
+  accessors `secp256r1PointX` and `secp256r1PointY`.  The point type supports
+  `ecAdd`, `ecMul`, and `ecMulGenerator`.
+
+  The Compact runtime exports an interface `Secp256r1Point` for the point type.
+  The interface is identical to `Secp256k1Point`, with a read-only `identity`
+  boolean property to indicate the (additive) identity point.  There are also
+  descriptors and implementations of the arithmetic operations in the Compact
+  runtime.
+
+  The runtime also exports constants for the field modulus and the maximum field
+  values for the new field types.
+
+### Removed
+
+- `SECP256K1_LOW_LIMB_BOUND` is removed.  It's purely an implementation detail that
+  does not need to be exposed by the runtime.  This feature was introduced in
+  Compact runtime 0.19.100, so it's not a breaking change with respect to the
+  released 0.19.0.
+
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
 ### Added

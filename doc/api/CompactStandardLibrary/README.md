@@ -44,12 +44,17 @@ Key parts of the API are:
   - [`Secp256k1Scalar`](exports.md#secp256k1scalar)
   - [`secp256k1PointX`](exports.md#secp256k1pointx)
   - [`secp256k1PointY`](exports.md#secp256k1pointy)
+  - [`Secp256r1Point`](exports.md#secp256r1point)
+  - [`Secp256r1Base`](exports.md#secp256r1base)
+  - [`Secp256r1Scalar`](exports.md#secp256r1scalar)
+  - [`secp256r1PointX`](exports.md#secp256r1pointx)
+  - [`secp256r1PointY`](exports.md#secp256r1pointy)
   - [`ecAdd`](exports.md#ecadd)
   - [`ecNeg`](exports.md#ecneg)
   - [`ecMul`](exports.md#ecmul)
   - [`ecMulGenerator`](exports.md#ecmulgenerator)
   - [`hashToCurve`](exports.md#hashtocurve)
-- secp256k1 field arithmetic functions:
+- Field arithmetic functions:
   - [`neg`](exports.md#neg)
   - [`inv`](exports.md#inv)
 - Merkle tree functions:
