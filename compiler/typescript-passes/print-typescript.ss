@@ -908,7 +908,7 @@
         [(field-base ,ctype) (format "~aBase" (format-curve-type ctype))]
         [(field-scalar ,ctype) (format "~aScalar" (format-curve-type ctype))]))
     (define (format-point-type ctype)
-      (format "~Point" (format-curve-type ctype)))
+      (format "~aPoint" (format-curve-type ctype)))
     (define (format-type type)
       (nanopass-case (Ltypescript Type) (de-alias type)
         [(tboolean ,src) "Boolean"]
@@ -1026,29 +1026,12 @@
                 [(tboolean ,src)
                  "__compactRuntime.CompactTypeBoolean"]
                 [(tfield ,src ,ftype)
-                 (strict-nanopass-case (Ltypescript Field-Type) ftype
-                   [(field-native) "__compactRuntime.CompactTypeField"]
-                   [(field-base ,ctype)
-                    (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                      [(curve-curve25519) "__compactRuntime.CompactTypeCurve25519Base"]
-                      [(curve-jubjub) (assert cannot-happen)]
-                      [(curve-secp256k1) "__compactRuntime.CompactTypeSecp256k1Base"]
-                      [(curve-secp256r1) "__compactRuntime.CompactTypeSecp256r1Base"])]
-                   [(field-scalar ,ctype)
-                    (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                      [(curve-curve25519) "__compactRuntime.CompactTypeCurve25519Scalar"]
-                      [(curve-jubjub) "__compactRuntime.CompactTypeField"]
-                      [(curve-secp256k1) "__compactRuntime.CompactTypeSecp256k1Scalar"]
-                      [(curve-secp256r1) "__compactRuntime.CompactTypeSecp256r1Scalar"])])]
+                 (format "__compactRuntime.CompactType~a" (format-field-type ftype))]
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
                 [(tpoint ,src ,ctype)
-                 (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                   [(curve-curve25519) "__compactRuntime.CompactTypeCurve25519Point"]
-                   [(curve-jubjub) "__compactRuntime.CompactTypeJubjubPoint"]
-                   [(curve-secp256k1) "__compactRuntime.CompactTypeSecp256k1Point"]
-                   [(curve-secp256r1) "__compactRuntime.CompactTypeSecp256r1Point"])]
+                 (format "__compactRuntime.CompactType~a" (format-point-type ctype))]
                 [(tbytes ,src ,len)
                  (format "new __compactRuntime.CompactTypeBytes(~d)" len)]
                 [(topaque ,src ,opaque-type)
@@ -1138,17 +1121,9 @@
                            (strict-nanopass-case (Ltypescript Field-Type) ftype
                              [(field-native) "FIELD"]
                              [(field-base ,ctype)
-                              (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                                [(curve-curve25519) "CURVE25519_BASE"]
-                                [(curve-jubjub) (assert cannot-happen)]
-                                [(curve-secp256k1) "SECP256K1_BASE"]
-                                [(curve-secp256r1) "SECP256R1_BASE"])]
+                              (format "~:@(~a~)_BASE" (format-curve-type ctype))]
                              [(field-scalar ,ctype)
-                              (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                                [(curve-curve25519) "CURVE25519_SCALAR"]
-                                [(curve-jubjub) "JUBJUB_SCALAR"]
-                                [(curve-secp256k1) "SECP256K1_SCALAR"]
-                                [(curve-secp256r1) "SECP256R1_SCALAR"])])])
+                              (format "~:@(~a~)_SCALAR" (format-curve-type ctype))])])
                      (format "typeof(~a) === 'bigint' && ~:*~a >= 0 && ~:*~a <= __compactRuntime.MAX_~a"
                        var field-name))]
                   [(tunsigned ,src ,nat)
@@ -2598,7 +2573,7 @@
                      type*)]
                   [(tpoint ,src ,ctype)
                    (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                     [(curve-curve25519) (assert cannot-happen)]
+                     [(curve-curve25519) (assert not-implemented)]
                      [(curve-jubjub)
                       (print-indent indent)
                       (printf "if (x~s.x != y~:*~s.x || x~:*~s.y != y~:*~s.y) {\n" i)
@@ -2656,7 +2631,7 @@
              [(tunsigned ,src ,nat) "0n"]
              [(tpoint ,src ,ctype)
               (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                [(curve-curve25519) (assert cannot-happen)]  ;; TODO(kmillikin): implement.
+                [(curve-curve25519) (assert not-implemented)]  ;; TODO(kmillikin): implement.
                 [(curve-jubjub) "({x: 0n, y: 1n})"]
                 [(curve-secp256k1) "({x: 0n, y: 0n, identity: true})"]
                 [(curve-secp256r1) "({x: 0n, y: 0n, identity: true})"])]
@@ -2787,13 +2762,13 @@
                      [(field-native) "addField"]
                      [(field-base ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1BaseAdd"]
                         [(curve-secp256r1) "secp256r1BaseAdd"])]
                      [(field-scalar ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1ScalarAdd"]
                         [(curve-secp256r1) "secp256r1ScalarAdd"])])]
@@ -2818,13 +2793,13 @@
                      [(field-native) "subField"]
                      [(field-base ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1BaseSub"]
                         [(curve-secp256r1) "secp256r1BaseSub"])]
                      [(field-scalar ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1ScalarSub"]
                         [(curve-secp256r1) "secp256r1ScalarSub"])])]
@@ -2849,13 +2824,13 @@
                      [(field-native) "mulField"]
                      [(field-base ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1BaseMul"]
                         [(curve-secp256r1) "secp256r1BaseMul"])]
                      [(field-scalar ,ctype)
                       (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                        [(curve-curve25519) (assert cannot-happen)]
+                        [(curve-curve25519) (assert not-implemented)]
                         [(curve-jubjub) (assert cannot-happen)]
                         [(curve-secp256k1) "secp256k1ScalarMul"]
                         [(curve-secp256r1) "secp256r1ScalarMul"])])]
@@ -3086,13 +3061,13 @@
                         (values "convertBytesToUint" (max-field))]
                        [(tfield ,src^ (field-base ,ctype))
                         (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                          [(curve-curve25519) (assert cannot-happen)] ;; TODO(kmillikin): implement.
+                          [(curve-curve25519) (assert not-implemented)] ;; TODO(kmillikin): implement.
                           [(curve-jubjub) (assert cannot-happen)]
                           [(curve-secp256k1) (values "convertBytesToField" (max-secp256k1-base))]
                           [(curve-secp256r1) (values "convertBytesToField" (max-secp256r1-base))])]
                        [(tfield ,src^ (field-scalar ,ctype))
                         (strict-nanopass-case (Ltypescript Curve-Type) ctype
-                          [(curve-curve25519) (assert cannot-happen)] ;; TODO(kmillikin): implement.
+                          [(curve-curve25519) (assert not-implemented)] ;; TODO(kmillikin): implement.
                           [(curve-jubjub) (values "convertBytesToField" (max-jubjub-scalar))]
                           [(curve-secp256k1) (values "convertBytesToField" (max-secp256k1-scalar))]
                           [(curve-secp256r1) (values "convertBytesToField" (max-secp256r1-scalar))])]

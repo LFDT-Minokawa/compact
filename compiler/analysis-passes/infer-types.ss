@@ -1843,7 +1843,7 @@
            [(tfield ,src ,ftype) #t]
            [else #f]))
        ;; For base and scalar fields, only some casts to/from Bytes are supported.
-       (define (check-length ctype len)
+       (define (valid-length? ctype len)
          (strict-nanopass-case (Ltypes Curve-Type) ctype
            [(curve-curve25519) (eqv? len 64)]
            [(curve-jubjub) #f]
@@ -1878,8 +1878,8 @@
                    (guard (not (eqv? len2 0)))
                    (and (strict-nanopass-case (Ltypes Field-Type) ftype1
                           [(field-native) #t]
-                          [(field-base ,ctype1) (check-length ctype1 len2)]
-                          [(field-scalar ,ctype1) (check-length ctype1 len2)])
+                          [(field-base ,ctype1) (valid-length? ctype1 len2)]
+                          [(field-scalar ,ctype1) (valid-length? ctype1 len2)])
                         `(cast-from-bytes ,src ,target-type ,len2 ,expr))]
                   [(tenum ,src2 ,enum-name ,elt-name ,elt-name* ...)
                    `(cast-from-enum ,src ,target-type ,source-type ,expr)]
@@ -1893,8 +1893,8 @@
                    (guard (not (= len1 0)))
                    (and (strict-nanopass-case (Ltypes Field-Type) ftype2
                           [(field-native) #t]
-                          [(field-base ,ctype2) (check-length ctype2 len1)]
-                          [(field-scalar ,ctype2) (check-length ctype2 len1)])
+                          [(field-base ,ctype2) (valid-length? ctype2 len1)]
+                          [(field-scalar ,ctype2) (valid-length? ctype2 len1)])
                         `(field->bytes ,src ,len1 ,ftype2 ,expr))]
                   [(tunsigned ,src2 ,nat2)
                    (guard (not (= len1 0)))

@@ -333,7 +333,7 @@
              [(curve-secp256r1) #t]
              [else #f])]))
       (define (same-field-type? ftype1 ftype2)
-        (nanopass-case (Lexpanded Field-Type) ftype1
+        (strict-nanopass-case (Lexpanded Field-Type) ftype1
           [(field-native)
            (nanopass-case (Lexpanded Field-Type) ftype2
              [(field-native) #t]

@@ -289,6 +289,11 @@ export const CompactTypeField: CompactType<bigint> = {
   },
 };
 
+/**
+ * Runtime type of the builtin `JubjubScalar` type
+ */
+export const CompactTypeJubjubScalar: CompactType<bigint> = CompactTypeField;
+
 // Implementation of foreign field values up to 32 bytes, encoded as the low 24
 // bytes (3 64-bit "limbs") and the high 8 bytes (one64-bit "limb"), and where
 // the encoded value has had 1 subtracted (in the field).

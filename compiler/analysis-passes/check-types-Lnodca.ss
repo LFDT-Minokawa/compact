@@ -290,7 +290,7 @@
          type]
         [else (assert cannot-happen)]))
      (define (arithmetic-binop src op result-type expr1 expr2)
-       (define (check-curve-type ctype)
+       (define (supports-arithmetic? ctype)
          (strict-nanopass-case (Lnodca Curve-Type) ctype
            [(curve-curve25519) #t]
            [(curve-jubjub) #f]
@@ -304,8 +304,8 @@
                (format-type type1) op (format-type type2) (format-type result-type)))
            (unless (T result-type
                      [(tfield ,src (field-native)) #t]
-                     [(tfield ,src (field-base ,ctype)) (check-curve-type ctype)]
-                     [(tfield ,src (field-scalar ,ctype)) (check-curve-type ctype)]
+                     [(tfield ,src (field-base ,ctype)) (supports-arithmetic? ctype)]
+                     [(tfield ,src (field-scalar ,ctype)) (supports-arithmetic? ctype)]
                      [(tunsigned ,src ,nat) #t])
              (source-errorf src "invalid operation type ~a for ~s" (format-type result-type) op)))
          result-type))
