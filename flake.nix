@@ -33,15 +33,15 @@
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.5";
     };
     zkir-v3 = {
-      # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
+      # zkir key-generation binary for v3 IR format
+      url = "github:midnightntwrk/midnight-zkir/8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae"; # zkir-v3
     };
     zkir-v3-wasm = {
-      # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
+      # zkir wasm bindings for test-center v3 support
+      url = "github:midnightntwrk/midnight-zkir/8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -192,7 +192,7 @@
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
               };
               "@midnightntwrk/zkir-v3" = let
-                pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
+                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
@@ -340,7 +340,7 @@
           # which is the name the compiler invokes.
           packages.zkir-v3-bin = pkgs.runCommand "zkir-v3-bin" {} ''
             mkdir -p $out/bin
-            ln -s ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/bin/zkir-v3
+            ln -s ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/bin/zkir-v3
           '';
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -358,7 +358,7 @@
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
               cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
-              cp ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/lib/zkir-v3
+              cp ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/lib/zkir-v3
 
               chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3
