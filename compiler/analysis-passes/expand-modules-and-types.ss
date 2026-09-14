@@ -841,6 +841,10 @@
                    (handle-fun src 'native pelt exported? function-name type-param*)]
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'witness pelt exported? function-name type-param*)]
+                  ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
+                  ;; so its result reaches the caller's proof unconstrained, and the callee's module
+                  ;; is unknown until run time so it cannot be inlined instead. The runtime stops the
+                  ;; call; the declaration should not compile. ~121 test.ss cases declare one.
                   [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
                    (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* pure-dcl* type** type*) p)])
                      (env-insert! p src contract-name info)

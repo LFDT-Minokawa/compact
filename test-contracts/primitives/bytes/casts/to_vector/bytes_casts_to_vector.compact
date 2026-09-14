@@ -1,0 +1,31 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// A Bytes value reinterprets as a Vector<N, Uint<8>>, which then slices and
+// indexes like any other vector.
+export circuit bytes_casts_to_vector(): Vector<2, Uint<8>> {
+    const source = [0x01, 2, 0b11, 0o4] as Bytes<4>;
+
+    const asVector = source as Vector<4, Uint<8>>;
+    const window = slice<2>(asVector, 0);
+    assert(window[0] == 1, "Sliced element 0 should be 1");
+    assert(window[1] == 2, "Sliced element 1 should be 2");
+    assert(asVector[2] == 3, "Indexing the vector should yield 3");
+    assert(asVector[3] == 4, "Indexing the vector should yield 4");
+
+    return window;
+}

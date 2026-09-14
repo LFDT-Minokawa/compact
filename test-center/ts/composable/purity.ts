@@ -29,12 +29,11 @@ const callLiar = (
     args,
   }) as unknown as Promise<{ result: any; context: any }>;
 
-describe('cross-contract purity gate', () => {
-  test('a callee circuit the interface mislabels as impure is rejected at runtime', async () => {
+describe('cross-contract conformance gate', () => {
+  test('a callee that is not a provable circuit cannot satisfy an impure declaration', async () => {
     const chain = new TestChain();
-    // Honest.add does not mutate ledger state, so it is pure and present in Honest's `pureCircuits`.
-    // Liar's interface independently declares `circuit add`, which compiles cleanly and lowers the cross-contract call
-    // with calleeIsPure = false.
+    // `Honest.add` touches no ledger fields, so it is pure; `Liar`'s `contract Honest` declares `add`
+    // without `pure`. A pure circuit cannot satisfy an impure declaration.
     const honest = await chain.deploy({ module: honestCode, args: [], initialPrivateState: 0 });
     const liar = await chain.deploy({
       module: liarCode,
@@ -42,10 +41,22 @@ describe('cross-contract purity gate', () => {
       initialPrivateState: 0,
     });
 
-    // assertPurityMatches looks `add` up in Honest.pureCircuits, finds it, and throws — so the call transaction rejects
-    // instead of executing.
-    await expect(callLiar(chain, liar.address, 'callAdd', 5n)).rejects.toThrow(
-      /Expected pure circuit 'add' for callee '.*' to be undefined/,
+    const error = await callLiar(chain, liar.address, 'callAdd', 5n).then(
+      () => undefined,
+      (e: unknown) => e,
     );
+    if (!runtime.ModuleResolutionError.is(error)) {
+      throw new Error(`expected a ModuleResolutionError, got ${String(error)}`);
+    }
+    // The context says which call could not be bound, independently of why.
+    expect(error.context.calleeCircuitId).toEqual('add');
+    expect(error.context.interfaceName).toEqual('Honest');
+    expect(error.context.calleeAddress).toEqual(honest.address);
+
+    if (error.failure.kind !== 'NonconformantImplementation') {
+      throw new Error(`expected NonconformantImplementation, got ${error.failure.kind}`);
+    }
+    expect(error.failure.check).toEqual('Provability');
+    expect(error.failure.circuitId).toEqual('add');
   });
 });

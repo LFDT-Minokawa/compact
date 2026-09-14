@@ -1,0 +1,32 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Escape sequences in a string literal denote their control-character bytes.
+export circuit bytes_literal_escape_sequences(): Bytes<2> {
+    const newline: Bytes<1> = "\n";
+    const tab: Bytes<1> = "\t";
+    const carriageReturn: Bytes<1> = "\r";
+    const crlf: Bytes<2> = "\r\n";
+
+    assert(newline[0] == 10, "Newline should be byte 10");
+    assert(tab[0] == 9, "Tab should be byte 9");
+    assert(carriageReturn[0] == 13, "Carriage return should be byte 13");
+    assert(crlf[0] == 13, "CRLF first byte should be 13");
+    assert(crlf[1] == 10, "CRLF second byte should be 10");
+
+    return crlf;
+}
