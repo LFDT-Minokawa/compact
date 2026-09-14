@@ -29,6 +29,7 @@ export enum Arguments {
     TRACE_PASSES = '--trace-passes',
     HELP = '--help',
     VERSION = '--version',
+    VERBOSE = '--verbose',
     LANGUAGE_VERSION = '--language-version',
     LEDGER_VERSION = '--ledger-version',
     RUNTIME_VERSION = '--runtime-version',
@@ -69,22 +70,23 @@ export function getFixupBinary(): string {
     return getBinary('../result/bin/fixup-compact', 'fixup-compact');
 }
 
-export function extractCompilerVersion(): string {
-    const filePath = '../compiler/compiler-version.ss';
-    const content = fs.readFileSync(filePath, 'utf-8');
-    const versionMatch = content.match(/\(make-version 'compiler (\d+) (\d+) (\d+)\)/);
-
-    if (versionMatch) {
-        const [, major, minor, patch] = versionMatch;
-        return `${major}.${minor}.${patch}`;
-    }
-    throw new Error(`Could not extract compiler version from: ${filePath}`);
+export async function getCompilerVersion(): Promise<string> {
+    return (await compactcOutput(Arguments.VERSION)).split(' ')[0];
 }
 
-export async function getCompilerVersion(): Promise<string> {
-    const result = await execa(getCompactcBinary(), [Arguments.VERSION], { reject: false });
+// `--version` abbreviates the commit, but contract-info.json records it in
+// full, so read the verbose form. `unknown` there is the empty string here,
+// because that is what contract-info.json records for an unstamped build.
+export async function getCompilerCommit(): Promise<string> {
+    const output = await compactcOutput(Arguments.VERSION, Arguments.VERBOSE);
+    const commit = output.match(/^commit-hash: +(.*)$/m)?.[1].trim() ?? '';
+    return commit === 'unknown' ? '' : commit;
+}
+
+async function compactcOutput(...args: string[]): Promise<string> {
+    const result = await execa(getCompactcBinary(), args, { reject: false });
     if (result.exitCode !== 0) {
-        throw new Error(`Failed to get compiler version: ${result.stderr}`);
+        throw new Error(`Failed to run compactc ${args.join(' ')}: ${result.stderr}`);
     }
     return result.stdout.trim();
 }
