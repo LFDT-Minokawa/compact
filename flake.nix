@@ -29,7 +29,7 @@
     };
     onchain-runtime-v5 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-10";
     };
     zkir-wasm = {
       # dependency for test-center
