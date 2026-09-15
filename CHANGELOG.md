@@ -29,6 +29,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The runtime also exports constants for the field modulus and the maximum field
   values for the new field types.
 
+### Fixed
+
+- Fixed a bug in `default` values for secp256k1 field types in ZKIR.  A literal
+  0 was used, which has type `Scalar<BLS12-381>`, so the resulting ZKIR code was
+  not well-typed.  Instead, we need to cast that value (indirectly through
+  `Bytes<32>`) to the correct secp256k1 field type.
+
 ### Removed
 
 - `SECP256K1_LOW_LIMB_BOUND` is removed.  It's purely an implementation detail that

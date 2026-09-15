@@ -823,24 +823,34 @@
        (assemble test '() '() '() src '() env vm-code instr*))]
     [(= ,test (,var-name) (default ,zkir-type))
      (with-output-language (Lzkir Instruction)
+       ;; Emit instructions for a default value for a 32-byte field, by casting
+       ;; a literal (Scalar<BLS12-381>) field 0 to Bytes<32> and then casting
+       ;; that to the target field type.
+       (define (emit-field-default zkir-type var instr*)
+         (let* ([tmp (make-temp-id default-src 'tmp)])
+           (cons*
+               `(from_bytes32 ,zkir-type ,var ,tmp)
+               `(into_bytes32 ,tmp 0)
+               instr*)))
        (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
+
+         [("Curve25519Base" "Curve25519Scalar" "Curve25519Point")
+          (assert not-implemented)]
+
+         [("Secp256k1Base") (emit-field-default "Base<Secp256k1>" var-name instr*)]
+         [("Secp256k1Scalar") (emit-field-default "Scalar<Secp256k1>" var-name instr*)]
          [("Secp256k1Point")
-          (let* ([tmp0 (make-temp-id default-src 'tmp)]
-                 [tmp1 (make-temp-id default-src 'tmp)])
-            (cons*
-              `(ec_mul_generator ,var-name ,tmp1)
-              `(from_bytes32 "Scalar<Secp256k1>" ,tmp1 ,tmp0)
-              `(into_bytes32 ,tmp0 0)
-              instr*))]
+          (let ([tmp (make-temp-id default-src 'tmp)])
+            (cons `(ec_mul_generator ,var-name ,tmp)
+              (emit-field-default "Scalar<Secp256k1>" tmp instr*)))]
+
+         [("Secp256r1Base") (emit-field-default "Base<Secp256r1>" var-name instr*)]
+         [("Secp256r1Scalar") (emit-field-default "Scalar<Secp256r1>" var-name instr*)]
          [("Secp256r1Point")
-          (let* ([tmp0 (make-temp-id default-src 'tmp)]
-                 [tmp1 (make-temp-id default-src 'tmp)])
-            (cons*
-              `(ec_mul_generator ,var-name ,tmp1)
-              `(from_bytes32 "Scalar<Secp256r1>" ,tmp1 ,tmp0)
-              `(into_bytes32 ,tmp0 0)
-              instr*))          ]
+          (let ([tmp (make-temp-id default-src 'tmp)])
+            (cons `(ec_mul_generator ,var-name ,tmp)
+              (emit-field-default "Scalar<Secp256r1>" tmp instr*)))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
      (with-output-language (Lzkir Instruction)

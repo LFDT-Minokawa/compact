@@ -359,8 +359,15 @@
          [else (source-errorf src "expected primitive type tcontract for contract call, received ~a"
                               (format-primitive-type primitive-type))]))]
     [(= ,test (,var-name* ...) (default ,opaque-type))
-     (verify-test program-src test)
      (with-output-language (Lflattened Primitive-Type)
+       (define-syntax make-zkir-type
+         (syntax-rules ()
+           [(make-zkir-type primitive-type)
+            (begin
+              (assert (feature-zkir-v3))
+              (assert (= (length var-name*) 1))
+              (set-idtype! (car var-name*) (Idtype-Base primitive-type)))]))
+       (verify-test program-src test)
        (case opaque-type
          [("JubjubPoint")
           (if (feature-zkir-v3)
@@ -371,18 +378,17 @@
                 (assert (= (length var-name*) 2))
                 (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
                 (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native))))))]
-         [("Curve25519Point")
-          (assert (feature-zkir-v3))
-          (assert (= (length var-name*) 1))
-          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-curve25519))))]
-         [("Secp256k1Point")
-          (assert (feature-zkir-v3))
-          (assert (= (length var-name*) 1))
-          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-secp256k1))))]
-         [("Secp256r1Point")
-          (assert (feature-zkir-v3))
-          (assert (= (length var-name*) 1))
-          (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-secp256r1))))]
+         [("Curve25519Base") (make-zkir-type `(tfield (field-base (curve-curve25519))))]
+         [("Curve25519Scalar") (make-zkir-type `(tfield (field-scalar (curve-curve25519))))]
+         [("Curve25519Point") (make-zkir-type `(tpoint (curve-curve25519)))]
+
+         [("Secp256k1Base") (make-zkir-type `(tfield (field-base (curve-secp256k1))))]
+         [("Secp256k1Scalar") (make-zkir-type `(tfield (field-scalar (curve-secp256k1))))]
+         [("Secp256k1Point") (make-zkir-type `(tpoint (curve-secp256k1)))]
+
+         [("Secp256r1Base") (make-zkir-type `(tfield (field-base (curve-secp256r1))))]
+         [("Secp256r1Scalar") (make-zkir-type `(tfield (field-scalar (curve-secp256r1))))]
+         [("Secp256r1Point") (make-zkir-type `(tpoint (curve-secp256r1)))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
      (let ()

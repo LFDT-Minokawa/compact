@@ -1342,17 +1342,17 @@
         "utils": "utils_7"
       },
       "locked": {
-        "lastModified": 1789120070,
-        "narHash": "sha256-m9RsP6bmcEdQUhnbQXR0TZb9P4buMVk+eEGnIvu2l20=",
+        "lastModified": 1789479879,
+        "narHash": "sha256-VIWnHUot9YNoe29CwUlImqcaxDbBwk8r+HyDpqoGCgA=",
         "owner": "midnightntwrk",
         "repo": "midnight-zkir",
-        "rev": "8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae",
+        "rev": "0b784d6841e39195f509b34bec0ba26fdbb50907",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-zkir",
-        "rev": "8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae",
+        "rev": "0b784d6841e39195f509b34bec0ba26fdbb50907",
         "type": "github"
       }
     },
@@ -1364,17 +1364,17 @@
         "utils": "utils_8"
       },
       "locked": {
-        "lastModified": 1789120070,
-        "narHash": "sha256-m9RsP6bmcEdQUhnbQXR0TZb9P4buMVk+eEGnIvu2l20=",
+        "lastModified": 1789479879,
+        "narHash": "sha256-VIWnHUot9YNoe29CwUlImqcaxDbBwk8r+HyDpqoGCgA=",
         "owner": "midnightntwrk",
         "repo": "midnight-zkir",
-        "rev": "8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae",
+        "rev": "0b784d6841e39195f509b34bec0ba26fdbb50907",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
         "repo": "midnight-zkir",
-        "rev": "8ff4c3b8e25ab8a021f5d31f0adad542e10ba6ae",
+        "rev": "0b784d6841e39195f509b34bec0ba26fdbb50907",
         "type": "github"
       }
     },
