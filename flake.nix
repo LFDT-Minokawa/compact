@@ -191,6 +191,12 @@
             src = ./test-center;
 
             nixDependenciesMap = {
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
+              };
               "@midnightntwrk/zkir-v2" = let
                 pkg = zkir-wasm.packages.${system}.zkir-wasm;
               in {
@@ -531,10 +537,15 @@
               pkgs.nodejs
               pkgs.yarn
               pkgs.alejandra
+              packages.compactc
               packages.runtime.package
               packages.runtime.node-modules
               packages.test-center.package
               packages.test-center.node-modules
+              # Compiling a `verifyProof` runs `zkir-v3 inner-vk`, even under
+              # `--skip-zk`, so the default shell needs these to build one.
+              zkir.packages.${system}.zkir
+              packages.zkir-v3-bin
             ];
             shellHook = combined-shell-hook;
 

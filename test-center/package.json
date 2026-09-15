@@ -12,6 +12,7 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
+    "@midnightntwrk/onchain-runtime-v5",
     "@midnightntwrk/zkir-v2",
     "@midnightntwrk/zkir-v3"
   ],
