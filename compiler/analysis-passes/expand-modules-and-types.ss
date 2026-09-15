@@ -700,13 +700,15 @@
                                                                                           (source-errorf src "verifyProof expects its first subform to be a string"))])
                                                                         (with-output-language (Lexpanded Expression)
                                                                           `(verify-proof ,src
-                                                                             ,(make-verifying-key
-                                                                                pathname
-                                                                                (let ([pathname (find-source-pathname "" pathname
-                                                                                                  (lambda (pathname)
-                                                                                                    (source-errorf src "failed to locate file ~s" pathname)))])
+                                                                             ,(let ([resolved-pathname
+                                                                                     (find-source-pathname "" pathname
+                                                                                       (lambda (pathname)
+                                                                                         (source-errorf src "failed to locate file ~s" pathname)))])
+                                                                                (make-verifying-key
+                                                                                  pathname
+                                                                                  resolved-pathname
                                                                                   (guard (c [else (error-accessing-file c "reading verifying key file")])
-                                                                                    (let ([x (call-with-port (open-file-input-port pathname) get-bytevector-all)])
+                                                                                    (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
                                                                                       (if (eof-object? x) (bytevector) x)))))
                                                                              ,(Expression proof-expr p)
                                                                              ,(Expression pi-expr p))))))))))

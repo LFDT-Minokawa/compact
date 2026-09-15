@@ -17,6 +17,23 @@
 
 (define-pass print-zkir-v3 : Lzkir (ir) -> Lzkir ()
   (definitions
+    ;; The blobs for a circuit's `verify_proof` instructions, newest first.
+    ;; `Instruction` records one as it prints, so the set is complete by the time
+    ;; the enclosing object is assembled -- but only for the circuit being
+    ;; printed, hence the reset.
+    (define inner-vk-blob* '())
+    (define (reset-inner-vk-blobs!) (set! inner-vk-blob* '()))
+    (define (inner-vk-blobs) (reverse inner-vk-blob*))
+    (define (inner-vk-hash vk)
+      (let ([convert (inner-verifying-key-blob)])
+        (unless convert
+          (internal-errorf 'print-zkir-v3 "no inner verifying-key converter is installed"))
+        (let* ([entry (convert vk)] [blob (car entry)])
+          ;; `verify_proof_vks` is a set, not a list: zkir rejects a duplicated
+          ;; entry and an unused one alike.
+          (unless (member blob inner-vk-blob*)
+            (set! inner-vk-blob* (cons blob inner-vk-blob*)))
+          (format "0x~a" (cdr entry)))))
     (define (alignment-atom->alist atom)
       (nanopass-case (Lflattened Alignment) atom
         [(acompress) `((tag . "atom") (value . ((tag . "compress"))))]
@@ -63,6 +80,7 @@
   (Circuit-Definition : Circuit-Definition (ir) -> * ()
     [(circuit ,src (,name* ...) ((,var-name* ,zkir-type*) ...) (,zkir-type0* ...) ,instr* ...)
      (define (print-circuit op)
+       (reset-inner-vk-blobs!)
        (print-json-compact op
          (with-var-table
            (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
@@ -70,11 +88,21 @@
                                                    (type . ,zkir-type)))
                                           var-name* zkir-type*))]
                   [instructions (list->vector (maplr Instruction instr*))]
-                  [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 0)))
+                  [outputs (list->vector zkir-type0*)]
+                  [vk-blob* (inner-vk-blobs)])
+             ;; Minor 1 only where the side table is non-empty: it is what marks
+             ;; the table's presence, and bumping it everywhere would rewrite
+             ;; every circuit's IR for nothing.
+             `((version . ((major . 3) (minor . ,(if (null? vk-blob*) 0 1))))
                (do_communications_commitment . ,(not (no-communications-commitment)))
                (inputs . ,inputs)
                (outputs . ,outputs)
+               ,@(if (null? vk-blob*)
+                     '()
+                     `((verify_proof_vks . ,(list->vector
+                                              (map (lambda (blob)
+                                                     (list->vector (bytevector->u8-list blob)))
+                                                   vk-blob*)))))
                (instructions . ,instructions))))))
      (let ([output-port*
              (fold-left (lambda (output-port* name)
@@ -185,7 +213,7 @@
     [(verify_proof ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
      `((op . "verify_proof")
        (guard . ,inp0)
-       (vk . ,(format "0x~(~{~2,'0x~}~)" (bytevector->u8-list (verifying-key-content vk))))
+       (vk_hash . ,(inner-vk-hash vk))
        (instance . ,(list->vector inp*))
        (proof . ,inp1))])
 

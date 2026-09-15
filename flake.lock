@@ -470,16 +470,16 @@
         "utils": "utils_2"
       },
       "locked": {
-        "lastModified": 1788257967,
-        "narHash": "sha256-6EV/xAk1gVekdGgx9CEa1zcMY9+qXYL97eCf5z+7bR0=",
+        "lastModified": 1789384455,
+        "narHash": "sha256-w/f0Vs2DanTB2c+j3MFZ+eIknkLIhvoivhGJgMCL+EA=",
         "owner": "midnightntwrk",
         "repo": "midnight-ledger",
-        "rev": "9772308a5220055b478771dd630da180fd5f4e3e",
+        "rev": "a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4",
         "type": "github"
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "iquerejeta/decidable_v2",
+        "ref": "ledger-10",
         "repo": "midnight-ledger",
         "type": "github"
       }

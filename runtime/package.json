@@ -31,10 +31,12 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
-    "@midnightntwrk/onchain-runtime-v5"
+    "@midnightntwrk/onchain-runtime-v5",
+    "@midnightntwrk/zkir-v3"
   ],
   "dependencies": {
     "@midnightntwrk/onchain-runtime-v5": "^5.0.0-alpha.1",
+    "@midnightntwrk/zkir-v3": "^3.0.0-rc.2",
     "@noble/curves": "^2.2.0",
     "@noble/hashes": "^2.0.1",
     "@types/object-inspect": "^1.8.1",

@@ -174,6 +174,12 @@
                 tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
               };
+              "@midnightntwrk/zkir-v3" = let
+                pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
+              };
             };
           };
 

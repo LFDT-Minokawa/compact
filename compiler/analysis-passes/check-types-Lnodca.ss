@@ -892,8 +892,17 @@
                [else #f])
        (source-errorf src "expected verify-proof proof argument to have type Opaque<'Uint8Array'>, received ~a"
                       (format-type type1)))
+     ;; `Vector<n, Field>` is a second spelling of `[Field, ..., Field]`, not a
+     ;; distinct type, so a vector literal arrives here as a tuple and matching
+     ;; `tvector` alone never fires.
      (unless (nanopass-case (Lnodca Type) (de-alias type2)
                [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
+               [(ttuple ,src ,type* ...)
+                (andmap (lambda (type)
+                          (nanopass-case (Lnodca Type) (de-alias type)
+                            [(tfield ,src^ (field-native)) #t]
+                            [else #f]))
+                        type*)]
                [else #f])
        (source-errorf src "expected verify-proof public-inputs argument to have type Vector<n, Field> for some n, received ~a"
                       (format-type type2)))

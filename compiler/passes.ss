@@ -139,6 +139,12 @@
                              [circuit-ir (run-passes circuit-passes analyzed-ir)]
                              [proof-circuit-name* (extract-circuit-names circuit-ir)])
                         (define output-subdirectories '("compiler" "contract" "zkir" "keys"))
+                        ;; One converter for both emitters: the TypeScript pass
+                        ;; runs after the ZKIR one, so it finds the table warm
+                        ;; and hands the contract the same bytes the circuit
+                        ;; committed to.
+                        (define convert-inner-verifying-key
+                          (make-inner-verifying-key-converter output-directory-pathname))
                         (for-each
                           (lambda (fn) (rm-rf (format "~a/~a" output-directory-pathname fn)))
                           output-subdirectories)
@@ -148,7 +154,8 @@
                         (with-target-ports
                           (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                proof-circuit-name*)
-                          (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
+                          (parameterize ([inner-verifying-key-blob convert-inner-verifying-key])
+                            (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir)))
                         (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                         (unless (skip-zk)
                           (if (zero? (system "command -v zkir > /dev/null"))
@@ -185,7 +192,8 @@
                              (contract.d.ts . "contract/index.d.ts")
                              (contract.js.map . "contract/index.js.map"))
                            (parameterize ([proof-circuit-names proof-circuit-name*]
-                                          [verifier-key-hashes verifier-key-hash*])
+                                          [verifier-key-hashes verifier-key-hash*]
+                                          [inner-verifying-key-blob convert-inner-verifying-key])
                              (run-passes typescript-passes analyzed-ir))))
                         (let ([manifest-pathname* created-file*])
                           (with-target-ports
@@ -194,6 +202,57 @@
                               output-directory-pathname
                               output-subdirectories)))
                         (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))])))))))]))
+
+  ;; Re-encodes each distinct inner verifying key through `zkir-v3 inner-vk`,
+  ;; returning a pair of the `verify_proof_vks` blob and its lowercase hex
+  ;; SHA-256. The tool is asked rather than the bytes reshaped here, because a
+  ;; `.verifier` file wraps the key in a tag and a SCALE length that only zkir
+  ;; knows how to strip. Memoized on the resolved pathname: one contract may
+  ;; verify against the same key more than once, and the conversion is a
+  ;; subprocess.
+  (define (make-inner-verifying-key-converter output-directory-pathname)
+    (let ([table (make-hashtable string-hash string=?)]
+          [n 0])
+      (lambda (vk)
+        (let* ([key-pathname (verifying-key-resolved-pathname vk)]
+               [a (hashtable-cell table key-pathname #f)])
+          (or (cdr a)
+              (begin
+                (unless (zero? (system "command -v zkir-v3 > /dev/null"))
+                  (external-errorf
+                    "verifyProof needs the zkir-v3 tool to encode the verifying key ~s, but it is not on PATH"
+                    (verifying-key-pathname vk)))
+                (let ([blob-pathname
+                       (let ([dir (format "~a/zkir" output-directory-pathname)])
+                         (unless (file-directory? dir) (mkdir dir))
+                         (let ([blob-pathname (format "~a/inner-vk-~d.ivk" dir n)])
+                           (set! n (fx+ n 1))
+                           blob-pathname))])
+                  ;; `--decider 0` is the only place the decider kind is
+                  ;; chosen, and every key reaching Compact today comes from
+                  ;; outside it -- but a key that itself verifies a proof would
+                  ;; need `1`, and declaring `0` for it is a silent soundness
+                  ;; bug.
+                  ;; TODO: Properly string escape, as for compile-many below.
+                  (let ([res (system (format "exec zkir-v3 inner-vk --decider 0 '~a' '~a'"
+                                       key-pathname
+                                       blob-pathname))])
+                    (unless (zero? res)
+                      (external-errorf "zkir-v3 inner-vk returned a non-zero exit status ~d for ~s"
+                                       res
+                                       (verifying-key-pathname vk))))
+                  (let ([entry (cons (let ([x (call-with-port (open-file-input-port blob-pathname)
+                                                get-bytevector-all)])
+                                       (if (eof-object? x) (bytevector) x))
+                                     (sha256-file blob-pathname))])
+                    ;; Build scratch, not an output: the blob reaches the
+                    ;; emitters through this memo table, so leaving the file
+                    ;; behind would only put a compiler intermediate in a tree
+                    ;; someone else copies. Deleted here rather than on exit so
+                    ;; a crash leaves it to look at.
+                    (delete-file blob-pathname #f)
+                    (set-cdr! a entry)
+                    entry))))))))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
     (definitions

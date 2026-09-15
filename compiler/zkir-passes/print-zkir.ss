@@ -761,6 +761,8 @@
                 (assemble-vm-code test src path-elt* env var-name* type vm-code))]))]
         [(assert ,src ,[* test] ,mesg)
          (print-gate "assert" `[cond ,test])]
+        [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
+         (source-errorf src "verifyProof is not supported in ZKIR v2: try recompiling with the flag `--feature-zkir-v3`")]
         [else (internal-errorf 'print-zkir "unreachable")])
       (Path-Element : Path-Element (ir) -> * (str)
         [,path-index (VMalign path-index 1)]

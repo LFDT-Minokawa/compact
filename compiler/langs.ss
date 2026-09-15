@@ -30,7 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          make-verifying-key verifying-key? verifying-key-pathname verifying-key-content
+          make-verifying-key verifying-key? verifying-key-pathname verifying-key-resolved-pathname verifying-key-content
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
@@ -414,10 +414,14 @@
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
-  (module (make-verifying-key verifying-key? verifying-key-pathname verifying-key-content)
+  (module (make-verifying-key verifying-key? verifying-key-pathname
+           verifying-key-resolved-pathname verifying-key-content)
     (define-record-type verifying-key
       (nongenerative)
-      (fields pathname content))
+      ;; `pathname` is what the contract wrote, and is what diagnostics should
+      ;; name -- but `resolved-pathname` is the file actually found for it, which
+      ;; is what `zkir-v3 inner-vk` has to be handed.
+      (fields pathname resolved-pathname content))
     (record-writer (record-type-descriptor verifying-key)
       (lambda (x p wr)
         (fprintf p "VK<~a>" (verifying-key-pathname x)))))

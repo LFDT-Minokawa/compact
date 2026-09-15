@@ -82,7 +82,7 @@ export const checkProofData = async (contractDir: string, circuitName: string, p
   const version = detectZkirVersion(json);
   const isV3 = version.major === 3;
 
-  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
+  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName, proofData.innerProofs);
   const keyProvider = createKeyMaterialProvider(contractDir);
   return isV3 ? checkV3(preimage, keyProvider as KeyMaterialProviderV3) : checkV2(preimage, keyProvider);
 };

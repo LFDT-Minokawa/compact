@@ -31,6 +31,12 @@ export interface PartialProofData {
    * The transcript of the witness call outputs
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The proofs the circuit's `verify_proof` instructions consume, one per
+   * `inner_proof` instruction in instruction order. An instruction whose guard
+   * is false still takes an entry, which may be empty.
+   */
+  innerProofs: Uint8Array[];
 }
 
 /**
