@@ -538,26 +538,6 @@
             WASM_BINDGEN_EXTERNREF = 1;
           };
 
-          devShells.with-zkir = packages.runtime.mkShell {
-            inputsFrom = with packages; [compactc];
-            packages = [
-              pkgs.git
-              pkgs.nodejs
-              pkgs.yarn
-              pkgs.binaryen
-              packages.runtime.package
-              packages.runtime.node-modules
-              packages.test-center.package
-              packages.test-center.node-modules
-              zkir.packages.${system}.zkir
-              packages.zkir-v3-bin
-            ];
-            shellHook = combined-shell-hook;
-
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
-            COMPACT_LIBCRYPTO = libcrypto;
-          };
-
           devShells.compiler = pkgs.mkShell {
             inputsFrom = with packages; [compactc];
             packages = [
