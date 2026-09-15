@@ -163,7 +163,6 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
   CompactTypeSecp256r1Point: [
     sample('Secp256r1Point', runtime.CompactTypeSecp256r1Point, SECP256R1_G),
     sample('Secp256r1Point (identity)', runtime.CompactTypeSecp256r1Point, SECP256R1_IDENTITY),
-    // Same encoding as Secp256k1Point, so this also encodes to five zero-length atoms.
     sample('Secp256r1Point (all-empty atoms)', runtime.CompactTypeSecp256r1Point, {
       x: 1n,
       y: 1n,
