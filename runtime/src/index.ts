@@ -116,4 +116,4 @@ export {
   StateValue,
   VmResults,
   VmStack,
-} from '@midnightntwrk/onchain-runtime-v4';
+} from '@midnightntwrk/onchain-runtime-v5';

@@ -368,11 +368,11 @@
     },
     "nixpkgs_5": {
       "locked": {
-        "lastModified": 1787964612,
-        "narHash": "sha256-0N9nghg3nwzX6b6qc77EzjR9cu/Z+UR66FlfsCqiURs=",
+        "lastModified": 1776329215,
+        "narHash": "sha256-a8BYi3mzoJ/AcJP8UldOx8emoPRLeWqALZWu4ZvjPXw=",
         "owner": "NixOS",
         "repo": "nixpkgs",
-        "rev": "e8be7818e19ada32105a8af937a6a473b38167ca",
+        "rev": "b86751bc4085f48661017fa226dee99fab6c651b",
         "type": "github"
       },
       "original": {
@@ -462,7 +462,7 @@
         "type": "github"
       }
     },
-    "onchain-runtime-v4": {
+    "onchain-runtime-v5": {
       "inputs": {
         "fenix": "fenix",
         "inclusive": "inclusive_2",
@@ -491,7 +491,7 @@
         "n2c": "n2c",
         "nixpkgs": "nixpkgs_3",
         "npmlock2nix": "npmlock2nix",
-        "onchain-runtime-v4": "onchain-runtime-v4",
+        "onchain-runtime-v5": "onchain-runtime-v5",
         "utils": "utils_3",
         "zkir": "zkir",
         "zkir-v3": "zkir-v3",

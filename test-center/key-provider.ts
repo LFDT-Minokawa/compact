@@ -25,7 +25,7 @@ import {
   jsonIrToBinary as jsonIrToBinaryV3
 } from '@midnightntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
-import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v4';
+import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v5';
 import fs from 'fs/promises';
 import path from 'path';
 

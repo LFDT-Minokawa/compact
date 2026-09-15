@@ -27,7 +27,7 @@
       # zkir key-generation binary for ZKIR 2
       url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2"; # zkir-v2
     };
-    onchain-runtime-v4 = {
+    onchain-runtime-v5 = {
       # dependency for Compact runtime release
       url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
     };
@@ -58,7 +58,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v4,
+    onchain-runtime-v5,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -168,11 +168,11 @@
             };
 
             nixDependenciesMap = {
-              "@midnightntwrk/onchain-runtime-v4" = let
-                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v4";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
               };
             };
           };

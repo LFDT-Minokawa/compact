@@ -13,9 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
-import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
+import { ContractAddress } from '@midnightntwrk/onchain-runtime-v5';
 import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
 import { CompactType, CompactTypeJubjubPoint, JubjubPoint, Secp256k1Point } from './compact-types.js';
