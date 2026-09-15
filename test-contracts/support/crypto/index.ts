@@ -14,7 +14,7 @@
 // limitations under the License.
 
 /**
- * Shared harness for the crypto fixtures under `natives/`: hex conversion, the
+ * Shared harness for the crypto fixtures under `stdlib/`: hex conversion, the
  * known-answer test driver, the `Bytes<N>` width sweep the two hash features
  * share, and loaders for the vendored Wycheproof and ethereum/tests vectors.
  *
