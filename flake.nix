@@ -578,6 +578,9 @@
               packages.zkir-v3-bin
             ];
 
+            # The SRS that test-contracts/tools/verify-proof-fixtures proves
+            # against, read as $MIDNIGHT_PP/bls_midnight_2p<k>.
+            MIDNIGHT_PP = "${zkir-v3.packages.${system}.public-params}";
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
