@@ -30,8 +30,10 @@ import * as runtime from '../src/index.js';
 /** An atom appended past the end of a value, to check chaining tolerance. */
 const junk = (): Uint8Array => new Uint8Array([9]);
 
-const IDENTITY: runtime.Secp256k1Point = runtime.secp256k1MulGenerator(0n);
-const G: runtime.Secp256k1Point = runtime.secp256k1MulGenerator(1n);
+const SECP256K1_IDENTITY: runtime.Secp256k1Point = runtime.secp256k1MulGenerator(0n);
+const SECP256K1_G: runtime.Secp256k1Point = runtime.secp256k1MulGenerator(1n);
+const SECP256R1_IDENTITY: runtime.Secp256r1Point = runtime.secp256r1MulGenerator(0n);
+const SECP256R1_G: runtime.Secp256r1Point = runtime.secp256r1MulGenerator(1n);
 
 /** Structural test for the `CompactType` interface on an instance. */
 function isDescriptor(value: unknown): boolean {
@@ -92,6 +94,11 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
     sample('Field (zero)', runtime.CompactTypeField, 0n),
     sample('Field (max)', runtime.CompactTypeField, runtime.MAX_FIELD),
   ],
+  CompactTypeJubjubScalar: [
+    sample('Field', runtime.CompactTypeJubjubScalar, 12345678901234567890n),
+    sample('Field (zero)', runtime.CompactTypeJubjubScalar, 0n),
+    sample('Field (max)', runtime.CompactTypeJubjubScalar, runtime.MAX_FIELD),
+  ],
   CompactTypeBoolean: [
     sample('Boolean (true)', runtime.CompactTypeBoolean, true),
     sample('Boolean (false)', runtime.CompactTypeBoolean, false),
@@ -115,12 +122,15 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
   CompactTypeVector: [
     sample('Vector<3, Field>', new runtime.CompactTypeVector(3, runtime.CompactTypeField), [1n, 2n, 3n]),
     // A Vector of one element passes even when its element does not consume, so n >= 2 is the case that matters.
-    sample('Vector<2, Secp256k1Point>', new runtime.CompactTypeVector(2, runtime.CompactTypeSecp256k1Point), [G, IDENTITY]),
+    sample('Vector<2, Secp256k1Point>', new runtime.CompactTypeVector(2, runtime.CompactTypeSecp256k1Point), [
+      SECP256K1_G,
+      SECP256K1_IDENTITY,
+    ]),
     sample('Vector<2, Secp256k1Scalar>', new runtime.CompactTypeVector(2, runtime.CompactTypeSecp256k1Scalar), [1n, 2n]),
   ],
   CompactTypeJubjubPoint: [sample('JubjubPoint', runtime.CompactTypeJubjubPoint, { x: 11n, y: 22n })],
   CompactTypeSecp256k1Base: [
-    sample('Secp256k1Base', runtime.CompactTypeSecp256k1Base, G.x),
+    sample('Secp256k1Base', runtime.CompactTypeSecp256k1Base, SECP256K1_G.x),
     sample('Secp256k1Base (zero)', runtime.CompactTypeSecp256k1Base, 0n),
     sample('Secp256k1Base (max)', runtime.CompactTypeSecp256k1Base, runtime.MAX_SECP256K1_BASE),
   ],
@@ -130,11 +140,31 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
     sample('Secp256k1Scalar (max)', runtime.CompactTypeSecp256k1Scalar, runtime.MAX_SECP256K1_SCALAR),
   ],
   CompactTypeSecp256k1Point: [
-    sample('Secp256k1Point', runtime.CompactTypeSecp256k1Point, G),
-    sample('Secp256k1Point (identity)', runtime.CompactTypeSecp256k1Point, IDENTITY),
+    sample('Secp256k1Point', runtime.CompactTypeSecp256k1Point, SECP256K1_G),
+    sample('Secp256k1Point (identity)', runtime.CompactTypeSecp256k1Point, SECP256K1_IDENTITY),
     // The ZKIR representation subtracts one from each coordinate, so this encodes to five zero-length atoms. The atom
     // count is invariant, but the widths are not.
     sample('Secp256k1Point (all-empty atoms)', runtime.CompactTypeSecp256k1Point, {
+      x: 1n,
+      y: 1n,
+      identity: false,
+    }),
+  ],
+  CompactTypeSecp256r1Base: [
+    sample('Secp256r1Base', runtime.CompactTypeSecp256r1Base, SECP256R1_G.x),
+    sample('Secp256r1Base (zero)', runtime.CompactTypeSecp256r1Base, 0n),
+    sample('Secp256r1Base (max)', runtime.CompactTypeSecp256r1Base, runtime.MAX_SECP256R1_BASE),
+  ],
+  CompactTypeSecp256r1Scalar: [
+    sample('Secp256r1Scalar', runtime.CompactTypeSecp256r1Scalar, 987654321n),
+    sample('Secp256r1Scalar (zero)', runtime.CompactTypeSecp256r1Scalar, 0n),
+    sample('Secp256r1Scalar (max)', runtime.CompactTypeSecp256r1Scalar, runtime.MAX_SECP256R1_SCALAR),
+  ],
+  CompactTypeSecp256r1Point: [
+    sample('Secp256r1Point', runtime.CompactTypeSecp256r1Point, SECP256R1_G),
+    sample('Secp256r1Point (identity)', runtime.CompactTypeSecp256r1Point, SECP256R1_IDENTITY),
+    // Same encoding as Secp256k1Point, so this also encodes to five zero-length atoms.
+    sample('Secp256r1Point (all-empty atoms)', runtime.CompactTypeSecp256r1Point, {
       x: 1n,
       y: 1n,
       identity: false,
@@ -161,7 +191,7 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
       'MerkleTreePath<2, Secp256k1Point>',
       new runtime.CompactTypeMerkleTreePath(2, runtime.CompactTypeSecp256k1Point),
       {
-        leaf: G,
+        leaf: SECP256K1_G,
         path: [
           { sibling: { field: 1n }, goes_left: true },
           { sibling: { field: 2n }, goes_left: false },
@@ -320,7 +350,7 @@ describe('input validation', () => {
   });
 
   test('Secp256k1Point rejects an identity flag that is neither 0 nor 1', () => {
-    const encoded = runtime.CompactTypeSecp256k1Point.toValue(G);
+    const encoded = runtime.CompactTypeSecp256k1Point.toValue(SECP256K1_G);
     encoded[4] = new Uint8Array([2]);
     expect(() => runtime.CompactTypeSecp256k1Point.fromValue(encoded)).toThrow(/expected Secp256k1Point/);
   });
