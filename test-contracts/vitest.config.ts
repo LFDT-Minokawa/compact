@@ -23,6 +23,9 @@ export default defineConfig({
             '@test/compact-test': fileURLToPath(
                 new URL('./compact-test.ts', import.meta.url),
             ),
+            '@test/crypto': fileURLToPath(
+                new URL('./support/crypto/index.ts', import.meta.url),
+            ),
         },
     },
     test: {
