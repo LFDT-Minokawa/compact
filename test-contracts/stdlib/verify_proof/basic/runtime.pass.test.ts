@@ -75,5 +75,26 @@ export default defineRuntimeTest<typeof GeneratedContract>(
         // bug would also throw, and would otherwise read as a pass.
         expect(failure).toBeInstanceOf(Error);
         expect(failure).not.toBeInstanceOf(TypeError);
+
+        // The attested value is the instance, so attesting to the wrong one is
+        // a well-formed proof of the wrong statement -- `plonk::prepare`
+        // returns `Ok` on it, and only the pairing rejects it.
+        const { contract: mismatchedContract, ctx: mismatchedCtx } =
+            await createTestContract(Contract, {
+                innerProof: (context) => [context.privateState, inner.proof],
+            });
+
+        const mismatch = await mismatchedContract.circuits
+            .verifyProofBasic(mismatchedCtx, inner.instance[0] + 1n)
+            .then(
+                () => undefined,
+                (error: unknown) => error,
+            );
+
+        // Asserted on the message, not just on throwing: the corrupted proof
+        // above throws too, from `plonk::prepare`, so only the wording tells
+        // the two layers apart. This one is `verify_inner_proof`'s own.
+        expect(mismatch).toBeInstanceOf(Error);
+        expect((mismatch as Error).message).toContain('does not hold');
     },
 );

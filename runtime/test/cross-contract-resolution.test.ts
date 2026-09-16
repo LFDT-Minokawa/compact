@@ -45,6 +45,7 @@ const emptyProofData = (): PartialProofData => ({
   input: { value: [], alignment: [] },
   publicTranscript: [],
   privateTranscriptOutputs: [],
+  innerProofs: [],
 });
 
 /** A chain holding one contract, deployed at `address`, with `add` as an operation. */

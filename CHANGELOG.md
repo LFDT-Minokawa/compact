@@ -30,10 +30,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   proofs use Blake2b, so a Compact contract's own proof cannot yet serve as the
   inner proof of another.
 
-  The check performed while the circuit is simulated is necessary but not
-  sufficient: it rejects a malformed proof, a wrong key and a mismatched
-  instance, but stops short of the pairing that decides whether a well-formed
-  proof is true. The ledger settles that.
+  The check performed while the circuit is simulated includes the pairing that
+  decides whether a well-formed proof is true, so it is the verdict and not a
+  screen: a malformed proof, a wrong key and a proof that does not hold for the
+  instance given are all rejected before anything reaches the ledger.
 
 ### Changed
 

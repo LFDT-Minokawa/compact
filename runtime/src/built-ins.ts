@@ -475,10 +475,10 @@ function hexToBytes(hex: string): Uint8Array {
  *
  * `vk` is the inner-key blob as `0x`-prefixed hex -- the same bytes the
  * circuit's `verify_proof_vks` carries, so the key checked here is the one the
- * circuit committed to. A malformed proof, a wrong key or a mismatched
- * instance throws here rather than failing opaquely during proving -- but the
- * pairing that decides whether a well-formed proof is true is not run, so a
- * false proof still reaches the ledger.
+ * circuit committed to. The check includes the pairing that decides whether a
+ * well-formed proof is true, so a malformed proof, a wrong key and a proof that
+ * does not hold for this instance all throw here rather than reaching the
+ * ledger.
  */
 export function verifyProof(
   partialProofData: PartialProofData,
