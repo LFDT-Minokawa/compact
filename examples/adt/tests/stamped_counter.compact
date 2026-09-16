@@ -1,0 +1,47 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger s: StampedCounter<Uint<64>>;
+
+export circuit test_all(): [] {
+  assert(s.value() == 0, "Initial value is 0");
+  assert(!s.member(1), "Nothing is stamped");
+
+  s.stamp(1);
+  assert(s.member(1), "Key 1 is stamped");
+  assert(s.lookup(1) == 0, "Key 1 was stamped with 0");
+
+  s.increment(5);
+  assert(s.value() == 5, "Value is 5");
+  assert(s.lookup(1) == 0, "The stamp does not move");
+
+  s.stamp(2);
+  assert(s.lookup(2) == 5, "Key 2 was stamped with 5");
+
+  s.raiseTo(3);
+  assert(s.value() == 5, "Raising below the value is a no-op");
+  s.raiseTo(9);
+  assert(s.value() == 9, "Raising above the value takes the threshold");
+
+  s.remove(1);
+  assert(!s.member(1), "Key 1 is no longer stamped");
+  assert(s.member(2), "Key 2 still is");
+
+  s.resetToDefault();
+  assert(s.value() == 0, "Value is 0");
+  assert(!s.member(2), "Nothing is stamped");
+}
