@@ -25,7 +25,7 @@
   inputs = {
     zkir = {
       # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/ledger-10"; # zkir-v2
     };
     onchain-runtime-v5 = {
       # dependency for Compact runtime release
@@ -33,7 +33,7 @@
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/iquerejeta/decidable_v2";
+      url = "github:midnightntwrk/midnight-ledger/ledger-10";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
