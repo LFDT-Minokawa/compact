@@ -49,6 +49,8 @@
              (list (cons "type" (adt-arg->json (car adt-arg*))))]
             [(Counter)
              '()]
+            [(StampedCounter)
+             (list (cons "key" (adt-arg->json (car adt-arg*))))]
             [(Map)
              (list (cons "key" (adt-arg->json (car adt-arg*)))
                    (cons "value" (adt-arg->json (cadr adt-arg*))))]

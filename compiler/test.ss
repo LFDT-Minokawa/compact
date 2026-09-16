@@ -75274,6 +75274,10 @@ groups than for single tests.
     (stage-javascript "test-center/ts/threading-hacky.ts"))
 
   (test
+    "test-center/compact/stamped-counter.compact"
+    (stage-javascript "test-center/ts/stamped-counter.ts"))
+
+  (test
     "test-center/composable/Recursion/Single/Self.compact"
     (stage-javascript "test-center/ts/composable/self-recursion.ts"))
 
