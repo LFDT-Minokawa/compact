@@ -162,11 +162,10 @@
                               ;; If we have zero circuits, the zkir directory won't exist,
                               ;; and zkir will fail to read it. Skip in that case silently.
                               (when (file-exists? (format "~a/zkir" output-directory-pathname))
-                                ;; TODO: Properly string escape!
-                                (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
+                                (let ([res (system (format "exec ~a compile-many ~a ~a"
                                                      (if (feature-zkir-v3) "zkir-v3" "zkir")
-                                                     output-directory-pathname
-                                                     output-directory-pathname))])
+                                                     (shell-quote (format "~a/zkir" output-directory-pathname))
+                                                     (shell-quote (format "~a/keys" output-directory-pathname))))])
                                   (unless (zero? res)
                                     (external-errorf "zkir returned a non-zero exit status ~d" res))))
                               (unless (zkir-warning-issued)
@@ -233,10 +232,9 @@
                   ;; outside it -- but a key that itself verifies a proof would
                   ;; need `1`, and declaring `0` for it is a silent soundness
                   ;; bug.
-                  ;; TODO: Properly string escape, as for compile-many below.
-                  (let ([res (system (format "exec zkir-v3 inner-vk --decider 0 '~a' '~a'"
-                                       key-pathname
-                                       blob-pathname))])
+                  (let ([res (system (format "exec zkir-v3 inner-vk --decider 0 ~a ~a"
+                                       (shell-quote key-pathname)
+                                       (shell-quote blob-pathname)))])
                     (unless (zero? res)
                       (external-errorf "zkir-v3 inner-vk returned a non-zero exit status ~d for ~s"
                                        res

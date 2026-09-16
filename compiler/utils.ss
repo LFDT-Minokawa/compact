@@ -25,7 +25,7 @@
           errorf internal-errorf external-errorf error-accessing-file pending-errorf source-errorf source-warningf
           assertf
           format-condition
-          maplr maplr2 compose shell sha256-file string-prefix? rm-rf mkdir-p
+          maplr maplr2 compose shell shell-quote sha256-file string-prefix? rm-rf mkdir-p
           to-camel-case
           source-error-condition?
           make-halt-condition halt-condition?
@@ -33,7 +33,8 @@
           register-stdlib-sfd! get-stdlib-sfd stdlib-src?
           renaming-table record-alias!
           pretty-print/formats
-          split-search-path)
+          split-search-path
+          #;shell-quote-tests)
   (import (except (chezscheme) errorf))
 
   ; when set, renaming-table maps src -> (old-name . new-name) and is used by the fixup tool to
@@ -316,6 +317,44 @@
     (lambda (x)
       (fold-right (lambda (f x) (f x)) x f*)))
 
+  ;; Quotes a string as one `/bin/sh` word, surrounding quotes included, for the
+  ;; command strings `shell` and `system` take. Single quotes make every other
+  ;; character literal, so a quote is the only case to handle: close, emit an
+  ;; escaped one, reopen.
+  (define (shell-quote str)
+    (with-output-to-string
+      (lambda ()
+        (let ([n (string-length str)])
+          (write-char #\')
+          (let loop ([i 0])
+            (unless (fx= i n)
+              (let ([c (string-ref str i)])
+                (if (char=? c #\')
+                    (display "'\\''")
+                    (write-char c)))
+              (loop (fx+ i 1))))
+          (write-char #\')))))
+
+  #| uncomment export of shell-quote-tests above and run tests with:
+  echo '(import (utils)) (shell-quote-tests)' | scheme -q
+  |#
+  (define (shell-quote-tests)
+    (define (test str expected)
+      (let ([got (shell-quote str)])
+        (unless (string=? got expected)
+          (internal-errorf 'shell-quote-tests "~s gave ~s, expected ~s" str got expected))))
+    (test "" "''")
+    (test "plain" "'plain'")
+    (test "with space" "'with space'")
+    (test "semi;rm -rf /" "'semi;rm -rf /'")
+    (test "$HOME" "'$HOME'")
+    (test "back`tick`" "'back`tick`'")
+    (test "back\\slash" "'back\\slash'")
+    (test "new\nline" "'new\nline'")
+    (test "it's" "'it'\\''s'")
+    (test "'" "''\\'''")
+    (test "a'b'c" "'a'\\''b'\\''c'"))
+
   (define (shell command)
     (let-values ([(to-stdin from-stdout from-stderr pid)
                   (open-process-ports
@@ -430,7 +469,7 @@
             (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
                              (reverse rfailure*))
             (let ([command (car command*)] [command* (cdr command*)])
-              (let-values ([(stdout stderr) (shell (format "exec ~a '~a'" command pathname))])
+              (let-values ([(stdout stderr) (shell (format "exec ~a ~a" command (shell-quote pathname)))])
                 (if (string=? stderr "")
                     (if (>= (string-length stdout) 64)
                         (let ([hash (substring stdout 0 64)])
