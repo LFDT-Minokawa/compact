@@ -18,7 +18,7 @@
 // real module or a deployed key is `test-center`'s.
 
 import { describe, expect, test } from 'vitest';
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import {
   CircuitContext,
   ContractModuleProvider,
