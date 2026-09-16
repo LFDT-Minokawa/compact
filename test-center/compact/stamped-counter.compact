@@ -1,0 +1,61 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// An outbox: every call takes the next sequence number and a snapshot of the
+// highest response height seen so far; every response raises that height.
+// None of these circuits reads the shared counters, so none of them conflicts
+// with another landing first.
+export ledger nonces: StampedCounter<Uint<64>>;
+export ledger seen: StampedCounter<Uint<64>>;
+
+export circuit call(k: Uint<64>): [] {
+  nonces.stamp(disclose(k));
+  nonces.increment(1);
+  seen.stamp(disclose(k));
+}
+
+export circuit respond(k: Uint<64>, height: Uint<64>): [] {
+  assert(nonces.member(disclose(k)), "unknown key");
+  seen.raiseTo(disclose(height));
+  nonces.remove(disclose(k));
+  seen.remove(disclose(k));
+}
+
+export circuit nonceOf(k: Uint<64>): Uint<64> {
+  return nonces.lookup(disclose(k));
+}
+
+export circuit seenAt(k: Uint<64>): Uint<64> {
+  return seen.lookup(disclose(k));
+}
+
+export circuit isStamped(k: Uint<64>): Boolean {
+  return nonces.member(disclose(k));
+}
+
+export circuit nonce(): Uint<64> {
+  return nonces.value();
+}
+
+export circuit lastSeen(): Uint<64> {
+  return seen.value();
+}
+
+export circuit reset(): [] {
+  nonces.resetToDefault();
+  seen.resetToDefault();
+}
