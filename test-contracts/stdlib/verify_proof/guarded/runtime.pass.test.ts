@@ -65,9 +65,12 @@ export default defineRuntimeTest<typeof GeneratedContract>(
     },
     {
         skip:
-            'guarded-off verifyProof records no witness, so ZKIR rejects the ' +
-            'preimage. The assertion is right and the emitter is not; see ' +
-            'claude/verify-proof-two-emitters.md. Removing this option is the ' +
-            'test that the fix works.',
+            'ZKIR takes one witness per `inner_proof` instruction whatever the ' +
+            'guard, but the emitter lowers a guarded verifyProof to a JavaScript ' +
+            '`if`, so a guarded-off call records nothing and the preimage is ' +
+            'rejected. The other three preimage-consuming instructions consume ' +
+            'nothing when their guard is false; `inner_proof` was changed to ' +
+            'consume unconditionally in midnight-zkir 50a9531. The assertion is ' +
+            'right and the emitter is not, so removing this option tests the fix.',
     },
 );

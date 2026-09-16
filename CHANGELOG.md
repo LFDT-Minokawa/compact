@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.34.102, language 0.26.100, runtime 0.19.102]
+## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
 ### Added
 
@@ -70,6 +70,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `test-center` declares `@midnightntwrk/onchain-runtime-v5` in `nixDependencies`
   rather than resolving it out of the repo-root `node_modules`, which only some
   shells refresh.
+
+## [Toolchain 0.34.102, language 0.26.0, runtime 0.19.101]
+
+### Fixed
+
+The `deserialize` operator now requires the byte representing a `Boolean`
+value to be either 0 or 1.
 
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
