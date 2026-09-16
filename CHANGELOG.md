@@ -5,6 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+<<<<<<< HEAD
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
 ### Added
@@ -126,6 +127,73 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `tests-e2e` type-checks for the first time: `moduleResolution` moves to
   `bundler`, which drops the deprecated `baseUrl` and resolves `vite`'s
   subpath imports without `skipLibCheck`, plus an explicit `rootDir`.
+=======
+## [Toolchain 0.34.101, language 0.26.100, runtime 0.19.101]
+
+### Added
+
+- `verifyProof` is implemented for ZKIR 3. A circuit can verify a zero-knowledge
+  proof of a separate statement, naming that statement's verifying key by
+  pathname:
+
+  ```compact
+  verifyProof("inner.verifier", proof, [publicInput])
+  ```
+
+  The key is read at compile time and re-encoded into the form the circuit
+  commits to, so the file must be present whenever the contract is compiled,
+  including under `--skip-zk`. It must be an inner verifying key as midnight-zk
+  writes it; a tagged `.verifier` produced by `compactc` is refused.
+
+  `--feature-zkir-v3` is required. Under ZKIR 2 the compiler now says so, where
+  previously it failed with an internal error.
+
+  The proof supplied must have been produced with a Poseidon transcript, which
+  is what a verifier running inside a circuit can recompute cheaply. ZKIR's own
+  proofs use Blake2b, so a Compact contract's own proof cannot yet serve as the
+  inner proof of another.
+
+  The check performed while the circuit is simulated is necessary but not
+  sufficient: it rejects a malformed proof, a wrong key and a mismatched
+  instance, but stops short of the pairing that decides whether a well-formed
+  proof is true. The ledger settles that.
+
+### Changed
+
+- **Breaking.** `PartialProofData` carries a new required field, `innerProofs`,
+  holding one entry per `inner_proof` instruction in the circuit. Code that
+  constructs a `PartialProofData` by hand must supply it.
+
+- The onchain runtime is now `@midnightntwrk/onchain-runtime-v5` at
+  `5.0.0-alpha.1`, from the ledger's `ledger-10`, which is where the matching
+  `proof-preimage[v2]` serialization tag lives. The ZKIR inputs move with it:
+  v2 to `ledger-10`, v3 to the `midnight-zkir` repository, which is where the
+  `verify_proof` Rust now lives.
+
+### Fixed
+
+- `find-source-pathname` ignored the `extension` argument it declared and always
+  appended `.compact`, so a lookup passing `""` searched for
+  `<name>.verifier.compact`.
+
+- The type checks on `verifyProof`'s public-inputs argument matched only a
+  `Vector<n, Field>` written as such. A vector literal arrives as a tuple, which
+  is the same type, and was rejected.
+
+- Pathnames interpolated into the shell commands that invoke `zkir` and the
+  sha256 helper are now quoted. One containing a single quote produced a shell
+  syntax error rather than a filename.
+
+### Internal notes
+
+- The default `nix develop` shell carries `compactc` and both zkir binaries, so
+  `./compiler/go` runs in it again rather than needing `.#compiler`. The unused
+  `with-zkir` shell is removed.
+
+- `test-center` declares `@midnightntwrk/onchain-runtime-v5` in `nixDependencies`
+  rather than resolving it out of the repo-root `node_modules`, which only some
+  shells refresh.
+>>>>>>> f8135245 (Bump versions and add the changelog entry)
 
 ## [Toolchain 0.34.100, language 0.26.0, runtime 0.19.100]
 
