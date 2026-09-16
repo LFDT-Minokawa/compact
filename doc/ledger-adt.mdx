@@ -228,6 +228,80 @@ resetToDefault(): []
 
 Resets this Counter to its default value of 0.
 
+## StampedCounter\<key_type>
+
+This ADT is a counter paired with a map from key_type to Uint<64>. stamp copies the counter's current value onto a key on the ledger, without the value entering the circuit; increment and raiseTo likewise update the counter without reading it. None of these operations conflicts with a concurrent transaction doing the same, so a contract can hand out sequence numbers, or record the highest value seen so far, without one transaction per proving time.
+
+### increment
+
+```compact
+increment(amount: Uint<16>): []
+```
+
+Increments the counter by the given amount.
+
+### lookup
+
+```compact
+lookup(key: key_type): Uint<64>
+```
+
+Retrieves the counter value stamped onto a key. Fails if the key has not been stamped.
+
+*available from Typescript as `lookup(key: key_type): bigint`*
+
+### member
+
+```compact
+member(key: key_type): Boolean
+```
+
+Returns if a key has been stamped.
+
+*available from Typescript as `member(key: key_type): boolean`*
+
+### raiseTo
+
+```compact
+raiseTo(threshold: Uint<64>): []
+```
+
+Sets the counter to the larger of its current value and the given threshold, without the counter's value entering the circuit.
+
+### remove
+
+```compact
+remove(key: key_type): []
+```
+
+Removes the stamp on a key.
+
+### resetToDefault
+
+```compact
+resetToDefault(): []
+```
+
+Resets the counter to 0 and removes every stamp.
+
+### stamp
+
+```compact
+stamp(key: key_type): []
+```
+
+Stamps the counter's current value onto a key, replacing any earlier stamp. The value is copied on the ledger and never enters the circuit: the caller neither learns it nor proves anything about it, so stamping does not conflict with a concurrent stamp, increment or raiseTo on the same field.
+
+### value
+
+```compact
+value(): Uint<64>
+```
+
+Retrieves the current value of the counter.
+
+*available from Typescript as `value(): bigint`*
+
 ## Set\<value_type>
 
 This ADT is an unbounded set of values of type value_type.
