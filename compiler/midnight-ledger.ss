@@ -619,6 +619,125 @@
      (ins [cached #f] [n 1])
      (ins [cached #t] [n (suppress-zero (sub1 (length f)))]))))
 
+(declare-ledger-adt StampedCounter ([Type key_type])
+  "a counter paired with a map from key_type to Uint<64>. \
+  stamp copies the counter's current value onto a key on the ledger, without the value \
+  entering the circuit; increment and raiseTo likewise update the counter \
+  without reading it. None of these operations conflicts with a concurrent transaction \
+  doing the same, so a contract can hand out sequence numbers, or record the highest \
+  value seen so far, without one transaction per proving time"
+  (initial-value (state-value 'array ((state-value 'cell (align 0 8))
+                                      (state-value 'map ()))))
+  (function read value () Uint64
+    "Retrieves the current value of the counter."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     (popeq [cached #t] [result (void)])))
+  (function read lookup ([key key_type]) Uint64
+    "Retrieves the counter value stamped onto a key. Fails if the key has not been stamped."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (idx [cached #f] [pushPath #f] [path (list key)])
+     (popeq [cached #f] [result (void)])))
+  (function read member ([key key_type]) Boolean
+    "Returns if a key has been stamped."
+    ((dup [n 0])
+     (idx [cached f-cached] [pushPath #f] [path f])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (push [storage #f] [value (state-value 'cell key)])
+     (member)
+     (popeq [cached #t] [result (void)])))
+  (function update stamp ([key key_type]) Void
+    "Stamps the counter's current value onto a key, replacing any earlier stamp. \
+    The value is copied on the ledger and never enters the circuit: the caller neither \
+    learns it nor proves anything about it, so stamping does not conflict with a \
+    concurrent stamp, increment or raiseTo on the same field."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     ;; [context, effects, path, [counter, map], map]
+     (push [storage #f] [value (state-value 'cell key)])
+     ;; [context, effects, path, [counter, map], map, key]
+     (dup [n 2])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], map, key, counter]
+     (ins [cached #f] [n 1])
+     ;; [context, effects, path, [counter, map], map']
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map], 1, map']
+     (ins [cached #t] [n 1])
+     ;; [context, effects, path, [counter, map']]
+     (ins [cached #t] [n (length f)])))
+     ;; [context, effects, state]
+  (function update increment ([amount Uint16]) Void
+    "Increments the counter by the given amount."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (addi [immediate (rt-value->int amount)])
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     ;; [context, effects, path, [counter, map], 0, counter + amount]
+     (ins [cached #t] [n 1])
+     ;; [context, effects, path, [counter + amount, map]]
+     (ins [cached #t] [n (length f)])))
+  (function update raiseTo ([threshold Uint64]) Void
+    "Sets the counter to the larger of its current value and the given threshold, \
+    without the counter's value entering the circuit."
+    ;; [context, effects, state]
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 0 1))])
+     ;; [context, effects, path, [counter, map], counter]
+     (push [storage #t] [value (state-value 'cell threshold)])
+     (dup [n 1])
+     (dup [n 1])
+     ;; [context, effects, path, [counter, map], counter, threshold, counter, threshold]
+     (lt)
+     (branch [skip 2])
+     ;; counter >= threshold: keep the counter
+     (pop)
+     (jmp [skip 2])
+     ;; counter < threshold: keep the threshold
+     (swap [n 0])
+     (pop)
+     ;; [context, effects, path, [counter, map], max(counter, threshold)]
+     (push [storage #f] [value (state-value 'cell (align 0 1))])
+     (swap [n 0])
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function remove remove ([key key_type]) Void
+    "Removes the stamp on a key."
+    ((idx [cached f-cached] [pushPath #t] [path f])
+     ;; [context, effects, path, [counter, map]]
+     (dup [n 0])
+     (idx [cached #f] [pushPath #f] [path (list (align 1 1))])
+     (push [storage #f] [value (state-value 'cell key)])
+     ;; [context, effects, path, [counter, map], map, key]
+     (rem [cached #f])
+     ;; [context, effects, path, [counter, map], map']
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     (swap [n 0])
+     (ins [cached #t] [n 1])
+     (ins [cached #t] [n (length f)])))
+  (function remove resetToDefault () Void
+    "Resets the counter to 0 and removes every stamp."
+    ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
+     (push [storage #f] [value (state-value 'cell (car (reverse f)))])
+     (push [storage #t] [value (state-value 'array ((state-value 'cell (align 0 8))
+                                                    (state-value 'map ())))])
+     (ins [cached #f] [n 1])
+     (ins [cached #t] [n (suppress-zero (sub1 (length f)))]))))
+
 (declare-ledger-adt Set ([Type value_type])
   "an unbounded set of values of type value_type"
   (initial-value (state-value 'map ()))

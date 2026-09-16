@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- A new ledger ADT, `StampedCounter<key_type>` allows you to insert elements into a Map<u64, V>, then have them be stamped with an ordering, contention free using Impact operations. This allows for, FIFO queue and stream interfaces to be written in Compact.
+
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
 ### Added
