@@ -24,7 +24,7 @@ import {
 import type { Contract as GeneratedContract } from './.build/contract/index.js';
 
 /**
- * One `inner_proof` instruction means one witness, whichever way the guard
+ * One `innerProof` instruction means one witness, whichever way the guard
  * goes.
  *
  * `ir_vm.rs:921` takes a witness per instruction before it reads the guard, and
@@ -40,10 +40,10 @@ export default defineRuntimeTest<typeof GeneratedContract>(
 
         const run = async (verify: boolean) => {
             const { contract, ctx } = await createTestContract(Contract, {
-                inner_proof: (context) => [context.privateState, inner.proof],
+                innerProof: (context) => [context.privateState, inner.proof],
             });
 
-            const { context } = await contract.circuits.verify_proof_guarded(
+            const { context } = await contract.circuits.verifyProofGuarded(
                 ctx,
                 verify,
                 inner.instance[0],

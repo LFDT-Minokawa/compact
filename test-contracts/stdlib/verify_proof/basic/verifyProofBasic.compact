@@ -15,18 +15,18 @@
 
 import CompactStandardLibrary;
 
-export { verify_proof_basic }
+export { verifyProofBasic }
 
-witness inner_proof(): Opaque<"Uint8Array">;
+witness innerProof(): Opaque<"Uint8Array">;
 
-export ledger attested_value: Field;
+export ledger attestedValue: Field;
 
-circuit verify_proof_basic(value: Field): [] {
-    attested_value = disclose(value);
+circuit verifyProofBasic(value: Field): [] {
+    attestedValue = disclose(value);
 
     // The key is named by a string literal and read during macro expansion, so
     // it can be neither an argument nor a ledger cell. `basic.verifier` is the
     // generator's output for the `basic` relation, found via the
     // `--compact-path` this fixture declares.
-    verifyProof('basic.verifier', inner_proof(), [attested_value]);
+    verifyProof('basic.verifier', innerProof(), [attestedValue]);
 }

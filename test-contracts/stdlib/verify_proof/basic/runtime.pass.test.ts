@@ -43,14 +43,14 @@ export default defineRuntimeTest<typeof GeneratedContract>(
             .digest('hex');
         expect(keyOnDisk).toBe(inner.vkHash);
 
-        // One public input: the statement is `attested_value == 123`.
+        // One public input: the statement is `attestedValue == 123`.
         expect(inner.instance).toHaveLength(1);
 
         const { contract, ctx } = await createTestContract(Contract, {
-            inner_proof: (context) => [context.privateState, inner.proof],
+            innerProof: (context) => [context.privateState, inner.proof],
         });
 
-        await contract.circuits.verify_proof_basic(ctx, inner.instance[0]);
+        await contract.circuits.verifyProofBasic(ctx, inner.instance[0]);
 
         // The proof is checked, not merely carried: a corrupted one has to fail
         // here, at circuit-run time, or `verifyProof` is doing nothing.
@@ -59,11 +59,11 @@ export default defineRuntimeTest<typeof GeneratedContract>(
 
         const { contract: corruptedContract, ctx: corruptedCtx } =
             await createTestContract(Contract, {
-                inner_proof: (context) => [context.privateState, corrupted],
+                innerProof: (context) => [context.privateState, corrupted],
             });
 
         const failure = await corruptedContract.circuits
-            .verify_proof_basic(corruptedCtx, inner.instance[0])
+            .verifyProofBasic(corruptedCtx, inner.instance[0])
             .then(
                 () => undefined,
                 (error: unknown) => error,

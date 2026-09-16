@@ -15,20 +15,20 @@
 
 import CompactStandardLibrary;
 
-export { verify_proof_guarded }
+export { verifyProofGuarded }
 
-witness inner_proof(): Opaque<"Uint8Array">;
+witness innerProof(): Opaque<"Uint8Array">;
 
-export ledger attested_value: Field;
+export ledger attestedValue: Field;
 
-// The same statement as `basic`, behind a guard. ZKIR emits one `inner_proof`
+// The same statement as `basic`, behind a guard. ZKIR emits one `innerProof`
 // instruction whatever the guard's value, and requires one witness per
 // instruction, so both settings of `verify` have to leave the same number of
 // entries in `innerProofs`.
-circuit verify_proof_guarded(verify: Boolean, value: Field): [] {
-    attested_value = disclose(value);
+circuit verifyProofGuarded(verify: Boolean, value: Field): [] {
+    attestedValue = disclose(value);
 
     if (disclose(verify)) {
-        verifyProof('basic.verifier', inner_proof(), [attested_value]);
+        verifyProof('basic.verifier', innerProof(), [attestedValue]);
     }
 }
