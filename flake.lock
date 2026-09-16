@@ -479,8 +479,8 @@
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-10",
         "repo": "midnight-ledger",
+        "rev": "a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4",
         "type": "github"
       }
     },
@@ -922,8 +922,8 @@
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-10",
         "repo": "midnight-ledger",
+        "rev": "a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4",
         "type": "github"
       }
     },
@@ -944,8 +944,8 @@
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "JosephDenman/verify-proof",
         "repo": "midnight-zkir",
+        "rev": "93a8c574a36b96359ad5841859e7ad6ce4e386c7",
         "type": "github"
       }
     },
@@ -966,8 +966,8 @@
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "JosephDenman/verify-proof",
         "repo": "midnight-zkir",
+        "rev": "93a8c574a36b96359ad5841859e7ad6ce4e386c7",
         "type": "github"
       }
     },
@@ -988,8 +988,8 @@
       },
       "original": {
         "owner": "midnightntwrk",
-        "ref": "ledger-10",
         "repo": "midnight-ledger",
+        "rev": "a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4",
         "type": "github"
       }
     }

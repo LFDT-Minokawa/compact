@@ -25,23 +25,23 @@
   inputs = {
     zkir = {
       # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/ledger-10"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4"; # zkir-v2
     };
     onchain-runtime-v5 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-10";
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-10";
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/JosephDenman/verify-proof"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/93a8c574a36b96359ad5841859e7ad6ce4e386c7"; # zkir-v3
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support and the runtime's verifyProof
-      url = "github:midnightntwrk/midnight-zkir/JosephDenman/verify-proof";
+      url = "github:midnightntwrk/midnight-zkir/93a8c574a36b96359ad5841859e7ad6ce4e386c7";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
