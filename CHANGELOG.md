@@ -9,7 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- A new ledger ADT, `StampedCounter<key_type>` allows you to insert elements into a Map<u64, V>, then have them be stamped with an ordering, contention free using Impact operations. This allows for, FIFO queue and stream interfaces to be written in Compact.
+- A new ledger ADT, `StampedCounter<key_type>`: a `Counter` paired with a
+  `Map<key_type, Uint<64>>`. `stamp(key)` copies the counter's current value
+  onto a key, and `increment` and `raiseTo(threshold)` update the counter, all
+  on the ledger without the value entering the circuit, so none of them
+  conflicts with a concurrent transaction doing the same. This is enough to
+  write contention-free FIFO queues and streams in Compact (sequence numbers
+  handed out at insert, "highest height seen" raised on every response).
+  `value()`, `lookup(key)`, `member(key)`, `remove(key)` and
+  `resetToDefault()` as for the existing ADTs.
 
 ## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
 
