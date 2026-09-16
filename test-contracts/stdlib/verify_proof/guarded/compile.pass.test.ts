@@ -15,9 +15,8 @@
 
 import { defineCompileTest, innerProofKeyDir } from '@test/compact-test';
 
-// `--skip-zk` by choice, not by limitation: keygen for a `verifyProof` circuit
-// works, but costs k=19 and a 755 MB proving key, which is not what a compile
-// fixture is checking.
+// Shares `basic`'s key: the guard changes the instruction's guard operand, not
+// which statement is proven.
 export default defineCompileTest(import.meta.url, {
     compilerArgs: [
         '--feature-zkir-v3',
