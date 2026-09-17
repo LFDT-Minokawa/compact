@@ -20,11 +20,11 @@
 //
 // All the circuits are pure, so no feature flag is needed.
 
+pragma language_version >= 0.25.0;
+
 struct Triple { a: Bytes<4>, b: Bytes<4>, c: Bytes<4> }
 
 struct Uneven { head: Bytes<1>, mid: Bytes<4>, tail: Bytes<7> }
-
-pragma language_version >= 0.25.0;
 
 import CompactStandardLibrary;
 
