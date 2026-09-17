@@ -50,10 +50,8 @@
           `(cast-from-field ,src ,nat ,native (bytes->field ,src ,native ,len ,expr)))]
        [(tfield ,src ,ftype)
         (guard (nanopass-case (Lposttypescript Field-Type) ftype
-                 [(field-native) #t]
-                 [(field-base (curve-secp256k1)) #t]
-                 [(field-scalar (curve-secp256k1)) #t]
-                 [else #f]))
+                 [(field-scalar (curve-jubjub)) #f]
+                 [else #t]))
         `(bytes->field ,src ,ftype ,len ,expr)]
        [else (assert cannot-happen)])])
   (Type : Type (ir) -> Type ()
