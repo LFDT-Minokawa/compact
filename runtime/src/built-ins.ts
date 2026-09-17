@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import * as ocrt from '@midnightntwrk/onchain-runtime-v5';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { FIELD_MODULUS, SECP256K1_BASE_MODULUS, SECP256K1_SCALAR_MODULUS } from './constants.js';
@@ -26,6 +26,8 @@ import {
 } from './compact-types.js';
 import { secp256k1FromProjective, secp256k1ToProjective } from './utils.js';
 import { CompactError } from './error.js';
+import { PartialProofData } from './proof-data.js';
+import * as zkir from '@midnightntwrk/zkir-v3';
 
 /**
  * Field addition
@@ -446,4 +448,48 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
+}
+
+/**
+ * Bytes of a `0x`-prefixed hex string, as the compiler emits an inner key.
+ */
+function hexToBytes(hex: string): Uint8Array {
+  const body = hex.startsWith('0x') ? hex.slice(2) : hex;
+  if (body.length % 2 !== 0) {
+    throw new CompactError(`verifying key hex has an odd length of ${body.length}`);
+  }
+  const out = new Uint8Array(body.length / 2);
+  for (let i = 0; i < out.length; i++) {
+    const byte = Number.parseInt(body.substring(i * 2, i * 2 + 2), 16);
+    if (Number.isNaN(byte)) {
+      throw new CompactError(`verifying key hex is malformed at byte ${i}`);
+    }
+    out[i] = byte;
+  }
+  return out;
+}
+
+/**
+ * Checks an inner proof against `vk`, and records it as the witness the
+ * circuit's `inner_proof` instruction consumes.
+ *
+ * `vk` is the inner-key blob as `0x`-prefixed hex -- the same bytes the
+ * circuit's `verify_proof_vks` carries, so the key checked here is the one the
+ * circuit committed to. The check includes the pairing that decides whether a
+ * well-formed proof is true, so a malformed proof, a wrong key and a proof that
+ * does not hold for this instance all throw here rather than reaching the
+ * ledger.
+ */
+export function verifyProof(
+  partialProofData: PartialProofData,
+  vk: string,
+  proof: Uint8Array,
+  publicInputs: bigint[],
+): [] {
+  zkir.checkInnerProof(hexToBytes(vk), publicInputs, proof);
+  // Verifying is not supplying: the `inner_proof` that runs consumes one
+  // witness, so the bytes are recorded as well. A guarded-off call never
+  // reaches here and owes nothing.
+  partialProofData.innerProofs.push(proof);
+  return [];
 }

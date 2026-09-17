@@ -25,7 +25,7 @@ import {
   jsonIrToBinary as jsonIrToBinaryV3
 } from '@midnightntwrk/zkir-v3';
 import { ProofData } from '@midnight-ntwrk/compact-runtime';
-import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v4';
+import { proofDataIntoSerializedPreimage } from '@midnightntwrk/onchain-runtime-v5';
 import fs from 'fs/promises';
 import path from 'path';
 
@@ -82,7 +82,7 @@ export const checkProofData = async (contractDir: string, circuitName: string, p
   const version = detectZkirVersion(json);
   const isV3 = version.major === 3;
 
-  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
+  const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName, proofData.innerProofs);
   const keyProvider = createKeyMaterialProvider(contractDir);
   return isV3 ? checkV3(preimage, keyProvider as KeyMaterialProviderV3) : checkV2(preimage, keyProvider);
 };

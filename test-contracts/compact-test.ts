@@ -13,6 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,6 +27,7 @@ import type {
     CompactContractConstructor,
     CompileTestDefinition,
     CompileTestOptions,
+    InnerProof,
     ContractCircuitContext,
     ContractPrivateState,
     ContractWitnesses,
@@ -36,7 +38,65 @@ import type {
     TestPhase,
     TestResult,
 } from './types.ts';
-import { compactTestFilePattern } from './utils.ts';
+import { compactTestFilePattern, testRoot } from './utils.ts';
+
+const innerProofOutputDir = path.join(
+    testRoot,
+    'tools',
+    'verify-proof-fixtures',
+    'out',
+);
+
+/**
+ * The directory holding the generated keys, as a `--compact-path` entry.
+ *
+ * `verifyProof` names its key by pathname and the compiler resolves it against
+ * the compact path, so a fixture naming `basic.verifier` needs this on that
+ * path rather than a relative reach out of the fixture directory.
+ */
+export const innerProofKeyDir = innerProofOutputDir;
+
+/** The generated key for one inner circuit, as the contract names it. */
+export function innerProofKeyPath(circuit: string): string {
+    return path.join(innerProofOutputDir, `${circuit}.verifier`);
+}
+
+type InnerProofBundle = {
+    circuit: string;
+    vkHash: string;
+    vk: string;
+    instance: string[];
+    proof: string;
+};
+
+/**
+ * Reads the generated bundle for one inner circuit.
+ *
+ * The runner rebuilds every bundle before a run, so a missing one means the
+ * generator has not run rather than that the fixture is misconfigured.
+ */
+export function readInnerProof(circuit: string): InnerProof {
+    const bundlePath = path.join(innerProofOutputDir, `${circuit}.json`);
+    let bundle: InnerProofBundle;
+
+    try {
+        bundle = JSON.parse(
+            readFileSync(bundlePath, 'utf8'),
+        ) as InnerProofBundle;
+    } catch (error) {
+        throw new Error(
+            `${bundlePath} is missing or unreadable; run yarn test, which rebuilds inner proofs: ${error}`,
+        );
+    }
+
+    return {
+        circuit: bundle.circuit,
+        vkHash: bundle.vkHash,
+        vk: new Uint8Array(Buffer.from(bundle.vk, 'base64')),
+        instance: bundle.instance.map((value) => BigInt(value)),
+        proof: new Uint8Array(Buffer.from(bundle.proof, 'base64')),
+    };
+}
 
 /**
  * Defines a compile-phase Compact fixture.

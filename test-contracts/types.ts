@@ -56,6 +56,16 @@ export type ExpectedCompileError =
     | RegExp
     | ((result: CompileResult) => boolean);
 
+// A midnight-zk proof a verifyProof fixture verifies, built from the relation
+// of the same name in `tools/verify-proof-fixtures/src/proofs/`.
+export type InnerProof = {
+    circuit: string;
+    vkHash: string;
+    vk: Uint8Array;
+    instance: bigint[];
+    proof: Uint8Array;
+};
+
 export type CompileTestOptions = {
     compilerArgs?: string[];
     expectedError?: ExpectedCompileError;
@@ -63,6 +73,10 @@ export type CompileTestOptions = {
 
 export type RuntimeTestOptions = {
     expectedError?: RegExp | ((error: unknown) => boolean);
+    // Reports the fixture as skipped, with this as the reason. For a case that
+    // is written and correct but fails on a known defect: the assertion stays
+    // as it should be, and removing the option is what proves the fix.
+    skip?: string;
 };
 
 export type CompileTestDefinition = {

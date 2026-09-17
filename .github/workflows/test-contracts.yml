@@ -25,6 +25,22 @@ jobs:
         with:
           attic_token: ${{ secrets.ATTIC_CACHE_TOKEN }}
 
+      # test.sh builds test-contracts/tools/verify-proof-fixtures, which proves
+      # the inner statements the verifyProof fixtures verify.
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable (branch)
+
+      - name: Cache Cargo registry and git trees
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('test-contracts/tools/verify-proof-fixtures/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-
+
       - name: Realize runtime from cache
         run: nix build --no-link .#runtime.package
 

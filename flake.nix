@@ -25,23 +25,23 @@
   inputs = {
     zkir = {
       # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4"; # zkir-v2
     };
-    onchain-runtime-v4 = {
+    onchain-runtime-v5 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4";
     };
     zkir-wasm = {
       # dependency for test-center
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
+      url = "github:midnightntwrk/midnight-ledger/a3b17c6a5ef632790f78e7b44bef5e4ab232dbf4";
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/e602b03136c13ace761aa54fed72205dff33c7be"; # zkir-v3
     };
     zkir-v3-wasm = {
-      # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
+      # zkir-v3-wasm for test-center v3 support and the runtime's verifyProof
+      url = "github:midnightntwrk/midnight-zkir/e602b03136c13ace761aa54fed72205dff33c7be";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -58,7 +58,7 @@
   outputs = {
     self,
     zkir,
-    onchain-runtime-v4,
+    onchain-runtime-v5,
     zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
@@ -168,11 +168,17 @@
             };
 
             nixDependenciesMap = {
-              "@midnightntwrk/onchain-runtime-v4" = let
-                pkg = onchain-runtime-v4.packages.${system}.onchain-runtime-wasm;
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
               in {
-                tarPath = "${pkg}/lib/midnight-onchain-runtime-v4-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v4";
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
+              };
+              "@midnightntwrk/zkir-v3" = let
+                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
               };
             };
           };
@@ -185,6 +191,12 @@
             src = ./test-center;
 
             nixDependenciesMap = {
+              "@midnightntwrk/onchain-runtime-v5" = let
+                pkg = onchain-runtime-v5.packages.${system}.onchain-runtime-wasm;
+              in {
+                tarPath = "${pkg}/lib/midnight-onchain-runtime-v5-${pkg.version}.tgz";
+                libPath = "${pkg}/lib/node_modules/@midnightntwrk/onchain-runtime-v5";
+              };
               "@midnightntwrk/zkir-v2" = let
                 pkg = zkir-wasm.packages.${system}.zkir-wasm;
               in {
@@ -192,7 +204,7 @@
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
               };
               "@midnightntwrk/zkir-v3" = let
-                pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
+                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
@@ -212,7 +224,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.34.102"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.34.103"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -340,7 +352,7 @@
           # which is the name the compiler invokes.
           packages.zkir-v3-bin = pkgs.runCommand "zkir-v3-bin" {} ''
             mkdir -p $out/bin
-            ln -s ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/bin/zkir-v3
+            ln -s ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/bin/zkir-v3
           '';
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -358,7 +370,7 @@
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
               cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
-              cp ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/lib/zkir-v3
+              cp ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/lib/zkir-v3
 
               chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3
@@ -525,30 +537,13 @@
               pkgs.nodejs
               pkgs.yarn
               pkgs.alejandra
+              packages.compactc
               packages.runtime.package
               packages.runtime.node-modules
               packages.test-center.package
               packages.test-center.node-modules
-            ];
-            shellHook = combined-shell-hook;
-
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
-            COMPACT_LIBCRYPTO = libcrypto;
-            WASM_BINDGEN_WEAKREF = 1;
-            WASM_BINDGEN_EXTERNREF = 1;
-          };
-
-          devShells.with-zkir = packages.runtime.mkShell {
-            inputsFrom = with packages; [compactc];
-            packages = [
-              pkgs.git
-              pkgs.nodejs
-              pkgs.yarn
-              pkgs.binaryen
-              packages.runtime.package
-              packages.runtime.node-modules
-              packages.test-center.package
-              packages.test-center.node-modules
+              # Compiling a `verifyProof` runs `zkir-v3 inner-vk`, even under
+              # `--skip-zk`, so the default shell needs these to build one.
               zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
@@ -556,6 +551,8 @@
 
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
+            WASM_BINDGEN_WEAKREF = 1;
+            WASM_BINDGEN_EXTERNREF = 1;
           };
 
           devShells.compiler = pkgs.mkShell {
@@ -581,6 +578,9 @@
               packages.zkir-v3-bin
             ];
 
+            # The SRS that test-contracts/tools/verify-proof-fixtures proves
+            # against, read as $MIDNIGHT_PP/bls_midnight_2p<k>.
+            MIDNIGHT_PP = "${zkir-v3.packages.${system}.public-params}";
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;

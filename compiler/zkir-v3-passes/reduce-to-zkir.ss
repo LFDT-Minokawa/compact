@@ -226,9 +226,7 @@
                   ,(make-temp-id src 'tmp) ,(cadr var-name*) ,(car triv*) ,248)
                `(copy ,(car var-name*) ,0)
                instr*)]
-            [else
-              (fprintf (current-error-port) "unknown native: ~s\n" name)
-              (assert not-implemented)]))))
+            [else (assertf not-implemented "unknown native ~s" name)]))))
 
     (define (declare-callable pelt)
       (nanopass-case (Lflattened Program-Element) pelt
@@ -895,9 +893,14 @@
     [(assert ,src ,test ,mesg)
      (with-output-language (Lzkir Instruction)
        (cons `(assert ,test) instr*))]
-    [else
-      (fprintf (current-error-port) "unimplemented: ~s\n" ir)
-      (assert cannot-happen)])
+    [(verify-proof ,src ,test ,vk ,triv ,triv* ...)
+     (with-output-language (Lzkir Instruction)
+       (let ([tmp (make-temp-id src 'tmp)])
+         (cons*
+           `(verify_proof ,vk ,test ,tmp ,triv* ...)
+           `(inner_proof ,test ,tmp) 
+           instr*)))]
+    [else (assertf cannot-happen "unimplemented: ~s\n" ir)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
     [(+ ,primitive-type ,triv0 ,triv1)

@@ -18,7 +18,7 @@
 (library (pass-helpers)
   (export target-ports get-target-port target-directory source-directory source-file-name
           find-source-pathname
-          proof-circuit-names verifier-key-hashes
+          proof-circuit-names verifier-key-hashes inner-verifying-key-blob
           define-passes define-checker checkers
           passrec-name passrec-pass passrec-unparse passrec-pretty-formats)
   (import (except (chezscheme) errorf)
@@ -36,7 +36,7 @@
   ; for the print-TS pass.
   (define source-file-name (make-parameter #f))
 
-  (define (find-source-pathname src pathname err)
+  (define (find-source-pathname extension pathname err)
     (define (try pathname)
       (let ([ex? (file-exists? pathname)])
         (when (trace-search)
@@ -44,7 +44,7 @@
             pathname
             (if ex? "found" "not found")))
         (and ex? pathname)))
-    (let ([pathname (format "~a.compact" pathname)])
+    (let ([pathname (format "~a~a" pathname extension)])
       (or (if (path-absolute? pathname)
               (try pathname)
               (ormap
@@ -62,6 +62,15 @@
   ;; the TypeScript pass to emit the contract module's `expectedVk` fingerprints. Empty when keys are
   ;; not generated (e.g. a `--skip-zk` build).
   (define verifier-key-hashes (make-parameter '()))
+
+  ;; Re-encodes an inner verifying key: takes a `verifying-key` record and returns
+  ;; a pair of its `verify_proof_vks` blob and that blob's lowercase hex SHA-256.
+  ;; Populated in `passes.ss` and read by the ZKIR v3 pass, which cannot derive
+  ;; the blob itself -- a `.verifier` file is a tagged `VerifierKey` wrapped in a
+  ;; SCALE length, and only `zkir-v3` knows how to unwrap it. `#f` when the tool
+  ;; is unavailable, which `verifyProof` reports rather than emitting a key no
+  ;; verifier could match.
+  (define inner-verifying-key-blob (make-parameter #f))
 
   (define-record-type passrec
     (nongenerative)

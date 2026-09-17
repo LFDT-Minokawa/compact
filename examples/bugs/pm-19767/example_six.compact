@@ -16,7 +16,7 @@
 import CompactStandardLibrary;
 
 constructor(){
-    const bob = default<CoinInfo>;
+    const bob = default<ShieldedCoinInfo>;
     const tom = pad(0b1000110101110110011101100011111, "mABfLuWsISiQzXzpZMgaPXwnrnsy");
     assert (tom == bob < bob, "WFleWyhsudhbmة");
 }

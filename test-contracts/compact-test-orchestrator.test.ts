@@ -17,7 +17,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 
-import { afterAll, describe, test } from 'vitest';
+import { afterAll, describe, test, type TestContext } from 'vitest';
 
 import type {
     CompactContractConstructor,
@@ -105,7 +105,7 @@ describe('Compact test contracts', () => {
                 'runtime',
             );
 
-            await runRuntimeTest(fixture, metadata);
+            await runRuntimeTest(fixture, metadata, context);
         });
     }
 });
@@ -239,6 +239,7 @@ async function runCompileTest(fixture: SelectedFixture) {
 async function runRuntimeTest(
     fixture: SelectedFixture,
     metadata: FixtureTestMetadata,
+    context: TestContext,
 ) {
     const compileResult = await compileFixture(fixture);
 
@@ -258,6 +259,10 @@ async function runRuntimeTest(
     } catch (error) {
         markFixtureFailed(fixture);
         throw error;
+    }
+
+    if (definition.options.skip !== undefined) {
+        context.skip(definition.options.skip);
     }
 
     const runtimeStartedAt = performance.now();

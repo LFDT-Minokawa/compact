@@ -10,3 +10,4 @@
 **/.compact-test-build/
 node_modules/
 .compact-runtime
+tools/verify-proof-fixtures/out/

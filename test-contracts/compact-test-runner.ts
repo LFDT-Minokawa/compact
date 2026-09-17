@@ -45,6 +45,14 @@ type RuntimeManifest = {
 const prepareArtifactsFlag = '--prepare-artifacts';
 const compactTestAlias = '@test/compact-test';
 const skipZkArg = '--skip-zk';
+const innerProofGeneratorPath = path.join(
+    testRoot,
+    'tools',
+    'verify-proof-fixtures',
+    'target',
+    'release',
+    'verify-proof-fixtures',
+);
 const compactTestModuleUrl = pathToFileURL(
     path.join(testRoot, 'compact-test.ts'),
 ).href;
@@ -143,6 +151,7 @@ async function runVitest(
     vitestArgs: string[],
 ): Promise<void> {
     await cleanSelectedFixtureArtifacts(filters);
+    await regenerateInnerProofs();
 
     const vitestEntry = path.join(
         testRoot,
@@ -200,6 +209,14 @@ async function prepareRuntimeArtifacts(): Promise<void> {
     const runtimeFixtures = fixtures.filter(
         (fixture) => fixture.runtime !== undefined,
     );
+
+    // A fixture's contract may name a generated key, which `verifyProof` reads
+    // during macro expansion, so the proofs have to exist before this compile
+    // rather than only before the test run. Generation is deterministic, so
+    // repeating it in `runVitest` costs seconds and changes nothing.
+    if (runtimeFixtures.length > 0) {
+        await regenerateInnerProofs();
+    }
 
     for (const fixture of runtimeFixtures) {
         if (fixture.compile?.result !== 'pass') {
@@ -373,6 +390,37 @@ async function requireLocalRuntimeBuild(): Promise<void> {
 /**
  * Prints an actionable setup failure and exits without a noisy stack trace.
  */
+/**
+ * Rebuilds every inner proof the verifyProof fixtures verify.
+ *
+ * The statements are midnight-zk relations in `tools/verify-proof-fixtures`,
+ * proven with the Poseidon transcript an in-circuit verifier requires rather
+ * than ZKIR's default Blake2b. The generator knows its own circuits, so it
+ * rebuilds all of them whatever a run selects. The bundles are generated
+ * output rather than checked in, so the generator has to be built before a
+ * fixture that needs one can run.
+ */
+async function regenerateInnerProofs(): Promise<void> {
+    try {
+        await fs.access(innerProofGeneratorPath, fsConstants.X_OK);
+    } catch {
+        fail(
+            'verify-proof-fixtures is not built, so inner proofs cannot be rebuilt.\n' +
+                '  build it with: cargo build --release --manifest-path tools/verify-proof-fixtures/Cargo.toml\n' +
+                '  or run ./test-contracts/test.sh, which builds it first.',
+        );
+    }
+
+    const code = await spawnProcess(innerProofGeneratorPath, [], {
+        cwd: testRoot,
+        stdio: 'inherit',
+    });
+
+    if (code !== 0) {
+        fail(`inner proof generation failed with exit code ${code}`);
+    }
+}
+
 function fail(message: string): never {
     console.error(`\nCannot run Compact tests:\n\n${message}\n`);
     process.exit(1);

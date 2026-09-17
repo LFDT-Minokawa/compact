@@ -18,6 +18,14 @@
 (define-pass print-typescript : Ltypescript (ir) -> Ltypescript ()
   (definitions
     (define sourcemap-tracker)
+    ;; The inner-key blob as a hex literal, taken from the same converter the
+    ;; ZKIR pass used, so the contract carries the bytes whose digest the circuit
+    ;; committed to rather than re-deriving them from the file.
+    (define (inner-vk-hex vk)
+      (let ([convert (inner-verifying-key-blob)])
+        (unless convert
+          (internal-errorf 'print-typescript "no inner verifying-key converter is installed"))
+        (format "'0x~(~{~2,'0x~}~)'" (bytevector->u8-list (car (convert vk))))))
     (define compact-stdlib-entries
        '(
          "addField"
@@ -38,6 +46,7 @@
          "secp256k1ScalarSub"
          "subField"
          "typeError"
+         "verifyProof"
          ))
     (define (compact-stdlib name)
       (unless (member name compact-stdlib-entries)
@@ -1379,7 +1388,8 @@
                                                 0 "},")
                                             4 "output: undefined,"
                                             4 "publicTranscript: [],"
-                                            4 "privateTranscriptOutputs: []"
+                                            4 "privateTranscriptOutputs: [],"
+                                            4 "innerProofs: []"
                                             2 "};"
                                             2 (format "const ~a = await this." result)
                                               uname "("
@@ -1636,7 +1646,8 @@
                       4 "input: { value: [], alignment: [] },"
                       4 "output: undefined,"
                       4 "publicTranscript: [],"
-                      4 "privateTranscriptOutputs: []"
+                      4 "privateTranscriptOutputs: [],"
+                      4 "innerProofs: []"
                       2 "};"
                       2 "return {"
                       4 (apply (make-Qsep ",")
@@ -1748,7 +1759,8 @@
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
                                                  4 "publicTranscript: [],"
-                                                 4 "privateTranscriptOutputs: []"
+                                                 4 "privateTranscriptOutputs: [],"
+                                                 4 "innerProofs: []"
                                                  2 "};"
                                                  (ledger-reset-to-default src pl-array
                                                    (list
@@ -3093,7 +3105,23 @@
                  (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
               0 "})")))]
        [else
-        (source-errorf src "internal: contract-call type is not a tcontract")])])
+        (source-errorf src "internal: contract-call type is not a tcontract")])]
+    [(verify-proof ,src
+       ,vk
+       ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+     ;; The verifying key goes out as hex rather than as the record itself: the
+     ;; Q printer takes only strings, fixnums and Qs.
+     (parenthesize level (precedence call)
+       (make-Qconcat
+         (compact-stdlib "verifyProof")
+           "("
+           ((make-Qsep ",")
+              "partialProofData"
+              (inner-vk-hex vk)
+              expr1
+              expr2)
+           ")"))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
      (values

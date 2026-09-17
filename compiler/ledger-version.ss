@@ -24,7 +24,7 @@
     (let-syntax ([a (lambda (x)
                       ;; Grep flake.nix for an end of line comment matching `# key`.  Allow only one.
                       (define (grep-for key)
-                        (let-values ([(stdout stderr) (shell (format "grep 'url = .* # ~a *$' flake.nix | sed -e 's:.*midnight-ledger/\\(.*\\)\";.*:\\1:'" key))])
+                        (let-values ([(stdout stderr) (shell (format "grep 'url = .* # ~a *$' flake.nix | sed -e 's:.*/\\([^/]*\\)\";.*:\\1:'" key))])
                           (assertf (string=? stderr "")
                             "grep/sed pipeline produced nonempty stderr for key ~a:\n ~a"
                             key stderr)

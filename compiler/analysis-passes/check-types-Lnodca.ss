@@ -885,7 +885,28 @@
                   (car type*))
                 (loop (cdr elt-name*) (cdr type**) (cdr type*))))))]
        [else (assert cannot-happen)])]
-    [(return ,src ,[Care : expr -> * type]) type])
+    [(return ,src ,[Care : expr -> * type]) type]
+    [(verify-proof ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2])
+     (unless (nanopass-case (Lnodca Type) (de-alias type1)
+               [(topaque ,src ,opaque-type) (equal? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected verify-proof proof argument to have type Opaque<'Uint8Array'>, received ~a"
+                      (format-type type1)))
+     ;; `Vector<n, Field>` is a second spelling of `[Field, ..., Field]`, not a
+     ;; distinct type, so a vector literal arrives here as a tuple and matching
+     ;; `tvector` alone never fires.
+     (unless (nanopass-case (Lnodca Type) (de-alias type2)
+               [(tvector ,src ,len (tfield ,src^ (field-native))) #t]
+               [(ttuple ,src ,type* ...)
+                (andmap (lambda (type)
+                          (nanopass-case (Lnodca Type) (de-alias type)
+                            [(tfield ,src^ (field-native)) #t]
+                            [else #f]))
+                        type*)]
+               [else #f])
+       (source-errorf src "expected verify-proof public-inputs argument to have type Vector<n, Field> for some n, received ~a"
+                      (format-type type2)))
+     (with-output-language (Lnodca Type) `(ttuple ,src))])
   (Map-Argument : Map-Argument (ir src who expected-length argno) -> * (type)
     [(,[Care : expr -> * expr-type] ,type ,type^)
      (unless (same-type? expr-type type)
