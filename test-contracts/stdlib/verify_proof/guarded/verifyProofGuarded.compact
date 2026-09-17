@@ -21,10 +21,9 @@ witness innerProof(): Opaque<"Uint8Array">;
 
 export ledger attestedValue: Field;
 
-// The same statement as `basic`, behind a guard. ZKIR emits one `innerProof`
-// instruction whatever the guard's value, and requires one witness per
-// instruction, so both settings of `verify` have to leave the same number of
-// entries in `innerProofs`.
+// The same statement as `basic`, behind a guard. ZKIR emits one `inner_proof`
+// instruction whatever the guard's value, but consumes a witness only where the
+// guard is on -- so `verify` decides how many entries `innerProofs` carries.
 circuit verifyProofGuarded(verify: Boolean, value: Field): [] {
     attestedValue = disclose(value);
 

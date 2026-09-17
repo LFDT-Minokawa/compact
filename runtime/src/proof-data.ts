@@ -32,9 +32,9 @@ export interface PartialProofData {
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
   /**
-   * The proofs the circuit's `verify_proof` instructions consume, one per
-   * `inner_proof` instruction in instruction order. An instruction whose guard
-   * is false still takes an entry, which may be empty.
+   * The inner proofs the circuit consumes, one per `inner_proof` instruction
+   * executed, in instruction order. A guarded-off instruction consumes nothing
+   * and takes no entry.
    */
   innerProofs: Uint8Array[];
 }

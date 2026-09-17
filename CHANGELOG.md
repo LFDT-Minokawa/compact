@@ -38,8 +38,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - **Breaking.** `PartialProofData` carries a new required field, `innerProofs`,
-  holding one entry per `inner_proof` instruction in the circuit. Code that
-  constructs a `PartialProofData` by hand must supply it.
+  holding one entry per `inner_proof` instruction the circuit executes -- a
+  guarded-off instruction takes no entry. Code that constructs a
+  `PartialProofData` by hand must supply it.
 
 - The onchain runtime is now `@midnightntwrk/onchain-runtime-v5` at
   `5.0.0-alpha.1`, from the ledger's `ledger-10`, which is where the matching

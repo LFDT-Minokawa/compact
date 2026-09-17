@@ -487,8 +487,9 @@ export function verifyProof(
   publicInputs: bigint[],
 ): [] {
   zkir.checkInnerProof(hexToBytes(vk), publicInputs, proof);
-  // Verifying is not supplying: ZKIR takes one witness per `inner_proof`
-  // instruction whatever the guard, so the bytes are recorded as well.
+  // Verifying is not supplying: the `inner_proof` that runs consumes one
+  // witness, so the bytes are recorded as well. A guarded-off call never
+  // reaches here and owes nothing.
   partialProofData.innerProofs.push(proof);
   return [];
 }
