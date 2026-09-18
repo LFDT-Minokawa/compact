@@ -46,6 +46,38 @@ describe('secp256k1 group operations', () => {
   });
 });
 
+describe('secp256k1 point validation', () => {
+  const P = runtime.SECP256K1_BASE_MODULUS;
+
+  test('the identity is accepted, it has no curve equation to satisfy', () => {
+    expect(runtime.secp256k1Add(IDENTITY, IDENTITY)).toEqual(IDENTITY);
+    expect(runtime.secp256k1Mul(IDENTITY, 5n)).toEqual(IDENTITY);
+  });
+
+  test('rejects a point that is not on the curve', () => {
+    // (1, 1) satisfies neither curve equation.
+    const offCurve = { x: 1n, y: 1n, identity: false };
+    expect(() => runtime.secp256k1Add(offCurve, G)).toThrow(runtime.CompactError);
+    expect(() => runtime.secp256k1Add(G, offCurve)).toThrow(runtime.CompactError);
+    expect(() => runtime.secp256k1Mul(offCurve, 2n)).toThrow(runtime.CompactError);
+  });
+
+  test('rejects a point from the other curve', () => {
+    const alien = runtime.secp256r1MulGenerator(1n);
+    expect(() => runtime.secp256k1Add(alien, G)).toThrow(runtime.CompactError);
+    expect(() => runtime.secp256k1Mul(alien, 2n)).toThrow(runtime.CompactError);
+  });
+
+  test('rejects a coordinate that is not reduced', () => {
+    expect(() => runtime.secp256k1Add({ x: P, y: G.y, identity: false }, G)).toThrow(runtime.CompactError);
+    expect(() => runtime.secp256k1Add({ x: G.x, y: P, identity: false }, G)).toThrow(runtime.CompactError);
+  });
+
+  test('a validity failure names the curve', () => {
+    expect(() => runtime.secp256k1Add({ x: 1n, y: 1n, identity: false }, G)).toThrow(/not a valid secp256k1 point/);
+  });
+});
+
 describe('secp256k1 scalar field operations', () => {
   const N = runtime.SECP256K1_SCALAR_MODULUS;
   const a = 123456789n;
