@@ -73,7 +73,7 @@ export const SECP256K1_BITCOIN: EcdsaSuite = {
         // The verification point is the identity, which has no x-coordinate.
         'cannot extract the x-coordinate of the secp256k1 identity point',
         // `w = inv(s)` has no result for s = 0.
-        'Cannot compute inverse on input 0',
+        'secp256k1 scalar field has no inverse for 0',
     ],
     coverage: {
         total: 463,
