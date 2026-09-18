@@ -28,6 +28,7 @@ They can have several different statuses as they move through the lifecycle of a
 | CoIP | Title | Authors | Category | Status |
 | --- | --- | --- | --- | --- |
 | 1 | Compact Improvement Proposal Process | Bob Blessing-Hartley and Kevin Millikin | Process | Implemented |
+| 3 | Emit Expression for Structured Event Emission | Dominik Zajkowski | Language | Released in Compact language 0.25 |
 
 ## Draft and Submitted CoIPs
 
