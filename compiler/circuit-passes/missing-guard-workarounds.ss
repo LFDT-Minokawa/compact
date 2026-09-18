@@ -124,12 +124,12 @@
                         `(= 1 ,t2 (== ,triv1 ,q))
                         ;; t3 = triv2 > r
                         `(= 1 ,t3 (< ,(unsigned-bits) ,r ,triv2))
-                        ;; t4 = !(triv2 > r) && triv1 == 0
-                        ;;    = triv1 == 0 && triv2 <= r
+                        ;; t4 = !(triv2 > r) && triv1 == q
+                        ;;    = triv1 == q && triv2 <= r
                         `(= 1 ,t4 (select ,t3 0 ,t2))
-                        ;; t5 = triv1 < q || triv1 == 0 && triv2 <= r
+                        ;; t5 = triv1 < q || triv1 == q && triv2 <= r
                         `(= 1 ,t5 (select ,t1 1 ,t4))
-                        ;; t6 = !test || triv1 < q || triv1 == 0 && triv2 <= r
+                        ;; t6 = !test || triv1 < q || triv1 == q && triv2 <= r
                         `(= 1 ,t6 (select ,test ,t5 1))
                         `(assert ,src ,t6 "bytes value is too big to fit in a field")
                         ;; when bytes->field would fail, provide it something innocuous
