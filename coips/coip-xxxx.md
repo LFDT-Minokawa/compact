@@ -1,6 +1,6 @@
 ---
 CoIP: X
-Title: Log Expression for Structured Event Emission
+Title: Emit Expression for Structured Event Emission
 Authors:
   - Dominik Zajkowski (dzajkowski)
 Status: Draft
@@ -34,10 +34,10 @@ limitations under the License.
 Compact has no mechanism for contracts to emit structured notifications about activity.
 
 This CoIP adds a `emit` expression that accepts a struct instance.
-`log` is a disclosure site, the compiler enforces that all fields are already disclosed, same as ledger writes and circuit returns.
+`emit` is a disclosure site, the compiler enforces that all fields are already disclosed, same as ledger writes and circuit returns.
 The expression returns the struct passed to it.
 
-Phase 1 restricts `log` to the [standard event structs](#appendix-a-standard-events) shipped as part of the Compact standard library.
+Phase 1 restricts `emit` to the [standard event structs](#appendix-a-standard-events) shipped as part of the Compact standard library.
 
 ## Motivation
 
@@ -52,34 +52,34 @@ This CoIP focuses on emission of already-disclosed data, a practical first step 
 
 ## Specification
 
-### The `log` expression
+### The `emit` expression
 
-`log` is a new expression that accepts a struct instance.
+`emit` is a new expression that accepts a struct instance.
 
 ```compact
-log(<struct instance>)
+emit(<struct instance>)
 ```
 
 **Semantics:**
-- `log` is a disclosure site — all field values must be already disclosed.
+- `emit` is a disclosure site — all field values must be already disclosed.
 - The expression returns the struct passed to it.
-- Multiple `log` calls per circuit are allowed.
-- Inside conditional branches, the log executes only if the branch is taken.
+- Multiple `emit` calls per circuit are allowed.
+- Inside conditional branches, the emit executes only if the branch is taken.
 
 **Example:**
 
 ```compact
 circuit spend(...): [] {
     // ... spend logic ...
-    log(ShieldedSpend { nullifier: disclose(old_nullifier) });
+    emit(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
 ### Phase 1 restrictions
 
-`log` accepts only structs from the [standard events](#appendix-a-standard-events) package shipped in the Compact standard library.
-The compiler rejects `log` calls with structs not in this set.
-A single log event must not exceed 1 KB serialized.
+`emit` accepts only structs from the [standard events](#appendix-a-standard-events) package shipped in the Compact standard library.
+The compiler rejects `emit` calls with structs not in this set.
+A single emit event must not exceed 1 KB serialized.
 These restrictions can be loosened in future CoIPs.
 
 ### Standard events package
@@ -89,14 +89,9 @@ See [Appendix A: Standard Events](#appendix-a-standard-events) for the full list
 
 ## Rationale
 
-**Why `log` instead of `emit`?**
-
-`emit` implies a runtime action with guaranteed delivery.
-`log` is more neutral — it records data, and what happens downstream is outside the language's scope.
-
 **Why disclosure enforcement?**
 
-This CoIP scopes `log` to already-disclosed values.
+This CoIP scopes `emit` to already-disclosed values.
 Emitting private data is a different problem with different tradeoffs (encryption, topic-based filtering, recipient key management).
 Limiting to disclosed data keeps the first iteration simple and avoids new privacy concerns.
 
@@ -108,41 +103,41 @@ The `Misc` escape hatch covers custom use cases without blocking adoption.
 
 **Why return the struct?**
 
-Returning the struct promotes using standard event structs as data carriers — a value can be logged and used in the same expression.
+Returning the struct promotes using standard event structs as data carriers — a value can be emitted and used in the same expression.
 This encourages adoption of the standard events as a natural part of data flow rather than a separate bookkeeping step.
 
 ## Backwards Compatibility
 
-`log` is a new keyword.
-If an existing contract uses `log` as an identifier, it will cause a compilation error.
+`emit` is a new keyword.
+If an existing contract uses `emit` as an identifier, it will cause a compilation error.
 No other breaking changes to existing language constructs, syntax, or semantics.
 
 ## Security Implications
 
-`log` is a disclosure site scoped to already-disclosed values.
+`emit` is a disclosure site scoped to already-disclosed values.
 No new private data leakage is introduced.
 
-A contract can emit misleading events — `log` records the contract author's claim, not independently verifiable facts.
+A contract can emit misleading events — `emit` records the contract author's claim, not independently verifiable facts.
 This is inherent to any event system.
 
 ## How to Teach This
 
-For new users: `log` works like `print` — it records a value for external observers without affecting contract state.
+For new users: `emit` works like `print` — it records a value for external observers without affecting contract state.
 Unlike `print`, it requires all values to be disclosed.
 
-For experienced Compact users: `log` is another disclosure site, same rules as ledger writes and circuit returns.
+For experienced Compact users: `emit` is another disclosure site, same rules as ledger writes and circuit returns.
 It compiles to a struct emission that downstream consumers can subscribe to.
 
 ```compact
 circuit spend(...): [] {
     // ... spend logic ...
-    log(ShieldedSpend { nullifier: disclose(old_nullifier) });
+    emit(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
 ## Implementation
 
-**Parser:** Add `log` as a keyword. Parse `log(<struct instance>)` as an expression.
+**Parser:** Add `emit` as a keyword. Parse `emit(<struct instance>)` as an expression.
 
 **Type checker:** Verify the struct is in the standard events set. Verify all fields satisfy disclosure rules. Infer return type as the struct type.
 
@@ -150,21 +145,21 @@ circuit spend(...): [] {
 
 **Standard library:** Add the standard events package with predefined struct definitions.
 
-**compact-runtime:** Capture log events during local circuit execution.
+**compact-runtime:** Capture emit events during local circuit execution.
+
+**Serialization:** Introduce generic `serialize<T,#n>` and `deserialize<T,#n>` circuits that have to be instantiated for an event if a developer wants to access (de)serialization of the payload as a circuit in their generated code. 
 
 ## Rejected Ideas
-
-**`emit` keyword:** Implies guaranteed delivery to an external consumer. `log` is more accurate — the language records data, downstream interpretation is not its concern.
 
 **Arbitrary struct emission in Phase 1:** Requires schema discovery mechanisms (TypeScript descriptors, IR-based field resolution) that are not yet in place.
 Restricting to a known set enables built-in tooling support now; future CoIPs can loosen this.
 
 **Separate `event` type declaration:** Early drafts proposed a dedicated `event` keyword distinct from `struct`.
-This adds language surface for no semantic benefit — an event is a struct that gets logged.
+This adds language surface for no semantic benefit — an event is a struct that gets emitted.
 
 ## Open Questions
 
-- What is the impact of `log` on the ZK circuit model? Adding `log` calls changes a circuit's public outputs. Does this have implications for proof generation or verification beyond additional instructions?
+- What is the impact of `emit` on the ZK circuit model? Adding `emit` calls changes a circuit's public outputs. Does this have implications for proof generation or verification beyond additional instructions?
 
 ## References
 
@@ -305,10 +300,10 @@ To detect spends, a consumer must poll the full state, diff Merklized structures
 circuit spend(dest_public_key: public_key, input_coin: coin_info): [] {
   // ... existing logic unchanged ...
 
-  log(ShieldedSpend { nullifier: disclose(old_nullifier) });
+  emit(ShieldedSpend { nullifier: disclose(old_nullifier) });
 }
 ```
 
 `old_nullifier` is already disclosed.
-The `log` adds no new information — the data is already available on-chain.
+The `emit` adds no new information — the data is already available on-chain.
 The difference is that the contract is now explicit about which state changes are important, and consumers can discover them without knowledge of the contract's internal state layout.
