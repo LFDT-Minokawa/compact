@@ -1,9 +1,9 @@
 ---
-CoIP: X
+CoIP: 3
 Title: Emit Expression for Structured Event Emission
 Authors:
   - Dominik Zajkowski (dzajkowski)
-Status: Draft
+Status: Released in Compact language 0.25
 Category: Language
 Created: 2026-05-15
 Requires: none
