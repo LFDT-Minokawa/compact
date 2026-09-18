@@ -148,11 +148,20 @@
       (define (mbits-hash mbits hc)
         (if mbits (bits-hash mbits hc) hc))
       (define (field-type-hash ftype hc)
-        (nat-hash (nanopass-case (Lflattened Field-Type) ftype
+        (nat-hash (strict-nanopass-case (Lflattened Field-Type) ftype
                     [(field-native) 0]
-                    [(field-scalar (curve-jubjub)) 1]
-                    [(field-base (curve-secp256k1)) 2]
-                    [(field-scalar (curve-secp256k1)) 3])
+                    [(field-base ,ctype)
+                     (strict-nanopass-case (Lflattened Curve-Type) ctype
+                       [(curve-curve25519) 1]
+                       [(curve-jubjub) (assert cannot-happen)]
+                       [(curve-secp256k1) 2]
+                       [(curve-secp256r1) 3])]
+                    [(field-scalar ,ctype)
+                     (strict-nanopass-case (Lflattened Curve-Type) ctype
+                       [(curve-curve25519) 4]
+                       [(curve-jubjub) 5]
+                       [(curve-secp256k1) 6]
+                       [(curve-secp256r1) 7])])
           hc))
       (define (triv-hash triv hc)
         (nanopass-case (Lflattened Triv) triv

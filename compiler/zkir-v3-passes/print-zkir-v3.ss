@@ -71,7 +71,7 @@
                                           var-name* zkir-type*))]
                   [instructions (list->vector (maplr Instruction instr*))]
                   [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 0)))
+             `((version . ((major . 3) (minor . 1)))
                (do_communications_commitment . ,(not (no-communications-commitment)))
                (inputs . ,inputs)
                (outputs . ,outputs)
