@@ -17,7 +17,6 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
-import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
 import {
   CompactType,
@@ -60,14 +59,23 @@ export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is validated
- * to lie on the curve by `fromAffine`.
+ * projective point. Identity maps to `Point.ZERO`; every other input is checked
+ * to have in-range coordinates and to lie on the curve.
+ *
+ * `fromAffine` only range-checks the coordinates, so the curve equation needs the
+ * separate `assertValidity` call.
  */
 export function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.Point.fromAffine> {
   if (p.identity) {
     return secp256k1.Point.ZERO;
   }
-  return secp256k1.Point.fromAffine({ x: p.x, y: p.y });
+  try {
+    const q = secp256k1.Point.fromAffine({ x: p.x, y: p.y });
+    q.assertValidity();
+    return q;
+  } catch (e) {
+    throw new CompactError(`not a valid secp256k1 point: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 /**
@@ -86,14 +94,23 @@ export function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fro
 
 /**
  * Lift the simple affine `Secp256r1Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is validated
- * to lie on the curve by `fromAffine`.
+ * projective point. Identity maps to `Point.ZERO`; every other input is checked
+ * to have in-range coordinates and to lie on the curve.
+ *
+ * `fromAffine` only range-checks the coordinates, so the curve equation needs the
+ * separate `assertValidity` call.
  */
 export function secp256r1ToProjective(p: Secp256r1Point): ReturnType<typeof p256.Point.fromAffine> {
   if (p.identity) {
     return p256.Point.ZERO;
   }
-  return p256.Point.fromAffine({ x: p.x, y: p.y });
+  try {
+    const q = p256.Point.fromAffine({ x: p.x, y: p.y });
+    q.assertValidity();
+    return q;
+  } catch (e) {
+    throw new CompactError(`not a valid secp256r1 point: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 /**
@@ -138,6 +155,25 @@ export function secp256k1EcdsaRecover(
   return secp256k1FromProjective(nobleSig.recoverPublicKey(msgHash));
 }
 
+/**
+ * Recover the secp256r1 public key from an ECDSA signature and a message hash.
+ *
+ * The recovery id means the same thing as it does for {@link secp256k1EcdsaRecover}.
+ */
+export function secp256r1EcdsaRecover(
+  msgHash: Uint8Array,
+  sig: { readonly r: bigint; readonly s: bigint },
+  recoveryId: number,
+): Secp256r1Point {
+  if (msgHash.length !== 32) {
+    throw new CompactError('expected a 32-byte message hash');
+  }
+  if (!Number.isInteger(recoveryId) || recoveryId < 0 || recoveryId > 3) {
+    throw new CompactError('expected a recovery id in the range [0, 3]');
+  }
+  const nobleSig = new p256.Signature(sig.r, sig.s, recoveryId);
+  return secp256r1FromProjective(nobleSig.recoverPublicKey(msgHash));
+}
 
 /**
  * Samples a random JubJub scalar.

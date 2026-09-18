@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.104, language 0.26.100, runtime 0.19.103]
+
+### Added
+
+- The Compact runtime now exports `secp256r1EcdsaRecover`, the secp256r1
+  counterpart of `secp256k1EcdsaRecover`.  Given a 32-byte message hash, an
+  ECDSA signature, and a recovery id, it returns the corresponding secp256r1
+  public key.  The arguments, the meaning of the recovery id, and the acceptance
+  of both low-s and high-s signatures are all the same as for secp256k1.
+
+  As for secp256k1, recovery runs off circuit.  Note that the standard library
+  has no secp256r1 equivalent of `secp256k1EcdsaVerify` yet, so a recovered
+  secp256r1 key cannot yet be constrained in circuit.
+
+### Changed
+
+- The Compact runtime now rejects invalid secp256k1 and secp256r1 points instead
+  of computing with them.  `ecAdd` and `ecMul` on a point whose coordinates are
+  out of range, or that does not satisfy the curve equation, now throw a
+  `CompactError` naming the curve.  A point belonging to the other curve is one
+  of the cases this catches.
+
+  This is a behavior change: such a point used to be accepted and produced a
+  garbage result.  ZKIR rejects the point when it decodes it, so the call only
+  ever failed later, during proof generation, with an error that did not name the
+  operation that caused it.  The runtime now agrees with ZKIR about which points
+  are valid.
+
 ## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
 ### Added
