@@ -69,6 +69,8 @@
                [(field-native) (> len (field-bytes))]
                [(field-base (curve-secp256k1)) #t]
                [(field-scalar (curve-secp256k1)) #t]
+               [(field-base (curve-secp256r1)) #t]
+               [(field-scalar (curve-secp256r1)) #t]
                [else #f]))
          (list ir)
          (with-output-language (Lflattened Statement)
