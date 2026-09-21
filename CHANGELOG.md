@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
+
+### Added
+
+- The standard library has a new circuit `secp256r1EcdsaVerify` that verifies
+  an ECDSA signature over the secp256r1 (also known as P256) curve and
+  returns a boolean value telling whether the verification succeeded.
+- **NOTE:** like the secp256k1 circuits, this one uses curve and field types
+  that are unavailable with the default ZKIR v2 backend.  Pass the flag
+  `--feature-zkir-v3` at compile time to enable it.
+
 ## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
 ### Added
