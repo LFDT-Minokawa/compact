@@ -95,6 +95,7 @@ export circuit secp256k1EcdsaVerify(
                  sig: Secp256k1EcdsaSignature,
                  pk: Secp256k1Point
                  ): Boolean {
+  assert(pk != default<Secp256k1Point>, "Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key");
   const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
