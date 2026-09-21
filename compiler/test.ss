@@ -92008,6 +92008,104 @@ groups than for single tests.
         ))
     )
 
+  ; A secp256k1 value cast to bytes inside an if compiles.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256k1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256k1Base);"
+      "    scalar = disclose(s as Secp256k1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256k1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256k1Base, s: Secp256k1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256k1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256K1_BASE, runtime.MAX_SECP256K1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
+        "});"
+        ))
+    )
+
   (test
     '(
       "module ecdsa_tests {"
@@ -93447,6 +93545,104 @@ groups than for single tests.
         "  r = await contract.circuits.test(context, base, scalar);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
+
+  ; A secp256r1 value cast to bytes inside an if used to crash the compiler.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256r1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256r1Base);"
+      "    scalar = disclose(s as Secp256r1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256r1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256r1Base, s: Secp256r1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256r1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256R1_BASE, runtime.MAX_SECP256R1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
         "});"
         ))
     )
