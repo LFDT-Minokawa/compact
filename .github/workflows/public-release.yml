@@ -86,7 +86,7 @@ jobs:
           # This workflow copies an internal build and never compiles one, so the
           # build being promoted has to have been made as the release -- otherwise
           # the binary reports a candidate version under a final tag. Cut an internal
-          # release with this exact version first. See issue #705.
+          # release with this exact version first.
           if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::internal_version must be a final release matching v*.*.* (e.g. v1.2.3), got: $INTERNAL"
             echo "::error::run the internal release workflow with that version first, then promote it here"
