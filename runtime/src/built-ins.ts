@@ -16,15 +16,28 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { keccak_256 } from '@noble/hashes/sha3.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
-import { FIELD_MODULUS, SECP256K1_BASE_MODULUS, SECP256K1_SCALAR_MODULUS } from './constants.js';
+import { p256 } from '@noble/curves/nist.js';
+import {
+  FIELD_MODULUS,
+  SECP256K1_BASE_MODULUS,
+  SECP256K1_SCALAR_MODULUS,
+  SECP256R1_BASE_MODULUS,
+  SECP256R1_SCALAR_MODULUS,
+} from './constants.js';
 import {
   CompactType,
   CompactTypeJubjubPoint,
   JubjubPoint,
   Secp256k1Point,
+  Secp256r1Point,
   toBinaryRepr,
 } from './compact-types.js';
-import { secp256k1FromProjective, secp256k1ToProjective } from './utils.js';
+import {
+  secp256k1FromProjective,
+  secp256k1ToProjective,
+  secp256r1FromProjective,
+  secp256r1ToProjective,
+} from './utils.js';
 import { CompactError } from './error.js';
 
 /**
@@ -265,16 +278,63 @@ export function ecMulGenerator(b: bigint): JubjubPoint {
   return CompactTypeJubjubPoint.fromValue(ocrt.ecMulGenerator(ocrt.bigIntToValue(b)));
 }
 
+// ==== Foreign field arithmetic
+// -- Addition
+/**
+ * Secp256k1 base field addition
+ *
+ * This function returns x + y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  return t < SECP256K1_BASE_MODULUS ? t : t - SECP256K1_BASE_MODULUS;
+}
+
 /**
  * Secp256k1 scalar field addition
  *
-
  * This function returns x + y in the secp256k1 scalar field (modulo
  * SECP256K1_SCALAR_MODULUS).
  */
 export function secp256k1ScalarAdd(x: bigint, y: bigint): bigint {
   const t = x + y;
   return t < SECP256K1_SCALAR_MODULUS ? t : t - SECP256K1_SCALAR_MODULUS;
+}
+
+/**
+ * Secp256r1 base field addition
+ *
+ * This function returns x + y in the secp256r1 base field (modulo
+ * SECP256R1_BASE_MODULUS).
+ */
+export function secp256r1BaseAdd(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  return t < SECP256R1_BASE_MODULUS ? t : t - SECP256R1_BASE_MODULUS;
+}
+
+/**
+ * Secp256r1 scalar field addition
+ *
+
+ * This function returns x + y in the secp256r1 scalar field (modulo
+ * SECP256R1_SCALAR_MODULUS).
+ */
+export function secp256r1ScalarAdd(x: bigint, y: bigint): bigint {
+  const t = x + y;
+  return t < SECP256R1_SCALAR_MODULUS ? t : t - SECP256R1_SCALAR_MODULUS;
+}
+
+// -- Negation
+/**
+ * Secp256k1 base field negation
+ *
+ * This function returns the negation of x in the secp256k1 base field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256K1_BASE_MODULUS).  x is
+ * assumed to be in the range [0, SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256K1_BASE_MODULUS - x;
 }
 
 /**
@@ -289,6 +349,42 @@ export function secp256k1ScalarNeg(x: bigint): bigint {
 }
 
 /**
+ * Secp256r1 base field negation
+ *
+ * This function returns the negation of x in the secp256r1 base field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256R1_BASE_MODULUS).  x is
+ * assumed to be in the range [0, SECP256R1_BASE_MODULUS).
+ */
+export function secp256r1BaseNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256R1_BASE_MODULUS - x;
+}
+
+/**
+ * Secp256r1 scalar field negation
+ *
+ * This function returns the negation of x in the secp256r1 scalar field.  That
+ * is, a value y such that x + y = 0 (modulo SECP256R1_SCALAR_MODULUS).  x is
+ * assumed to be in the range [0, SECP256R1_SCALAR_MODULUS).
+ */
+export function secp256r1ScalarNeg(x: bigint): bigint {
+  return x == 0n ? x : SECP256R1_SCALAR_MODULUS - x;
+}
+
+// -- Subtraction
+// This could be implemented by negation and addition, but it's implemented
+// directly here.
+/**
+ * Secp256k1 base field subtraction
+ *
+ * This function returns x - y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256K1_BASE_MODULUS;
+}
+
+/**
  * Secp256k1 scalar field subtraction
  *
  * This function returns x - y in the secp256k1 scalar field (modulo
@@ -297,6 +393,39 @@ export function secp256k1ScalarNeg(x: bigint): bigint {
 export function secp256k1ScalarSub(x: bigint, y: bigint): bigint {
   const t = x - y;
   return t >= 0n ? t : t + SECP256K1_SCALAR_MODULUS;
+}
+
+/**
+ * Secp256r1 base field subtraction
+ *
+ * This function returns x - y in the secp256r1 base field (modulo
+ * SECP256R1_BASE_MODULUS).
+ */
+export function secp256r1BaseSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256R1_BASE_MODULUS;
+}
+
+/**
+ * Secp256r1 scalar field subtraction
+ *
+ * This function returns x - y in the secp256r1 scalar field (modulo
+ * SECP256R1_SCALAR_MODULUS).
+ */
+export function secp256r1ScalarSub(x: bigint, y: bigint): bigint {
+  const t = x - y;
+  return t >= 0n ? t : t + SECP256R1_SCALAR_MODULUS;
+}
+
+// -- Multiplication
+/**
+ * Secp256k1 base field multiplication
+ *
+ * This function returns x * y in the secp256k1 base field (modulo
+ * SECP256K1_BASE_MODULUS).
+ */
+export function secp256k1BaseMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256K1_BASE_MODULUS;
 }
 
 /**
@@ -310,63 +439,26 @@ export function secp256k1ScalarMul(x: bigint, y: bigint): bigint {
 }
 
 /**
- * Secp256k1 scalar field inverse
+ * Secp256r1 base field multiplication
  *
- * This function returns the multiplicative inverse of x in the secp256k1 scalar
- * field.  That is, a value y such that x * y = 1 (modulo
- * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range
- * (0, SECP256K1_SCALAR_MODULUS).
+ * This function returns x * y in the secp256r1 base field (modulo
+ * SECP256R1_BASE_MODULUS).
  */
-export function secp256k1ScalarInv(x: bigint): bigint {
-  if (x === 0n) {
-    throw new CompactError('Cannot compute inverse on input 0');
-  }
-  return secp256k1.Point.Fn.inv(x);
+export function secp256r1BaseMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256R1_BASE_MODULUS;
 }
 
 /**
- * Secp256k1 base field addition
+ * Secp256r1 scalar field multiplication
  *
- * This function returns x + y in the secp256k1 base field (modulo
- * SECP256K1_BASE_MODULUS).
+ * This function returns x * y in the secp256r1 scalar field (modulo
+ * SECP256R1_SCALAR_MODULUS).
  */
-export function secp256k1BaseAdd(x: bigint, y: bigint): bigint {
-  const t = x + y;
-  return t < SECP256K1_BASE_MODULUS ? t : t - SECP256K1_BASE_MODULUS;
+export function secp256r1ScalarMul(x: bigint, y: bigint): bigint {
+  return (x * y) % SECP256R1_SCALAR_MODULUS;
 }
 
-/**
- * Secp256k1 base field negation
- *
- * This function returns the negation of x in the secp256k1 base field.  That
- * is, a value y such that x + y = 0 (modulo SECP256K1_BASE_MODULUS).  x is
- * assumed to be in the range [0, SECP256K1_BASE_MODULUS).
- */
-export function secp256k1BaseNeg(x: bigint): bigint {
-  return x == 0n ? x : SECP256K1_BASE_MODULUS - x;
-}
-
-/**
- * Secp256k1 base field subtraction
- *
- * This function returns x - y in the secp256k1 base field (modulo
- * SECP256K1_BASE_MODULUS).
- */
-export function secp256k1BaseSub(x: bigint, y: bigint): bigint {
-  const t = x - y;
-  return t >= 0n ? t : t + SECP256K1_BASE_MODULUS;
-}
-
-/**
- * Secp256k1 base field multiplication
- *
- * This function returns x * y in the secp256k1 base field (modulo
- * SECP256K1_BASE_MODULUS).
- */
-export function secp256k1BaseMul(x: bigint, y: bigint): bigint {
-  return (x * y) % SECP256K1_BASE_MODULUS;
-}
-
+// -- (Multiplicative) inverse
 /**
  * Secp256k1 base field inverse
  *
@@ -376,9 +468,53 @@ export function secp256k1BaseMul(x: bigint, y: bigint): bigint {
  */
 export function secp256k1BaseInv(x: bigint): bigint {
   if (x === 0n) {
-    throw new CompactError('secp256k1 scalar field has no inverse for 0');
+    throw new CompactError('secp256k1 base field has no inverse for 0');
   }
   return secp256k1.Point.Fp.inv(x);
+}
+
+/**
+ * Secp256k1 scalar field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256k1 scalar
+ * field.  That is, a value y such that x * y = 1 (modulo
+ * SECP256K1_SCALAR_MODULUS).  x is assumed to be in the range
+ * (0, SECP256K1_SCALAR_MODULUS).
+ */
+export function secp256k1ScalarInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('secp256k1 scalar field has no inverse for 0');
+  }
+  return secp256k1.Point.Fn.inv(x);
+}
+
+/**
+ * Secp256r1 base field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256r1 base
+ * field.  That is, a value y such that x * y = 1 (modulo SECP256R1_BASE_MODULUS).
+ * x is assumed to be in the range (0, SECP256R1_BASE_MODULUS).
+ */
+export function secp256r1BaseInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('secp256r1 base field has no inverse for 0');
+  }
+  return p256.Point.Fp.inv(x);
+}
+
+/**
+ * Secp256r1 scalar field inverse
+ *
+ * This function returns the multiplicative inverse of x in the secp256r1 scalar
+ * field.  That is, a value y such that x * y = 1 (modulo
+ * SECP256R1_SCALAR_MODULUS).  x is assumed to be in the range
+ * (0, SECP256R1_SCALAR_MODULUS).
+ */
+export function secp256r1ScalarInv(x: bigint): bigint {
+  if (x === 0n) {
+    throw new CompactError('secp256r1 scalar field has no inverse for 0');
+  }
+  return p256.Point.Fn.inv(x);
 }
 
 /**
@@ -393,6 +529,8 @@ export function secp256k1PointX(pt: Secp256k1Point): bigint {
   return pt.x;
 }
 
+// ==== Foreign curves
+// -- Constructors and accessors
 /**
  * The Compact builtin `secp256k1PointY` function
  *
@@ -404,6 +542,32 @@ export function secp256k1PointY(pt: Secp256k1Point): bigint {
   }
   return pt.y;
 }
+
+/**
+ * The Compact builtin `secp256r1PointX` function
+ *
+ * This function extracts the affine x-coordinate of a Compact `Secp256r1Point`.
+ */
+export function secp256r1PointX(pt: Secp256r1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the x-coordinate of the secp256r1 identity point');
+  }
+  return pt.x;
+}
+
+/**
+ * The Compact builtin `secp256r1PointY` function
+ *
+ * This function extracts the affine y-coordinate of a Compact `Secp256r1Point`.
+ */
+export function secp256r1PointY(pt: Secp256r1Point): bigint {
+  if (pt.identity) {
+    throw new CompactError('cannot extract the y-coordinate of the secp256r1 identity point');
+  }
+  return pt.y;
+}
+
+// -- Addition
 /**
  * The Compact builtin `ecAdd` function for secp256k1 points.
  *
@@ -414,25 +578,54 @@ export function secp256k1Add(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Poi
 }
 
 /**
- * The Compact builtin `ecMul` function for secp256k1 points.
+ * The Compact builtin `ecAdd` function for secp256r1 points.
  *
- * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
- * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
- * anyways.
+ * This function adds two elliptic curve points.
+ */
+export function secp256r1Add(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point {
+  return secp256r1FromProjective(secp256r1ToProjective(a).add(secp256r1ToProjective(b)));
+}
+
+// -- Multiplication
+/**
+ * The Compact builtin `ecMul` function for secp256k1 points.
  */
 export function secp256k1Mul(a: Secp256k1Point, b: bigint): Secp256k1Point {
+  // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
+  // a zero scalar; the "unsafe" (variable-time) is due to non-constant time
+  // operations, which we don't guarantee anyways.
   return secp256k1FromProjective(secp256k1ToProjective(a).multiplyUnsafe(b));
 }
 
 /**
+ * The Compact builtin `ecMul` function for secp256r1 points.
+ */
+export function secp256r1Mul(a: Secp256r1Point, b: bigint): Secp256r1Point {
+  // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
+  // a zero scalar; the "unsafe" is due to non-constant time operations, which
+  // we don't guarantee anyways.
+  return secp256r1FromProjective(secp256r1ToProjective(a).multiplyUnsafe(b));
+}
+
+// -- Generator
+/**
  * The Compact builtin `ecMulGenerator` function for secp256k1 points.
- *
- * `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects a zero scalar; the
- * "unsafe" (variable-time) is due to non-constant time operations, which we don't guarantee
- * anyways.
  */
 export function secp256k1MulGenerator(b: bigint): Secp256k1Point {
+  // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
+  // a zero scalar; the "unsafe" (variable-time) is due to non-constant time
+  // operations, which we don't guarantee anyways.
   return secp256k1FromProjective(secp256k1.Point.BASE.multiplyUnsafe(b));
+}
+
+/**
+ * The Compact builtin `ecMulGenerator` function for secp256r1 points.
+ */
+export function secp256r1MulGenerator(b: bigint): Secp256r1Point {
+  // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
+  // a zero scalar; the "unsafe" is due to non-constant time operations, which
+  // we don't guarantee anyways.
+  return secp256r1FromProjective(p256.Point.BASE.multiplyUnsafe(b));
 }
 
 /**

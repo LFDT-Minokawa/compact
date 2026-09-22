@@ -61,6 +61,45 @@ pub fn load_and_replace<P: AsRef<Path>>(path: P, replacements: &[(&str, &str)]) 
     result
 }
 
+/// Clap's exit code for an argument-parsing failure.
+#[allow(dead_code)]
+const USAGE_ERROR: i32 = 2;
+
+/// Fail loudly rather than let a test operate on the developer's real
+/// `~/.compact`.
+///
+/// Tests used to invoke stateful subcommands with no directory argument, so
+/// `cargo test` ran `clean` against the caller's own installation and deleted
+/// their compilers -- the tests were named `*_nothing_installed' because
+/// whoever wrote them had nothing installed.
+///
+/// An invocation is exempt only when it cannot reach a command handler: a
+/// `--help'/`--version' query, which clap answers and exits, or one the test
+/// expects clap to reject outright (`USAGE_ERROR'). Everything else has to name
+/// a directory.
+#[allow(dead_code)]
+fn assert_directory_is_isolated(
+    args: &[&str],
+    env: Option<&HashMap<String, String>>,
+    expected_exit_code: i32,
+) {
+    // `help' is clap's built-in subcommand, answered and exited like the flags.
+    const HELP_OR_VERSION: [&str; 5] = ["--help", "-h", "--version", "-V", "help"];
+
+    if expected_exit_code == USAGE_ERROR || args.iter().any(|arg| HELP_OR_VERSION.contains(arg)) {
+        return;
+    }
+
+    assert!(
+        args.contains(&"--directory")
+            || env.is_some_and(|env| env.contains_key("COMPACT_DIRECTORY")),
+        "`compact {}' was invoked with neither --directory nor COMPACT_DIRECTORY. \
+         It would act on the real ~/.compact and can delete the caller's installed \
+         compilers. Pass --directory with a tempfile::tempdir() path.",
+        args.join(" ")
+    );
+}
+
 // probably need to rework it one day - normal assert
 #[allow(dead_code)]
 pub fn assert_command_output(
@@ -71,9 +110,19 @@ pub fn assert_command_output(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
+    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
     let mut cmd = Command::new(binary);
+
+    // Clap wraps help to the terminal width. Under test there is no terminal,
+    // so it falls back to 100 columns, which makes the expected output depend
+    // on the length of `$HOME' and of the temporary directory path -- a test
+    // that passes in CI fails for a developer whose home or TMPDIR is longer.
+    // Ask for a width nothing wraps at, so help output is a function of its
+    // content alone. Set before the caller's variables so a test can override.
+    cmd.env("COLUMNS", "10000");
 
     if let Some(vars) = env {
         for (k, v) in vars {
@@ -110,9 +159,19 @@ pub fn assert_command_output_sorted(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
+    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
     let mut cmd = Command::new(binary);
+
+    // Clap wraps help to the terminal width. Under test there is no terminal,
+    // so it falls back to 100 columns, which makes the expected output depend
+    // on the length of `$HOME' and of the temporary directory path -- a test
+    // that passes in CI fails for a developer whose home or TMPDIR is longer.
+    // Ask for a width nothing wraps at, so help output is a function of its
+    // content alone. Set before the caller's variables so a test can override.
+    cmd.env("COLUMNS", "10000");
 
     if let Some(vars) = env {
         for (k, v) in vars {

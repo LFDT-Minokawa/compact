@@ -15,10 +15,17 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { p256 } from '@noble/curves/nist.js';
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
 import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, Secp256k1Point } from './compact-types.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  JubjubPoint,
+  Secp256k1Point,
+  Secp256r1Point,
+} from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
@@ -47,21 +54,9 @@ export function assertIsContractAddress(x: unknown): asserts x is ContractAddres
   }
 }
 
-export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
-  return (
-    typeof x === 'object' &&
-    x !== null &&
-    x !== undefined &&
-    'bytes' in x &&
-    x.bytes instanceof Uint8Array &&
-    x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
-  );
-}
-
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
-
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
@@ -82,6 +77,32 @@ export function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp
 export function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fromAffine>): Secp256k1Point {
   const k = p.toAffine();
   if (/* k == secp256k1.Point.ZERO */ k.x == 0n && k.y == 0n) {
+    return { x: 0n, y: 0n, identity: true };
+  } else {
+    const { x, y } = k;
+    return { x: x, y: y, identity: false };
+  }
+}
+
+/**
+ * Lift the simple affine `Secp256r1Point` representation into a noble-curves
+ * projective point. Identity maps to `Point.ZERO`; every other input is validated
+ * to lie on the curve by `fromAffine`.
+ */
+export function secp256r1ToProjective(p: Secp256r1Point): ReturnType<typeof p256.Point.fromAffine> {
+  if (p.identity) {
+    return p256.Point.ZERO;
+  }
+  return p256.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Secp256r1Point` representation.
+ */
+export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffine>): Secp256r1Point {
+  const k = p.toAffine();
+  if (/* k == p256.Point.ZERO */ k.x == 0n && k.y == 0n) {
     return { x: 0n, y: 0n, identity: true };
   } else {
     const { x, y } = k;
