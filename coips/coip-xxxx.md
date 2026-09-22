@@ -2,6 +2,7 @@
 CoIP: X
 Title: Dynamic Selection of Implementation for Cross-Contract Calls
 Authors:
+  - Joseph Denman (JosephDenman)
   - Jonathan Sobel (jonathan-sobel)
 Status: Draft
 Category: Language
