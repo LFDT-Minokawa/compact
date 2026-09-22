@@ -13,22 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import { defineCompileTest } from '@test/compact-test';
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+// `Secp256r1Base` is only bound in the standard library when the v3 IR
+// feature is enabled, so this fixture compiles with `--feature-zkir-v3`.
+export default defineCompileTest(import.meta.url, {
+    compilerArgs: ['--feature-zkir-v3'],
+});

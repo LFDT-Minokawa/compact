@@ -57,6 +57,7 @@ export {
     runCorpusKat,
     runEcdsaKat,
     SECP256K1_BITCOIN,
+    SECP256R1,
     type Classified,
     type CorpusRoot,
     type CorpusTest,

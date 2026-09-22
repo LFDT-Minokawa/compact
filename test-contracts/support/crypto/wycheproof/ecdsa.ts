@@ -13,8 +13,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import type { Secp256k1Point } from '@midnight-ntwrk/compact-runtime';
-import { DER } from '@noble/curves/abstract/weierstrass.js';
+import type {
+    Secp256k1Point,
+    Secp256r1Point,
+} from '@midnight-ntwrk/compact-runtime';
+import { DER, type ECDSA } from '@noble/curves/abstract/weierstrass.js';
+import { p256 } from '@noble/curves/nist.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { bytesToNumberBE } from '@noble/curves/utils.js';
 import { sha256 } from '@noble/hashes/sha2.js';
@@ -51,7 +55,7 @@ type EcdsaSuite = {
     name: string;
     vectorsFile: string;
     /** The @noble/curves curve used as the reference. */
-    curve: typeof secp256k1;
+    curve: ECDSA;
     hash: (msg: Uint8Array) => Uint8Array;
     /** True when the corpus applies a low-s rule the circuit does not. */
     enforcesLowS: boolean;
@@ -82,13 +86,36 @@ export const SECP256K1_BITCOIN: EcdsaSuite = {
     },
 };
 
+export const SECP256R1: EcdsaSuite = {
+    name: 'secp256r1/SHA-256',
+    vectorsFile: 'ecdsa_secp256r1_sha256_test.json',
+    curve: p256,
+    hash: sha256,
+    enforcesLowS: false,
+    identityPointTcIds: new Set([392, 428, 431, 445, 446]),
+    abortMessages: [
+        // The verification point is the identity, which has no x-coordinate.
+        'cannot extract the x-coordinate of the secp256r1 identity point',
+        // `w = inv(s)` has no result for s = 0.
+        'secp256r1 scalar field has no inverse for 0',
+    ],
+    coverage: {
+        total: 484,
+        driven: 265,
+        excluded: { encoding: 219, malleability: 0 },
+    },
+};
+
 type EcdsaScalars = {
     r: bigint;
     s: bigint;
 };
 
+/** A public key on either curve, as the runtime writes it. */
+type EcdsaPoint = Secp256k1Point | Secp256r1Point;
+
 /** How the runtime writes the point at infinity. */
-const IDENTITY_POINT: Secp256k1Point = {
+const IDENTITY_POINT: EcdsaPoint = {
     x: 0n,
     y: 0n,
     identity: true,
@@ -101,7 +128,7 @@ export type EcdsaVector = DrivenVector & {
     /** The message digest, big-endian. */
     e: Uint8Array;
     sig: EcdsaScalars;
-    pk: Secp256k1Point;
+    pk: EcdsaPoint;
     /** False when r or s is out of range, which the circuit rejects up front. */
     scalarsInRange: boolean;
 };
@@ -122,7 +149,7 @@ function decodeSignature(sigHex: string): EcdsaScalars | undefined {
 function parseUncompressedPublicKey(
     suite: EcdsaSuite,
     uncompressed: string,
-): Secp256k1Point {
+): EcdsaPoint {
     if (uncompressed === '00') {
         return IDENTITY_POINT;
     }
@@ -151,7 +178,7 @@ function rawEcdsaVerify(
     suite: EcdsaSuite,
     e: Uint8Array,
     { r, s }: EcdsaScalars,
-    pk: Secp256k1Point,
+    pk: EcdsaPoint,
 ): boolean {
     const order = suite.curve.Point.Fn.ORDER;
 

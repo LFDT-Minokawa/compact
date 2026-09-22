@@ -13,22 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+// The secp256r1 signature check.
+//
+// The digest is passed in rather than hashed here, so this covers only the
+// curve maths. Hashing and checking together is ../sha256_kat.
+//
+// The digest goes in big-endian; the library flips it internally.
+//
+// Pure, so no keys are generated, but the v3 flag is still needed.
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export circuit verifyEcdsa(
+    msgHash: Bytes<32>,
+    sig: Secp256r1EcdsaSignature,
+    pk: Secp256r1Point
+): Boolean {
+    return disclose(secp256r1EcdsaVerify(msgHash, sig, pk));
+}
