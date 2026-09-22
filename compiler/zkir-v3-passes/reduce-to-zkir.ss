@@ -234,6 +234,36 @@
              (assert (= (length var-name*) 1))
              (let ([x (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
+            [(sha512)
+             (assert (= (length var-name*) 3))
+             (let* ([alignment* (arg->alignment arg* 0)]
+                    [bytes (make-temp-id src 'bytes)]
+                    [low32 (make-temp-id src 'low32)]
+                    [high32 (make-temp-id src 'high32)]
+                    [byte31 (make-temp-id src 'byte31)]
+                    [bytes32to62 (make-temp-id src 'bytes32to62)]
+                    [byte63 (make-temp-id src 'byte63)]
+                    [bytes32to61 (make-temp-id src 'bytes32to61)]
+                    [byte62 (make-temp-id src 'byte62)]
+                    [temp0 (make-temp-id src 'temp0)]
+                    [temp1 (make-temp-id src 'temp1)])
+               (let-values ([(alignment* triv* instr*)
+                             (circuit-alignment-for src alignment* triv* instr*)])
+                 (cons*
+                   ;; The high 2 bytes.
+                   `(add ,(car var-name*) ,byte62 ,temp1)
+                   `(mul ,temp1 ,byte63 256)
+                   ;; The middle 31 bytes.
+                   `(add ,(cadr var-name*) ,byte31 ,temp0)
+                   `(mul ,temp0 ,bytes32to61 256)
+                   `(div_mod_power_of_two ,byte62 ,bytes32to61 ,bytes32to62 240)
+                   `(bytes32_into_low_high ,bytes32to62 ,byte63 ,high32)
+                   ;; The low 31 bytes.
+                   `(bytes32_into_low_high ,(caddr var-name*) ,byte31 ,low32)
+                   `(slice ,high32 ,bytes 32 32)
+                   `(slice ,low32 ,bytes 0 32)
+                   `(sha512 ,bytes (,alignment* ...) ,triv* ...)
+                   instr*)))]
             [(transientCommit)
              (assert (= (length var-name*) 1))
              ;; The last input needs to be moved first.

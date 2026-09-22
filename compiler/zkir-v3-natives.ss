@@ -26,6 +26,12 @@
 (declare-native-type Secp256r1Scalar tfield (field-scalar (curve-secp256r1)))
 (declare-native-type Secp256r1Point tpoint (curve-secp256r1))
 
+;; ==== Hashing
+(declare-native-entry circuit sha512 [A]
+  "__compactRuntime.sha512"
+  ([value A (discloses "a hash of")])
+  (Bytes 64))
+
 ;; ==== Foreign field arithmetic
 ;; -- Secp256k1Base
 (declare-native-entry circuit neg

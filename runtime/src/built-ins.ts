@@ -15,6 +15,7 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { keccak_256 } from '@noble/hashes/sha3.js';
+import { sha512 as nobleSha512 } from '@noble/hashes/sha2.js';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
 import { ed25519 } from '@noble/curves/ed25519.js';
@@ -197,6 +198,17 @@ export function upgradeFromTransient(x: bigint): Uint8Array {
  */
 export function keccak256<A>(rtType: CompactType<A>, value: A): Uint8Array {
   return keccak_256(toBinaryRepr(rtType, value));
+}
+
+/**
+ * The Compact builtin `sha512` function
+ *
+ * Hashes `value` using sha-512 and returns the 64-byte digest.
+ *
+ * @throws If `rtType` encodes a type containing Compact `Opaque` types
+ */
+export function sha512<A>(rtType: CompactType<A>, value: A): Uint8Array {
+  return nobleSha512(toBinaryRepr(rtType, value));
 }
 
 /**
