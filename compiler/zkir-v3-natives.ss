@@ -105,6 +105,23 @@
   ([pt (TypeRef Secp256k1Point) (discloses "the y-coordinate of")])
   (TypeRef Secp256k1Base))
 
+(declare-native-entry circuit ecAdd
+  "__compactRuntime.secp256k1Add"
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]
+   [b (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")])
+  (TypeRef Secp256k1Point))
+
+(declare-native-entry circuit ecMul
+  "__compactRuntime.secp256k1Mul"
+  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve product including")]
+   [b (TypeRef Secp256k1Scalar) (discloses "an elliptic curve product including")])
+  (TypeRef Secp256k1Point))
+
+(declare-native-entry circuit ecMulGenerator
+  "__compactRuntime.secp256k1MulGenerator"
+  ([b (TypeRef Secp256k1Scalar) (discloses "the product of the group generator with")])
+  (TypeRef Secp256k1Point))
+
 ;; -- Secp256r1Point
 (declare-native-entry circuit secp256r1PointX
   "__compactRuntime.secp256r1PointX"
@@ -115,6 +132,23 @@
   "__compactRuntime.secp256r1PointY"
   ([pt (TypeRef Secp256r1Point) (discloses "the y-coordinate of")])
   (TypeRef Secp256r1Base))
+
+(declare-native-entry circuit ecAdd
+  "__compactRuntime.secp256r1Add"
+  ([a (TypeRef Secp256r1Point) (discloses "an elliptic curve sum including")]
+   [b (TypeRef Secp256r1Point) (discloses "an elliptic curve sum including")])
+  (TypeRef Secp256r1Point))
+
+(declare-native-entry circuit ecMul
+  "__compactRuntime.secp256r1Mul"
+  ([a (TypeRef Secp256r1Point) (discloses "an elliptic curve product including")]
+   [b (TypeRef Secp256r1Scalar) (discloses "an elliptic curve product including")])
+  (TypeRef Secp256r1Point))
+
+(declare-native-entry circuit ecMulGenerator
+  "__compactRuntime.secp256r1MulGenerator"
+  ([b (TypeRef Secp256r1Scalar) (discloses "the product of the group generator with")])
+  (TypeRef Secp256r1Point))
 
 ;; -- Curve25519Point
 (declare-native-entry circuit curve25519PointX
@@ -127,43 +161,17 @@
   ([pt (TypeRef Curve25519Point) (discloses "the y-coordinate of")])
   (TypeRef Curve25519Base))
 
-;; -- accessors
-;; -- ecAdd
 (declare-native-entry circuit ecAdd
-  "__compactRuntime.secp256k1Add"
-  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")]
-   [b (TypeRef Secp256k1Point) (discloses "an elliptic curve sum including")])
-  (TypeRef Secp256k1Point))
-
-(declare-native-entry circuit ecAdd
-  "__compactRuntime.secp256r1Add"
-  ([a (TypeRef Secp256r1Point) (discloses "an elliptic curve sum including")]
-   [b (TypeRef Secp256r1Point) (discloses "an elliptic curve sum including")])
-  (TypeRef Secp256r1Point))
-
-;; -- ecMul
-(declare-native-entry circuit ecMul
-  "__compactRuntime.secp256k1Mul"
-  ([a (TypeRef Secp256k1Point) (discloses "an elliptic curve product including")]
-   [b (TypeRef Secp256k1Scalar) (discloses "an elliptic curve product including")])
-  (TypeRef Secp256k1Point))
+  "__compactRuntime.curve25519Add"
+  ([a (TypeRef Curve25519Point) (discloses "an elliptic curve sum including")]
+   [b (TypeRef Curve25519Point) (discloses "an elliptic curve sum including")])
+  (TypeRef Curve25519Point))
 
 (declare-native-entry circuit ecMul
-  "__compactRuntime.secp256r1Mul"
-  ([a (TypeRef Secp256r1Point) (discloses "an elliptic curve product including")]
-   [b (TypeRef Secp256r1Scalar) (discloses "an elliptic curve product including")])
-  (TypeRef Secp256r1Point))
-
-;; -- ecMulGenerator
-(declare-native-entry circuit ecMulGenerator
-  "__compactRuntime.secp256k1MulGenerator"
-  ([b (TypeRef Secp256k1Scalar) (discloses "the product of the group generator with")])
-  (TypeRef Secp256k1Point))
-
-(declare-native-entry circuit ecMulGenerator
-  "__compactRuntime.secp256r1MulGenerator"
-  ([b (TypeRef Secp256r1Scalar) (discloses "the product of the group generator with")])
-  (TypeRef Secp256r1Point))
+  "__compactRuntime.curve25519Mul"
+  ([a (TypeRef Curve25519Point) (discloses "an elliptic curve product including")]
+   [b (TypeRef Curve25519Scalar) (discloses "an elliptic curve product including")])
+  (TypeRef Curve25519Point))
 
 (declare-native-entry circuit ecMulGenerator
   "__compactRuntime.curve25519MulGenerator"
