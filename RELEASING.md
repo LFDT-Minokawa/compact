@@ -57,7 +57,7 @@ Every toolchain release passes through some or all of three repositories.
 | `midnightntwrk/compact` | Public | Public releases only. **This is the one the `compact` tool reads**, so a build that is not here cannot be installed with `compact update`. |
 
 Because `compact update` only ever looks at `midnightntwrk/compact`, and only public
-releases go there, **release candidates cannot be installed with the `compact` tool**
+releases go there, **release candidates cannot be installed with the `compact` tool**.
 Whoever is validating a candidate gets it from the internal store or from
 the release page and unpacks it themselves.
 
