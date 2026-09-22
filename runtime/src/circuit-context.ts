@@ -96,6 +96,11 @@ export interface CallContext<PS = any> {
    */
   currentZswapLocalState: EncodedZswapLocalState | undefined;
   /**
+   * The contract's local (private) state, threaded through {@link queryLocalState}. Absent when no
+   * local state was supplied, so a contract without a local half pays nothing.
+   */
+  currentLocalQueryContext: ocrt.QueryContext | undefined;
+  /**
    * The hash of the parent block on which we're building this transaction. Used to fetch contract states dynamically.
    */
   parentBlockHash?: string;
@@ -211,6 +216,11 @@ export type CircuitContextOptions<PS = any> = {
   readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
   /** The witness / private state — most often a snapshot from local storage. */
   readonly privateState: PS;
+  /**
+   * The contract's local state, as a `StateValue` — most often a snapshot reconstructed by folding
+   * local transcripts. Omit it for a contract with no local half.
+   */
+  readonly localState?: ocrt.StateValue;
   /** The maximum gas this contract should consume. */
   readonly gasLimit?: ocrt.RunningCost;
   /** The model capturing how much ledger operations cost. */
@@ -236,6 +246,7 @@ export const createCircuitContext = <PS>({
   coinPublicKeyOrZswapState,
   contractState,
   privateState,
+  localState,
   gasLimit,
   costModel,
   time,
@@ -251,6 +262,9 @@ export const createCircuitContext = <PS>({
     time,
     parentBlockHash,
   );
+  callContext.currentLocalQueryContext = localState
+    ? new ocrt.QueryContext(new ocrt.ChargedState(localState), ocrt.dummyContractAddress())
+    : undefined;
   // The per-address maps below must alias *this* call context's cells, so a write through either
   // route is visible from the other. (They previously indexed a second, separately-constructed
   // call context, which held distinct `QueryContext` objects.)
@@ -426,6 +440,7 @@ export const createCallContext = <PS>(
     currentGasCost: emptyRunningCost(),
     currentPrivateState: privateState,
     currentZswapLocalState: zswapLocalState,
+    currentLocalQueryContext: undefined,
     parentBlockHash,
     time,
   };

@@ -16,6 +16,17 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 /**
+ * One batch of operations run against local state, recorded with `popeq` results filled so a fold
+ * can replay it in verify mode. `offset` is the length of the call's public transcript at the
+ * moment the batch ran: the checkpoint split partitions the public transcript by position, so the
+ * same offset partitions the local transcript into its guaranteed and fallible halves.
+ */
+export interface LocalTranscriptEntry {
+  readonly offset: number;
+  readonly ops: ocrt.Op<ocrt.AlignedValue>[];
+}
+
+/**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
  */
 export interface PartialProofData {
@@ -31,6 +42,12 @@ export interface PartialProofData {
    * The transcript of the witness call outputs
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The transcript of local-state operations, offset-tagged against {@link publicTranscript}.
+   * Absent until the first local operation runs, so proof data built by older generated code is
+   * unaffected.
+   */
+  localTranscript?: LocalTranscriptEntry[];
 }
 
 /**

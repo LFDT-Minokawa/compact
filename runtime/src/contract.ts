@@ -328,6 +328,7 @@ const copyCallContext = ({
   currentGasCost,
   currentPrivateState,
   currentZswapLocalState,
+  currentLocalQueryContext,
   parentBlockHash,
   time,
 }: CallContext): CallContext => ({
@@ -338,6 +339,7 @@ const copyCallContext = ({
   currentGasCost,
   currentPrivateState,
   currentZswapLocalState,
+  currentLocalQueryContext,
   parentBlockHash,
   time,
 });
@@ -362,6 +364,8 @@ const setupCallContext = (
   context.callContext.currentGasCost = currentGasCost;
   // Undefined because sub-calls do not support witnesses, so a callee has no private state.
   context.callContext.currentPrivateState = undefined;
+  // Local state is likewise the calling party's own: a callee runs with none.
+  context.callContext.currentLocalQueryContext = undefined;
   // A callee *can* do coin operations — an output addressed to a contract is credited only if that
   // contract claims it in the same transaction — so each gets its own state, created on first entry
   // and reused on a later sequential call to the same address.
@@ -384,6 +388,7 @@ const restoreCallContext = (
     currentGasCost,
     currentPrivateState,
     currentZswapLocalState,
+    currentLocalQueryContext,
     parentBlockHash,
     time,
   }: CallContext,
@@ -395,6 +400,7 @@ const restoreCallContext = (
   callerContext.callContext.currentGasCost = currentGasCost;
   callerContext.callContext.currentPrivateState = currentPrivateState;
   callerContext.callContext.currentZswapLocalState = currentZswapLocalState;
+  callerContext.callContext.currentLocalQueryContext = currentLocalQueryContext;
   callerContext.callContext.parentBlockHash = parentBlockHash;
   callerContext.callContext.time = time;
 };
