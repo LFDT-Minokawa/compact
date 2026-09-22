@@ -16,12 +16,14 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
 import { p256 } from '@noble/curves/nist.js';
+import { ed25519 } from '@noble/curves/ed25519.js';
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
 import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
 import {
   CompactType,
   CompactTypeJubjubPoint,
+  Curve25519Point,
   JubjubPoint,
   Secp256k1Point,
   Secp256r1Point,
@@ -108,6 +110,24 @@ export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffi
     const { x, y } = k;
     return { x: x, y: y, identity: false };
   }
+}
+
+/**
+ * Lift the simple affine `Curve25519Point` representation into a noble-curves
+ * projective point. Identity maps to `Point.ZERO`; every other input is validated
+ * to lie on the curve by `fromAffine`.
+ */
+export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
+  return ed25519.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Curve25519Point` representation.
+ */
+export function curve25519FromProjective(p: ReturnType<typeof ed25519.Point.fromAffine>): Curve25519Point {
+  const { x, y } = p.toAffine();
+  return { x: x, y: y };
 }
 
 /**

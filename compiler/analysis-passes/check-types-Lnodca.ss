@@ -779,9 +779,9 @@
      type]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
      (let ()
-       (define (check-length ctype)
+       (define (valid-length? ctype)
          (strict-nanopass-case (Lnodca Curve-Type) ctype
-           [(curve-curve25519) (eqv? len 64)]
+           [(curve-curve25519) (eqv? len 32)]
            [(curve-jubjub) #f]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
@@ -791,8 +791,8 @@
                   (and (same-field-type? ftype ftype^)
                        (strict-nanopass-case (Lnodca Field-Type) ftype
                          [(field-native) #t]
-                         [(field-base ,ctype) (check-length ctype)]
-                         [(field-scalar ,ctype) (check-length ctype)]))]
+                         [(field-base ,ctype) (valid-length? ctype)]
+                         [(field-scalar ,ctype) (valid-length? ctype)]))]
                  [else #f])
          (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
            (format-type type)

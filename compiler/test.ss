@@ -40610,6 +40610,40 @@ groups than for single tests.
                   (tuple-ref %t.8 1))
                 (tuple-ref %t.8 2)))))))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Curve25519Scalar>, x: Curve25519Scalar): Curve25519Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-curve25519))))]
+                         [%x.3 (tfield (field-scalar (curve-curve25519)))])
+             (tfield (field-scalar (curve-curve25519)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-curve25519)))]
+                           [%x.6 (tfield (field-scalar (curve-curve25519)))])
+                      (tfield (field-scalar (curve-curve25519)))
+                   (* (tfield (field-scalar (curve-curve25519))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-curve25519)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-curve25519))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
   )
 )
 
@@ -85709,6 +85743,7 @@ groups than for single tests.
         "  await expect(C.circuits.foo(Ctxt, 3)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, 3)).rejects.toThrow('testfile.compact line 4 char 7: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "  await expect(C.circuits.foo(Ctxt, 4)).rejects.toThrow(runtime.CompactError);"
+
         "  await expect(C.circuits.foo(Ctxt, 4)).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Enum<E, spring, summer, fall, winter> but received 4');"
         "});"
         ))
@@ -91352,6 +91387,99 @@ groups than for single tests.
                                    (tfield (field-base (curve-secp256r1))))
                         %b2.4)))))))))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Base = Curve25519Base;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))])
+             (talias #t Base (tfield (field-base (curve-curve25519))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-curve25519))))
+                     (tfield (field-base (curve-curve25519)))
+            (+ (tfield (field-base (curve-curve25519)))
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-curve25519))))
+                            (tfield (field-base (curve-curve25519)))
+                   (* (tfield (field-base (curve-curve25519)))
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b2.4)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.5 (talias #t Base
+                           (tfield (field-base (curve-curve25519)))))
+          (%descriptor.6 (tunsigned 18446744073709551615))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tbytes 32))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.10 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.11 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))])
+             (talias #t Base (tfield (field-base (curve-curve25519))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-curve25519))))
+                     (tfield (field-base (curve-curve25519)))
+            (+ (tfield (field-base (curve-curve25519)))
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-curve25519))))
+                            (tfield (field-base (curve-curve25519)))
+                   (* (tfield (field-base (curve-curve25519)))
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b2.4)))))))))
+    )
 )
 
 
@@ -91439,8 +91567,8 @@ groups than for single tests.
         "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1001n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1001n);"
-        ,(format "  const MAX_SECP256R1_BASE = ~dn;" (max-secp256k1-base))
-        "  await expect(contract.circuits.test(context, MAX_SECP256R1_BASE))"
+        ,(format "  const MAX_SECP256K1_BASE = ~dn;" (max-secp256k1-base))
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_BASE))"
         "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
@@ -91529,8 +91657,8 @@ groups than for single tests.
         "  r = await contract.circuits.test(context, 1000n);"
         "  expect(r.result).toEqual(1001n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1001n);"
-        ,(format "  const MAX_SECP256R1_SCALAR = ~dn;" (max-secp256k1-scalar))
-        "  await expect(contract.circuits.test(context, MAX_SECP256R1_SCALAR))"
+        ,(format "  const MAX_SECP256K1_SCALAR = ~dn;" (max-secp256k1-scalar))
+        "  await expect(contract.circuits.test(context, MAX_SECP256K1_SCALAR))"
         "      .rejects.toThrow(runtime.CompactError);"
         "});"
         ))
@@ -91544,8 +91672,10 @@ groups than for single tests.
       "  point = disclose(pt);"
       "  return point;"
       "}"
-      "// TODO(kmillikin): test extracting x and y coordinates here when they"
-      "// are available in the ledger."
+      "export circuit test1(): [Secp256k1Base, Secp256k1Base] {"
+      "  const pt = point;"
+      "  return [secp256k1PointX(pt), secp256k1PointY(pt)];"
+      "}"
       )
     (pass-returns reduce-to-zkir
       (program
@@ -91562,7 +91692,18 @@ groups than for single tests.
           (impact 1 80 1 1 0)
           (impact 1 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9 %fld.10
             %fld.11)
-          (output %t.6))))
+          (output %t.6))
+        (circuit (test1) ()
+          ("Base<Secp256k1>" "Base<Secp256k1>")
+          (public_input "Point<Secp256k1>" %pt.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %pt.12)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.13 %fld.14 %fld.15 %fld.16
+            %fld.17)
+          (into_coordinates %t.18 %ignore.19 %pt.12)
+          (into_coordinates %ignore.20 %t.21 %pt.12)
+          (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256k1Point round tripping through the ledger', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
@@ -91575,6 +91716,7 @@ groups than for single tests.
         "  var r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "  // The point G."
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
@@ -91584,6 +91726,7 @@ groups than for single tests.
         "  r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "});"
         ))
     )
@@ -91764,7 +91907,7 @@ groups than for single tests.
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('Bytes to secp256k1 fields casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -91872,7 +92015,7 @@ groups than for single tests.
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('secp256k1 fields to Bytes casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -92999,8 +93142,10 @@ groups than for single tests.
       "  point = disclose(pt);"
       "  return point;"
       "}"
-      "// TODO(kmillikin): test extracting x and y coordinates here when they"
-      "// are available in the ledger."
+      "export circuit test1(): [Secp256r1Base, Secp256r1Base] {"
+      "  const pt = point;"
+      "  return [secp256r1PointX(pt), secp256r1PointY(pt)];"
+      "}"
       )
     (pass-returns reduce-to-zkir
       (program
@@ -93017,7 +93162,18 @@ groups than for single tests.
           (impact 1 80 1 1 0)
           (impact 1 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9 %fld.10
             %fld.11)
-          (output %t.6))))
+          (output %t.6))
+        (circuit (test1) ()
+          ("Base<Secp256r1>" "Base<Secp256r1>")
+          (public_input "Point<Secp256r1>" %pt.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %pt.12)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.13 %fld.14 %fld.15 %fld.16
+            %fld.17)
+          (into_coordinates %t.18 %ignore.19 %pt.12)
+          (into_coordinates %ignore.20 %t.21 %pt.12)
+          (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256r1Point round tripping through the ledger', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
@@ -93030,6 +93186,7 @@ groups than for single tests.
         "  var r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "  // The point G."
         "  pt = {"
         "      x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
@@ -93039,6 +93196,7 @@ groups than for single tests.
         "  r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "});"
         ))
     )
@@ -93207,7 +93365,7 @@ groups than for single tests.
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256r1 field casts', async () => {"
+      '("test('Bytes to secp256r1 fields casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
@@ -93315,7 +93473,7 @@ groups than for single tests.
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256r1 field casts', async () => {"
+      '("test('secp256r1 fields to Bytes casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
@@ -93735,6 +93893,774 @@ groups than for single tests.
         "  expect(L.x).toEqual(G.x);"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export circuit test(b: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b);"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (encode (%fld.1 %fld.2) %b.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Curve25519Base round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1000n);"
+        ,(format "  const MAX_CURVE25519_BASE = ~dn;" (max-curve25519-base))
+        "  expect(runtime.MAX_CURVE25519_BASE).toEqual(MAX_CURVE25519_BASE);"
+        "  r = await contract.circuits.test(context, MAX_CURVE25519_BASE);"
+        "  expect(r.result).toEqual(MAX_CURVE25519_BASE);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base)"
+        "      .toEqual(MAX_CURVE25519_BASE);"
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_BASE + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "witness add1(b: Curve25519Base): Curve25519Base;"
+      "export circuit test(b: Curve25519Base): Curve25519Base {"
+      "  base = disclose(add1(b));"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (private_input "Base<Curve25519>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Curve25519Base passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1001n);"
+        ,(format "  const MAX_CURVE25519_BASE = ~dn;" (max-curve25519-base))
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_BASE))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (encode (%fld.1 %fld.2) %s.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 26 7 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Curve25519Scalar round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1000n);"
+        ,(format "  const MAX_CURVE25519_SCALAR = ~dn;" (max-curve25519-scalar))
+        "  expect(runtime.MAX_CURVE25519_SCALAR).toEqual(MAX_CURVE25519_SCALAR);"
+        "  r = await contract.circuits.test(context, MAX_CURVE25519_SCALAR);"
+        "  expect(r.result).toEqual(MAX_CURVE25519_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar)"
+        "      .toEqual(MAX_CURVE25519_SCALAR);"
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_SCALAR + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "witness add1(s: Curve25519Scalar): Curve25519Scalar;"
+      "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(add1(s));"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (private_input "Scalar<Curve25519>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 26 7 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Curve25519Scalar passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1001n);"
+        ,(format "  const MAX_CURVE25519_SCALAR = ~dn;" (max-curve25519-scalar))
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_SCALAR))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Curve25519Point;"
+      "export circuit test0(pt: Curve25519Point): Curve25519Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit test1(): [Curve25519Base, Curve25519Base] {"
+      "  const pt = point;"
+      "  return [curve25519PointX(pt), curve25519PointY(pt)];"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ((%pt.0 "Point<Curve25519>"))
+          ("Point<Curve25519>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %pt.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.1 %fld.2 %fld.3 %fld.4)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.6 %fld.7 %fld.8 %fld.9)
+          (output %t.5))
+        (circuit (test1) ()
+          ("Base<Curve25519>" "Base<Curve25519>")
+          (public_input "Point<Curve25519>" %pt.10)
+          (encode (%fld.11 %fld.12 %fld.13 %fld.14) %pt.10)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.11 %fld.12 %fld.13 %fld.14)
+          (into_coordinates %t.15 %ignore.16 %pt.10)
+          (into_coordinates %ignore.17 %t.18 %pt.10)
+          (output %t.15 %t.18))))
+    (stage-javascript
+      '("test('Curve25519Point round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // ecMulGenerator(2n)."
+        "  var pt = {"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "  // The point G."
+        "  var pt = {"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Curve25519Point;"
+      "witness point0(): Curve25519Point;"
+      "witness point1(): Curve25519Point;"
+      "export circuit test0(): Curve25519Point {"
+      "  point = disclose(point0());"
+      "  return point;"
+      "}"
+      "export circuit test1(): Curve25519Point {"
+      "  point = disclose(point1());"
+      "  return point;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ()
+          ("Point<Curve25519>")
+          (private_input "Point<Curve25519>" %tmp.0)
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %tmp.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.1 %fld.2 %fld.3 %fld.4)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.6 %fld.7 %fld.8 %fld.9)
+          (output %t.5))
+        (circuit (test1) ()
+          ("Point<Curve25519>")
+          (private_input "Point<Curve25519>" %tmp.10)
+          (encode (%fld.11 %fld.12 %fld.13 %fld.14) %tmp.10)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.11 %fld.12 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.15)
+          (encode (%fld.16 %fld.17 %fld.18 %fld.19) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.16 %fld.17 %fld.18 %fld.19)
+          (output %t.15))))
+    (stage-javascript
+      '("test('Curve25519Point coming from witnesses', async () => {"
+        "  const witnesses = {"
+        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "          y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "        },"
+        "      ];"
+        "    },"
+        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "          y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "        },"
+        "      ];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  // The point at X=1."
+        "  var pt = {"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "  };"
+        "  r = await contract.circuits.test1(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(b: Curve25519Base): Bytes<31> { return b as Bytes<31>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 60" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Bytes<31>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(s: Curve25519Scalar): Bytes<33> { return s as Bytes<33>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 62" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Bytes<33>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<33>): Curve25519Base { return bs as Curve25519Base; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Curve25519Base"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<31>): Curve25519Scalar { return bs as Curve25519Scalar; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 63" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Curve25519Scalar"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
+      "  base = disclose(b as Curve25519Base);"
+      "  scalar = disclose(s as Curve25519Scalar);"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
+                         (%b.0 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>"))
+          ()
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
+          (from_bytes32 "Base<Curve25519>" %tmp.5 %tmp.4)
+          (encode (%fld.6 %fld.7) %tmp.5)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.6 %fld.7)
+          (impact 1 145)
+          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
+          (from_bytes32 "Scalar<Curve25519>" %tmp.9 %tmp.8)
+          (encode (%fld.10 %fld.11) %tmp.9)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.10 %fld.11)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('Bytes to Curve25519 field casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x61, 0xbb, 0xd2, 0x3a, 0xdf, 0x1c, 0x93, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0xd4, 0xad, 0x12, 0xcb,"
+        "    0xb3, 0x54, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_CURVE25519_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = runtime.MAX_CURVE25519_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(b: Curve25519Base, s: Curve25519Scalar): [] {"
+      "  base = disclose(b as Bytes<32>);"
+      "  scalar = disclose(s as Bytes<32>);"
+      "}"
+      )
+    (pass-returns optimize-circuit2
+      (program
+        (kernel-declaration (%kernel.2 () (Kernel)))
+        (public-ledger-declaration
+          ((%base.3
+             (0)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+           (%scalar.4
+             (1)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+        (circuit %test.5 ((argument
+                            (%b.0)
+                            (ty ((anative "Curve25519Base"))
+                                ((tfield (field-base (curve-curve25519))))))
+                          (argument
+                            (%s.1)
+                            (ty ((anative "Curve25519Scalar"))
+                                ((tfield (field-scalar (curve-curve25519)))))))
+             (ty () ())
+          (= 1 (%tmp.6 %tmp.7)
+             (field->bytes 32 (field-base (curve-curve25519)) %b.0))
+          (= 1 () (public-ledger %base.3 (0) write %tmp.6 %tmp.7))
+          (= 1 (%tmp.8 %tmp.9)
+             (field->bytes 32 (field-scalar (curve-curve25519)) %s.1))
+          (= 1 () (public-ledger %scalar.4 (1) write %tmp.8 %tmp.9))
+          ())))
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>")
+                         (%s.1 "Scalar<Curve25519>"))
+          ()
+          (into_bytes32 %tmp.10 %b.0)
+          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 32 %tmp.6 %tmp.7)
+          (impact 1 145)
+          (into_bytes32 %tmp.11 %s.1)
+          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 1 32 %tmp.8 %tmp.9)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('Curve25519 field to Bytes casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x61, 0xbb, 0xd2, 0x3a, 0xdf, 0x1c, 0x93, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0xd4, 0xad, 0x12, 0xcb,"
+        "    0xb3, 0x54, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_CURVE25519_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = runtime.MAX_CURVE25519_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Curve25519Point {"
+      "  return default<Curve25519Point>;"
+      "}"
+      "export circuit pointsEqual(a: Curve25519Point, b: Curve25519Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Curve25519Point, b: Curve25519Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.curve25519MulGenerator(5n);"
+        "  const p2 = runtime.curve25519MulGenerator(5n);"
+        "  const p3 = runtime.curve25519MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.curve25519MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit addb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 + b1);"
+      "  return base;"
+      "}"
+      "export circuit subb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 - b1);"
+      "  return base;"
+      "}"
+      "export circuit mulb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 * b1);"
+      "  return base;"
+      "}"
+      "export circuit adds(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 + s1);"
+      "  return scalar;"
+      "}"
+      "export circuit subs(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 - s1);"
+      "  return scalar;"
+      "}"
+      "export circuit muls(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 * s1);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (addb) ((%b0.9 "Base<Curve25519>")
+                         (%b1.8 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (add %tmp.12 %b0.9 %b1.8)
+          (encode (%fld.13 %fld.14) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.15)
+          (encode (%fld.16 %fld.17) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.16 %fld.17)
+          (output %t.15))
+        (circuit (subb) ((%b0.11 "Base<Curve25519>")
+                         (%b1.10 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (neg %neg.18 %b1.10)
+          (add %tmp.19 %b0.11 %neg.18)
+          (encode (%fld.20 %fld.21) %tmp.19)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.20 %fld.21)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.22)
+          (encode (%fld.23 %fld.24) %t.22)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.23 %fld.24)
+          (output %t.22))
+        (circuit (mulb) ((%b0.5 "Base<Curve25519>")
+                         (%b1.4 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (mul %tmp.25 %b0.5 %b1.4)
+          (encode (%fld.26 %fld.27) %tmp.25)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.26 %fld.27)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.28)
+          (encode (%fld.29 %fld.30) %t.28)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.29 %fld.30)
+          (output %t.28))
+        (circuit (adds) ((%s0.7 "Scalar<Curve25519>")
+                         (%s1.6 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (add %tmp.31 %s0.7 %s1.6)
+          (encode (%fld.32 %fld.33) %tmp.31)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.32 %fld.33)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.34)
+          (encode (%fld.35 %fld.36) %t.34)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.35 %fld.36)
+          (output %t.34))
+        (circuit (subs) ((%s0.1 "Scalar<Curve25519>")
+                         (%s1.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (neg %neg.37 %s1.0)
+          (add %tmp.38 %s0.1 %neg.37)
+          (encode (%fld.39 %fld.40) %tmp.38)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.39 %fld.40)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.41)
+          (encode (%fld.42 %fld.43) %t.41)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.42 %fld.43)
+          (output %t.41))
+        (circuit (muls) ((%s0.3 "Scalar<Curve25519>")
+                         (%s1.2 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (mul %tmp.44 %s0.3 %s1.2)
+          (encode (%fld.45 %fld.46) %tmp.44)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.45 %fld.46)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.47)
+          (encode (%fld.48 %fld.49) %t.47)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.48 %fld.49)
+          (output %t.47))))
+    (stage-javascript
+      ;; Test against some random base and scalar values.
+      (let ([base0 46650258000037232366158629642678773672890852140699407193528319184985912425313]
+            [base1 49961613701950065613888640415520526451680684154063724202376116341690939128786]
+            [scalar0 5948327237387204834652094275838137212488037732685655042485173562585977092618]
+            [scalar1 2100845238381794491716329709363577811011894756668248605533131370056148941441]
+            [expect
+              (lambda (circuit left right result)
+                (format
+                  "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
+                  circuit left right result))])
+        `(
+          "test('secp256r1 field arithmetic', async () => {"
+          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          ,(expect 'addb base0 0 base0)
+          ,(expect 'addb base1 0 base1)
+          ,(expect 'addb base0 (max-curve25519-base) (1- base0))
+          ,(expect 'addb base1 (max-curve25519-base) (1- base1))
+          ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'subb base0 0 base0)
+          ,(expect 'subb base1 0 base1)
+          ,(expect 'subb base0 (max-curve25519-base) (1+ base0))
+          ,(expect 'subb base1 (max-curve25519-base) (1+ base1))
+          ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base0 0 0)
+          ,(expect 'mulb base1 0 0)
+          ,(expect 'mulb base0 1 base0)
+          ,(expect 'mulb base1 1 base1)
+          ,(expect 'mulb base0 (max-curve25519-base)
+             (modulo (* base0 (max-curve25519-base)) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base1 (max-curve25519-base)
+             (modulo (* base1 (max-curve25519-base)) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'adds scalar0 0 scalar0)
+          ,(expect 'adds scalar1 0 scalar1)
+          ,(expect 'adds scalar0 (max-curve25519-scalar) (1- scalar0))
+          ,(expect 'adds scalar1 (max-curve25519-scalar) (1- scalar1))
+          ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-curve25519-scalar))))
+          ,(expect 'subs scalar0 0 scalar0)
+          ,(expect 'subs scalar1 0 scalar1)
+          ,(expect 'subs scalar0 (max-curve25519-scalar) (1+ scalar0))
+          ,(expect 'subs scalar1 (max-curve25519-scalar) (1+ scalar1))
+          ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar0 0 0)
+          ,(expect 'muls scalar1 0 0)
+          ,(expect 'muls scalar0 1 scalar0)
+          ,(expect 'muls scalar1 1 scalar1)
+          ,(expect 'muls scalar0 (max-curve25519-scalar)
+             (modulo (* scalar0 (max-curve25519-scalar)) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar1 (max-curve25519-scalar)
+             (modulo (* scalar1 (max-curve25519-scalar)) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-curve25519-scalar))))
+        "});"
+        )))
     )
 )
 

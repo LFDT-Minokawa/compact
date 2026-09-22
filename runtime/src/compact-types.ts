@@ -20,6 +20,8 @@ import {
   MAX_SECP256K1_SCALAR,
   MAX_SECP256R1_BASE,
   MAX_SECP256R1_SCALAR,
+  MAX_CURVE25519_BASE,
+  MAX_CURVE25519_SCALAR,
 } from './constants.js';
 
 /**
@@ -46,7 +48,7 @@ export interface CompactType<A> {
 }
 
 /**
- * A point in the embedded elliptic curve. TypeScript representation of the
+ * A point on the embedded elliptic curve. TypeScript representation of the
  * Compact type of the same name
  */
 export interface JubjubPoint {
@@ -55,7 +57,7 @@ export interface JubjubPoint {
 }
 
 /**
- * A point in the foreign secp256k1 elliptic curve. TypeScript representation of the
+ * A point on the foreign secp256k1 elliptic curve. TypeScript representation of the
  * Compact type of the same name.  When identity = true, x and y should be 0.
  */
 export interface Secp256k1Point {
@@ -65,13 +67,22 @@ export interface Secp256k1Point {
 }
 
 /**
- * A point in the foreign secp256r1 elliptic curve. TypeScript representation of the
+ * A point on the foreign secp256r1 elliptic curve. TypeScript representation of the
  * Compact type of the same name.  When identity = true, x and y should be 0.
  */
 export interface Secp256r1Point {
   readonly x: bigint;
   readonly y: bigint;
   readonly identity: boolean;
+}
+
+/**
+ * A point on the foreign Curve25519 elliptic curve. TypeScript representation of the
+ * Compact type of the same name.
+ */
+export interface Curve25519Point {
+  readonly x: bigint;
+  readonly y: bigint;
 }
 
 /**
@@ -168,6 +179,31 @@ export const CompactTypeSecp256r1Point: CompactType<Secp256r1Point> = {
     return CompactTypeSecp256r1Base.toValue(value.x)
       .concat(CompactTypeSecp256r1Base.toValue(value.y))
       .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
+  },
+};
+
+/**
+ * Runtime type of {@link Curve25519Point}
+ */
+export const CompactTypeCurve25519Point: CompactType<Curve25519Point> = {
+  // One base containing the x cordinate
+  // One base containing the y cordinate
+  alignment(): ocrt.Alignment {
+    return CompactTypeCurve25519Base.alignment()
+      .concat(CompactTypeCurve25519Base.alignment());
+  },
+  fromValue(value: ocrt.Value): Curve25519Point {
+    if (value.length < 4) {
+      throw new CompactError('expected Curve25519Point');
+    }
+    // This might throw CompactError('expected Curve25519Base').
+    const x = CompactTypeCurve25519Base.fromValue(value);
+    const y = CompactTypeCurve25519Base.fromValue(value);
+    return { x: x, y: y };
+  },
+  toValue(value: Curve25519Point): ocrt.Value {
+    return CompactTypeCurve25519Base.toValue(value.x)
+      .concat(CompactTypeCurve25519Base.toValue(value.y));
   },
 };
 
@@ -368,6 +404,55 @@ export const CompactTypeSecp256r1Base: CompactType<bigint> =
  */
 export const CompactTypeSecp256r1Scalar: CompactType<bigint> =
   new ForeignField8_24(MAX_SECP256R1_SCALAR, 'Secp256r1Scalar');
+
+/**
+ * Runtime type of the standard library's `Curve25519Base` type
+ */
+export const CompactTypeCurve25519Base: CompactType<bigint> =
+  new ForeignField8_24(MAX_CURVE25519_BASE, 'Curve25519Base');
+
+// The Curve25519Scalar field is encoded as 5 51-bit limbs, packed into the low
+// 4 limbs (204 bits) and the high limb (51 bits).  This implementation is like
+// ForeignField8_24 with different size parameters.
+export const CompactTypeCurve25519Scalar : CompactType<bigint> = {
+  alignment(): ocrt.Alignment {
+    // One native field containing the low-order 204 bits.
+    // One native field containing the high-order 51 bits.
+    return [
+      { tag: 'atom', value: { tag: 'bytes', length: 26 } },
+      { tag: 'atom', value: { tag: 'bytes', length: 7 } },
+    ];
+  },
+
+  fromValue(value: ocrt.Value): bigint {
+    if (value.length < 2 || value[0] == undefined || value[1] == undefined) {
+      throw new CompactError('expected Curve25519Scalar');
+    }
+    const limbs = value.splice(0, 2);
+    const low204 = ocrt.valueToBigInt([limbs[0]]);
+    const high51 = ocrt.valueToBigInt([limbs[1]]);
+    if (low204 >= 1n << 204n) {
+      throw new CompactError('expected Curve25519Scalar');
+    }
+    let res = high51 << 204n | low204;
+    // The ZKIR representation subtracts 1 from the value.
+    res = (res == MAX_CURVE25519_SCALAR) ? 0n : res + 1n;
+    if (res > MAX_CURVE25519_SCALAR) {
+      throw new CompactError('expected Curve25519');
+    }
+    return res;
+  },
+
+  toValue(value: bigint): ocrt.Value {
+    if (value < 0n || value > MAX_CURVE25519_SCALAR) {
+      throw new CompactError('expected Curve25519Scalar');
+    }
+    // The ZKIR representation subtracts 1 from the value.
+    value = (value == 0n) ? MAX_CURVE25519_SCALAR : value - 1n;
+    return ocrt.bigIntToValue(value & ((1n << 204n) - 1n))
+      .concat(ocrt.bigIntToValue(value >> 204n));
+  },
+}
 
 /**
  * Runtime type of an enum with a given number of entries

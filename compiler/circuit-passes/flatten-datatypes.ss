@@ -419,7 +419,7 @@
            (hashtable-set! var-ht var-name (Wump-single var-name))
            (strict-nanopass-case (Lflattened Curve-Type) ctype
              [(curve-curve25519)
-              (assert (= (length triv*) 3))
+              (assert (= (length triv*) 2))
               (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
              [(curve-jubjub)
               (assertf cannot-happen "cannot cast byte vector to JubjubScalar")]

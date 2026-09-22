@@ -81,6 +81,27 @@ export const SECP256R1_SCALAR_MODULUS: bigint =
 export const MAX_SECP256R1_SCALAR: bigint = SECP256R1_SCALAR_MODULUS - 1n;
 
 /**
+ * The order of the Curve25519 base field
+ */
+export const CURVE25519_BASE_MODULUS: bigint = 2n**255n - 19n;
+
+/**
+ * The maximum value of a `Curve25519Base` foreign field value
+ */
+export const MAX_CURVE25519_BASE: bigint = CURVE25519_BASE_MODULUS - 1n;
+
+/**
+ * The order of the Curve25519 scalar field
+ */
+export const CURVE25519_SCALAR_MODULUS: bigint =
+  2n**252n + 27742317777372353535851937790883648493n;
+
+/**
+ * The maximum value of a `Curve25519Scalar` foreign field value
+ */
+export const MAX_CURVE25519_SCALAR: bigint = CURVE25519_SCALAR_MODULUS - 1n;
+
+/**
  * A valid placeholder contract address
  *
  * @deprecated Cannot handle {@link NetworkId}s, use

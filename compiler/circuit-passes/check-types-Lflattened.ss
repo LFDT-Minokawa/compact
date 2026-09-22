@@ -392,9 +392,9 @@
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
      (let ()
-       (define (check-length ctype)
+       (define (valid-length? ctype)
          (strict-nanopass-case (Lflattened Curve-Type) ctype
-           [(curve-curve25519) (eqv? len 64)]
+           [(curve-curve25519) (eqv? len 32)]
            [(curve-jubjub) #f]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
@@ -405,11 +405,11 @@
                  [(field-base ,ctype1)
                   (T primitive-type
                     [(tfield (field-base ,ctype2)) (and (same-curve-type? ctype1 ctype2)
-                                                        (check-length ctype1))])]
+                                                        (valid-length? ctype1))])]
                  [(field-scalar ,ctype1)
                   (T primitive-type
                     [(tfield (field-scalar ,ctype2)) (and (same-curve-type? ctype1 ctype2)
-                                                          (check-length ctype1))])])
+                                                          (valid-length? ctype1))])])
          (type-error (format "argument to field->bytes at ~a" (format-source-object src))
            (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
            primitive-type))
