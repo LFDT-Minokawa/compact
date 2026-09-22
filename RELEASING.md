@@ -32,21 +32,25 @@ under `.github/workflows/` that a releaser touches, update this file alongside i
   a CLI release pushes a tag to it.
 - Read access to `midnight-ntwrk/artifacts`, to see internal releases land.
 - The workflows authenticate with organisation secrets, so no personal token is needed.
-- [#topic-release-coordination](https://shielded.slack.com/archives/C085QCBL2HF) — where
-  you find role-holders and announce the release. This document names roles; when you do not know who holds one, ask there.
+- Access to the internal release-coordination channel — where you find role-holders and
+  announce the release. This document names roles; when you do not know who holds one,
+  ask there.
 
 ### What you are releasing
 
-A Compact release is four separate things that are versioned and published
+A Compact release is three separate artifacts that are versioned and published
 independently. Knowing which one you are dealing with prevents most of the confusion in
 this document.
 
-| Thing | Version lives in | Published to |
-| ----- | ---------------- | ------------ |
+| Artifact | Version lives in | Published to |
+| -------- | ---------------- | ------------ |
 | **compactc**, the compiler (the toolchain) | `compiler/compiler-version.ss`, `flake.nix` | GitHub releases, three repositories (below) |
-| **The Compact language** | `compiler/language-version.ss` | Nothing of its own. It appears in release titles, in the published version table, and in `pragma language_version`. |
 | **compact-runtime** | `runtime/package.json` | npm, via GitHub Packages first |
 | **compact**, the CLI (the launcher people install) | `Cargo.toml`, `[workspace.package]` | GitHub releases, by pushing a tag |
+
+The Compact language is versioned too (`compiler/language-version.ss`), but it is not
+an artifact: it ships inside the compiler. Its version appears in release titles, in
+the published version table, and in `pragma language_version`.
 
 Every toolchain release passes through some or all of three repositories.
 
@@ -116,8 +120,8 @@ Walk the board and act on each column:
 
 ### Step 2 — Chase the release notes
 
-Ask whoever owns release notes for this release; Slack is the reliable way to reach
-them. If the final text is not ready, that does not block you — assemble a first draft
+Ask whoever owns release notes for this release. If the final text is not ready, that
+does not block you — assemble a first draft
 from the raw changelog entries and use that. You will replace it before the final
 public release (step 8).
 
@@ -193,8 +197,8 @@ particular order — see "Releasing the runtime alongside" below before you star
 
 ### Step 6 — Announce it
 
-Post in [#topic-release-coordination](https://shielded.slack.com/archives/C085QCBL2HF)
-so other teams can find the candidate. Include the tag and both locations:
+Post in the internal release-coordination channel so other teams can find the
+candidate. Include the tag and both locations:
 
 - [LFDT-Minokawa/compact releases](https://github.com/LFDT-Minokawa/compact/releases)
 - [midnight-ntwrk/artifacts releases](https://github.com/midnight-ntwrk/artifacts/releases)
@@ -341,8 +345,8 @@ Two rules before anything else:
   reach the public registry.
 - Every release, internal or public, needs an entry in the dependency compatibility
   matrix, recording which ledger and onchain-runtime versions this runtime was built
-  against. Ask where the current compatibility matrix lives in the
-  [#topic-release-coordination](https://shielded.slack.com/archives/C085QCBL2HF) channel.
+  against. Ask in the internal release-coordination channel where the current
+  compatibility matrix lives.
 
 ### The procedure
 
@@ -568,12 +572,13 @@ go, or the leftovers will look like a real candidate:
   [LFDT-Minokawa/compact](https://github.com/LFDT-Minokawa/compact/tags): `v<version>`
   and, for a candidate, `compactc-v<version>`.
 
-Re-running instead of undoing: re-dispatching the same version on the same commit is
-safe — the tag push recognises itself and skips — but it rebuilds, and the artifacts
-release then carries the new bytes under the old tag. After QA has signed off, prefer
-leaving a green run alone; if a re-run was unavoidable, treat the re-built artifacts as
-un-validated and check them (step 8's commit check still passes, since the commit is
-unchanged).
+Re-running instead of undoing: the tag step never pushes a tag that already exists —
+one already on the run's own commit is skipped — so a run that failed *after* the push
+can be re-run without tripping over its own tag. That is all the skip does. Releases
+here are immutable, so a *completed* run cannot be re-dispatched at the same version:
+the release step cannot replace the existing release's assets, and deleting the
+release does not free its tag name for reuse. Undoing removes the misleading
+leftovers, but the version number is spent — continue with the next candidate number.
 
 ### An internal npm package
 

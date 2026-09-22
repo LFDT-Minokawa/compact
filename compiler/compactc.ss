@@ -39,9 +39,9 @@ The following flags, if present, affect the compiler's behavior as follows:
   --version prints the compiler version and exits.  Builds that recorded a
     commit follow the version with that commit and its date in parentheses.
 
-  --verbose, given with --version, prints the version, commit, commit date, and
-    language and runtime versions as separate fields, showing unknown for
-    anything the build did not record. 
+  --verbose, given with --version in either order, prints the version, commit,
+    commit date, and language and runtime versions as separate fields, showing
+    unknown for anything the build did not record.
 
   --language-version prints the language version and exits.
 

@@ -362,8 +362,9 @@ jobs:
         with:
           ref: ${{ needs.setup.outputs.sha }}
 
-      # The tag survives a failure below this point, so a re-run must tolerate its
-      # own tag. A tag on a different commit is not a re-run and stays an error.
+      # A failure after this push leaves the tag behind, so a re-run of this job
+      # finds its own tag and skips it; the same tag on any other commit is a
+      # collision, not a re-run, so it fails.
       - name: Create and push tag
         env:
           VERSION: ${{ inputs.version }}

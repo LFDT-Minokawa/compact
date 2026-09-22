@@ -11,12 +11,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `compactc --version` now reports the release it was built from, including any
   prerelease identifier and the commit. It previously reported only the
-  major.minor.bugfix triple committed in `compiler/compiler-version.ss`, so every
-  candidate for a release reported that release: a compiler built from
-  `compactc-v0.33.0-rc.2` said `0.33.0`. Since 0.33.0 was never published, that
-  named a release which does not exist -- and the same string is written into
-  `contract-info.json` and `contract-manifest.json`, so a deployed contract
-  recorded a provenance that cannot be resolved.
+  major.minor.bugfix triple, so every candidate for a release reported that release.
 
   The version a build reports is now a fact about the build.
   Builds that are not releases report `-dev`: the scheduled build
@@ -28,8 +23,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   pass for a release either.
 
   The commit is reported beside the version rather than inside it --
-  `0.34.102-rc.2 (a1b2c3d4e 2026-09-10)`, the commit abbreviated and dated the
-  way `rustc --version` does it -- and is recorded in full in `contract-info.json` and
+  `0.34.102-rc.2 (a1b2c3d4e 2026-09-10)` -- and is recorded in full in `contract-info.json` and
   `contract-manifest.json` as a new `compiler-commit` field, leaving
   `compiler-version` a valid semver string. That string is what gets pinned in
   CI and compared by tooling, and semver build metadata is not reliably ignored
@@ -43,9 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   compiler was built.
 
   Release candidates still satisfy the same `pragma compiler_version`
-  constraints as the release they are candidates for -- the tag is printed but
-  never compared -- so source that compiles under 0.34.0 compiles under
-  0.34.0-rc.1.
+  constraints as the release they are candidates for.
 
 - The first of `--help`, `--version`, `--language-version`, `--ledger-version`
   and `--runtime-version` on the command line is the one that acts. Flag
