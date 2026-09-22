@@ -41,6 +41,8 @@
 
   (include "analysis-passes/remove-tundeclared.ss")
 
+  (include "analysis-passes/reject-local-declarations.ss")
+
   (include "analysis-passes/combine-ledger-declarations.ss")
 
   (include "analysis-passes/discard-unused-functions.ss")
@@ -75,6 +77,7 @@
     (expand-modules-and-types        Lexpanded)
     (infer-types                     Ltypes)
     (remove-tundeclared              Lnotundeclared)
+    (reject-local-declarations       Lnolocal)
     (combine-ledger-declarations     Loneledger)
     (discard-unused-functions        Loneledger)
     (reject-recursive-circuits       Loneledger)

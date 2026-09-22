@@ -852,13 +852,28 @@
                        (loop pelt* seqno*
                              (if exported? (cons (make-exportit src ledger-field-name info) export*) export*)
                              unresolved-export*)))]
+                  [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,type)
+                   (let ([id (make-source-id src ledger-field-name)])
+                     (let ([info (Info-ledger id)])
+                       (env-insert! p src ledger-field-name info)
+                       (set! frob* (cons (make-frob (reverse seqno) pelt p id) frob*))
+                       (loop pelt* seqno*
+                             (if exported? (cons (make-exportit src ledger-field-name info) export*) export*)
+                             unresolved-export*)))]
                   [(constructor ,src (,arg* ...) ,expr)
                    (unless top-level?
                      (source-errorf src "misplaced constructor: should appear only at the top level of a program"))
                    (set! frob* (cons (make-frob (reverse seqno) pelt p #f) frob*))
                    (loop pelt* seqno* export* unresolved-export*)]
+                  [(local-constructor ,src ,expr)
+                   (unless top-level?
+                     (source-errorf src "misplaced local constructor: should appear only at the top level of a program"))
+                   (set! frob* (cons (make-frob (reverse seqno) pelt p #f) frob*))
+                   (loop pelt* seqno* export* unresolved-export*)]
                   [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
                    (handle-fun src 'circuit pelt exported? function-name type-param*)]
+                  [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
+                   (handle-fun src 'local-circuit pelt exported? function-name type-param*)]
                   [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'native pelt exported? function-name type-param*)]
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
@@ -1012,6 +1027,20 @@
       (nanopass-case (Lexpanded Type) (de-alias type #t)
         [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
         [else #f]))
+    ;; a state field of ordinary type is implicitly a Cell of that type,
+    ;; therefore a non-ADT declaration type is wrapped here
+    (define (ensure-adt-type src type)
+      (if (public-adt? type)
+          type
+          (let ([p (or Cell-ADT-env
+                       (let ([p (add-rib empty-env)])
+                         (do-import src 'CompactStandardLibrary '() ""
+                                    (list (with-output-language (Lpreexpand Import-Element)
+                                            `(,src __compact_Cell __compact_Cell)))
+                                    p)
+                         (set! Cell-ADT-env p)
+                         p))])
+            (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))
     )
   (Program : Program (ir) -> Program ()
     (definitions
@@ -1181,26 +1210,25 @@
      `(native ,src ,id ,native-entry (,arg* ...) ,type)]
     [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
      `(witness ,src ,id (,arg* ...) ,type)]
+    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type] ,expr)
+     (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
+       (for-each
+         (lambda (id) (env-insert! p src (id-sym id) (Info-var id)))
+         var-id*)
+       `(local-circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
     [(public-ledger-declaration ,src ,exported? ,sealed? ,ledger-field-name ,[type])
      (when sealed? (id-sealed?-set! id #t))
-     `(public-ledger-declaration ,src ,id
-        ,(if (public-adt? type)
-             type
-             (let ([p (or Cell-ADT-env
-                          (let ([p (add-rib empty-env)])
-                            (do-import src 'CompactStandardLibrary '() ""
-                                       (list (with-output-language (Lpreexpand Import-Element)
-                                               `(,src __compact_Cell __compact_Cell)))
-                                       p)
-                            (set! Cell-ADT-env p)
-                            p))])
-               (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
+     `(public-ledger-declaration ,src ,id ,(ensure-adt-type src type))]
+    [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,[type])
+     `(local-ledger-declaration ,src ,id ,(ensure-adt-type src type))]
     [(constructor ,src (,[arg*] ...) ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
        (for-each
          (lambda (id) (env-insert! p src (id-sym id) (Info-var id)))
          var-id*)
        `(constructor ,src (,arg* ...) , (Expression expr p)))]
+    [(local-constructor ,src ,expr)
+     `(local-constructor ,src ,(Expression expr p))]
     [else (internal-errorf 'expand-modules-and-types "unexpected program element ~s" ir)])
   (External-Contract-Declaration : External-Contract-Declaration (ir p) -> External-Contract-Declaration ()
     [(external-contract ,src ,exported? ,contract-name ,[ecdecl-circuit*] ...)

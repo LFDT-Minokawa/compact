@@ -28,8 +28,6 @@
 
   (include "frontend-passes/resolve-includes.ss")
 
-  (include "frontend-passes/reject-local-declarations.ss")
-
   (include "frontend-passes/expand-const.ss")
 
   (include "frontend-passes/expand-patterns.ss")
@@ -58,6 +56,5 @@
     (reject-duplicate-bindings       Lhoisted)
     (eliminate-statements            Lexpr)
     (eliminate-boolean-connectives   Lnoandornot)
-    (reject-local-declarations       Lnolocal)
     (prepare-for-expand              Lpreexpand))
 )

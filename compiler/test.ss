@@ -7959,12 +7959,21 @@ groups than for single tests.
 
   (test
     '(
+      "local f(): [] {"
+      "}"
+      )
+    (returns
+      (program))
+    )
+
+  (test
+    '(
       "export local f(): [] {"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
+      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (local-circuit f)))
     )
 
   (test
@@ -7975,6 +7984,9 @@ groups than for single tests.
       "    return true;"
       "  }"
       "  return false;"
+      "}"
+      "export circuit g(c: Bytes<32>): Boolean {"
+      "  return remember(c);"
       "}"
       )
     (oops
@@ -7987,6 +7999,7 @@ groups than for single tests.
       "module M {"
       "  local credits: Uint<4>;"
       "}"
+      "import M;"
       )
     (oops
       message: "~a:\n  ~?"
@@ -7995,11 +8008,16 @@ groups than for single tests.
 
   (test
     '(
-      "ledger x: Field;"
+      "local f(x: Field): Field {"
+      "  return x;"
+      "}"
+      "export circuit g(x: Field): Field {"
+      "  return f(x);"
+      "}"
       )
-    (returns
-      (program
-        (public-ledger-declaration #f #f x (tfield (field-native)))))
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
     )
 )
 

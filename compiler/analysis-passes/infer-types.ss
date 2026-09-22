@@ -1016,9 +1016,18 @@
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
      (check-zkir-v3-curve type)
      (build-function 'witness #f function-name arg* type)]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "local function" -> type] ,expr)
+     (check-zkir-v3-curve type)
+     (build-function 'local-circuit #f function-name arg* type)]
     [(public-ledger-declaration ,src ,ledger-field-name ,[type])
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
+                          (format-type type)))
+     (check-zkir-v3-curve type)
+     (set-idtype! ledger-field-name (Idtype-Base type))]
+    [(local-ledger-declaration ,src ,ledger-field-name ,[type])
+     (unless (public-adt? type)
+       (source-errorf src "expected ADT-type for local declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
      (check-zkir-v3-curve type)
      (set-idtype! ledger-field-name (Idtype-Base type))]
@@ -1033,13 +1042,19 @@
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,expr)
      (let-values ([(expr return-type) (do-circuit-body src "ledger constructor" arg* (with-output-language (Ltypes Type) `(ttuple ,src)) expr)])
-       `(constructor ,src (,arg* ...) ,expr))])
+       `(constructor ,src (,arg* ...) ,expr))]
+    [(local-constructor ,src ,expr)
+     (let-values ([(expr return-type) (do-circuit-body src "local constructor" '() (with-output-language (Ltypes Type) `(ttuple ,src)) expr)])
+       `(local-constructor ,src ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
      (for-each check-zkir-v3-curve (map arg->type arg*))
      (check-zkir-v3-curve type)
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
-       `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
+       `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "local function" -> type] ,expr)
+     (let-values ([(expr return-type) (do-circuit-body src (format "local function ~a" (id-sym function-name)) arg* type expr)])
+       `(local-circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])

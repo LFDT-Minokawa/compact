@@ -23,7 +23,7 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
-          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats
+          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats Lnolocal-Ledger-Declaration? Lnolocal-Ledger-Constructor?
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -34,7 +34,7 @@
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
-          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
+          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats
           Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
@@ -416,22 +416,11 @@
          (or src expr1 expr2)
          (not src expr))))
 
-  ;; The `local` forms flow through the frontend but do not yet compile past
-  ;; it, therefore `reject-local-declarations` subtracts them here, and
-  ;; `Lpreexpand` and everything after it never carry them.
-  (define-language/pretty Lnolocal (extends Lnoandornot)
-    (Ledger-Declaration (ldecl)
-      (- (local-ledger-declaration src exported? ledger-field-name type)))
-    (Ledger-Constructor (lconstructor)
-      (- (local-constructor src expr)))
-    (Circuit-Definition (cdefn)
-      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr))))
-
   (define-record-type native-entry
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
-  (define-language/pretty Lpreexpand (extends Lnolocal)
+  (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
@@ -563,11 +552,17 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src exported? sealed? ledger-field-name type))
       (+ (public-ledger-declaration src ledger-field-name type) =>
-           (public-ledger-declaration #f ledger-field-name #f type)))
+           (public-ledger-declaration #f ledger-field-name #f type))
+      (- (local-ledger-declaration src exported? ledger-field-name type))
+      (+ (local-ledger-declaration src ledger-field-name type) =>
+           (local-ledger-declaration #f ledger-field-name #f type)))
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr))
       (+ (circuit src function-name (arg* ...) type expr) =>
-           (circuit function-name (arg* 0 ...) 4 type #f expr)))
+           (circuit function-name (arg* 0 ...) 4 type #f expr))
+      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr))
+      (+ (local-circuit src function-name (arg* ...) type expr) =>
+           (local-circuit function-name (arg* 0 ...) 4 type #f expr)))
     (External-Contract-Declaration (ecdecl)
       (- (external-contract src exported? contract-name ecdecl-circuit* ...))
       (+ (external-contract src contract-name ecdecl-circuit* ...) =>
@@ -698,7 +693,9 @@
       export-tdefn)
     (Circuit-Definition (cdefn)
       (circuit src function-name (arg* ...) type expr) =>
-        (circuit function-name (arg* 0 ...) 4 type #f expr))
+        (circuit function-name (arg* 0 ...) 4 type #f expr)
+      (local-circuit src function-name (arg* ...) type expr) =>
+        (local-circuit function-name (arg* 0 ...) 4 type #f expr))
     (Native-Declaration (ndecl)
       (native src function-name native-entry (arg* ...) type) =>
         (native function-name (arg* 0 ...) 4 type))
@@ -710,9 +707,12 @@
         (export-typedef type-name (tvar-name* ...) #f type))
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src ledger-field-name type) =>
-        (public-ledger-declaration #f ledger-field-name #f type))
+        (public-ledger-declaration #f ledger-field-name #f type)
+      (local-ledger-declaration src ledger-field-name type) =>
+        (local-ledger-declaration #f ledger-field-name #f type))
     (Ledger-Constructor (lconstructor)
-      (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr))
+      (constructor src (arg* ...) expr)      => (constructor (arg* 0 ...) #f expr)
+      (local-constructor src expr)           => (local-constructor #f expr))
     (ADT-Runtime-Op (adt-rt-op)
       (ledger-op (arg* ...) result-type runtime-code) =>
         ledger-op)
@@ -851,7 +851,18 @@
     (Type (type)
       (- (tundeclared))))
 
-  (define-language/pretty Loneledger (extends Lnotundeclared)
+  ;; The `local` forms flow through expansion and typing but do not yet have
+  ;; layout or code generation, therefore `reject-local-declarations` subtracts
+  ;; them here, before the ledger is packaged.
+  (define-language/pretty Lnolocal (extends Lnotundeclared)
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration src ledger-field-name type)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src expr)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src function-name (arg* ...) type expr))))
+
+  (define-language/pretty Loneledger (extends Lnolocal)
     (Program-Element (pelt)
       (- lconstructor)
       (+ kdecl))

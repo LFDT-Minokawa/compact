@@ -15,16 +15,16 @@
 
 #!chezscheme
 
-;; The `local` forms flow through the frontend but do not yet compile past it,
-;; therefore this pass rejects them with a clear error rather than letting a
-;; later pass choke.
-(define-pass reject-local-declarations : Lnoandornot (ir) -> Lnolocal ()
+;; The `local` forms flow through expansion and typing but do not yet have
+;; layout or code generation, therefore this pass rejects them with a clear
+;; error rather than letting a later pass choke.
+(define-pass reject-local-declarations : Lnotundeclared (ir) -> Lnolocal ()
   (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
-    [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,type)
+    [(local-ledger-declaration ,src ,ledger-field-name ,type)
      (source-errorf src "local declarations are not yet implemented")])
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(local-constructor ,src ,expr)
      (source-errorf src "the local constructor is not yet implemented")])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
-    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,expr)
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (source-errorf src "local functions are not yet implemented")]))
