@@ -15,7 +15,7 @@
 
 #!chezscheme
 
-(define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
+(define-pass track-witness-data : Lnolocal (ir) -> Lnolocal ()
   ; track-witness-data is the so-called "witness-protection program" or WPP for short
   ; that enforces explicit disclosure of witness values, i.e., values that come into a
   ; contract via the constructor, exported circuit arguments, or witness return values
@@ -448,7 +448,7 @@
         [(type) (default-value type '())]
         [(type witness*)
          (let default-value ([type type])
-           (nanopass-case (Lwithpaths Type) type
+           (nanopass-case (Lnolocal Type) type
              [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
               (Abs-multiple (map default-value type*))]
              [(ttuple ,src ,type* ...)
@@ -553,7 +553,7 @@
             witness*))))
 
     (define (de-alias type)
-      (nanopass-case (Lwithpaths Type) type
+      (nanopass-case (Lnolocal Type) type
         [(talias ,src ,nominal? ,type-name ,type)
          (de-alias type)]
         [else type]))
@@ -804,7 +804,7 @@
      (Abs-multiple
        (fold-right
          (lambda (tuple-arg abs*)
-           (nanopass-case (Lwithpaths Tuple-Argument) tuple-arg
+           (nanopass-case (Lnolocal Tuple-Argument) tuple-arg
              [(single ,src ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
               (cons abs abs*)]
              [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
@@ -819,7 +819,7 @@
     [(vector ,src ,tuple-arg* ...)
      (let ([abs* (fold-right
                    (lambda (tuple-arg abs*)
-                     (nanopass-case (Lwithpaths Tuple-Argument) tuple-arg
+                     (nanopass-case (Lnolocal Tuple-Argument) tuple-arg
                        [(single ,src ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
                         (cons abs abs*)]
                        [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
@@ -858,7 +858,7 @@
     [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
     [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
-     (nanopass-case (Lwithpaths ADT-Op) adt-op
+     (nanopass-case (Lnolocal ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
         (unless (null? control-witness*)
           (record-leak! src^ "performing this ledger operation" control-witness*))
@@ -880,7 +880,7 @@
         (default-value type)])]
     [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
      (let-values ([(pure? type)
-            (nanopass-case (Lwithpaths Type) (de-alias type)
+            (nanopass-case (Lnolocal Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (let loop ([elt-name* elt-name*]
                           [pure-dcl* pure-dcl*]

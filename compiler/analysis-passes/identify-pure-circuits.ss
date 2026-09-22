@@ -53,6 +53,9 @@
             [(eq? result 'native-witness)
              (raise (make-impure-condition calling-function-name src
                       (format "calls native witness ~s" (id-sym function-name))))]
+            [(eq? result 'local-circuit)
+             (raise (make-impure-condition calling-function-name src
+                      (format "calls local function ~s" (id-sym function-name))))]
             [(impure-condition? result) (raise-continuable result)]
             [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
             [else (assert cannot-happen)]))))
@@ -79,6 +82,8 @@
              'pure-circuit)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'witness)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (eq-hashtable-set! function-ht function-name 'local-circuit)]
     [,kdecl (void)]
     [,ldecl (void)]
     [,export-tdefn (void)]
@@ -111,7 +116,9 @@
   (Expression : Expression (ir function-name) -> Expression ()
     [(public-ledger ,src ,ledger-field-name ,sugar? ,accessor* ...)
      (raise (make-impure-condition function-name src
-              (format "accesses ledger field ~s" (id-sym ledger-field-name))))]
+              (format "accesses ~a field ~s"
+                      (if (id-local? ledger-field-name) "local" "ledger")
+                      (id-sym ledger-field-name))))]
     [(emit ,src ,type ,[expr])
      (nanopass-case (Lnodca Type) (de-alias type)
        [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)

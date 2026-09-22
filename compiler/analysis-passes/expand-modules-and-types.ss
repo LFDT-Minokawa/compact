@@ -854,6 +854,7 @@
                              unresolved-export*)))]
                   [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,type)
                    (let ([id (make-source-id src ledger-field-name)])
+                     (id-local?-set! id #t)
                      (let ([info (Info-ledger id)])
                        (env-insert! p src ledger-field-name info)
                        (set! frob* (cons (make-frob (reverse seqno) pelt p id) frob*))

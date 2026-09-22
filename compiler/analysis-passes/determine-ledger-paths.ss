@@ -45,6 +45,18 @@
                       (enumerate pbtree))
                   ...)
                (Public-Ledger-Binding pbtree (reverse ridx*))))
+        ,lconstructor)]
+    [(local-ledger-declaration ,public-binding* ... ,[lconstructor])
+     `(local-ledger-declaration
+        ,(let f ([pbtree (batch maximum-ledger-segment-length public-binding*)]
+                 [ridx* '()])
+           (if (list? pbtree)
+               `(public-ledger-array
+                  ,(map (lambda (pbtree i) (f pbtree (cons i ridx*)))
+                      pbtree
+                      (enumerate pbtree))
+                  ...)
+               (Public-Ledger-Binding pbtree (reverse ridx*))))
         ,lconstructor)])
   (Public-Ledger-Binding : Public-Ledger-Binding (ir idx*) -> Public-Ledger-Binding ()
     [(,src ,ledger-field-name ,[type])

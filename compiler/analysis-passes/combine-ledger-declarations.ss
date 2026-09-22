@@ -15,28 +15,39 @@
 
 #!chezscheme
 
-(define-pass combine-ledger-declarations : Lnolocal (ir) -> Loneledger ()
+(define-pass combine-ledger-declarations : Lnotundeclared (ir) -> Loneledger ()
   (definitions
     (define kernel-id*)
     (define (de-alias type)
-      (nanopass-case (Lnolocal Type) type
+      (nanopass-case (Lnotundeclared Type) type
         [(talias ,src ,nominal? ,type-name ,type)
          (de-alias type)]
         [else type]))
     (define (kernel? ldecl)
-      (nanopass-case (Lnolocal Ledger-Declaration) ldecl
+      (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
         [(public-ledger-declaration ,src ,ledger-field-name ,type)
-         (nanopass-case (Lnolocal Type) (de-alias type)
+         (nanopass-case (Lnotundeclared Type) (de-alias type)
            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
             (eq? adt-name 'Kernel)]
-           [else (assert cannot-happen)])])))
+           [else (assert cannot-happen)])]
+        [(local-ledger-declaration ,src ,ledger-field-name ,type) #f]))
+    (define (local-decl? ldecl)
+      (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+        [(local-ledger-declaration ,src ,ledger-field-name ,type) #t]
+        [else #f]))
+    (define (local-ctor? lconstructor)
+      (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
+        [(local-constructor ,src ,expr) #t]
+        [else #f])))
   (Program : Program (ir) -> Program ()
     [(program ,src (,[contract-type*] ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
-     (let*-values ([(ldecl* pelt*) (partition Lnolocal-Ledger-Declaration? pelt*)]
-                   [(lconstructor* pelt*) (partition Lnolocal-Ledger-Constructor? pelt*)]
+     (let*-values ([(ldecl* pelt*) (partition Lnotundeclared-Ledger-Declaration? pelt*)]
+                   [(lconstructor* pelt*) (partition Lnotundeclared-Ledger-Constructor? pelt*)]
+                   [(local-ldecl* ldecl*) (partition local-decl? ldecl*)]
+                   [(local-ctor* lconstructor*) (partition local-ctor? lconstructor*)]
                    [(kernel-ldecl* ldecl*) (partition kernel? ldecl*)])
        (fluid-let ([kernel-id* (map (lambda (kernel-ldecl)
-                                      (nanopass-case (Lnolocal Ledger-Declaration) kernel-ldecl
+                                      (nanopass-case (Lnotundeclared Ledger-Declaration) kernel-ldecl
                                         [(public-ledger-declaration ,src ,ledger-field-name ,type)
                                          ledger-field-name]))
                                     kernel-ldecl*)])
@@ -44,13 +55,13 @@
             ,(if (null? kernel-ldecl*)
                  '()
                  (list
-                   (nanopass-case (Lnolocal Ledger-Declaration) (car kernel-ldecl*)
+                   (nanopass-case (Lnotundeclared Ledger-Declaration) (car kernel-ldecl*)
                      [(public-ledger-declaration ,src ,ledger-field-name ,type)
                       `(kernel-declaration (,src ,ledger-field-name ,(Type type)))])))
             ...
             (public-ledger-declaration
               ,(map (lambda (ldecl)
-                      (nanopass-case (Lnolocal Ledger-Declaration) ldecl
+                      (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
                         [(public-ledger-declaration ,src ,ledger-field-name ,type)
                          `(,src ,ledger-field-name ,(Type type))]))
                     ldecl*)
@@ -58,18 +69,45 @@
               ,(cond
                 [(null? lconstructor*) `(constructor ,src () (tuple ,src))]
                 [(null? (cdr lconstructor*))
-                 (nanopass-case (Lnolocal Ledger-Constructor) (car lconstructor*)
+                 (nanopass-case (Lnotundeclared Ledger-Constructor) (car lconstructor*)
                    [(constructor ,src (,arg* ...) ,expr)
                     `(constructor ,src (,(map Argument arg*) ...) ,(Expression expr))])]
                 [else
                  (let ([src* (map (lambda (lconstructor)
-                                    (nanopass-case (Lnolocal Ledger-Constructor) lconstructor
+                                    (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
                                       [(constructor ,src (,arg* ...) ,expr) src]))
                                   lconstructor*)])
                    (source-errorf (car src*)
                                   "found other ledger constructors in program: \
                                    ~{\n    ~a~^,~}"
                                   (map format-source-object (cdr src*))))]))
+            ,(if (and (null? local-ldecl*) (null? local-ctor*))
+                 '()
+                 (list
+                   `(local-ledger-declaration
+                      ,(map (lambda (ldecl)
+                              (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+                                [(local-ledger-declaration ,src ,ledger-field-name ,type)
+                                 `(,src ,ledger-field-name ,(Type type))]))
+                            local-ldecl*)
+                      ...
+                      ,(cond
+                        [(null? local-ctor*) `(local-constructor ,src (tuple ,src))]
+                        [(null? (cdr local-ctor*))
+                         (nanopass-case (Lnotundeclared Ledger-Constructor) (car local-ctor*)
+                           [(local-constructor ,src ,expr)
+                            `(local-constructor ,src ,(Expression expr))])]
+                        [else
+                         (let ([src* (map (lambda (lconstructor)
+                                            (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
+                                              [(local-constructor ,src ,expr) src]))
+                                          local-ctor*)])
+                           (source-errorf (car src*)
+                                          "found other local constructors in program: \
+                                           ~{\n    ~a~^,~}"
+                                          (map format-source-object (cdr src*))))])))
+                 )
+            ...
             ,(map Program-Element pelt*)
             ...)))])
   (Program-Element : Program-Element (ir) -> Program-Element ()
@@ -84,7 +122,7 @@
        (let ([accessor* (cons (with-output-language (Loneledger Ledger-Accessor)
                                 `(,src ,ledger-op ,(map Expression expr*) ...))
                               accessor*)])
-         (nanopass-case (Lnolocal Expression) expr
+         (nanopass-case (Lnotundeclared Expression) expr
            [(ledger-call ,src ,ledger-op ,sugar^? ,expr ,expr* ...)
             (assert (not sugar^?))
             (loop src ledger-op expr expr* accessor*)]

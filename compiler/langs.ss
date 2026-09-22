@@ -23,7 +23,7 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
-          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats Lnolocal-Ledger-Declaration? Lnolocal-Ledger-Constructor?
+          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -31,10 +31,10 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
+          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
-          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats
+          Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
           Loneledger unparse-Loneledger Loneledger-pretty-formats
           Lnodca unparse-Lnodca Lnodca-pretty-formats Lnodca-Expression?
           Lwithpaths0 unparse-Lwithpaths0 Lwithpaths0-pretty-formats
@@ -475,7 +475,7 @@
       (+ (curve-secp256r1)))
     )
 
-  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix)
+  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-prefix)
     (define id-prefix (make-parameter "%"))
     (define id-counter (make-parameter 0))
     (define-record-type id
@@ -490,6 +490,7 @@
     (module (id-exported? id-exported?-set!
              id-pure? id-pure?-set!
              id-sealed? id-sealed?-set!
+             id-local? id-local?-set!
              id-temp? id-temp?-set!)
       (define-syntax define-flag
         (syntax-rules ()
@@ -500,7 +501,8 @@
       (define-flag 0 id-exported? id-exported?-set!)
       (define-flag 1 id-sealed? id-sealed?-set!)
       (define-flag 2 id-pure? id-pure?-set!)
-      (define-flag 3 id-temp? id-temp?-set!))
+      (define-flag 3 id-temp? id-temp?-set!)
+      (define-flag 4 id-local? id-local?-set!))
     (define (make-source-id src sym) (make-id src sym))
     (define (make-temp-id src sym)
       (let ([id (make-id src sym)])
@@ -851,18 +853,7 @@
     (Type (type)
       (- (tundeclared))))
 
-  ;; The `local` forms flow through expansion and typing but do not yet have
-  ;; layout or code generation, therefore `reject-local-declarations` subtracts
-  ;; them here, before the ledger is packaged.
-  (define-language/pretty Lnolocal (extends Lnotundeclared)
-    (Ledger-Declaration (ldecl)
-      (- (local-ledger-declaration src ledger-field-name type)))
-    (Ledger-Constructor (lconstructor)
-      (- (local-constructor src expr)))
-    (Circuit-Definition (cdefn)
-      (- (local-circuit src function-name (arg* ...) type expr))))
-
-  (define-language/pretty Loneledger (extends Lnolocal)
+  (define-language/pretty Loneledger (extends Lnotundeclared)
     (Program-Element (pelt)
       (- lconstructor)
       (+ kdecl))
@@ -871,7 +862,10 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration src ledger-field-name type))
       (+ (public-ledger-declaration public-binding* ... lconstructor) =>
-           (public-ledger-declaration #f public-binding* ... #f lconstructor)))
+           (public-ledger-declaration #f public-binding* ... #f lconstructor))
+      (- (local-ledger-declaration src ledger-field-name type))
+      (+ (local-ledger-declaration public-binding* ... lconstructor) =>
+           (local-ledger-declaration #f public-binding* ... #f lconstructor)))
     (Public-Ledger-Binding (public-binding)
       (+ (src ledger-field-name type) => (ledger-field-name type)))
     (Expression (expr index)
@@ -900,7 +894,10 @@
     (Ledger-Declaration (ldecl)
       (- (public-ledger-declaration public-binding* ... lconstructor))
       (+ (public-ledger-declaration pl-array lconstructor) =>
-           (public-ledger-declaration #f pl-array #f lconstructor)))
+           (public-ledger-declaration #f pl-array #f lconstructor))
+      (- (local-ledger-declaration public-binding* ... lconstructor))
+      (+ (local-ledger-declaration pl-array lconstructor) =>
+           (local-ledger-declaration #f pl-array #f lconstructor)))
     (Public-Ledger-Array (pl-array)
       (+ (public-ledger-array pl-array-elt ...) => (pl-array-elt 0 ...)))
     (Public-Ledger-Array-Element (pl-array-elt)
@@ -929,7 +926,17 @@
       (+ path-index
          (src type expr) => (type expr))))
 
-  (define-language/pretty Lnodisclose (extends Lwithpaths)
+  ;; The `local` forms have layout but no code generation, therefore
+  ;; `reject-local-declarations` subtracts them here.
+  (define-language/pretty Lnolocal (extends Lwithpaths)
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration pl-array lconstructor)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src expr)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src function-name (arg* ...) type expr))))
+
+  (define-language/pretty Lnodisclose (extends Lnolocal)
     (ADT-Op (adt-op)
       (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code))
       (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>

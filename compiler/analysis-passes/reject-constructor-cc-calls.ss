@@ -64,9 +64,14 @@
   (record-function-kind! : Program-Element (ir) -> * (void)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! function-ht function-name expr)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (eq-hashtable-set! function-ht function-name expr)]
     [else (void)])
   (Program-Element : Program-Element (ir) -> Program-Element ()
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (process-circuit! (eq-hashtable-cell function-ht function-name #f))
+     ir]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (process-circuit! (eq-hashtable-cell function-ht function-name #f))
      ir])
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
@@ -81,6 +86,21 @@
                                 (cc-call-condition-reason result)
                                 (format-source-object (cc-call-condition-src result)))
                  (source-errorf src "constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a"
+                                (id-sym offending-function-name)
+                                (cc-call-condition-reason result)
+                                (format-source-object (cc-call-condition-src result))))))))
+     ir]
+    [(local-constructor ,src ,expr)
+     (let ([a (cons #f expr)])
+       (process-circuit! a)
+       (let ([result (cdr a)])
+         (when (cc-call-condition? result)
+           (let ([offending-function-name (cc-call-condition-function-name result)])
+             (if (eq? offending-function-name #f)
+                 (source-errorf src "local constructor cannot call external contracts but ~a at ~a"
+                                (cc-call-condition-reason result)
+                                (format-source-object (cc-call-condition-src result)))
+                 (source-errorf src "local constructor cannot call external contracts but calls (directly or indirectly) ~a, which ~a at ~a"
                                 (id-sym offending-function-name)
                                 (cc-call-condition-reason result)
                                 (format-source-object (cc-call-condition-src result))))))))

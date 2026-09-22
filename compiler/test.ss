@@ -7963,7 +7963,8 @@ groups than for single tests.
       "}"
       )
     (returns
-      (program))
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))))
     )
 
   (test
