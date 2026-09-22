@@ -41,7 +41,7 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --verbose, given with --version, prints the version, commit, commit date, and
     language and runtime versions as separate fields, showing unknown for
-    anything the build did not record.  It has no other effect.
+    anything the build did not record. 
 
   --language-version prints the language version and exits.
 
