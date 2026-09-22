@@ -95,6 +95,7 @@ export circuit secp256k1EcdsaVerify(
                  sig: Secp256k1EcdsaSignature,
                  pk: Secp256k1Point
                  ): Boolean {
+  assert(pk != default<Secp256k1Point>, "Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key");
   const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
@@ -145,7 +146,7 @@ circuit secp256k1BaseBigEndian(b: Secp256k1Base): Vector<32, Uint<8>> {
 // Derive an Ethereum-style address from a secp256k1 public key.
 // The point at infinity is rejected as it has no Ethereum address.
 export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
-  assert(pk != default<Secp256k1Point>, "Cannot compute the address for the point at infinity");
+  assert(pk != default<Secp256k1Point>, "Secp256k1Point identity is not a permitted input to secp256k1EthereumAddress");
   const hash = keccak256<[Vector<32, Uint<8>>, Vector<32, Uint<8>>]>(
                  [secp256k1BaseBigEndian(secp256k1PointX(pk)),
                   secp256k1BaseBigEndian(secp256k1PointY(pk))]
