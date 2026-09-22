@@ -7969,6 +7969,32 @@ groups than for single tests.
 
   (test
     '(
+      "local remember(c: Bytes<32>): Boolean {"
+      "  const [x, y] = [c, c];"
+      "  if (x == y) {"
+      "    return true;"
+      "  }"
+      "  return false;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  local credits: Uint<4>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "local declarations are not yet implemented" ()))
+    )
+
+  (test
+    '(
       "ledger x: Field;"
       )
     (returns

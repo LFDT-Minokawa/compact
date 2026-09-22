@@ -48,6 +48,10 @@
     [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg* ...) ,type ,[blck])
      (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
      (reject-duplicate! src "parameter name" (map arg->sym arg*))
+     ir]
+    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,[blck])
+     (reject-duplicate! src "generic parameter name" (map type-param->tvar-name type-param*))
+     (reject-duplicate! src "parameter name" (map arg->sym arg*))
      ir])
   (Structure-Definition : Structure-Definition (ir) -> Structure-Definition ()
     [(struct ,src ,exported? ,struct-name (,type-param* ...) ,arg* ...)

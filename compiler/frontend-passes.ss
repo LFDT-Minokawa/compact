@@ -50,7 +50,6 @@
 
   (define-passes frontend-passes
     (resolve-includes                Lnoinclude)
-    (reject-local-declarations       Lnolocal)
     (expand-const                    Lsingleconst)
     (expand-patterns                 Lnopattern)
     (reject-for-return               Lnopattern)
@@ -59,5 +58,6 @@
     (reject-duplicate-bindings       Lhoisted)
     (eliminate-statements            Lexpr)
     (eliminate-boolean-connectives   Lnoandornot)
+    (reject-local-declarations       Lnolocal)
     (prepare-for-expand              Lpreexpand))
 )

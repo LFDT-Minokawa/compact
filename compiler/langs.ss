@@ -323,17 +323,7 @@
     (Include (incld)
       (- (include src file))))
 
-  ;; The `local` forms parse and format but do not yet compile, therefore
-  ;; `reject-local-declarations` subtracts them here.
-  (define-language/pretty Lnolocal (extends Lnoinclude)
-    (Ledger-Declaration (ldecl)
-      (- (local-ledger-declaration src exported? ledger-field-name type)))
-    (Ledger-Constructor (lconstructor)
-      (- (local-constructor src blck)))
-    (Circuit-Definition (cdefn)
-      (- (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck))))
-
-  (define-language/pretty Lsingleconst (extends Lnolocal)
+  (define-language/pretty Lsingleconst (extends Lnoinclude)
     (Const-Binding (cbinding)
       (- (src pattern type expr)))
     (Statement (stmt)
@@ -350,7 +340,10 @@
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck))
+      (- (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck))
+      (+ (local-circuit src exported? function-name (type-param* ...) (arg* ...) type blck) =>
+           (local-circuit exported? function-name (type-param* ...) (arg* 0 ...) 4 type #f blck)))
     (Pattern-Argument (parg)
       (- (src pattern type)))
     (Statement (stmt)
@@ -380,11 +373,16 @@
   (define-language/pretty Lexpr (extends Lhoisted)
     (Ledger-Constructor (lconstructor)
       (- (constructor src (arg* ...) blck))
-      (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr)))
+      (+ (constructor src (arg* ...) expr) => (constructor (arg* 0 ...) #f expr))
+      (- (local-constructor src blck))
+      (+ (local-constructor src expr) => (local-constructor #f expr)))
     (Circuit-Definition (cdefn)
       (- (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type blck))
       (+ (circuit src exported? pure-dcl? function-name (type-param* ...) (arg* ...) type expr) =>
-           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
+           (circuit exported? pure-dcl? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr))
+      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type blck))
+      (+ (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr) =>
+           (local-circuit exported? function-name (type-param* ...) (arg* 0 ...) 4 type #f expr)
       ))
     (Argument (arg local))
     (Block (blck)
@@ -418,11 +416,22 @@
          (or src expr1 expr2)
          (not src expr))))
 
+  ;; The `local` forms flow through the frontend but do not yet compile past
+  ;; it, therefore `reject-local-declarations` subtracts them here, and
+  ;; `Lpreexpand` and everything after it never carry them.
+  (define-language/pretty Lnolocal (extends Lnoandornot)
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration src exported? ledger-field-name type)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src expr)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src exported? function-name (type-param* ...) (arg* ...) type expr))))
+
   (define-record-type native-entry
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
-  (define-language/pretty Lpreexpand (extends Lnoandornot)
+  (define-language/pretty Lpreexpand (extends Lnolocal)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
