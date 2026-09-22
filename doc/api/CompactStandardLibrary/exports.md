@@ -790,7 +790,8 @@ circuit hashToCurve<T>(value: T): JubjubPoint;
 Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
 as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
 and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
-Returns true if the signature is valid; false if the signature does not verify.
+Asserts that the verification key is not the identity (default) JubjubPoint, which is not permitted because it would make verification independent of the message.
+Returns true if the signature is valid; false otherwise.
 
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.
@@ -803,23 +804,13 @@ circuit jubjubSchnorrVerify<#N>(
           ): Boolean;
 ```
 
-### `jubjubSchnorrVerify`
-
-Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
-as a vector of `n` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
-and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
-Asserts that the signature is valid; fails if the signature does not verify.
-
-```compact
-circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, vk: JubjubPoint): [];
-```
-
 ### `secp256k1EcdsaVerify`
 
 Verifies an ECDSA signature over the secp256k1 curve. Takes a 32-byte message
 hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a public key
-(a [`Secp256k1Point`](#secp256k1point)). Returns true if the signature is valid;
-false otherwise.
+(a [`Secp256k1Point`](#secp256k1point)).
+Asserts that the verification key is not the identity (default) Secp256k1Point, which is not permitted because it would make verification independent of the message hash.
+Returns true if the signature is valid; false otherwise.
 
 The circuit takes `msgHash` as given and does not constrain it to any message.
 The caller is expected to bind it to the actual message by hashing that message

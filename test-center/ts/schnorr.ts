@@ -44,3 +44,14 @@ test('Tampered signature fails in-circuit verification', async () => {
   const [c, Ctxt] = await startContract(contractCode, {}, 0);
   expect((await c.circuits.verifySchnorrN3(Ctxt, msg, badSig, pk)).result).toBe(false);
 });
+
+test('Cannot use identity point as a verification key', async () => {
+  const sk = runtime.jubjubSampleScalar();
+  const identity = {x: 0n, y: 1n};
+  const msg = sampleMsg();
+  const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
+
+  const [c, Ctxt] = await startContract(contractCode, {}, 0);
+  await expect(c.circuits.verifySchnorrN3(Ctxt, msg, sig, identity)).rejects.toThrow(runtime.CompactError);
+  await expect(c.circuits.verifySchnorrN3(Ctxt, msg, sig, identity)).rejects.toThrow('failed assert: JubjubPoint identity is not a permitted jubjubSchnorrVerify verification key');
+});

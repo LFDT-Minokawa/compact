@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.34.104, language 0.26.100, runtime 0.19.103]
+## [Toolchain 0.34.105, language 0.26.101, runtime 0.19.103]
 
 ### Added
 
@@ -24,6 +24,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   out of range, or that does not satisfy the curve equation, now throw a
   `CompactError` naming the curve.  A point belonging to the other curve is one
   of the cases this catches.
+
+## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
+
+- Any call to the Compact standard library implementations of `jubjubSchnorrVerify`
+  and `secp256k1EcdsaVerify` that passes the identity point as the public key now
+  results in a failed assertion, because doing so is inherently unsafe.
+  This is a **breaking change**.
 
 ## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
