@@ -217,6 +217,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                      |         |                                                                                                    |
 |----------------------|---------|----------------------------------------------------------------------------------------------------|
 | *ledger-declaration* | &xrarr; | `export`<sup>opt</sup> `sealed`<sup>opt</sup> `ledger` [*id*](#identifier) `:` [*type*](#type) `;` |
+|                      | \|      | `export`<sup>opt</sup> `local` [*id*](#identifier) `:` [*type*](#type) `;`                         |
 </div>
 
 #### Witness-declaration
@@ -233,6 +234,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                          |         |                                                                                     |
 |--------------------------|---------|-------------------------------------------------------------------------------------|
 | *constructor-definition* | &xrarr; | `constructor` [*pattern-parameter-list*](#pattern-parameter-list) [*block*](#block) |
+|                          | \|      | `local` `constructor` [*block*](#block)                                             |
 </div>
 
 #### Circuit-definition
@@ -241,6 +243,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                      |         |                                                                                                                                                                                                                                   |
 |----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | *circuit-definition* | &xrarr; | `export`<sup>opt</sup> `pure`<sup>opt</sup> `circuit` [*function-name*](#identifier) [*gparams*](#generic-parameter-list)<sup>opt</sup> [*pattern-parameter-list*](#pattern-parameter-list) `:` [*type*](#type) [*block*](#block) |
+|                      | \|      | `export`<sup>opt</sup> `local` [*function-name*](#identifier) [*gparams*](#generic-parameter-list)<sup>opt</sup> [*pattern-parameter-list*](#pattern-parameter-list) `:` [*type*](#type) [*block*](#block)                        |
 </div>
 
 #### Structure-declaration
