@@ -155,7 +155,7 @@ jobs:
           INTERNAL: ${{ inputs.version }}
         run: |
           # A final release is built here too and promoted by public-release.yml, so
-          # what ships is built as the release rather than renamed. See issue #705.
+          # what ships is built as the release rather than renamed.
           # The prerelease part is restricted to semver's characters because the build
           # writes it into the compiler's source; `.+` would accept quotes and parens.
           if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
