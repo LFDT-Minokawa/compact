@@ -152,3 +152,76 @@ export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
                  );
   return slice<20>(hash, 12);
 }
+
+// Ed25519 signature.
+//
+// Ed25519 transmits a signature as a point followed by a `Curve25519Scalar`. The type 
+// guarantees that it lies in [0, L), for L the order of the prime-order
+// subgroup.
+export struct Ed25519Signature {
+  r: Curve25519Point,
+  s: Curve25519Scalar,
+}
+
+// Whether a Curve25519 base field element is odd.
+//
+// Compact has no bitwise operations, so the low bit is reached by subtracting the
+// higher bits of the least significant byte away one at a time.  Only that byte
+// matters, because every byte above it contributes a multiple of 256.
+circuit curve25519BaseIsOdd(x: Curve25519Base): Boolean {
+  const b = (x as Bytes<32> as Vector<32, Uint<8>>)[0];
+  const b6 = b  >= 128 ? b  - 128 : b;
+  const b5 = b6 >= 64  ? b6 - 64  : b6;
+  const b4 = b5 >= 32  ? b5 - 32  : b5;
+  const b3 = b4 >= 16  ? b4 - 16  : b4;
+  const b2 = b3 >= 8   ? b3 - 8   : b3;
+  const b1 = b2 >= 4   ? b2 - 4   : b2;
+  return (b1 >= 2 ? b1 - 2 : b1) == 1;
+}
+
+// Encode a point as RFC 8032 section 5.1.2 does: the y-coordinate little-endian, with
+// the least significant bit of the x-coordinate in the most significant bit.
+//   https://www.rfc-editor.org/rfc/rfc8032#section-5.1.2
+// The y-coordinate is below p and therefore leaves that bit clear.
+circuit ed25519Encode(p: Curve25519Point): Bytes<32> {
+  const y = curve25519PointY(p) as Bytes<32> as Vector<32, Uint<8>>;
+  const sign = curve25519BaseIsOdd(curve25519PointX(p)) ? 128 : 0;
+  return Bytes[
+               y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7],
+               y[8], y[9], y[10], y[11], y[12], y[13], y[14], y[15],
+               y[16], y[17], y[18], y[19], y[20], y[21], y[22], y[23],
+               y[24], y[25], y[26], y[27], y[28], y[29], y[30],
+               (y[31] + sign) as Uint<8>];
+}
+
+// Preimage of the Ed25519 challenge scalar: the encoded commitment point, the encoded
+// public key, and the message, as RFC 8032 section 5.1.7 prescribes.
+struct Ed25519ChallengePreimage<#n> {
+  r: Bytes<32>,
+  pk: Bytes<32>,
+  msg: Bytes<n>,
+}
+
+// Verify an Ed25519 signature over a message of `n` bytes.
+//
+// Implements the verification equation
+//   [s]B == R + [k]A
+// where B is the Ed25519 base point, R and s are the signature's commitment and
+// response, A is the public key, and k is the challenge scalar.
+//
+// Public keys whose x-coordinate is zero are rejected.
+export circuit ed25519Verify<#n>(
+                 msg: Bytes<n>,
+                 sig: Ed25519Signature,
+                 pk: Curve25519Point
+                 ): Boolean {
+  const {r, s} = sig;
+  const k = persistentHash<Ed25519ChallengePreimage<n>>(
+              Ed25519ChallengePreimage<n> {
+                r: ed25519Encode(r),
+                pk: ed25519Encode(pk),
+                msg: msg
+              }) as Curve25519Scalar;
+  return (curve25519PointX(pk) as Bytes<32>) != pad(32, "")
+         && ecMulGenerator(s) == ecAdd(r, ecMul(pk, k));
+}

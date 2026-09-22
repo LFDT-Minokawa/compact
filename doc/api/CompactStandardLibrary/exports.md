@@ -96,6 +96,18 @@ struct Secp256k1EcdsaSignature {
 }
 ```
 
+### `Ed25519Signature`
+
+An Ed25519 signature, used with [`ed25519Verify`](#ed25519verify). Ed25519
+transmits a signature as a point and a scalar.
+
+```compact
+struct Ed25519Signature {
+  r: Curve25519Point;
+  s: Curve25519Scalar;
+}
+```
+
 ### `MerkleTreeDigest`
 
 The root hash of a Merkle tree, represented by a single `Field`.
@@ -692,11 +704,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* `Curve25519Point`s.
 
 ```compact
 circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
 circuit ecAdd(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point;
 circuit ecAdd(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point;
+circuit ecAdd(a: Curve25519Point, b: Curve25519Point): Curve25519Point;
 ```
 
 ### `ecNeg`
@@ -715,11 +729,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* `Curve25519Point`s.
 
 ```compact
 circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint;
 circuit ecMul(a: Secp256k1Point, b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMul(a: Secp256r1Point, b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMul(a: Curve25519Point, b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `ecMulGenerator`
@@ -729,11 +745,13 @@ scalar. It is polymorphic for the following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* `Curve25519Point`s.
 
 ```compact
 circuit ecMulGenerator(b: JubjubScalar): JubjubPoint;
 circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMulGenerator(b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMulGenerator(b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `neg`
@@ -840,6 +858,19 @@ low 20 bytes of the Keccak-256 hash of the [`Secp256k1Point`](#secp256k1point).
 
 ```compact
 circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20>;
+```
+
+### `ed25519Verify`
+
+Verifies an Ed25519 signature over a message of `n` bytes. Takes the message, an
+[`Ed25519Signature`](#ed25519signature), and a public key (a `Curve25519Point`).
+Returns true if the signature is valid; false otherwise.
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit ed25519Verify<#n>(msg: Bytes<n>, sig: Ed25519Signature, pk: Curve25519Point): Boolean;
 ```
 
 ### `merkleTreePathRoot`
