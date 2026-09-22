@@ -94,6 +94,7 @@
      implements
      include
      ledger
+     local
      map
      new
      of
@@ -133,6 +134,7 @@
      extends
      finally
      function
+     host
      in
      instanceof
      interface
@@ -537,7 +539,11 @@
       [public-ledger-declaration :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD sealed) #f) (KEYWORD ledger) id #\: type #\; =>
        (lambda (src kwd-export? kwd-sealed? kwd id colon type semicolon)
          (with-output-language (Lparser Ledger-Declaration)
-           `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))])
+           `(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,id ,colon ,type ,semicolon)))]
+      [local-ledger-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD local) id #\: type #\; =>
+       (lambda (src kwd-export? kwd id colon type semicolon)
+         (with-output-language (Lparser Ledger-Declaration)
+           `(local-ledger-declaration ,src ,kwd-export? ,kwd ,id ,colon ,type ,semicolon)))])
     (Witness-declaration (witness-declaration)
       [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
        (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
@@ -547,12 +553,20 @@
       [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
        (lambda (src kwd pattern-param-list blck)
          (with-output-language (Lparser Ledger-Constructor)
-           `(constructor ,src ,kwd ,pattern-param-list ,blck)))])
+           `(constructor ,src ,kwd ,pattern-param-list ,blck)))]
+      [local-constructor :: src (KEYWORD local) (KEYWORD constructor) block =>
+       (lambda (src kwd kwd-constructor blck)
+         (with-output-language (Lparser Ledger-Constructor)
+           `(local-constructor ,src ,kwd ,kwd-constructor ,blck)))])
     (Circuit-definition (circuit-definition)
       [circuit-definition :: src (OPT (KEYWORD export) #f) (OPT (KEYWORD pure) #f) (KEYWORD circuit) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
        (lambda (src kwd-export? kwd-pure? kwd function-name generic-param-list? pattern-param-list colon type block)
          (with-output-language (Lparser Circuit-Definition)
-           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
+           `(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))]
+      [local-circuit-definition :: src (OPT (KEYWORD export) #f) (KEYWORD local) function-name (OPT gparams #f) pattern-parameter-list #\: type block =>
+       (lambda (src kwd-export? kwd function-name generic-param-list? pattern-param-list colon type block)
+         (with-output-language (Lparser Circuit-Definition)
+           `(local-circuit ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,pattern-param-list (,colon ,type) ,block)))])
     (Structure-declaration (struct-declaration)
       [structure-declaration/semicolons :: src (OPT (KEYWORD export) #f) (KEYWORD struct) struct-name (OPT gparams #f) #\{ (SEP* typed-id #\; #t) #\} (OPT #\; #f) =>
        (lambda (src kwd-export? kwd struct-name generic-param-list? lbrace arg-sep* rbrace semicolon?)

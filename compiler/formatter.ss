@@ -808,6 +808,17 @@
                      (cons*
                        nbsp (Type type)
                        (add-punctuation semicolon '()))))))))]
+      [(local-ledger-declaration ,src ,kwd-export? ,kwd ,ledger-field-name ,colon ,type ,semicolon)
+       (// src
+           (apply make-Qconcat #f
+             (add-modifier kwd-export?
+               (cons*
+                 (make-Qtoken kwd)
+                 nbsp (make-Qtoken ledger-field-name)
+                 (add-punctuation colon
+                   (cons*
+                     nbsp (Type type)
+                     (add-punctuation semicolon '())))))))]
       [(constructor ,src ,kwd ,parg-list ,blck)
        (// src
            (make-Qblock
@@ -817,6 +828,13 @@
                  (make-Qstring "")
                  (parg-list-getter parg-list)
                  '()))
+             blck))]
+      [(local-constructor ,src ,kwd ,kwd^ ,blck)
+       (// src
+           (make-Qblock
+             (make-Qconcat #f
+               (make-Qtoken kwd)
+               nbsp (make-Qtoken kwd^))
              blck))]
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
@@ -831,6 +849,19 @@
                             (parg-list-getter parg-list)
                             (list (Return-Type return-type)))
                      '()))))
+             blck))]
+      [(local-circuit ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
+       (// src
+           (make-Qblock
+             (apply make-Qconcat #f
+               (add-modifier kwd-export?
+                 (cons*
+                   (make-Qtoken kwd)
+                   nbsp (make-Qsignature
+                          (Qfun function-name generic-param-list?)
+                          (parg-list-getter parg-list)
+                          (list (Return-Type return-type)))
+                   '())))
              blck))]
       [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
        (// src

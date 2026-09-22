@@ -1545,6 +1545,7 @@ top level.
 |                      |         |                                                                                                                   |
 |----------------------|---------|-------------------------------------------------------------------------------------------------------------------|
 | *ledger-declaration* | &xrarr; | `export`<sup>opt</sup> `sealed`<sup>opt</sup> `ledger` [*id*](#terminal-names) `:` [*type*](#primitive-types) `;` |
+|                      | \|      | `export`<sup>opt</sup> `local` [*id*](#terminal-names) `:` [*type*](#primitive-types) `;`                         |
 </div>
 
 A ledger declaration binds a ledger field name to one of a
@@ -1789,6 +1790,7 @@ program's top level.
 |                          |         |                                                                                                                       |
 |--------------------------|---------|-----------------------------------------------------------------------------------------------------------------------|
 | *constructor-definition* | &xrarr; | `constructor` [*pattern-parameter-list*](#contract-constructor) [*block*](#blocks)                                    |
+|                          | \|      | `local` `constructor` [*block*](#blocks)                                                                              |
 | *pattern-parameter-list* | &xrarr; | `(` [*typed-pattern*](#contract-constructor) `,` ⋯ `,` [*typed-pattern*](#contract-constructor) `,`<sup>opt</sup> `)` |
 | *typed-pattern*          | &xrarr; | [*pattern*](#patterns-and-destructuring) `:` [*type*](#primitive-types)                                               |
 </div>
@@ -1848,6 +1850,7 @@ Named circuit definitions have the following syntax:
 |                      |         |                                                                                                                                                                                                                                                           |
 |----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | *circuit-definition* | &xrarr; | `export`<sup>opt</sup> `pure`<sup>opt</sup> `circuit` [*function-name*](#terminal-names) [*gparams*](#generic-parameters-and-arguments)<sup>opt</sup> [*pattern-parameter-list*](#contract-constructor) `:` [*type*](#primitive-types) [*block*](#blocks) |
+|                      | \|      | `export`<sup>opt</sup> `local` [*function-name*](#terminal-names) [*gparams*](#generic-parameters-and-arguments)<sup>opt</sup> [*pattern-parameter-list*](#contract-constructor) `:` [*type*](#primitive-types) [*block*](#blocks)                        |
 </div>
 
 A circuit definition binds *function-name* to a circuit with the given parameters,

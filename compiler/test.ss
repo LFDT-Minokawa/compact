@@ -964,6 +964,44 @@ groups than for single tests.
 
   (test
     '(
+      "local credits: Uint<4>;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "local credits: Uint<4>;"))
+    )
+
+  (test
+    '(
+      "export local myCommitment: Bytes<32>;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export local myCommitment: Bytes<32>;"))
+    )
+
+  (test
+    '(
+      "local constructor {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "local constructor {"
+        "}"))
+    )
+
+  (test
+    '(
+      "export local f(x: Field): [] {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export local f(x: Field): [] {"
+        "}"))
+    )
+
+  (test
+    '(
       "export // ?"
       "  circuit f(): [] {}"
       )
@@ -4525,6 +4563,26 @@ groups than for single tests.
           (block (return ,(string->utf8 "Hello world!"))))))
     )
 
+  (test
+    '(
+      "local credits: Uint<4>;"
+      "export local myCommitment: Bytes<32>;"
+      "local constructor {"
+      "  credits = 1;"
+      "}"
+      "local spendCredit(): [] {"
+      "  credits = credits - 1;"
+      "}"
+      )
+    (returns
+      (program
+        (local-ledger-declaration #f credits (tunsigned 4))
+        (local-ledger-declaration #t myCommitment (tbytes 32))
+        (local-constructor (block (= credits 1)))
+        (local-circuit #f spendCredit () () (ttuple)
+          (block (= credits (- credits 1))))))
+    )
+
   (test ;; FIXME uncomment composable contract in test.compact
     "test-center/compact/test.compact"
     (returns
@@ -7877,6 +7935,46 @@ groups than for single tests.
        irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
      ))
   )
+)
+
+(run-tests reject-local-declarations
+  (test
+    '(
+      "local credits: Uint<4>;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "local declarations are not yet implemented" ()))
+    )
+
+  (test
+    '(
+      "local constructor {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "the local constructor is not yet implemented" ()))
+    )
+
+  (test
+    '(
+      "export local f(): [] {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      )
+    (returns
+      (program
+        (public-ledger-declaration #f #f x (tfield (field-native)))))
+    )
 )
 
 (run-tests expand-const

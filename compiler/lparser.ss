@@ -117,13 +117,18 @@
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src (maybe kwd-export?) (maybe kwd-sealed?) kwd ledger-field-name colon type semicolon) =>
         (public-ledger-declaration kwd-export? kwd-sealed? #f ledger-field-name #f type)
+      (local-ledger-declaration src (maybe kwd-export?) kwd ledger-field-name colon type semicolon) =>
+        (local-ledger-declaration kwd-export? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
       (constructor src kwd parg-list blck) => (constructor parg-list #f blck)
+      (local-constructor src kwd kwd^ blck) => (local-constructor #f blck)
       )
     (Circuit-Definition (cdefn)
       (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
         (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
+      (local-circuit src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
+        (local-circuit kwd-export? function-name generic-param-list? parg-list 4 return-type #f blck)
       )
     (Witness-Declaration (wdecl)
       (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>

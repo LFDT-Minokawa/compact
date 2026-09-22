@@ -28,6 +28,8 @@
 
   (include "frontend-passes/resolve-includes.ss")
 
+  (include "frontend-passes/reject-local-declarations.ss")
+
   (include "frontend-passes/expand-const.ss")
 
   (include "frontend-passes/expand-patterns.ss")
@@ -48,6 +50,7 @@
 
   (define-passes frontend-passes
     (resolve-includes                Lnoinclude)
+    (reject-local-declarations       Lnolocal)
     (expand-const                    Lsingleconst)
     (expand-patterns                 Lnopattern)
     (reject-for-return               Lnopattern)

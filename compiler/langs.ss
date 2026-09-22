@@ -23,6 +23,7 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
+          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -169,12 +170,17 @@
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src exported? sealed? ledger-field-name type) =>
         (public-ledger-declaration exported? sealed? #f ledger-field-name #f type)
+      (local-ledger-declaration src exported? ledger-field-name type) =>
+        (local-ledger-declaration exported? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
-      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck))
+      (constructor src (parg* ...) blck) => (constructor (parg* 0 ...) #f blck)
+      (local-constructor src blck) => (local-constructor #f blck))
     (Circuit-Definition (cdefn)
       (circuit src exported? pure-dcl? function-name (type-param* ...) (parg* ...) type blck) =>
         (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
+      (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck) =>
+        (local-circuit exported? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
       )
     (Witness-Declaration (wdecl)
       (witness src exported? function-name (type-param* ...) (arg* ...) type) =>
@@ -317,7 +323,17 @@
     (Include (incld)
       (- (include src file))))
 
-  (define-language/pretty Lsingleconst (extends Lnoinclude)
+  ;; The `local` forms parse and format but do not yet compile, therefore
+  ;; `reject-local-declarations` subtracts them here.
+  (define-language/pretty Lnolocal (extends Lnoinclude)
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration src exported? ledger-field-name type)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src blck)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck))))
+
+  (define-language/pretty Lsingleconst (extends Lnolocal)
     (Const-Binding (cbinding)
       (- (src pattern type expr)))
     (Statement (stmt)

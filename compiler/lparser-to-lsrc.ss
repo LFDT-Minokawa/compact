@@ -60,16 +60,24 @@
        `(export ,src (,(map token-src name*) ,(map token-value name*)) ...)])
     (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ()
       [(public-ledger-declaration ,src ,kwd-export? ,kwd-sealed? ,kwd ,ledger-field-name ,colon ,[type] ,semicolon)
-       `(public-ledger-declaration ,src ,(and kwd-export? #t) ,(and kwd-sealed? #t) ,(token-value ledger-field-name) ,type)])
+       `(public-ledger-declaration ,src ,(and kwd-export? #t) ,(and kwd-sealed? #t) ,(token-value ledger-field-name) ,type)]
+      [(local-ledger-declaration ,src ,kwd-export? ,kwd ,ledger-field-name ,colon ,[type] ,semicolon)
+       `(local-ledger-declaration ,src ,(and kwd-export? #t) ,(token-value ledger-field-name) ,type)])
     (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
       [(constructor ,src ,kwd ,parg-list ,[blck])
        (let ([parg* (Pattern-Argument-List parg-list)])
-         `(constructor ,src (,parg* ...) ,blck))])
+         `(constructor ,src (,parg* ...) ,blck))]
+      [(local-constructor ,src ,kwd ,kwd^ ,[blck])
+       `(local-constructor ,src ,blck)])
     (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,[type] ,[blck])
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
              [parg* (Pattern-Argument-List parg-list)])
-         `(circuit ,src ,(and kwd-export? #t) ,(and kwd-pure? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))])
+         `(circuit ,src ,(and kwd-export? #t) ,(and kwd-pure? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))]
+      [(local-circuit ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,parg-list ,[type] ,[blck])
+       (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
+             [parg* (Pattern-Argument-List parg-list)])
+         `(local-circuit ,src ,(and kwd-export? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))])
     (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
       [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,[type] ,semicolon)
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
