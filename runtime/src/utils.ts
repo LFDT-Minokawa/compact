@@ -29,6 +29,7 @@ import {
   Secp256r1Point,
 } from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
+import { CURVE25519_BASE_MODULUS } from './constants.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
 /**
@@ -114,11 +115,27 @@ export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffi
 
 /**
  * Lift the simple affine `Curve25519Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is validated
- * to lie on the curve by `fromAffine`.
+ * projective point. The identity is the ordinary affine point (0, 1), so every
+ * input is checked to have in-range coordinates and to lie on the curve.
+ *
+ * `fromAffine` only checks the coordinates fit in 256 bits, so the field range
+ * is checked here. `assertValidity` checks the curve equation but rejects the
+ * identity, so the identity is returned before it.
  */
 export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
-  return ed25519.Point.fromAffine({ x: p.x, y: p.y });
+  if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
+    throw new CompactError('not a valid curve25519 point: coordinate out of range');
+  }
+  if (p.x === 0n && p.y === 1n) {
+    return ed25519.Point.ZERO;
+  }
+  try {
+    const q = ed25519.Point.fromAffine({ x: p.x, y: p.y });
+    q.assertValidity();
+    return q;
+  } catch (e) {
+    throw new CompactError(`not a valid curve25519 point: ${e instanceof Error ? e.message : String(e)}`);
+  }
 }
 
 /**
