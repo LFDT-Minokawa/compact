@@ -149,8 +149,10 @@
           ;; Generally assume that the arity is correct here.
           (case name
             [(constructJubjubPoint)
+             (assert (= (length var-name*) 1))
              (cons `(from_coordinates ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
             [(degradeToTransient)
+             (assert (= (length var-name*) 1))
              (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
             [(ecAdd)
              (assert (= (length var-name*) 1))
@@ -192,7 +194,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(mul)
@@ -213,7 +215,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
                    instr*)))]
             [(persistentHash)
@@ -223,7 +225,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(secp256k1PointX secp256r1PointX curve25519PointX)
@@ -236,32 +238,12 @@
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
             [(sha512)
              (assert (= (length var-name*) 3))
-             (let* ([alignment* (arg->alignment arg* 0)]
-                    [bytes (make-temp-id src 'bytes)]
-                    [low32 (make-temp-id src 'low32)]
-                    [high32 (make-temp-id src 'high32)]
-                    [byte31 (make-temp-id src 'byte31)]
-                    [bytes32to62 (make-temp-id src 'bytes32to62)]
-                    [byte63 (make-temp-id src 'byte63)]
-                    [bytes32to61 (make-temp-id src 'bytes32to61)]
-                    [byte62 (make-temp-id src 'byte62)]
-                    [temp0 (make-temp-id src 'temp0)]
-                    [temp1 (make-temp-id src 'temp1)])
+             (let ([alignment* (arg->alignment arg* 0)]
+                   [bytes (make-temp-id src 'bytes)])
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   ;; The high 2 bytes.
-                   `(add ,(car var-name*) ,byte62 ,temp1)
-                   `(mul ,temp1 ,byte63 256)
-                   ;; The middle 31 bytes.
-                   `(add ,(cadr var-name*) ,byte31 ,temp0)
-                   `(mul ,temp0 ,bytes32to61 256)
-                   `(div_mod_power_of_two ,byte62 ,bytes32to61 ,bytes32to62 240)
-                   `(bytes_into_natives (,bytes32to62 ,byte63) ,high32)
-                   ;; The low 31 bytes.
-                   `(bytes_into_natives (,(caddr var-name*) ,byte31) ,low32)
-                   `(slice ,high32 ,bytes 32 32)
-                   `(slice ,low32 ,bytes 0 32)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(sha512 ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(transientCommit)
