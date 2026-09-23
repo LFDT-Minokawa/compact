@@ -19,28 +19,7 @@
   (export compiler-version-string compiler-version-triple-string
           compiler-version-commit compiler-version-commit-date
           check-compiler-version)
-  (import (chezscheme) (version))
-
-  ;; The prerelease identifier of the release being built: `-rc.2` for a
-  ;; candidate, "" for a final, `-dev` for anything that is not a release.
-  ;; The tag arrives as a workflow input, so it cannot be committed;
-  ;; release-build.yml stamps it in via scripts/stamp-compiler-version.sh.
-  ;; The committed value is `-dev` rather than "", so a build nothing
-  ;; stamped cannot pass for a release (issue #705).
-  (define compiler-version-tag "-dev")
-
-  ;; The commit this was built from, all forty characters; "" when nothing
-  ;; stamped it -- a local build cannot know its commit. `--version`
-  ;; abbreviates it; verbose and contract-info.json keep it whole. It sits
-  ;; beside the version rather than inside it as build metadata, because
-  ;; the version string is matched on and comparators do not reliably
-  ;; ignore metadata (Rust's `semver` orders it), so `0.34.1+g<commit>`
-  ;; would read as a different version.
-  (define compiler-version-commit "")
-
-  ;; That commit's date, YYYY-MM-DD. Reported by `--version`, but not recorded
-  ;; in contract-info.json: the commit already identifies the build.
-  (define compiler-version-commit-date "")
+  (import (chezscheme) (version) (version-config))
 
   ; NB: also update compactc version in ../flake.nix
   (define compiler-version

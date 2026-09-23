@@ -15,13 +15,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-# Record the release being built in compiler/compiler-version.ss, so that
-# `compactc --version` reports it.
+# Record the release being built by writing compiler/version-config.ss whole,
+# so that `compactc --version` reports it.
 #
 # The tag arrives as a workflow input, so it cannot be committed; unstamped,
 # a candidate reported the release it was a candidate for (issue #705).
 #
-# Usage: stamp-compiler-version.sh <tag> <commit> <commit-date> [file]
+# Usage: stamp-compiler-version.sh <tag> <commit> <commit-date> [config] [source]
 #
 #   <tag>          the release tag, with or without a leading `v`. Anything
 #                  that is not a version -- a branch name, `dev-<commit>` --
@@ -29,7 +29,9 @@
 #   <commit>       the commit being built, in full (`git rev-parse HEAD`);
 #                  `compactc --version` abbreviates it itself
 #   <commit-date>  that commit's date, YYYY-MM-DD (`git show -s --format=%cs`)
-#   [file]         defaults to compiler/compiler-version.ss
+#   [config]       the file written whole; defaults to compiler/version-config.ss
+#   [source]       where the committed triple is read from; defaults to
+#                  compiler/compiler-version.ss
 #
 # Prints on stdout the line the built compiler will report, so a caller can
 # assert it against the binary. Progress and errors go to stderr.
@@ -37,7 +39,7 @@
 set -o errexit
 set -o nounset
 
-# What compiler-version.ss carries unstamped. A marker rather than "", so a
+# What version-config.ss carries unstamped. A marker rather than "", so a
 # build nothing stamped cannot look like a release.
 UNSTAMPED='-dev'
 
@@ -49,7 +51,8 @@ fi
 TAG="$1"
 COMMIT="$2"
 COMMIT_DATE="$3"
-FILE="${4:-compiler/compiler-version.ss}"
+CONFIG="${4:-compiler/version-config.ss}"
+SOURCE="${5:-compiler/compiler-version.ss}"
 
 # A call against the old <tag> <commit> [file] signature would stamp a
 # pathname as the date; the shape check catches it.
@@ -83,16 +86,16 @@ valid_prerelease() {
 # The committed triple is the compiler's own version, bumped per change and
 # checked by changelog-check.yml, so a tag that disagrees is a mistake in the
 # release rather than something to paper over.
-COMMITTED="$(sed -nE "s/.*\(make-version 'compiler ([0-9]+) ([0-9]+) ([0-9]+)\).*/\1.\2.\3/p" "$FILE")"
+COMMITTED="$(sed -nE "s/.*\(make-version 'compiler ([0-9]+) ([0-9]+) ([0-9]+)\).*/\1.\2.\3/p" "$SOURCE")"
 
 if [ -z "$COMMITTED" ]; then
-  echo "::error::could not read the compiler version from $FILE" >&2
+  echo "::error::could not read the compiler version from $SOURCE" >&2
   exit 1
 fi
 
 if [[ "$RAW" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(.*)$ ]]; then
   if [ "${BASH_REMATCH[1]}" != "$COMMITTED" ]; then
-    echo "::error::tag $TAG is ${BASH_REMATCH[1]} but $FILE says $COMMITTED" >&2
+    echo "::error::tag $TAG is ${BASH_REMATCH[1]} but $SOURCE says $COMMITTED" >&2
     exit 1
   fi
   SUFFIX="${BASH_REMATCH[2]}"
@@ -109,32 +112,42 @@ else
   SUFFIX="$UNSTAMPED"
 fi
 
-# GNU and BSD sed disagree about -i, and the macOS runners have BSD sed.
-sed -e "s|(define compiler-version-tag \"${UNSTAMPED}\")|(define compiler-version-tag \"${SUFFIX}\")|" \
-    -e "s|(define compiler-version-commit \"\")|(define compiler-version-commit \"${COMMIT}\")|" \
-    -e "s|(define compiler-version-commit-date \"\")|(define compiler-version-commit-date \"${COMMIT_DATE}\")|" \
-  "$FILE" > "$FILE.stamped"
-mv "$FILE.stamped" "$FILE"
-
-# The substitutions fail silently if a line has moved or the file is already
-# stamped, so check. The commit is the one that always changes -- a dev build
-# keeps the `-dev` it was committed with -- so it is what catches a second run.
-if ! grep -q "(define compiler-version-commit \"${COMMIT}\")" "$FILE"; then
-  echo "::error::failed to stamp commit '${COMMIT}' into $FILE" >&2
-  echo "::error::$FILE must contain (define compiler-version-commit \"\") before a build" >&2
+# Refuse a path that is not the config library.
+if ! grep -q "(library (version-config)" "$CONFIG"; then
+  echo "::error::$CONFIG is not the version-config library; refusing to overwrite it" >&2
   exit 1
 fi
 
-if ! grep -q "(define compiler-version-commit-date \"${COMMIT_DATE}\")" "$FILE"; then
-  echo "::error::failed to stamp commit date '${COMMIT_DATE}' into $FILE" >&2
-  exit 1
-fi
+cat > "$CONFIG" <<EOF
+;;; This file is part of Compact.
+;;; Copyright (C) 2026 Minokawa project contributors
+;;; SPDX-License-Identifier: Apache-2.0
+;;; Licensed under the Apache License, Version 2.0 (the "License");
+;;; you may not use this file except in compliance with the License.
+;;; You may obtain a copy of the License at
+;;;
+;;; 	http://www.apache.org/licenses/LICENSE-2.0
+;;;
+;;; Unless required by applicable law or agreed to in writing, software
+;;; distributed under the License is distributed on an "AS IS" BASIS,
+;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;; See the License for the specific language governing permissions and
+;;; limitations under the License.
 
-if ! grep -q "(define compiler-version-tag \"${SUFFIX}\")" "$FILE"; then
-  echo "::error::failed to stamp '${SUFFIX}' into $FILE" >&2
-  echo "::error::$FILE must contain (define compiler-version-tag \"${UNSTAMPED}\") before a build" >&2
-  exit 1
-fi
+#!chezscheme
+
+;; Generated by scripts/stamp-compiler-version.sh for tag \`${TAG}\` -- do not
+;; commit; the committed copy carries the unstamped defaults.
+(library (version-config)
+  (export compiler-version-tag compiler-version-commit
+          compiler-version-commit-date)
+  (import (chezscheme))
+
+  (define compiler-version-tag "${SUFFIX}")
+  (define compiler-version-commit "${COMMIT}")
+  (define compiler-version-commit-date "${COMMIT_DATE}")
+)
+EOF
 
 # Must match `abbreviate-commit` in compiler/program-common.ss. Duplicated, but
 # release-build.yml compares this line against what the binary prints, so a

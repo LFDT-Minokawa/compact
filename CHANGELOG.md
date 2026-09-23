@@ -19,7 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   installable, so one reporting the same shape as a finished release could pass
   for it. `-dev` sorts below every release of the same triple, so a version
   check that wanted a release fails instead of passing. That is also the value
-  committed in `compiler/compiler-version.ss`, so a build nothing stamped cannot
+  committed in `compiler/version-config.ss`, so a build nothing stamped cannot
   pass for a release either.
 
   The commit is reported beside the version rather than inside it --

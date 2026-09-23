@@ -45,26 +45,21 @@
   ;; nothing, so the shape does not depend on how the compiler was built and
   ;; `--version --verbose | grep commit-hash` always answers. `rustc -vV` does
   ;; the same.
-  (define unknown-field "unknown")
-
-  (define (or-unknown s)
-    (if (string=? s "") unknown-field s))
-
-  ;; Nine characters, as `rustc` and `cargo` show: enough to read and to
-  ;; `git show`. Verbose and contract-info.json keep all forty. Must match
-  ;; `${COMMIT:0:9}` in scripts/stamp-compiler-version.sh; release-build.yml
-  ;; asserts the two agree.
-  (define short-commit-length 9)
-
-  (define (abbreviate-commit commit)
-    (if (fx> (string-length commit) short-commit-length)
-        (substring commit 0 short-commit-length)
-        commit))
-
   (define print-compiler-version
     (case-lambda
       [() (print-compiler-version #f)]
       [(verbose?)
+       (define (or-unknown s)
+         (if (string=? s "") "unknown" s))
+       ;; Nine characters, as `rustc` and `cargo` show: enough to read and to
+       ;; `git show`. Verbose and contract-info.json keep all forty. Must match
+       ;; `${COMMIT:0:9}` in scripts/stamp-compiler-version.sh; release-build.yml
+       ;; asserts the two agree.
+       (define short-commit-length 9)
+       (define (abbreviate-commit commit)
+         (if (fx> (string-length commit) short-commit-length)
+             (substring commit 0 short-commit-length)
+             commit))
        (let ([op (current-output-port)])
          (if verbose?
              (begin

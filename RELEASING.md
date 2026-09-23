@@ -796,7 +796,7 @@ exactly the same `pragma compiler_version` constraints as the release it is a ca
 for. Contracts that build against `0.34.1` build against `0.34.1-rc.2`.
 
 Builds that are not releases are marked `-dev`, and that is what
-`compiler/compiler-version.ss` carries when committed — so a build nothing stamped says
+`compiler/version-config.ss` carries when committed — so a build nothing stamped says
 so, rather than reporting a clean release number it has no claim to. It matters most
 because dev publishes are installable: `-dev` sorts below every release of the same
 triple, so an external semver-aware version check that wanted a release fails instead
@@ -823,7 +823,7 @@ carry these exact strings.
 | `tag … has a suffix that is not a valid semver prerelease identifier` | e.g. `-rc.00` (leading zero), `-rc.` (trailing dot), or a suffix without its leading `-`. | Rename: `-`, then dot-separated identifiers, numbers without leading zeros. |
 | `Release notes file 'doc/release-notes/toolchain-x.y.z.md' not found on branch` | The notes file was never committed (§2 step 3). | Add it, or turn the release-notes input off for a throwaway build. |
 | `built compiler reports '<got>', expected '<expected>'` | The build did not pick up the stamp, or the stamp script and the compiler disagree about the output format. Nothing has been published — this check runs before upload. | Do not ship. Same version but different commit length means `${COMMIT:0:9}` in the script has drifted from `short-commit-length` in `program-common.ss`; a clean `x.y.z-dev` on a release tag means the stamped file never reached the nix build — investigate before rerunning. |
-| `failed to stamp … must contain (define compiler-version-commit "") before a build` | The checkout was already stamped (a dirty rerun or a by-hand invocation), or someone edited the three `define`s in `compiler-version.ss` away from their committed spellings. | Build from a fresh checkout; keep the three `define`s verbatim when editing that file. |
+| `… is not the version-config library; refusing to overwrite it` | The stamp script was pointed at a file that is not `compiler/version-config.ss` — it writes that file whole, so it refuses any other target. | Fix the path it was invoked with; the workflow's own invocation cannot hit this. |
 | `tag v0.34.1 already exists at <commit A>, but this build is <commit B>` | The same version was dispatched again after the branch moved, so the tag names a different commit than this build. | A plain re-run of a failed run is safe — same commit, the tag step skips itself. For a new commit: bump the candidate number, or undo the old release first (§7). |
 | `Internal release 'compactc-v0.34.1' not found in midnight-ntwrk/artifacts` | Promoting a version that was never built internally. | Run the internal release at exactly that version first (§2 step 8). |
 | `No asset found containing architecture 'x86_64-darwin'` | The internal run skipped the Intel macOS build. | Re-run the internal release with **Include MacOS Intel build** on. |

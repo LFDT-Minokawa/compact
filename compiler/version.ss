@@ -24,7 +24,7 @@
   ;; operators below read only the numbers -- so a candidate satisfies the
   ;; same `pragma compiler_version` constraints as its release. Build
   ;; metadata never goes here, so the printed form stays valid semver; the
-  ;; commit is reported beside the version instead (compiler-version.ss).
+  ;; commit is reported beside the version instead (version-config.ss).
   ;; The 4-argument constructor leaves the tag "", so lexer.ss's calls
   ;; still work.
   (define-record-type version
