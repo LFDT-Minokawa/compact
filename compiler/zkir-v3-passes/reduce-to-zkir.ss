@@ -192,7 +192,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
                    `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(mul)
@@ -213,7 +213,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
                    instr*)))]
             [(persistentHash)
@@ -223,7 +223,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(cadr var-name*) ,(car var-name*)) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(secp256k1PointX secp256r1PointX curve25519PointX)
@@ -257,9 +257,9 @@
                    `(add ,(cadr var-name*) ,byte31 ,temp0)
                    `(mul ,temp0 ,bytes32to61 256)
                    `(div_mod_power_of_two ,byte62 ,bytes32to61 ,bytes32to62 240)
-                   `(bytes32_into_low_high ,bytes32to62 ,byte63 ,high32)
+                   `(bytes_into_natives (,bytes32to62 ,byte63) ,high32)
                    ;; The low 31 bytes.
-                   `(bytes32_into_low_high ,(caddr var-name*) ,byte31 ,low32)
+                   `(bytes_into_natives (,(caddr var-name*) ,byte31) ,low32)
                    `(slice ,high32 ,bytes 32 32)
                    `(slice ,low32 ,bytes 0 32)
                    `(sha512 ,bytes (,alignment* ...) ,triv* ...)
@@ -340,7 +340,7 @@
                           (circuit-alignment-for default-src alignment* var* (zkir-instr*))])
               (zkir-instr*
                 (cons*
-                  `(bytes32_into_low_high ,hash1 ,hash0 ,bytes)
+                  `(bytes_into_natives (,hash1 ,hash0) ,bytes)
                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                   instr*)))
             ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
@@ -902,7 +902,7 @@
        (define (handle-bytes32-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
-             `(bytes32_into_low_high ,var-name1 ,var-name0 ,tmp)
+             `(bytes_into_natives (,var-name1 ,var-name0) ,tmp)
              `(into_bytes32 ,tmp ,triv)
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
@@ -1028,7 +1028,7 @@
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
-             `(bytes32_from_low_high ,tmp ,triv1 ,triv0)
+             `(bytes_from_natives ,tmp 32 ,triv1 ,triv0)
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)

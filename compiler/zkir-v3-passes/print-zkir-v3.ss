@@ -97,11 +97,11 @@
      `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(assert ,[* inp])
      `((op . "assert") (cond . ,inp))]
-    [(bytes32_from_low_high ,[* outp] ,[* inp0] ,[* inp1])
-     `((op . "bytes32_from_low_high") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
-    [(bytes32_into_low_high ,outp0 ,outp1 ,[* inp])
-     (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-       `((op . "bytes32_into_low_high") (outputs . ,(vector outp0 outp1)) (bytes . ,inp)))]
+    [(bytes_from_natives ,[* outp] ,imm ,[* inp*] ...)
+     `((op . "bytes_from_natives") (output . ,outp) (len . , imm) (inputs . ,(list->vector inp*)))]
+    [(bytes_into_natives (,outp* ...) ,[* inp])
+     (let ([outp* (maplr Output outp*)])
+       `((op . "bytes_into_natives") (outputs . ,(list->vector outp*)) (bytes . ,inp)))]
     [(cond_select ,[* outp] ,[* inp0] ,[* inp1] ,[* inp2])
      `((op . "cond_select") (output . ,outp) (bit . ,inp0) (a . ,inp1) (b . ,inp2))]
     [(constrain_bits ,[* inp] ,imm)
