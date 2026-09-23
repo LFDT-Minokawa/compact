@@ -1,5 +1,5 @@
 ---
-CoIP: X
+CoIP: 4
 Title: Dynamic Selection of Implementation for Cross-Contract Calls
 Authors:
   - Joseph Denman (JosephDenman)
