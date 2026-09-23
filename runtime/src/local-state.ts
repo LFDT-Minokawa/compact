@@ -112,7 +112,9 @@ export const foldLocalTranscript = (
   const cost = costModel ?? ocrt.CostModel.initialCostModel();
   let ctx = createLocalQueryContext(localState);
   for (const entry of localTranscript) {
-    if (outcome.tag === 'partial' && entry.offset >= outcome.guaranteedLength) {
+    // an entry's offset is the public-op count at record time and the fallible transcript
+    // begins with Ckpt, therefore offset === guaranteedLength still precedes the checkpoint
+    if (outcome.tag === 'partial' && entry.offset > outcome.guaranteedLength) {
       continue;
     }
     try {

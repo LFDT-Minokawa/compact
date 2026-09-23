@@ -136,8 +136,21 @@ describe('foldLocalTranscript', () => {
   });
 
   test('partial success truncates at the checkpoint split', () => {
-    const folded = foldLocalTranscript(initialLocalState(), rehearse(), { tag: 'partial', guaranteedLength: 2 });
+    // rehearse() records ['noop', 'ckpt'], so the landed guaranteed transcript has length 1
+    const folded = foldLocalTranscript(initialLocalState(), rehearse(), { tag: 'partial', guaranteedLength: 1 });
     expect(counterOf(folded)).toBe(5n);
+  });
+
+  test('an op recorded just before the checkpoint is guaranteed', () => {
+    const ctx = context();
+    const pd = emptyProofData();
+    queryLocalState(ctx, pd, increment(5));
+    pd.publicTranscript.push('noop' as unknown as ocrt.Op<ocrt.AlignedValue>);
+    queryLocalState(ctx, pd, increment(2)); // offset 1 === guaranteedLength: before the ckpt
+    pd.publicTranscript.push('ckpt' as unknown as ocrt.Op<ocrt.AlignedValue>);
+    queryLocalState(ctx, pd, increment(7)); // offset 2: after the ckpt, rolled back
+    const folded = foldLocalTranscript(initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: 1 });
+    expect(counterOf(folded)).toBe(7n);
   });
 
   test('a mismatch on an observed read reports divergence', () => {
