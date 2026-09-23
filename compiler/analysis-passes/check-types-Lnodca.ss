@@ -658,6 +658,12 @@
                              map-arg+
                              (enumerate map-arg+)))])
        (do-call src #t fun (cons type0 elt-type+)))]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     ;; the binder carries the element type through the statement-shaped body
+     (set-idtype! var-name (Idtype-Base type))
+     (CareNot expr)
+     (unset-idtype! var-name)
+     (with-output-language (Lnodca Type) `(ttuple ,src))]
     [(call ,src ,function-name ,expr* ...)
      (do-call src #f
               (with-output-language (Lnodca Function)

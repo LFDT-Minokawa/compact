@@ -119,6 +119,11 @@
               (format "accesses ~a field ~s"
                       (if (id-local? ledger-field-name) "local" "ledger")
                       (id-sym ledger-field-name))))]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     (raise (make-impure-condition function-name src
+              (format "iterates ~a field ~s"
+                      (if (id-local? ledger-field-name) "local" "ledger")
+                      (id-sym ledger-field-name))))]
     [(emit ,src ,type ,[expr])
      (nanopass-case (Lnodca Type) (de-alias type)
        [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)

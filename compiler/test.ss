@@ -31344,6 +31344,40 @@ groups than for single tests.
       irritants: '("testfile.compact line 4 char 19" "~a is only callable from local functions" (firstFree)))
     )
 
+  ; data-bounded iteration is a local-code construct
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local seen: Set<Uint<8>>;"
+      "export circuit go(): [] {"
+      "  for (const v of seen) {"
+      "    assert(v >= 0, 'nope');"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "for-of iteration over a container is only available in local functions" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger pub: Set<Uint<8>>;"
+      "local f(): [] {"
+      "  for (const v of pub) {"
+      "    assert(v >= 0, 'nope');"
+      "  }"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "ledger reads from local functions are not yet implemented" ()))
+    )
+
   ; the local constructor is stricter: joins must be derivable from the contract alone,
   ; therefore ledger reads are out too
   (test
@@ -96851,6 +96885,62 @@ groups than for single tests.
         "  const pd = r5.context.callProofDataTrace.at(-1)!;"
         "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
         "  expect(folded.toString()).toEqual(r5.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "});"
+        ))
+    )
+
+  ; data-bounded iteration over local containers: a Set and a Map fold into an accumulator
+  ; through local state, and the container pin lets the fold catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local seen: Set<Uint<8>>;"
+      "local weights: Map<Uint<8>, Uint<16>>;"
+      "local tally: Counter;"
+      "local sumWeights(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const kv of weights) {"
+      "    tally.increment(kv[1]);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "local sumSeen(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const v of seen) {"
+      "    tally.increment(v);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "export circuit note(k: Uint<8>, w: Uint<16>): [] {"
+      "  seen.insert(k);"
+      "  weights.insert(k, w);"
+      "}"
+      "export circuit sum(): Uint<64> {"
+      "  return disclose(sumWeights());"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumSeen());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('iteration folds local containers and pins them', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r1 = await contract.circuits.note(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.sum(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const r4 = await contract.circuits.total(r3.context);"
+        "  expect(r4.result).toEqual(8n);"
+        "  const r5 = await contract.circuits.note(r4.context, 3n, 10n);"
+        "  const prior = r5.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r6 = await contract.circuits.sum(r5.context);"
+        "  expect(r6.result).toEqual(30n);"
+        "  const pd = r6.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r6.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
+        "      .toThrow(/re-executed/);"
         "});"
         ))
     )

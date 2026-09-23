@@ -870,6 +870,17 @@
     [(downcast-unsigned ,src ,nat2 ,nat1 ,[* abs]) abs]
     [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     ;; each iterated element is a local observation, therefore witness data
+     (Effect expr
+       (extend-env p (list var-name)
+         (list (default-value type
+                 (list (make-witness src (next-witness-uid)
+                         (Local-Operation-Result ledger-field-name))))))
+       control-witness*
+       disclosing-function-name?)
+     (Abs-atomic '())]
+
     [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
      (nanopass-case (Lwithpaths ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)

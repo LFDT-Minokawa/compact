@@ -772,6 +772,8 @@
       (>= src bits expr1 expr2)               => (>= expr1 3 expr2)
       (== src type expr1 expr2)               => (== expr1 3 expr2)
       (!= src type expr1 expr2)               => (!= expr1 3 expr2)
+      (foreach src var-name ledger-field-name type expr) =>
+        (foreach var-name ledger-field-name type #f expr)
       (map src len fun map-arg map-arg* ...)  =>
         (map #f fun #f map-arg #f map-arg* ...)
       (fold src len fun (expr0 type0) map-arg map-arg* ...) =>
@@ -988,13 +990,16 @@
       (+ (circuit src (arg* ...) type stmt)      => (circuit (arg* 0 ...) 4 type #f stmt)))
     (Expression (expr index)
       (- (let* src ([local* expr*] ...) expr)
-         (return src expr))
+         (return src expr)
+         (foreach src var-name ledger-field-name type expr))
       (+ (not src expr)                          => (not expr)
          (and src expr1 expr2)                   => (and expr1 4 expr2)
          (or src expr1 expr2)                    => (or expr1 3 expr2)
          (= src var-name expr)                   => (= var-name expr)))
     (Statement (stmt)
-      (+ (if src expr0 stmt1)                    => (if expr0 3 stmt1)
+      (+ (foreach src var-name ledger-field-name type stmt) =>
+           (foreach var-name ledger-field-name type #f stmt)
+         (if src expr0 stmt1)                    => (if expr0 3 stmt1)
          (if src expr0 stmt1 stmt2)              => (if expr0 3 stmt1 3 stmt2)
          (seq src stmt* ... stmt)                => (seq #f stmt* ... #f stmt)
          (const src local expr)                  => (const local #f expr)
@@ -1026,7 +1031,8 @@
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
     (Expression (expr index)
-      (- (elt-ref src expr elt-name nat)
+      (- (foreach src var-name ledger-field-name type expr)
+         (elt-ref src expr elt-name nat)
          (return src expr)
          (<= src bits expr1 expr2)
          (> src bits expr1 expr2)

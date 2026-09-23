@@ -1598,22 +1598,56 @@
        (lambda (type expr1 expr2)
          `(!= ,src ,type ,expr1 ,expr2)))]
     [(for ,src ,var-name ,expr1 ,expr2)
-     (let-values ([(expr1 type1) (Care expr1)])
-       (let-values ([(len elt-type) (vector-element-type src "for 'of' expression" type1)])
-         (set-idtype! var-name (Idtype-Base elt-type))
-         (let ([expr2 (CareNot expr2)])
-           (unset-idtype! var-name)
-           (values
-             `(fold ,src ,len
-                ,(let ([t (make-temp-id src 't)])
-                   `(circuit ,src ((,t (ttuple ,src))
-                                   (,var-name ,elt-type))
-                             (ttuple ,src)
-                             (seq ,src ,expr2 (var-ref ,src ,t))))
-                ((tuple ,src) (ttuple ,src))
-                (,expr1 ,type1 ,elt-type))
-             (with-output-language (Ltypes Type)
-               `(ttuple ,src))))))]
+     ;; iteration over a container field is data-bounded (a foreach, kept as control for the
+     ;; TypeScript backend); everything else is the static vector form, unrolled as a fold
+     (let ([iterable
+             (nanopass-case (Lexpanded Expression) expr1
+               [(ledger-ref ,src^ ,ledger-field-name)
+                (Idtype-case (get-idtype src^ ledger-field-name)
+                  [(Idtype-Base type)
+                   (nanopass-case (Ltypes Type) (de-alias type #t)
+                     [(tadt ,src^^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                      (and (memq adt-name '(Set Map List))
+                           (let ([type* (fold-right
+                                          (lambda (adt-arg type*)
+                                            (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
+                                              [,nat type*]
+                                              [,type (cons type type*)]))
+                                          '()
+                                          adt-arg*)])
+                             (cons ledger-field-name
+                                   (with-output-language (Ltypes Type)
+                                     (if (eq? adt-name 'Map)
+                                         `(ttuple ,src ,(car type*) ,(cadr type*))
+                                         (car type*))))))]
+                     [else #f])]
+                  [else #f])]
+               [else #f])])
+       (if iterable
+           (let ([ledger-field-name (car iterable)] [elt-type (cdr iterable)])
+             (set-idtype! var-name (Idtype-Base elt-type))
+             (let ([expr2 (CareNot expr2)])
+               (unset-idtype! var-name)
+               (values
+                 `(foreach ,src ,var-name ,ledger-field-name ,elt-type ,expr2)
+                 (with-output-language (Ltypes Type)
+                   `(ttuple ,src)))))
+           (let-values ([(expr1 type1) (Care expr1)])
+             (let-values ([(len elt-type) (vector-element-type src "for 'of' expression" type1)])
+               (set-idtype! var-name (Idtype-Base elt-type))
+               (let ([expr2 (CareNot expr2)])
+                 (unset-idtype! var-name)
+                 (values
+                   `(fold ,src ,len
+                      ,(let ([t (make-temp-id src 't)])
+                         `(circuit ,src ((,t (ttuple ,src))
+                                         (,var-name ,elt-type))
+                                   (ttuple ,src)
+                                   (seq ,src ,expr2 (var-ref ,src ,t))))
+                      ((tuple ,src) (ttuple ,src))
+                      (,expr1 ,type1 ,elt-type))
+                   (with-output-language (Ltypes Type)
+                     `(ttuple ,src))))))))]
     [(map ,src ,fun ,expr ,expr* ...)
      (let*-values ([(expr+ actual-type+) (maplr2 Care (cons expr expr*))]
                    [(len actual-elt-type+) (vector-element-types src 'map actual-type+ 2)])

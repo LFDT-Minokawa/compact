@@ -201,6 +201,8 @@
     (define local-circuit-ht (make-eq-hashtable))
     (define (local-circuit-type function-name)
       (eq-hashtable-ref local-circuit-ht function-name #f))
+    ;; local field name to (path-index* . type), for foreach emission
+    (define local-field-ht (make-eq-hashtable))
     (define in-local-body? #f)
 
     (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
@@ -2463,6 +2465,12 @@
     [(public-ledger-declaration ,pl-array ,lconstructor)
      (XPelt-public-ledger pl-array lconstructor external-names)]
     [(local-ledger-declaration ,pl-array ,lconstructor)
+     (for-each
+       (lambda (public-binding)
+         (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+           [(,src ,ledger-field-name (,path-index* ...) ,type)
+            (eq-hashtable-set! local-field-ht ledger-field-name (cons path-index* type))]))
+       (pl-array->public-bindings pl-array))
      (XPelt-local-ledger pl-array lconstructor)]
     [,kdecl (XPelt-ledger-kernel)])
   (Untyped-Argument : Argument (ir) -> * (str)
@@ -2519,6 +2527,37 @@
        "let " 
        (apply make-Qlocals! local*)
        ";")]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,stmt)
+     (let ([binding (eq-hashtable-ref local-field-ht ledger-field-name #f)])
+       (assertf binding "local field ~s has no recorded layout" (id-sym ledger-field-name))
+       (let ([path* (car binding)] [ftype (cdr binding)])
+         (nanopass-case (Ltypescript Type) (de-alias ftype)
+           [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+            (let ([iter-op (find (lambda (adt-rt-op) (eq? (op-name adt-rt-op) 'iter)) adt-rt-op*)])
+              (assertf iter-op "ADT ~s has no iterator" adt-name)
+              (nanopass-case (Ltypescript ADT-Runtime-Op) iter-op
+                [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
+                 (make-Qconcat
+                   ;; iteration observes the whole container, so the fold gets a value pin
+                   (format "__compactRuntime.pinLocalContainer(context, partialProofData, [~{~d~^, ~}]);" path*)
+                   0 "for (const "
+                   ;; the binder is a bare id, not an Argument, so it registers directly
+                   (make-Qconcat/src (id-src var-name)
+                     (format-internal-binding unique-local-name var-name))
+                   " of "
+                   (apply make-Qconcat
+                     (apply runtime-code
+                            "__compactRuntime."
+                            (format "context.callContext.currentLocalQueryContext.state.state~{.asArray()[~d]~}" path*)
+                            (map (lambda (adt-arg)
+                                   (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
+                                     [,nat (number->string nat)]
+                                     [,type^ (type->descriptor-name type^)]))
+                                 adt-arg*)))
+                   ") {"
+                   2 (Stmt stmt #f outer-pure?)
+                   0 "}")]))]
+           [else (assert cannot-happen)])))]
     [(statement-expression (tuple ,src))
      (guard (not return?))
      ""]

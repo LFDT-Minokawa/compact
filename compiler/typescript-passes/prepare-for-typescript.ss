@@ -319,8 +319,13 @@
             ...
             ,stmt))]
     [(return ,src ,expr) (Stmt expr src)]
+    [(foreach ,src ,var-name ,ledger-field-name ,[type] ,[stmt])
+     (register-descriptor! type)
+     `(foreach ,src ,var-name ,ledger-field-name ,type ,stmt)]
     [else (handle-expr ir statement-expression)])
   (Expr : Expression (ir) -> Expression ()
+    ;; a foreach is unit-valued and born in statement position, so Stmt owns it
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr) (assert cannot-happen)]
     [(if ,src ,[expr0] (quote ,src1 ,datum1) (quote ,src2 ,datum2))
      (guard (eq? datum1 #f) (eq? datum2 #t))
      `(not ,src ,expr0)]

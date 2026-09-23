@@ -46,6 +46,9 @@
         (with-output-language (Lposttypescript Expression)
           `(if ,src ,expr (quote ,src #f) (quote ,src #t))))
       )
+    ;; local bodies were dropped with their definitions and check-local-callability keeps
+    ;; foreach out of circuits, therefore unreachable
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr) (assert cannot-happen)]
     [(elt-ref ,src ,[expr] ,elt-name ,nat) `(elt-ref ,src ,expr ,elt-name)]
     [(return ,src ,[expr]) expr]
     [(<= ,src ,bits ,[expr1] ,[expr2]) (do-not src `(< ,src ,bits ,expr2 ,expr1))]

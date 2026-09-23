@@ -133,6 +133,14 @@
           (source-errorf src "~a cannot update ledger field ~a"
             (context-name ctx) (id-sym ledger-field-name))]))
      ir]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     (cond
+       [(eq? ctx 'circuit)
+        (source-errorf src "for-of iteration over a container is only available in local functions")]
+       [(id-local? ledger-field-name) (void)]
+       [else (source-errorf src "ledger reads from local functions are not yet implemented")])
+     (Expression expr ctx)
+     ir]
     [(call ,src ,function-name ,[expr*] ...)
      (unless (eq? ctx 'circuit)
        (case (eq-hashtable-ref function-ht function-name #f)
