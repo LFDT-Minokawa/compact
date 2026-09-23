@@ -169,7 +169,7 @@
       (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
       (XPelt-type-definition src type-name export-name tvar-name* type)
       (XPelt-public-ledger pl-array lconstructor external-names)
-      (XPelt-local-ledger pl-array lconstructor)
+      (XPelt-local-ledger pl-array lconstructor external-names)
       (XPelt-ledger-kernel))
     (define (xpelt->uname xpelt)
       (XPelt-case xpelt
@@ -185,7 +185,7 @@
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
         [(XPelt-public-ledger pl-array lconstructor external-names) #f]
-        [(XPelt-local-ledger pl-array lconstructor) #f]
+        [(XPelt-local-ledger pl-array lconstructor external-names) #f]
         [(XPelt-ledger-kernel) #f]))
     ;; Which functions have async wrappers in the generated JS. Only impure circuits, since their
     ;; bodies may `await` a cross-contract call; everything else is synchronous.
@@ -674,7 +674,7 @@
            (newline)]
           [else (void)]))
 
-      (module (print-ledger-declaration)
+      (module (print-ledger-declaration print-local-state-declaration)
         (define (op-signature-Q adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
@@ -789,6 +789,16 @@
                (filter
                  exported-public-binding?
                  (pl-array->public-bindings pl-array)))]
+            [else (void)]))
+        ;; localState()'s type twin: the exported bindings of the local store
+        (define (print-local-state-declaration xpelt uname)
+          (XPelt-case xpelt
+            [(XPelt-local-ledger pl-array ledger-constructor external-names)
+             (for-each
+               (lambda (public-binding) (print-public-binding public-binding external-names))
+               (filter
+                 exported-public-binding?
+                 (pl-array->public-bindings pl-array)))]
             [else (void)])))
 
       (define (print-exported-types xpelt*)
@@ -882,7 +892,7 @@
       (let ([local-ledger?
               (ormap (lambda (xpelt)
                        (XPelt-case xpelt
-                         [(XPelt-local-ledger pl-array lconstructor) #t]
+                         [(XPelt-local-ledger pl-array lconstructor external-names) #t]
                          [else #f]))
                      xpelt*)])
       (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
@@ -917,6 +927,11 @@
             (for-each print-ledger-declaration xpelt* uname*)
             (display-string "}\n")
             (newline)
+            (when local-ledger?
+              (display-string "export type LocalState = {\n")
+              (for-each print-local-state-declaration xpelt* uname*)
+              (display-string "}\n")
+              (newline))
             (display-string "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {\n")
             (display-string "  witnesses: W;\n")
             (display-string "  circuits: Circuits<PS>;\n")
@@ -930,7 +945,8 @@
             (newline)
             (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
             (when local-ledger?
-              (display-string "export declare function initialLocalState(): __compactRuntime.StateValue;\n"))
+              (display-string "export declare function initialLocalState(): __compactRuntime.StateValue;\n")
+              (display-string "export declare function localState(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): LocalState;\n"))
             (display-string "export declare const pureCircuits: PureCircuits;\n")
             (display-string "export declare const expectedVk: Record<string, string>;\n")
             (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
@@ -1572,7 +1588,7 @@
 
         (define (print-contract-ledger src xpelt0* uname*)
           (with-local-unique-names
-            (define (ledger-field-Q src path-elt* adt-arg* all-op*)
+            (define (ledger-field-Q src path-elt* adt-arg* all-op* local?)
               (apply (make-Qsep ",")
                 (map (lambda (op)
                        (with-local-unique-names
@@ -1590,7 +1606,7 @@
                                (bind-args args formal*
                                  (argument-type-checks src name 0 var-name* type*
                                    (list
-                                     2 (adt-op-body-Q src op path-elt* formal* adt-arg*)
+                                     2 (adt-op-body-Q src op path-elt* formal* adt-arg* local?)
                                      0 "}"))))))))
                      (remp (lambda (op)
                              ; run-time ops like iterators that expect to be supplied a descriptor
@@ -1604,7 +1620,7 @@
                                              [else #f]))
                                          adt-arg*)))
                            all-op*))))
-            (define (adt-op-body-Q src adt-op path-elt* formal* adt-arg*)
+            (define (adt-op-body-Q src adt-op path-elt* formal* adt-arg* local?)
               (if (Ltypescript-ADT-Op? adt-op)
                   (nanopass-case (Ltypescript ADT-Op) adt-op
                     [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
@@ -1629,9 +1645,9 @@
                                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                                     (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
                                            [all-op* (cond [(has-read? all-op*) => list] [else all-op*])])
-                                      (ledger-field-Q src path-elt* adt-arg* all-op*))])
+                                      (ledger-field-Q src path-elt* adt-arg* all-op* local?))])
                                0 "}")))
-                         (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op formal*)])
+                         (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op formal* local?)])
                            (let ([descriptor-name? (and (eq? op-class 'read)
                                                         (type->maybe-descriptor-name type))])
                              (if descriptor-name?
@@ -1675,62 +1691,76 @@
                   (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
                     [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
                      (values var-name* type*)])))
+            ;; ledger() and localState() differ only in which query context the emitted ops
+            ;; run against, so one printer serves both stores
+            (define (print-state-accessor fn-name context-line pl-array external-names local?)
+              (print-Q 0
+                 (make-Qconcat
+                   (format "export function ~a(stateOrChargedState) {" fn-name)
+                   2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
+                   2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
+                   2 "const context = {"
+                   4 context-line
+                   4 "costModel: __compactRuntime.CostModel.initialCostModel()"
+                   2 "};"
+                   2 "const partialProofData = {"
+                   4 "input: { value: [], alignment: [] },"
+                   4 "output: undefined,"
+                   4 "publicTranscript: [],"
+                   4 "privateTranscriptOutputs: []"
+                   2 "};"
+                   2 "return {"
+                   4 (apply (make-Qsep ",")
+                       (fold-right
+                         (lambda (binding q*)
+                           (nanopass-case (Ltypescript Public-Ledger-Binding) binding
+                             [(,src ,ledger-field-name (,path-index* ...) ,type)
+                              (nanopass-case (Ltypescript Type) (de-alias type)
+                                [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                 (fold-right
+                                   (lambda (export-name q*)
+                                     (cons
+                                       (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
+                                              [read-op (has-read? all-op*)])
+                                         (if read-op
+                                             (make-Qconcat/src src
+                                                               "get "
+                                                               export-name
+                                                               "() {"
+                                                               2 (adt-op-body-Q src read-op path-index* '() adt-arg* local?)
+                                                               0 "}")
+                                             (make-Qconcat/src src
+                                                               export-name
+                                                               ": {"
+                                                               2 (ledger-field-Q src path-index* adt-arg* all-op* local?)
+                                                               0 "}")))
+                                       q*))
+                                   q*
+                                   (external-names ledger-field-name))]
+                                [else (assertf cannot-happen "expected adt type, received ~a" type)])]))
+                         '()
+                         (filter
+                           exported-public-binding?
+                           (pl-array->public-bindings pl-array))))
+                   2 "};"
+                   0 "}"))
+              (newline))
             (let loop ([xpelt* xpelt0*])
               (assert (not (null? xpelt*)))
               (XPelt-case (car xpelt*)
                 [(XPelt-public-ledger pl-array lconstructor external-names)
-                 (print-Q 0
-                    (make-Qconcat
-                      "export function ledger(stateOrChargedState) {"
-                      2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
-                      2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
-                      2 "const context = {"
-                      4 "callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
-                      4 "costModel: __compactRuntime.CostModel.initialCostModel()"
-                      2 "};"
-                      2 "const partialProofData = {"
-                      4 "input: { value: [], alignment: [] },"
-                      4 "output: undefined,"
-                      4 "publicTranscript: [],"
-                      4 "privateTranscriptOutputs: []"
-                      2 "};"
-                      2 "return {"
-                      4 (apply (make-Qsep ",")
-                          (fold-right
-                            (lambda (binding q*)
-                              (nanopass-case (Ltypescript Public-Ledger-Binding) binding
-                                [(,src ,ledger-field-name (,path-index* ...) ,type)
-                                 (nanopass-case (Ltypescript Type) (de-alias type)
-                                   [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                                    (fold-right
-                                      (lambda (export-name q*)
-                                        (cons
-                                          (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
-                                                 [read-op (has-read? all-op*)])
-                                            (if read-op
-                                                (make-Qconcat/src src
-                                                                  "get "
-                                                                  export-name
-                                                                  "() {"
-                                                                  2 (adt-op-body-Q src read-op path-index* '() adt-arg*)
-                                                                  0 "}")
-                                                (make-Qconcat/src src
-                                                                  export-name
-                                                                  ": {"
-                                                                  2 (ledger-field-Q src path-index* adt-arg* all-op*)
-                                                                  0 "}")))
-                                          q*))
-                                      q*
-                                      (external-names ledger-field-name))]
-                                   [else (assertf cannot-happen "expected adt type, received ~a" type)])]))
-                            '()
-                            (filter
-                              exported-public-binding?
-                              (pl-array->public-bindings pl-array))))
-                      2 "};"
-                      0 "}"))
-                 (newline)]
-                [else (loop (cdr xpelt*))]))))
+                 (print-state-accessor "ledger"
+                   "callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
+                   pl-array external-names #f)]
+                [else (loop (cdr xpelt*))]))
+            (let loop ([xpelt* xpelt0*])
+              (unless (null? xpelt*)
+                (XPelt-case (car xpelt*)
+                  [(XPelt-local-ledger pl-array lconstructor external-names)
+                   (print-state-accessor "localState"
+                     "callContext: { currentLocalQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
+                     pl-array external-names #t)]
+                  [else (loop (cdr xpelt*))])))))
 
         (define (set-operations state xpelt* q*)
           (fold-right
@@ -1825,7 +1855,7 @@
           (let loop ([xpelt* xpelt0*])
             (unless (null? xpelt*)
               (XPelt-case (car xpelt*)
-                [(XPelt-local-ledger pl-array lconstructor)
+                [(XPelt-local-ledger pl-array lconstructor external-names)
                  (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
                    [(local-constructor ,src ,stmt)
                     (fluid-let ([in-local-body? #t])
@@ -1856,7 +1886,7 @@
         (define (has-local-ledger? xpelt*)
           (ormap (lambda (xpelt)
                    (XPelt-case xpelt
-                     [(XPelt-local-ledger pl-array lconstructor) #t]
+                     [(XPelt-local-ledger pl-array lconstructor external-names) #t]
                      [else #f]))
                  xpelt*))
 
@@ -2471,7 +2501,7 @@
            [(,src ,ledger-field-name (,path-index* ...) ,type)
             (eq-hashtable-set! local-field-ht ledger-field-name (cons path-index* type))]))
        (pl-array->public-bindings pl-array))
-     (XPelt-local-ledger pl-array lconstructor)]
+     (XPelt-local-ledger pl-array lconstructor external-names)]
     [,kdecl (XPelt-ledger-kernel)])
   (Untyped-Argument : Argument (ir) -> * (str)
     [(,var-name ,type)

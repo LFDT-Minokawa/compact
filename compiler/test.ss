@@ -96945,6 +96945,43 @@ groups than for single tests.
         ))
     )
 
+  ; the localState accessor: export local mirrors export ledger, so the DApp reads the
+  ; exported fields of a persisted local state without running any circuit
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export local credits: Counter;"
+      "export local owners: Map<Uint<8>, Bytes<4>>;"
+      "export local seen: Set<Uint<8>>;"
+      "local hidden: Counter;"
+      "export circuit note(k: Uint<8>, v: Bytes<4>): [] {"
+      "  credits.increment(1);"
+      "  hidden.increment(2);"
+      "  owners.insert(k, v);"
+      "  seen.insert(k);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the localState accessor reads exported local fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r1 = await contract.circuits.note(context, 3n, new Uint8Array([1, 2, 3, 4]));"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, new Uint8Array([5, 6, 7, 8]));"
+        "  const L = contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.owners.size()).toEqual(2n);"
+        "  expect(L.owners.member(3n)).toEqual(true);"
+        "  expect(L.owners.lookup(3n)).toEqual(new Uint8Array([1, 2, 3, 4]));"
+        "  expect(L.seen.member(5n)).toEqual(true);"
+        "  expect([...L.seen].sort()).toEqual([3n, 5n]);"
+        "  expect((L as any).hidden).toBeUndefined();"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState());"
+        "  expect(L0.credits).toEqual(0n);"
+        "  expect(L0.owners.isEmpty()).toEqual(true);"
+        "});"
+        ))
+    )
+
   ; a local operation's result is witness data: returning it from an exported circuit
   ; without disclose is an error
   (test
