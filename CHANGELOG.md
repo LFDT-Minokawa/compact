@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
+
+- Any call to the Compact standard library implementations of `jubjubSchnorrVerify`
+  and `secp256k1EcdsaVerify` that passes the identity point as the public key now
+  results in a failed assertion, because doing so is inherently unsafe.
+  This is a **breaking change**.
+
 ## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
 ### Added
