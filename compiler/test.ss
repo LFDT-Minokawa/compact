@@ -31248,6 +31248,144 @@ groups than for single tests.
     )
 )
 
+(run-tests check-local-callability
+  ; a local function calls local functions, pure circuits, and local ADT operations, and
+  ; nothing that reaches the public transcript or the proof
+  (test
+    '(
+      "witness w(): Field;"
+      "local f(): Field {"
+      "  return w();"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(f());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "~a cannot call witness ~a" ("local function f" w)))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "circuit bump(): [] {"
+      "  x = 3 as Field;"
+      "}"
+      "local f(): [] {"
+      "  bump();"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 3" "~a cannot call impure circuit ~a" ("local function f" bump)))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "local f(): [] {"
+      "  x = 3 as Field;"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "~a cannot update ledger field ~a" ("local function f" x)))
+    )
+
+  ; permitted by the matrix, but the snapshot read path is not emitted yet
+  (test
+    '(
+      "ledger x: Field;"
+      "local f(): Field {"
+      "  return x;"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(f());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "ledger reads from local functions are not yet implemented" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local f(): [] {"
+      "  emit (ShieldedSpend { pad(32, 'a') });"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "~a cannot emit an event" ("local function f")))
+    )
+
+  ; the local constructor is stricter: joins must be derivable from the contract alone,
+  ; therefore ledger reads are out too
+  (test
+    '(
+      "ledger x: Field;"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = x;"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 13" "the local constructor cannot access ledger field ~a" (x)))
+    )
+
+  (test
+    '(
+      "witness w(): Field;"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = w();"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 13" "~a cannot call witness ~a" ("the local constructor" w)))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "circuit bump(): Field {"
+      "  x = 3 as Field;"
+      "  return 3 as Field;"
+      "}"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = bump();"
+      "}"
+      "export circuit g(): Field {"
+      "  bump();"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 13" "~a cannot call impure circuit ~a" ("the local constructor" bump)))
+    )
+)
+
 (run-tests propagate-ledger-paths
   (test
     '(

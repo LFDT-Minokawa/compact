@@ -201,9 +201,6 @@
     (define local-circuit-ht (make-eq-hashtable))
     (define (local-circuit-type function-name)
       (eq-hashtable-ref local-circuit-ht function-name #f))
-    (define witness-name-ht (make-eq-hashtable))
-    (define (witness-name? function-name)
-      (eq-hashtable-ref witness-name-ht function-name #f))
     (define in-local-body? #f)
 
     (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
@@ -2446,7 +2443,6 @@
            (XPelt-exported-circuit src function-name arg* type stmt external-name* (id-pure? function-name)))
          (XPelt-internal-circuit src function-name arg* type stmt (id-pure? function-name)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
-     (eq-hashtable-set! witness-name-ht function-name #t)
      (let ([external-name (symbol->string (id-sym function-name))])
        (XPelt-witness src function-name arg* type external-name))]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
@@ -2734,8 +2730,6 @@
          "."
          (format "~s" elt-name)))]
     [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
-     (when in-local-body?
-       (source-errorf src "local functions cannot emit events"))
      (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
             [vminstr*   (expand-vm-code src #f #f
                           `((emit-version . ,event-version)
@@ -3023,13 +3017,6 @@
                (make-Qconcat "await " call-q))
              (parenthesize level (precedence call) call-q))))]
     [(call ,src ,function-name ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-     ;; the callability matrix is not yet a check pass, therefore the printer rejects the
-     ;; calls it cannot emit soundly from local code
-     (when in-local-body?
-       (when (witness-name? function-name)
-         (source-errorf src "local functions cannot call witnesses"))
-       (when (function-async? function-name)
-         (source-errorf src "local functions cannot call impure circuits")))
      (cond
        [(function-async? function-name)
         (parenthesize level (precedence not)
@@ -3219,8 +3206,6 @@
         ;; subst-tcontract substituted for during register-descriptor!.  For other
         ;; types keep the existing descriptor lookup.
         (let ([local? (id-local? ledger-field-name)])
-          (when (and (not local?) in-local-body?)
-            (source-errorf src "ledger operations in local functions are not yet implemented"))
           (let ([descriptor-name?
                   (and (eq? op-class 'read)
                        (type->maybe-descriptor-name (subst-tcontract type)))])
@@ -3247,8 +3232,6 @@
      ;;     args: [<args>...]})
      (when outer-pure?
        (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
-     (when in-local-body?
-       (source-errorf src "local functions cannot make cross-contract calls"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
         ;; Type checking already established this; re-checked so a declaration missing the circuit
