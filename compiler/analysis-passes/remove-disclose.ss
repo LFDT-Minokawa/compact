@@ -15,7 +15,7 @@
 
 #!chezscheme
 
-(define-pass remove-disclose : Lnolocal (ir) -> Lnodisclose ()
+(define-pass remove-disclose : Lwithpaths (ir) -> Lnodisclose ()
   (ADT-Op : ADT-Op (ir) -> ADT-Op ()
     [(,ledger-op ,[op-class] (,adt-name (,adt-formal* ,[adt-arg*]) ...) ((,var-name* ,[type*] ,discloses?*) ...) ,[type] ,vm-code)
      `(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)])

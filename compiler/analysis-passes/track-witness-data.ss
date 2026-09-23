@@ -15,7 +15,7 @@
 
 #!chezscheme
 
-(define-pass track-witness-data : Lnolocal (ir) -> Lnolocal ()
+(define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
   ; track-witness-data is the so-called "witness-protection program" or WPP for short
   ; that enforces explicit disclosure of witness values, i.e., values that come into a
   ; contract via the constructor, exported circuit arguments, or witness return values
@@ -61,7 +61,8 @@
     (define-datatype Witness-Info
       (Witness-Return-Value function-name)
       (Constructor-Argument argument-name)
-      (Circuit-Argument function-name argument-name))
+      (Circuit-Argument function-name argument-name)
+      (Local-Operation-Result ledger-field-name))
 
     ; path point represents some interesting point along a data-flow path through the contract
     (define-record-type path-point
@@ -96,7 +97,9 @@
           [(Constructor-Argument argument-name)
            (fprintf op "Constructor-Argument ~s\n" (id-sym argument-name))]
           [(Circuit-Argument function-name argument-name)
-           (fprintf op "Circuit-Argument ~s ~s\n" (id-sym function-name) (id-sym argument-name))]))
+           (fprintf op "Circuit-Argument ~s ~s\n" (id-sym function-name) (id-sym argument-name))]
+          [(Local-Operation-Result ledger-field-name)
+           (fprintf op "Local-Operation-Result ~s\n" (id-sym ledger-field-name))]))
       (define (print-description op i description)
         (indent op i)
         (fprintf op "~a\n" description))
@@ -448,7 +451,7 @@
         [(type) (default-value type '())]
         [(type witness*)
          (let default-value ([type type])
-           (nanopass-case (Lnolocal Type) type
+           (nanopass-case (Lwithpaths Type) type
              [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
               (Abs-multiple (map default-value type*))]
              [(ttuple ,src ,type* ...)
@@ -513,6 +516,10 @@
                                       (format "the value of parameter ~a of exported circuit ~a at ~a"
                                         (id-sym argument-name)
                                         (id-sym function-name)
+                                        where)]
+                                     [(Local-Operation-Result ledger-field-name)
+                                      (format "the result of an operation on local field ~a at ~a"
+                                        (id-sym ledger-field-name)
                                         where)]))]
                   [via* (map (lambda (pp*)
                                (make-via
@@ -553,7 +560,7 @@
             witness*))))
 
     (define (de-alias type)
-      (nanopass-case (Lnolocal Type) type
+      (nanopass-case (Lwithpaths Type) type
         [(talias ,src ,nominal? ,type-name ,type)
          (de-alias type)]
         [else type]))
@@ -579,6 +586,10 @@
          (default-value type
            (list (make-witness src (next-witness-uid)
                    (Witness-Return-Value function-name))))))]
+    ;; a local function's data flow is a circuit's: its body is analyzed per call
+    [(local-circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
+     (hashtable-set! function-ht function-name
+       (Fun-circuit src function-name var-name* expr (next-circuit-uid)))]
     [,kdecl (void)]
     [,ldecl (void)]
     [,export-tdefn (void)]
@@ -603,6 +614,8 @@
                    var-name*)))
        '()
        #f)]
+    [(local-ledger-declaration ,pl-array (local-constructor ,src ,expr))
+     (Expression expr empty-env '() #f)]
     [else (void)])
   (Effect : Expression (ir p control-witness* disclosing-function-name?) -> * ()
     [(if ,src ,[* abs0] ,expr1 ,expr2)
@@ -804,7 +817,7 @@
      (Abs-multiple
        (fold-right
          (lambda (tuple-arg abs*)
-           (nanopass-case (Lnolocal Tuple-Argument) tuple-arg
+           (nanopass-case (Lwithpaths Tuple-Argument) tuple-arg
              [(single ,src ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
               (cons abs abs*)]
              [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
@@ -819,7 +832,7 @@
     [(vector ,src ,tuple-arg* ...)
      (let ([abs* (fold-right
                    (lambda (tuple-arg abs*)
-                     (nanopass-case (Lnolocal Tuple-Argument) tuple-arg
+                     (nanopass-case (Lwithpaths Tuple-Argument) tuple-arg
                        [(single ,src ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
                         (cons abs abs*)]
                        [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
@@ -858,29 +871,35 @@
     [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
     [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
-     (nanopass-case (Lnolocal ADT-Op) adt-op
+     (nanopass-case (Lwithpaths ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
-        (unless (null? control-witness*)
-          (record-leak! src^ "performing this ledger operation" control-witness*))
-        (for-each
-          (lambda (abs discloses? i?)
-            (when discloses?
-              (let ([witness* (abs->witnesses
-                                (add-path-point src^
-                                  (if sugar?
-                                      (format "the right-hand side of ~a" sugar?)
-                                      (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) ledger-op))
-                                  discloses?
-                                  abs))])
-                (unless (null? witness*)
-                  (record-leak! src^ "ledger operation" witness*)))))
-          abs*
-          discloses?*
-          (if (= (length abs*) 1) '(#f) (enumerate abs*)))
-        (default-value type)])]
+        (if (id-local? ledger-field-name)
+            ; a local operation reaches only the local transcript, therefore witness arguments and
+            ; witness-dependent control disclose nothing, but its result is itself witness data
+            (default-value type
+              (list (make-witness src (next-witness-uid) (Local-Operation-Result ledger-field-name))))
+            (begin
+              (unless (null? control-witness*)
+                (record-leak! src^ "performing this ledger operation" control-witness*))
+              (for-each
+                (lambda (abs discloses? i?)
+                  (when discloses?
+                    (let ([witness* (abs->witnesses
+                                      (add-path-point src^
+                                        (if sugar?
+                                            (format "the right-hand side of ~a" sugar?)
+                                            (format "the ~@[~:r ~]argument to ~a" (and i? (fx+ i? 1)) ledger-op))
+                                        discloses?
+                                        abs))])
+                      (unless (null? witness*)
+                        (record-leak! src^ "ledger operation" witness*)))))
+                abs*
+                discloses?*
+                (if (= (length abs*) 1) '(#f) (enumerate abs*)))
+              (default-value type)))])]
     [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
      (let-values ([(pure? type)
-            (nanopass-case (Lnolocal Type) (de-alias type)
+            (nanopass-case (Lwithpaths Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (let loop ([elt-name* elt-name*]
                           [pure-dcl* pure-dcl*]
@@ -910,7 +929,8 @@
                (Witness-Info-case (witness-info witness)
                  [(Witness-Return-Value function-name) #t]
                  [(Constructor-Argument argument-name) #f]
-                 [(Circuit-Argument function-name argument-name) #f]))
+                 [(Circuit-Argument function-name argument-name) #f]
+                 [(Local-Operation-Result ledger-field-name) #t]))
              witness*))
          (let ([control-witness* (filter-witnesses control-witness*)])
            (unless (null? control-witness*)

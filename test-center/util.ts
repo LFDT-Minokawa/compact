@@ -128,6 +128,8 @@ export const startContract = async <
     coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
     contractState: constructorResult.currentContractState,
     privateState: constructorResult.currentPrivateState,
+    // a local-state contract initializes its capsule state through the join constructor
+    localState: (module as any).initialLocalState?.(),
   });
 
   const wrappedImpureCircuits = {} as C['impureCircuits'];

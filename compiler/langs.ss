@@ -23,7 +23,6 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
-          Lnolocal unparse-Lnolocal Lnolocal-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -41,7 +40,7 @@
           Lwithpaths unparse-Lwithpaths Lwithpaths-pretty-formats
           Lnodisclose unparse-Lnodisclose Lnodisclose-pretty-formats
           Lnoserialize unparse-Lnoserialize Lnoserialize-pretty-formats
-          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition?
+          Lloweredemit unparse-Lloweredemit Lloweredemit-pretty-formats Lloweredemit-Export-Type-Definition? Lloweredemit-Ledger-Declaration?
           Ltypescript unparse-Ltypescript Ltypescript-pretty-formats Ltypescript-ADT-Op? Ltypescript-ADT-Runtime-Op?
           Lposttypescript unparse-Lposttypescript Lposttypescript-pretty-formats
           Lnoenums unparse-Lnoenums Lnoenums-pretty-formats
@@ -926,17 +925,7 @@
       (+ path-index
          (src type expr) => (type expr))))
 
-  ;; The `local` forms have layout but no code generation, therefore
-  ;; `reject-local-declarations` subtracts them here.
-  (define-language/pretty Lnolocal (extends Lwithpaths)
-    (Ledger-Declaration (ldecl)
-      (- (local-ledger-declaration pl-array lconstructor)))
-    (Ledger-Constructor (lconstructor)
-      (- (local-constructor src expr)))
-    (Circuit-Definition (cdefn)
-      (- (local-circuit src function-name (arg* ...) type expr))))
-
-  (define-language/pretty Lnodisclose (extends Lnolocal)
+  (define-language/pretty Lnodisclose (extends Lwithpaths)
     (ADT-Op (adt-op)
       (- (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type* (maybe discloses?)) ...) type vm-code))
       (+ (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>
@@ -978,10 +967,15 @@
     (Circuit-Definition (cdefn)
       (- (circuit src function-name (arg* ...) type expr))
       (+ (circuit src function-name (arg* ...) type stmt) =>
-         (circuit function-name (arg* 0 ...) 4 type #f stmt)))
+         (circuit function-name (arg* 0 ...) 4 type #f stmt))
+      (- (local-circuit src function-name (arg* ...) type expr))
+      (+ (local-circuit src function-name (arg* ...) type stmt) =>
+         (local-circuit function-name (arg* 0 ...) 4 type #f stmt)))
     (Ledger-Constructor (lconstructor)
       (- (constructor src (arg* ...) expr))
-      (+ (constructor src (arg* ...) stmt)       => (constructor (arg* 0 ...) #f stmt)))
+      (+ (constructor src (arg* ...) stmt)       => (constructor (arg* 0 ...) #f stmt))
+      (- (local-constructor src expr))
+      (+ (local-constructor src stmt)            => (local-constructor #f stmt)))
     (Function (fun)
       (- (circuit src (arg* ...) type expr))
       (+ (circuit src (arg* ...) type stmt)      => (circuit (arg* 0 ...) 4 type #f stmt)))
@@ -1014,6 +1008,14 @@
       (- export-tdefn))
     (Export-Type-Definition (export-tdefn)
       (- (export-typedef src type-name (tvar-name* ...) type)))
+    ;; `drop-ledger-runtime` reduces local functions to witness-shaped declarations and
+    ;; drops the local package, therefore the circuit pipeline never sees the local forms.
+    (Ledger-Declaration (ldecl)
+      (- (local-ledger-declaration pl-array lconstructor)))
+    (Ledger-Constructor (lconstructor)
+      (- (local-constructor src expr)))
+    (Circuit-Definition (cdefn)
+      (- (local-circuit src function-name (arg* ...) type expr)))
     (ADT-Runtime-Op (adt-rt-op)
       (- (ledger-op (arg* ...) result-type runtime-code)))
     (Expression (expr index)

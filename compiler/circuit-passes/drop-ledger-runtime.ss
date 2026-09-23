@@ -16,19 +16,30 @@
 #!chezscheme
 
 (define-pass drop-ledger-runtime : Lloweredemit (ir) -> Lposttypescript ()
+  (definitions
+    (define (local-package? pelt)
+      (and (Lloweredemit-Ledger-Declaration? pelt)
+           (nanopass-case (Lloweredemit Ledger-Declaration) pelt
+             [(local-ledger-declaration ,pl-array ,lconstructor) #t]
+             [else #f]))))
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
      `(program ,src ((,export-name* ,name*) ...)
         ,(fold-right
            (lambda (pelt pelt*)
-             (if (Lloweredemit-Export-Type-Definition? pelt)
+             (if (or (Lloweredemit-Export-Type-Definition? pelt)
+                     (local-package? pelt))
                  pelt*
                  (cons (Program-Element pelt) pelt*)))
            '()
            pelt*)
         ...)])
   (Program-Element : Program-Element (ir) -> Program-Element ()
-    [,export-tdefn (assert cannot-happen)])
+    [,export-tdefn (assert cannot-happen)]
+    ;; the circuit pipeline consumes a local function's results as private inputs,
+    ;; therefore the definition reduces to a witness-shaped declaration
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[type] ,expr)
+     `(witness ,src ,function-name (,arg* ...) ,type)])
   (Expression : Expression (ir) -> Expression ()
     (definitions
       (define (do-not src expr)

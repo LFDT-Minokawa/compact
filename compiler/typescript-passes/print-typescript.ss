@@ -164,10 +164,12 @@
     (define-datatype XPelt
       (XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
       (XPelt-internal-circuit src internal-id arg* type stmt pure?)
+      (XPelt-local-circuit src internal-id arg* type stmt)
       (XPelt-witness src internal-id arg* type external-name)
       (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
       (XPelt-type-definition src type-name export-name tvar-name* type)
       (XPelt-public-ledger pl-array lconstructor external-names)
+      (XPelt-local-ledger pl-array lconstructor)
       (XPelt-ledger-kernel))
     (define (xpelt->uname xpelt)
       (XPelt-case xpelt
@@ -175,12 +177,15 @@
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-internal-circuit src internal-id arg* type stmt pure?)
          (format-internal-binding unique-global-name internal-id)]
+        [(XPelt-local-circuit src internal-id arg* type stmt)
+         (format-internal-binding unique-global-name internal-id)]
         [(XPelt-witness src internal-id arg* type external-name)
          (format-internal-binding unique-global-name internal-id)]
         [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-type-definition src type-name export-name tvar-name* type) #f]
         [(XPelt-public-ledger pl-array lconstructor external-names) #f]
+        [(XPelt-local-ledger pl-array lconstructor) #f]
         [(XPelt-ledger-kernel) #f]))
     ;; Which functions have async wrappers in the generated JS. Only impure circuits, since their
     ;; bodies may `await` a cross-contract call; everything else is synchronous.
@@ -189,6 +194,17 @@
       (eq-hashtable-set! function-async-ht function-name #t))
     (define (function-async? function-name)
       (eq-hashtable-ref function-async-ht function-name #f))
+
+    ;; local function names, mapped to their result types.  a call from a circuit crosses
+    ;; into the proof (the caller pushes the result as a private input) but a call from
+    ;; local code does not, therefore the printer tracks which body it is printing.
+    (define local-circuit-ht (make-eq-hashtable))
+    (define (local-circuit-type function-name)
+      (eq-hashtable-ref local-circuit-ht function-name #f))
+    (define witness-name-ht (make-eq-hashtable))
+    (define (witness-name? function-name)
+      (eq-hashtable-ref witness-name-ht function-name #f))
+    (define in-local-body? #f)
 
     (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
       (define descriptor-table #f)
@@ -485,9 +501,11 @@
            ((make-Qsep ",") "context" coin-expr recipient-expr)
            ")")))
 
-      (define (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)
+      (define (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* . maybe-local)
         (let ([query (make-Qconcat/src src
-                       "__compactRuntime.queryLedgerState("
+                       (if (and (pair? maybe-local) (car maybe-local))
+                           "__compactRuntime.queryLocalState("
+                           "__compactRuntime.queryLedgerState(")
                        ((make-Qsep ",")
                         "context"
                         "partialProofData"
@@ -536,6 +554,20 @@
          (with-output-language (Ltypescript Type)
            `(tstruct ,src ContractAddress (bytes (tbytes ,src 32))))]
         [else type]))
+
+    ;; the circuit consumes a local result as private inputs, therefore a circuit-side local
+    ;; operation or local call records its value, exactly as a witness wrapper does
+    (define (wrap-private-input-push src type q)
+      (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
+            [descriptor-name? (type->maybe-descriptor-name (subst-tcontract type))])
+        (make-Qconcat
+          (format "((~a) => { partialProofData.privateTranscriptOutputs.push({ value: ~a, alignment: ~a }); return ~a; })("
+                  result
+                  (if descriptor-name? (format "~a.toValue(~a)" descriptor-name? result) "[]")
+                  (if descriptor-name? (format "~a.alignment()" descriptor-name?) "[]")
+                  result)
+          q
+          ")")))
 
     (define (print-contract.d.ts src xpelt* uname*)
       ;; Every entry in `Circuits`, `ImpureCircuits`, and `ProvableCircuits` is an async wrapper
@@ -835,6 +867,12 @@
                       "): Promise<__compactRuntime.ConstructorResult<PS>>;"))
                   (newline))])]
             [else (loop (cdr xpelt*))])))
+      (let ([local-ledger?
+              (ormap (lambda (xpelt)
+                       (XPelt-case xpelt
+                         [(XPelt-local-ledger pl-array lconstructor) #t]
+                         [else #f]))
+                     xpelt*)])
       (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
         (with-local-unique-names
           (demand-unique-local-name! "T")
@@ -874,14 +912,18 @@
             (display-string "  provableCircuits: ProvableCircuits<PS>;\n")
             (display-string "  constructor(witnesses: W);\n")
             (print-constructor-declaration xpelt*)
+            (when local-ledger?
+              (display-string "  initialLocalState(): __compactRuntime.StateValue;\n"))
             (display-string "}\n")
             (newline)
             (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
+            (when local-ledger?
+              (display-string "export declare function initialLocalState(): __compactRuntime.StateValue;\n"))
             (display-string "export declare const pureCircuits: PureCircuits;\n")
             (display-string "export declare const expectedVk: Record<string, string>;\n")
             (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
             (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
-            ))))
+            )))))
 
     (define (format-curve-type ctype)
       (strict-nanopass-case (Ltypescript Curve-Type) ctype
@@ -1041,7 +1083,9 @@
         (for-each print-descriptor descriptor-id* type*))
 
       (module (print-contract-class)
-        (define (ledger-initializers src state pl-array q*)
+        ;; emits `let stateValue = ...` building the package's nested default arrays; shared
+        ;; between the ledger initializer and the local-state initializer
+        (define (initialize-state-value src stateValue pl-array q*)
           (define (initialize-array pl-array stateValue q*)
             (cons*
               2 (format "let ~a = __compactRuntime.StateValue.newArray();" stateValue)
@@ -1062,13 +1106,16 @@
                           q*)]))
                    q*
                    pl-array-elt*)])))
+          (initialize-array pl-array stateValue q*))
+
+        (define (ledger-initializers src state pl-array q*)
           (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))])
-            (initialize-array pl-array stateValue
+            (initialize-state-value src stateValue pl-array
               (cons*
                 2 (format "~a.data = new __compactRuntime.ChargedState(~a);" state stateValue)
                 q*))))
 
-        (define (ledger-reset-to-default src pl-array q*)
+        (define (ledger-reset-to-default src pl-array local? q*)
           (define (find-adt-op ledger-op adt-op*)
             (assert (find (lambda (adt-op)
                             (nanopass-case (Ltypescript ADT-Op) adt-op
@@ -1082,7 +1129,7 @@
                  (nanopass-case (Ltypescript Type) (de-alias type)
                    [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                     (cons*
-                      2 (construct-query src path-index* adt-formal* adt-arg* (find-adt-op 'resetToDefault adt-op*) '()) ";"
+                      2 (construct-query src path-index* adt-formal* adt-arg* (find-adt-op 'resetToDefault adt-op*) '() local?) ";"
                       q*)]
                    [else (assert cannot-happen)])]))
             q*
@@ -1759,7 +1806,7 @@
                                                  4 "publicTranscript: [],"
                                                  4 "privateTranscriptOutputs: []"
                                                  2 "};"
-                                                 (ledger-reset-to-default src pl-array
+                                                 (ledger-reset-to-default src pl-array #f
                                                    (list
                                                      2 (Stmt stmt #f #f)
                                                      2 (format "~a.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);" state)
@@ -1772,15 +1819,58 @@
                   (newline)])]
               [else (loop (cdr xpelt*))])))
 
+        ;; the join constructor: deterministic and participant-independent, so it runs as a
+        ;; plain synchronous method against a throwaway context and returns the local StateValue
+        (define (print-local-initializer xpelt0*)
+          (let loop ([xpelt* xpelt0*])
+            (unless (null? xpelt*)
+              (XPelt-case (car xpelt*)
+                [(XPelt-local-ledger pl-array lconstructor)
+                 (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
+                   [(local-constructor ,src ,stmt)
+                    (fluid-let ([in-local-body? #t])
+                      (with-local-unique-names
+                        (print-Q 2
+                          (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))]
+                                [state (format-internal-binding unique-local-name (make-temp-id src 'state))])
+                            (apply make-Qconcat/src src
+                                   "initialLocalState() {"
+                                   (initialize-state-value src stateValue pl-array
+                                     (cons*
+                                       2 (format "const ~a = new __compactRuntime.ContractState();" state)
+                                       2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'initialLocalState', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: '0'.repeat(64), contractState: ~a.data, privateState: undefined, localState: ~a});" state stateValue)
+                                       2 "const partialProofData = {"
+                                       4 "input: { value: [], alignment: [] },"
+                                       4 "output: undefined,"
+                                       4 "publicTranscript: [],"
+                                       4 "privateTranscriptOutputs: []"
+                                       2 "};"
+                                       (ledger-reset-to-default src pl-array #t
+                                         (list
+                                           2 (Stmt stmt #f #f)
+                                           2 "return context.callContext.currentLocalQueryContext.state.state;"
+                                           0 "}")))))))))
+                    (newline)])]
+                [else (loop (cdr xpelt*))]))))
+
+        (define (has-local-ledger? xpelt*)
+          (ormap (lambda (xpelt)
+                   (XPelt-case xpelt
+                     [(XPelt-local-ledger pl-array lconstructor) #t]
+                     [else #f]))
+                 xpelt*))
+
         (define (print-unexported-circuit xpelt uname)
-          (define (print-local-circuit src internal-id arg* stmt pure?)
+          ;; pure? drops the context/partialProofData parameters; async? is separate because a
+          ;; local function is impure but synchronous
+          (define (print-local-circuit src internal-id arg* stmt pure? async?)
             (with-local-unique-names
               (print-Q 2
                 (let ([q-formal* (map make-Qformal! arg*)])
                   (make-Qconcat/src src
                     (make-Qconcat
                       (make-Qconcat/src (id-src internal-id)
-                        (if pure? (format "~a" uname) (format "async ~a" uname)))
+                        (if async? (format "async ~a" uname) (format "~a" uname)))
                       "("
                       (make-Qargs pure? q-formal*)
                       ")"
@@ -1790,9 +1880,13 @@
             (newline))
           (XPelt-case xpelt
             [(XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
-             (print-local-circuit src internal-id arg* stmt pure?)]
+             (print-local-circuit src internal-id arg* stmt pure? (not pure?))]
             [(XPelt-internal-circuit src internal-id arg* type stmt pure?)
-             (print-local-circuit src internal-id arg* stmt pure?)]
+             (print-local-circuit src internal-id arg* stmt pure? (not pure?))]
+            [(XPelt-local-circuit src internal-id arg* type stmt)
+             ;; synchronous: a local function calls only local code and pure circuits
+             (fluid-let ([in-local-body? #t])
+               (print-local-circuit src internal-id arg* stmt #f #f))]
             [(XPelt-witness src internal-id arg* type external-name)
              (print-external-witness src internal-id uname arg* type external-name)]
             [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
@@ -1914,6 +2008,7 @@
                 (fluid-let ([helper* '()])
                   (print-contract-constructor xpelt* uname* impure-name* provable-name*)
                   (print-contract-initializer xpelt* uname*)
+                  (print-local-initializer xpelt*)
                   (for-each print-unexported-circuit xpelt* uname*)
                   (for-each display-string (reverse helper*)))
                 (display-string "}\n")
@@ -1930,6 +2025,12 @@
                                   (get-witness-names xpelt*)))
                     0 "});"))
                 (newline)
+                (when (has-local-ledger? xpelt*)
+                  ;; the join constructor calls nothing party-dependent, so the dummy contract runs it
+                  (display-string "export function initialLocalState() {\n")
+                  (display-string "  return _dummyContract.initialLocalState();\n")
+                  (display-string "}\n")
+                  (newline))
                 (print-Q 0
                   (apply make-Qconcat
                     "export const pureCircuits = {"
@@ -2345,6 +2446,7 @@
            (XPelt-exported-circuit src function-name arg* type stmt external-name* (id-pure? function-name)))
          (XPelt-internal-circuit src function-name arg* type stmt (id-pure? function-name)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
+     (eq-hashtable-set! witness-name-ht function-name #t)
      (let ([external-name (symbol->string (id-sym function-name))])
        (XPelt-witness src function-name arg* type external-name))]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
@@ -2358,8 +2460,13 @@
               [(talias ,src ,nominal? ,type-name ,type) type-name]
               [else type-name])])
        (XPelt-type-definition src actual-type-name type-name tvar-name* type))]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,stmt)
+     (eq-hashtable-set! local-circuit-ht function-name type)
+     (XPelt-local-circuit src function-name arg* type stmt)]
     [(public-ledger-declaration ,pl-array ,lconstructor)
      (XPelt-public-ledger pl-array lconstructor external-names)]
+    [(local-ledger-declaration ,pl-array ,lconstructor)
+     (XPelt-local-ledger pl-array lconstructor)]
     [,kdecl (XPelt-ledger-kernel)])
   (Untyped-Argument : Argument (ir) -> * (str)
     [(,var-name ,type)
@@ -2627,6 +2734,8 @@
          "."
          (format "~s" elt-name)))]
     [(emit ,src ,event-version ,event-tag ,len ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,vm-code)
+     (when in-local-body?
+       (source-errorf src "local functions cannot emit events"))
      (let* ([bytes-type (with-output-language (Ltypescript Type) `(tbytes ,src ,len))]
             [vminstr*   (expand-vm-code src #f #f
                           `((emit-version . ,event-version)
@@ -2914,20 +3023,38 @@
                (make-Qconcat "await " call-q))
              (parenthesize level (precedence call) call-q))))]
     [(call ,src ,function-name ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
-     (if (function-async? function-name)
-         (parenthesize level (precedence not)
-           (make-Qconcat
-             "await "
-             (format-function-reference src function-name)
-             "("
-             (make-Qargs (id-pure? function-name) expr*)
-             ")"))
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             (format-function-reference src function-name)
-             "("
-             (make-Qargs (id-pure? function-name) expr*)
-             ")")))]
+     ;; the callability matrix is not yet a check pass, therefore the printer rejects the
+     ;; calls it cannot emit soundly from local code
+     (when in-local-body?
+       (when (witness-name? function-name)
+         (source-errorf src "local functions cannot call witnesses"))
+       (when (function-async? function-name)
+         (source-errorf src "local functions cannot call impure circuits")))
+     (cond
+       [(function-async? function-name)
+        (parenthesize level (precedence not)
+          (make-Qconcat
+            "await "
+            (format-function-reference src function-name)
+            "("
+            (make-Qargs (id-pure? function-name) expr*)
+            ")"))]
+       [(and (not in-local-body?) (local-circuit-type function-name)) =>
+        (lambda (type)
+          (parenthesize level (precedence call)
+            (wrap-private-input-push src type
+              (make-Qconcat
+                (format-function-reference src function-name)
+                "("
+                (make-Qargs (id-pure? function-name) expr*)
+                ")"))))]
+       [else
+        (parenthesize level (precedence call)
+          (make-Qconcat
+            (format-function-reference src function-name)
+            "("
+            (make-Qargs (id-pure? function-name) expr*)
+            ")"))])]
     [(new ,src ,type ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tstruct ,src ,struct-name (,elt-name* ,type*) ...)
@@ -3091,17 +3218,23 @@
         ;; For a tcontract result look up the ContractAddress descriptor that
         ;; subst-tcontract substituted for during register-descriptor!.  For other
         ;; types keep the existing descriptor lookup.
-        (let ([descriptor-name?
-                (and (eq? op-class 'read)
-                     (type->maybe-descriptor-name (subst-tcontract type)))])
-          (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)])
-            (if descriptor-name?
-                (make-Qconcat
-                  descriptor-name?
-                  ".fromValue("
-                  q
-                  ".value)")
-                q)))])]
+        (let ([local? (id-local? ledger-field-name)])
+          (when (and (not local?) in-local-body?)
+            (source-errorf src "ledger operations in local functions are not yet implemented"))
+          (let ([descriptor-name?
+                  (and (eq? op-class 'read)
+                       (type->maybe-descriptor-name (subst-tcontract type)))])
+            (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* local?)])
+              (let ([q (if descriptor-name?
+                           (make-Qconcat
+                             descriptor-name?
+                             ".fromValue("
+                             q
+                             ".value)")
+                           q)])
+                (if (and local? (not in-local-body?))
+                    (wrap-private-input-push src type q)
+                    q)))))])]
     [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      ;; Lower a cross-contract call to:
      ;;   await __compactRuntime.crossContractCall({
@@ -3114,6 +3247,8 @@
      ;;     args: [<args>...]})
      (when outer-pure?
        (source-errorf src "cross-contract call from a pure circuit is not yet supported"))
+     (when in-local-body?
+       (source-errorf src "local functions cannot make cross-contract calls"))
      (nanopass-case (Ltypescript Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
         ;; Type checking already established this; re-checked so a declaration missing the circuit

@@ -41,8 +41,6 @@
 
   (include "analysis-passes/remove-tundeclared.ss")
 
-  (include "analysis-passes/reject-local-declarations.ss")
-
   (include "analysis-passes/combine-ledger-declarations.ss")
 
   (include "analysis-passes/discard-unused-functions.ss")
@@ -87,8 +85,7 @@
     (identify-pure-circuits          Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
-    (reject-local-declarations       Lnolocal)
-    (track-witness-data              Lnolocal)
+    (track-witness-data              Lwithpaths)
     (remove-disclose                 Lnodisclose)
     (expand-serialize                Lnoserialize)
     (lower-emit                      Lloweredemit))

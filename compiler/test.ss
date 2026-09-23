@@ -7937,36 +7937,8 @@ groups than for single tests.
   )
 )
 
-(run-tests reject-local-declarations
-  (test
-    '(
-      "local credits: Uint<4>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "local declarations are not yet implemented" ()))
-    )
-
-  (test
-    '(
-      "local constructor {"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "the local constructor is not yet implemented" ()))
-    )
-
-  (test
-    '(
-      "local f(): [] {"
-      "}"
-      )
-    (returns
-      (program
-        (public-ledger-declaration () (constructor () (tuple)))))
-    )
-
+(run-tests expand-modules-and-types
+  ; local functions are declarations, not exports
   (test
     '(
       "export local f(): [] {"
@@ -7975,50 +7947,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (local-circuit f)))
-    )
-
-  (test
-    '(
-      "local remember(c: Bytes<32>): Boolean {"
-      "  const [x, y] = [c, c];"
-      "  if (x == y) {"
-      "    return true;"
-      "  }"
-      "  return false;"
-      "}"
-      "export circuit g(c: Bytes<32>): Boolean {"
-      "  return remember(c);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
-    )
-
-  (test
-    '(
-      "module M {"
-      "  local credits: Uint<4>;"
-      "}"
-      "import M;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 3" "local declarations are not yet implemented" ()))
-    )
-
-  (test
-    '(
-      "local f(x: Field): Field {"
-      "  return x;"
-      "}"
-      "export circuit g(x: Field): Field {"
-      "  return f(x);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "local functions are not yet implemented" ()))
     )
 )
 
@@ -96300,6 +96228,62 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
+    )
+)
+
+(run-tests print-typescript
+  ; local state end to end: join constructor seeds it, a circuit body operates on it directly,
+  ; a local function evolves it, and the result crosses into the proof as a disclosed value
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "local constructor {"
+      "  credits.increment(3);"
+      "}"
+      "local spend(n: Uint<16>): Uint<64> {"
+      "  credits.decrement(1);"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(n: Uint<16>): Uint<64> {"
+      "  total.increment(1);"
+      "  credits.increment(n);"
+      "  return disclose(spend(n));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local state evolves across chained calls', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r1 = await contract.circuits.tick(context, 2n);"
+        "  expect(r1.result).toEqual(4n);"
+        "  const r2 = await contract.circuits.tick(r1.context, 4n);"
+        "  expect(r2.result).toEqual(7n);"
+        "  const L = contractCode.ledger(r2.context.callContext.currentQueryContext.state);"
+        "  expect(L.total).toEqual(2n);"
+        "});"
+        "test('initialLocalState is deterministic', async () => {"
+        "  const a = contractCode.initialLocalState();"
+        "  const b = contractCode.initialLocalState();"
+        "  expect(a.toString()).toEqual(b.toString());"
+        "});"
+        ))
+    )
+
+  ; a local operation's result is witness data: returning it from an exported circuit
+  ; without disclose is an error
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export circuit peek(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the result of an operation on local field credits at line 4 char 10" ("\n    nature of the disclosure:\n      the value returned from exported circuit peek might disclose the witness value"))))
     )
 )
 

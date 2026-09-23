@@ -88,7 +88,11 @@
                  elt-name* pure-dcl* type** type*))))))
   (Program : Program (ir) -> * (json)
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
-     (list
+     ;; the local section appears only for contracts with a local half, so contract-info
+     ;; is unchanged for everything else
+     (let ([local-field* (fold-right (lambda (pelt field*) (LedgerField pelt field* #t)) '() pelt*)])
+     (append
+      (list
        (cons
          "compiler-version"
          compiler-version-string)
@@ -122,7 +126,10 @@
                 contract-type*)))
        (cons
          "ledger"
-         (list->vector (fold-right LedgerField '() pelt*))))])
+         (list->vector (fold-right (lambda (pelt field*) (LedgerField pelt field* #f)) '() pelt*))))
+      (if (null? local-field*)
+          '()
+          (list (cons "local" (list->vector local-field*))))))])
   (Witness : Program-Element (ir witness*) -> * (json)
     [(witness ,src ,function-name (,arg* ...) ,type)
      (cons
@@ -138,28 +145,35 @@
            (Type type)))
        witness*)]
     [else witness*])
-  (LedgerField : Program-Element (ir field*) -> * (json)
+  ;; one walker for both stores: local? selects which package contributes
+  (LedgerField : Program-Element (ir field* local?) -> * (json)
+    (definitions
+      (define (package-fields pl-array field*)
+        (append
+          (map
+            (lambda (pb)
+              (nanopass-case (Lloweredemit Public-Ledger-Binding) pb
+                [(,src ,ledger-field-name (,path-index* ...) ,type)
+                 (let ([name (symbol->string (id-sym ledger-field-name))]
+                       [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
+                       [exported (id-exported? ledger-field-name)]
+                       [unwrapped (unwrap-to-adt type)])
+                   (nanopass-case (Lloweredemit Type) unwrapped
+                     [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                      (cons*
+                        (cons "name" name)
+                        (cons "index" index)
+                        (cons "exported" exported)
+                        (serialize-adt "storage" adt-name adt-arg*))]
+                     [else (assert cannot-happen)]))]))
+            (flatten-pl-array pl-array))
+          field*)))
     [(public-ledger-declaration ,pl-array ,lconstructor)
-     (let ([bindings (flatten-pl-array pl-array)])
-       (append
-         (map
-           (lambda (pb)
-             (nanopass-case (Lloweredemit Public-Ledger-Binding) pb
-               [(,src ,ledger-field-name (,path-index* ...) ,type)
-                (let ([name (symbol->string (id-sym ledger-field-name))]
-                      [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
-                      [exported (id-exported? ledger-field-name)]
-                      [unwrapped (unwrap-to-adt type)])
-                  (nanopass-case (Lloweredemit Type) unwrapped
-                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                     (cons*
-                       (cons "name" name)
-                       (cons "index" index)
-                       (cons "exported" exported)
-                       (serialize-adt "storage" adt-name adt-arg*))]
-                    [else (assert cannot-happen)]))]))
-           bindings)
-         field*))]
+     (guard (not local?))
+     (package-fields pl-array field*)]
+    [(local-ledger-declaration ,pl-array ,lconstructor)
+     (guard local?)
+     (package-fields pl-array field*)]
     [else field*])
   (exported-circuit : Program-Element (ir circuit* export-alist) -> * (json)
     (definitions

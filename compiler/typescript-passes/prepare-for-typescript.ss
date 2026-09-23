@@ -267,10 +267,16 @@
     [(circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
      (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
-     `(circuit ,src ,function-name (,arg* ...) ,type ,stmt)])
+     `(circuit ,src ,function-name (,arg* ...) ,type ,stmt)]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[type0 -> type] ,[Stmt : expr src -> stmt])
+     (for-each register-descriptor! (map arg->type arg*))
+     (maybe-register-descriptor! type)
+     `(local-circuit ,src ,function-name (,arg* ...) ,type ,stmt)])
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,[Stmt : expr src -> stmt])
-     `(constructor ,src (,arg* ...) ,stmt)])
+     `(constructor ,src (,arg* ...) ,stmt)]
+    [(local-constructor ,src ,[Stmt : expr src -> stmt])
+     `(local-constructor ,src ,stmt)])
   (Function : Function (ir) -> Function ()
     [(circuit ,src (,[arg*] ...) ,[type] ,[Stmt : expr src -> stmt])
      `(circuit ,src (,arg* ...) ,type ,stmt)])
