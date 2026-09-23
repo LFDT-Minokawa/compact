@@ -29,6 +29,7 @@ import type {
     ContractCircuitContext,
     ContractPrivateState,
     ContractWitnesses,
+    GeneratedPureCircuits,
     RuntimeTestDefinition,
     RuntimeTestOptions,
     TestContract,
@@ -65,14 +66,21 @@ export function defineCompileTest(
  * Defines a runtime-phase Compact fixture.
  *
  * Runtime files may type-import generated contract artifacts. The orchestrator
- * imports the generated contract value after compilation and passes it to this
- * callback.
+ * imports the generated module after compilation and passes both its `Contract`
+ * constructor and its `pureCircuits` record to this callback.
+ *
+ * Pure circuits take no circuit context and are computed off-chain by the
+ * runtime, so a fixture that only exercises them never needs
+ * `createTestContract`.
  */
-export function defineRuntimeTest<Contract extends CompactContractConstructor>(
+export function defineRuntimeTest<
+    Contract extends CompactContractConstructor,
+    Pure = GeneratedPureCircuits,
+>(
     metaUrl: string,
-    run: (Contract: Contract) => Promise<void> | void,
+    run: (Contract: Contract, pureCircuits: Pure) => Promise<void> | void,
     options: RuntimeTestOptions = {},
-): RuntimeTestDefinition<Contract> {
+): RuntimeTestDefinition<Contract, Pure> {
     const expectation = expectationFromTestFile(metaUrl, 'runtime');
 
     return {
