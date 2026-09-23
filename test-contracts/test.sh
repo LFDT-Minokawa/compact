@@ -34,7 +34,8 @@ nix develop --no-warn-dirty .#test-contracts --command bash -c '
   fi
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   corepack yarn install --immutable
-  cargo build --release --manifest-path tools/verify-proof-fixtures/Cargo.toml
+  # Newer than the repository pin: see rust-version in that Cargo.toml.
+  cargo +1.95.0 build --release --manifest-path tools/verify-proof-fixtures/Cargo.toml
   COMPACT_BINARY=compactc corepack yarn lint
   COMPACT_BINARY=compactc corepack yarn test "$@"
 ' bash "$@"

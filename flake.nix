@@ -542,8 +542,9 @@
               packages.runtime.node-modules
               packages.test-center.package
               packages.test-center.node-modules
-              # Compiling a `verifyProof` runs `zkir-v3 inner-vk`, even under
-              # `--skip-zk`, so the default shell needs these to build one.
+              # compactc runs `zkir`/`zkir-v3 compile-many` to generate keys
+              # unless `--skip-zk`, and `./compiler/go` expects both, so the
+              # default shell carries what `.#compiler` does.
               zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
