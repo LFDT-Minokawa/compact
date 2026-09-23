@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.34.105, language 0.26.102, runtime 0.19.104]
+## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
 
 ### Added
 
@@ -16,7 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **This feature requires the flag `--feature-zkir-v3`.**
 
-## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.103]
+## [Toolchain 0.34.105, language 0.26.102, runtime 0.19.103]
 
 ### Added
 
@@ -32,6 +32,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   functions analogous to the ones for the other foreign fields and curves.
 
   **This feature requires the flag `--feature-zkir-v3`.**
+
+## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
+
+- Any call to the Compact standard library implementations of `jubjubSchnorrVerify`
+  and `secp256k1EcdsaVerify` that passes the identity point as the public key now
+  results in a failed assertion, because doing so is inherently unsafe.
+  This is a **breaking change**.
 
 ## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
 
