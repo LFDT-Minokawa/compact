@@ -71331,6 +71331,45 @@ groups than for single tests.
         "  ]"
         "}"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(sha512<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%pt0.0\", \"type\": \"Point<Secp256k1>\" },"
+        "    { \"name\": \"%pt1.1\", \"type\": \"Point<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\"], \"input\": \"%pt0.0\" },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"], \"input\": \"%pt1.1\" },"
+        "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
+        "    { \"op\": \"slice\", \"output\": \"%low32.13\", \"bytes\": \"%bytes.12\", \"start\": 0, \"len\": 32 },"
+        "    { \"op\": \"slice\", \"output\": \"%high32.14\", \"bytes\": \"%bytes.12\", \"start\": 32, \"len\": 32 },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.15\", \"%byte31.16\"], \"bytes\": \"%low32.13\" },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%bytes32to62.17\", \"%byte63.18\"], \"bytes\": \"%high32.14\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%byte62.19\", \"%bytes32to61.20\"], \"val\": \"%bytes32to62.17\", \"bits\": 240 },"
+        "    { \"op\": \"mul\", \"output\": \"%temp0.21\", \"a\": \"%bytes32to61.20\", \"b\": \"0x0001\" },"
+        "    { \"op\": \"add\", \"output\": \"%tmp.22\", \"a\": \"%byte31.16\", \"b\": \"%temp0.21\" },"
+        "    { \"op\": \"mul\", \"output\": \"%temp1.23\", \"a\": \"%byte63.18\", \"b\": \"0x0001\" },"
+        "    { \"op\": \"add\", \"output\": \"%tmp.24\", \"a\": \"%byte62.19\", \"b\": \"%temp1.23\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.24\", \"%tmp.22\", \"%tmp.15\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
   )
 )
 
@@ -92183,6 +92222,25 @@ groups than for single tests.
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test0(context, p0);"
         "  await contract.circuits.test1(context, p0, p1);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(sha512<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('sha512 hashing', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256k1MulGenerator(5n);"
+        "  const p1 = runtime.secp256k1MulGenerator(7n);"
+        "  await contract.circuits.test(context, p0, p1);"
         "});"
         ))
     )

@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
+
+### Added
+
+- The standard library now has support for `sha512` hashing.  The signature is
+  like `persistentHash` (that is, SHA-256) and `keccak256`, except that the
+  return type is `Bytes<64>`.  There is a corresponding function `sha512`
+  exported from the Compact runtime.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
 ## [Toolchain 0.34.105, language 0.26.102, runtime 0.19.103]
 
 ### Added
@@ -19,6 +30,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   The fields and curve points support the same operations as the other foreign
   fields and curve points.  The Compact runtime exports types, constants, and
   functions analogous to the ones for the other foreign fields and curves.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
 
 ## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
 
@@ -50,6 +63,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   The runtime also exports constants for the field modulus and the maximum field
   values for the new field types.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
 
 ### Fixed
 

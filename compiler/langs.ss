@@ -1335,6 +1335,8 @@
       (public_input zkir-type outp inp)
       (reconstitute_field outp inp0 inp1 imm)
       (reverse_bytes outp inp)
+      (sha512 outp (alignment* ...) inp* ...)
+      (slice outp inp imm0 imm1)
       (test_eq outp inp0 inp1)
       (transient_hash outp inp* ...))
     (Input (inp)
