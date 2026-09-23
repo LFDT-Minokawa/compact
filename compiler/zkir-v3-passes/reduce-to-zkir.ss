@@ -643,6 +643,9 @@
                  '()
                  (list (combine hi n))))]
 
+          ;; ckpt --> 0xff
+          [("ckpt") (list #xff)]
+
           [else
             (fprintf (current-error-port) "unimplemented: ~s\n" impact-instr)
             (assert not-implemented)])))
