@@ -15,6 +15,8 @@
         "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
     },
     "devDependencies": {
+        "@noble/curves": "^2.2.0",
+        "@noble/hashes": "^2.0.1",
         "@types/node": "^25.5.0",
         "prettier": "^3.8.2",
         "typescript": "^6.0.3",
