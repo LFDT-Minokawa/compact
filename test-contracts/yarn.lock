@@ -67,6 +67,22 @@ __metadata:
   languageName: node
   linkType: hard
 
+"@noble/curves@npm:^2.2.0":
+  version: 2.4.0
+  resolution: "@noble/curves@npm:2.4.0"
+  dependencies:
+    "@noble/hashes": "npm:2.4.0"
+  checksum: 10c0/b60b737f65cc4e128dd94fea467df1ed73c5c0c089ef1bdb61614a0897db1fa7151d7f95bb7205854a9030d3f80a879e00f3bb74990befde061184ae43dfaec6
+  languageName: node
+  linkType: hard
+
+"@noble/hashes@npm:2.4.0, @noble/hashes@npm:^2.0.1":
+  version: 2.4.0
+  resolution: "@noble/hashes@npm:2.4.0"
+  checksum: 10c0/f5820a38c52886073a69722a030688ad188bbacb822d01554545371259961c2b916266c57c013c2ce5a0d78aec977142fc68fd2a79be4c97b0644fcee9bb35f6
+  languageName: node
+  linkType: hard
+
 "@oxc-project/types@npm:=0.133.0":
   version: 0.133.0
   resolution: "@oxc-project/types@npm:0.133.0"
@@ -354,6 +370,8 @@ __metadata:
   resolution: "compact-test-contracts@workspace:."
   dependencies:
     "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
+    "@noble/curves": "npm:^2.2.0"
+    "@noble/hashes": "npm:^2.0.1"
     "@types/node": "npm:^25.5.0"
     prettier: "npm:^3.8.2"
     typescript: "npm:^6.0.3"

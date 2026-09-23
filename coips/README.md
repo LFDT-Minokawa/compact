@@ -34,5 +34,6 @@ They can have several different statuses as they move through the lifecycle of a
 | CoIP | Title | Authors | Category | Status |
 | --- | --- | --- | --- | --- |
 | 2 | Contract Interfaces, References, and Calls | Jonathan Sobel | Language | Draft |
+| 3 | Emit Expression for Structured Event Emission | Dominik Zajkowski | Language | Draft |
 
 ## Rejected, Superseded, Obsolete, and Withdrown CoIPs
