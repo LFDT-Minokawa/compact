@@ -16,15 +16,33 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 /**
- * One batch of operations run against local state, recorded with `popeq` results filled so a fold
- * can replay it in verify mode. `offset` is the length of the call's public transcript at the
- * moment the batch ran: the checkpoint split partitions the public transcript by position, so the
- * same offset partitions the local transcript into its guaranteed and fallible halves.
+ * One entry in a call's local transcript, offset-tagged against the call's public transcript:
+ * `offset` is the public transcript's length at the moment the entry was recorded, so the
+ * checkpoint split partitions the local transcript by the same position that partitions the
+ * public one.
+ *
+ * The two kinds are the two kinds of checkable mark a local observation can leave. An `ops`
+ * entry is a batch of Impact operations, replayed in verify mode, its `popeq`s carrying the
+ * observed reads (a tree's root pin is such a batch). An `observe` entry pins a whole state
+ * value - a container about to be iterated - which no Impact read expresses; the fold checks
+ * it against the folding state with the VM's own content equality.
  */
-export interface LocalTranscriptEntry {
+export interface LocalOpsEntry {
+  readonly tag: 'ops';
   readonly offset: number;
   readonly ops: ocrt.Op<ocrt.AlignedValue>[];
 }
+
+export interface LocalObserveEntry {
+  readonly tag: 'observe';
+  readonly offset: number;
+  /** The observed value's indices under the local state root. */
+  readonly path: readonly number[];
+  /** The observed value, encoded. */
+  readonly value: ocrt.EncodedStateValue;
+}
+
+export type LocalTranscriptEntry = LocalOpsEntry | LocalObserveEntry;
 
 /**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output

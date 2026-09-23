@@ -20,6 +20,7 @@ import {
   createCircuitContext,
   foldLocalTranscript,
   PartialProofData,
+  pinLocalContainer,
   queryLocalState,
 } from '../src/index.js';
 
@@ -99,8 +100,10 @@ describe('queryLocalState', () => {
     const read = queryLocalState(ctx, pd, readCounter);
     expect(pd.localTranscript).toHaveLength(2);
     expect(pd.localTranscript![0].offset).toBe(0);
-    expect(pd.localTranscript![1].offset).toBe(1);
-    const popeq = pd.localTranscript![1].ops.find((op) => typeof op === 'object' && 'popeq' in op);
+    const entry = pd.localTranscript![1];
+    expect(entry.offset).toBe(1);
+    expect(entry.tag).toBe('ops');
+    const popeq = entry.tag === 'ops' ? entry.ops.find((op) => typeof op === 'object' && 'popeq' in op) : undefined;
     expect(popeq).toBeDefined();
     expect((popeq as { popeq: { result: ocrt.AlignedValue } }).popeq.result).toEqual(read);
     expect(pd.publicTranscript).toHaveLength(1);
@@ -116,6 +119,25 @@ describe('queryLocalState', () => {
       privateState: undefined,
     });
     expect(() => queryLocalState(ctx, emptyProofData(), increment(1))).toThrow(/local state/);
+  });
+});
+
+describe('pinLocalContainer', () => {
+  test('a matching prior replays, a differing one is caught', () => {
+    const ctx = context();
+    const pd = emptyProofData();
+    queryLocalState(ctx, pd, increment(5));
+    pinLocalContainer(ctx, pd, [0]);
+    const pin = pd.localTranscript![1];
+    expect(pin.tag).toBe('observe');
+    expect(pin.tag === 'observe' && pin.path).toEqual([0]);
+    // matching prior: the same increment, then the pin replays
+    const folded = foldLocalTranscript(initialLocalState(), pd.localTranscript!, { tag: 'success' });
+    expect(toBigint(folded.asArray()![0].asCell())).toBe(5n);
+    // differing prior: the pin's value equality catches it
+    let mutated = ocrt.StateValue.newArray();
+    mutated = mutated.arrayPush(ocrt.StateValue.newCell(u64(1)));
+    expect(() => foldLocalTranscript(mutated, [pd.localTranscript![1]], { tag: 'success' })).toThrow(/re-executed/);
   });
 });
 

@@ -58,6 +58,7 @@ export const queryLocalState = (
       typeof op === 'object' && 'popeq' in op ? { popeq: { ...op.popeq, result: reads[i++].content } } : op,
     ) as ocrt.Op<ocrt.AlignedValue>[];
     (partialProofData.localTranscript ??= []).push({
+      tag: 'ops',
       offset: partialProofData.publicTranscript.length,
       ops,
     });
@@ -72,6 +73,40 @@ export const queryLocalState = (
     }
     throw err;
   }
+};
+
+/**
+ * Pins a local container's entire value in the local transcript. Iteration observes all of
+ * a container, therefore the fold must detect any difference in it, and value equality is
+ * the exact pin: the fold re-compares the fold-time container against the rehearsal's
+ * snapshot.
+ *
+ * @param circuitContext The context for the currently executing circuit.
+ * @param partialProofData The partial proof data to record the pin into.
+ * @param path The container's indices under the local state root.
+ */
+export const pinLocalContainer = (
+  circuitContext: CircuitContext,
+  partialProofData: PartialProofData,
+  path: readonly number[],
+): void => {
+  const localQueryContext = circuitContext.callContext.currentLocalQueryContext;
+  assertDefined(
+    localQueryContext,
+    `local state for contract '${circuitContext.callContext.contractAddress}' (was 'localState' supplied to createCircuitContext?)`,
+  );
+  let container = localQueryContext.state.state;
+  for (const i of path) {
+    const elems = container.asArray();
+    assertDefined(elems, `an addressable local state at [${path.join(', ')}]`);
+    container = elems[i];
+  }
+  (partialProofData.localTranscript ??= []).push({
+    tag: 'observe',
+    offset: partialProofData.publicTranscript.length,
+    path,
+    value: container.encode(),
+  });
 };
 
 /** The observed fate of a call's transaction, as the chain reports it. */
@@ -115,6 +150,29 @@ export const foldLocalTranscript = (
     // an entry's offset is the public-op count at record time and the fallible transcript
     // begins with Ckpt, therefore offset === guaranteedLength still precedes the checkpoint
     if (outcome.tag === 'partial' && entry.offset > outcome.guaranteedLength) {
+      continue;
+    }
+    if (entry.tag === 'observe') {
+      // the VM's `eq` compares cells only, therefore container pins are checked by the VM's
+      // canonical rendering: the decoded snapshot and the fold-time value must print alike
+      let matched = true;
+      let live = ctx.state.state;
+      for (const i of entry.path) {
+        const elems = live.asArray();
+        if (elems === undefined || i >= elems.length) {
+          matched = false;
+          break;
+        }
+        live = elems[i];
+      }
+      if (matched) {
+        matched = live.toString() === ocrt.StateValue.decode(entry.value).toString();
+      }
+      if (!matched) {
+        throw new CompactError(
+          `local transcript observation failed at [${entry.path.join(', ')}]: the prior local state differs in a way this call observed, so the call must be re-executed`,
+        );
+      }
       continue;
     }
     try {
