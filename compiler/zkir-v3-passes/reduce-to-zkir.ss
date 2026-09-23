@@ -55,7 +55,8 @@
                      (cons fld new-triv*)))]
                 [(anative ,zkir-type)
                  (guard (member zkir-type
-                          '("Secp256k1Base" "Secp256k1Scalar" "Secp256r1Base" "Secp256r1Scalar")))
+                          '("Secp256k1Base" "Secp256k1Scalar" "Secp256r1Base" "Secp256r1Scalar"
+                            "Curve25519Base")))
                  (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
                    (loop (cdr alignment*) (cdr triv*)
                      (with-output-language (Lzkir Instruction)
@@ -63,6 +64,17 @@
                      (with-output-language (Lflattened Alignment)
                        ;; Reversed:
                        (cons* `(abytes 8) `(abytes 24) new-alignment*))
+                     (cons* fld1 fld0 new-triv*)))]
+                [(anative ,zkir-type) (guard (string=? zkir-type "Curve25519Scalar"))
+                 ;; Scalar<Curve25519> has 5 51-bit limbs, encoded in fields as low 4 limbs
+                 ;; (204 bits) and high limb (51 bits).
+                 (let* ([fld0 (make-temp-id src 'fld)] [fld1 (make-temp-id src 'fld)])
+                   (loop (cdr alignment*) (cdr triv*)
+                     (with-output-language (Lzkir Instruction)
+                       (cons `(encode (,fld0 ,fld1) ,(car triv*)) instr*))
+                     (with-output-language (Lflattened Alignment)
+                       ;; Reversed:
+                       (cons* `(abytes 7) `(abytes 26) new-alignment*))
                      (cons* fld1 fld0 new-triv*)))]
                 [(anative ,zkir-type) (guard (string=? zkir-type "JubjubPoint"))
                  (let* ([pt0 (make-temp-id src 'pt)] [pt1 (make-temp-id src 'pt)])
@@ -81,6 +93,16 @@
                      (with-output-language (Lflattened Alignment)
                        ;; Reversed:
                        (cons* `(afield) `(abytes 8) `(abytes 24) `(abytes 8) `(abytes 24)
+                         new-alignment*))
+                     (append (reverse fld*) new-triv*)))]
+                [(anative ,zkir-type) (guard (string=? zkir-type "Curve25519Point"))
+                 (let ([fld* (maplr (lambda (ignore) (make-temp-id src 'fld)) (make-list 4))])
+                   (loop (cdr alignment*) (cdr triv*)
+                     (with-output-language (Lzkir Instruction)
+                       (cons `(encode (,fld* ...) ,(car triv*)) instr*))
+                     (with-output-language (Lflattened Alignment)
+                       ;; Reversed:
+                       (cons* `(abytes 8) `(abytes 24) `(abytes 8) `(abytes 24)
                          new-alignment*))
                      (append (reverse fld*) new-triv*)))]
                 [(abytes ,nat)
@@ -204,22 +226,44 @@
                    `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
-            [(secp256k1PointX)
+            [(secp256k1PointX secp256r1PointX curve25519PointX)
              (assert (= (length var-name*) 1))
              (let ([y (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
-            [(secp256k1PointY)
+            [(secp256k1PointY secp256r1PointY curve25519PointY)
              (assert (= (length var-name*) 1))
              (let ([x (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
-            [(secp256r1PointX)
-             (assert (= (length var-name*) 1))
-             (let ([y (make-temp-id src 'ignore)])
-               (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
-            [(secp256r1PointY)
-             (assert (= (length var-name*) 1))
-             (let ([x (make-temp-id src 'ignore)])
-               (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
+            [(sha512)
+             (assert (= (length var-name*) 3))
+             (let* ([alignment* (arg->alignment arg* 0)]
+                    [bytes (make-temp-id src 'bytes)]
+                    [low32 (make-temp-id src 'low32)]
+                    [high32 (make-temp-id src 'high32)]
+                    [byte31 (make-temp-id src 'byte31)]
+                    [bytes32to62 (make-temp-id src 'bytes32to62)]
+                    [byte63 (make-temp-id src 'byte63)]
+                    [bytes32to61 (make-temp-id src 'bytes32to61)]
+                    [byte62 (make-temp-id src 'byte62)]
+                    [temp0 (make-temp-id src 'temp0)]
+                    [temp1 (make-temp-id src 'temp1)])
+               (let-values ([(alignment* triv* instr*)
+                             (circuit-alignment-for src alignment* triv* instr*)])
+                 (cons*
+                   ;; The high 2 bytes.
+                   `(add ,(car var-name*) ,byte62 ,temp1)
+                   `(mul ,temp1 ,byte63 256)
+                   ;; The middle 31 bytes.
+                   `(add ,(cadr var-name*) ,byte31 ,temp0)
+                   `(mul ,temp0 ,bytes32to61 256)
+                   `(div_mod_power_of_two ,byte62 ,bytes32to61 ,bytes32to62 240)
+                   `(bytes32_into_low_high ,bytes32to62 ,byte63 ,high32)
+                   ;; The low 31 bytes.
+                   `(bytes32_into_low_high ,(caddr var-name*) ,byte31 ,low32)
+                   `(slice ,high32 ,bytes 32 32)
+                   `(slice ,low32 ,bytes 0 32)
+                   `(sha512 ,bytes (,alignment* ...) ,triv* ...)
+                   instr*)))]
             [(transientCommit)
              (assert (= (length var-name*) 1))
              ;; The last input needs to be moved first.
@@ -855,7 +899,7 @@
     [(= ,test (,var-name0 ,var-name1) (field->bytes ,src ,len ,ftype ,triv))
      (with-output-language (Lzkir Instruction)
        ;; Handle a 24-byte low / 8-byte high field encoding.
-       (define (handle-low-high-field)
+       (define (handle-bytes32-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(bytes32_into_low_high ,var-name1 ,var-name0 ,tmp)
@@ -875,13 +919,17 @@
               (cons `(div_mod_power_of_two ,var-name0 ,var-name1 ,triv ,(* (field-bytes) 8))
                 instr*))]
          [(field-base ,ctype)
-          (nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-secp256k1) (handle-low-high-field)]
-            [(curve-secp256r1) (handle-low-high-field)])]
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (handle-bytes32-field)]
+            [(curve-secp256r1) (handle-bytes32-field)])]
          [(field-scalar ,ctype)
-          (nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-secp256k1) (handle-low-high-field)]
-            [(curve-secp256r1) (handle-low-high-field)])]))]
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (handle-bytes32-field)]
+            [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(= ,test (,var-name0 ,var-name1) (div-mod-power-of-two ,triv ,bits))
      (with-output-language (Lzkir Instruction)
        (cons
@@ -975,8 +1023,8 @@
            instr*)))]
     [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
-       ;; Handle a 24-byte low / 8-byte high field encoding.
-       (define (handle-low-high-field)
+       ;; Handle a Bytes<32> field.
+       (define (handle-bytes32-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
@@ -993,13 +1041,17 @@
           (assert (> len (field-bytes)))
           (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*)]
          [(field-base ,ctype)
-          (nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-secp256k1) (handle-low-high-field)]
-            [(curve-secp256r1) (handle-low-high-field)])]
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (handle-bytes32-field)]
+            [(curve-secp256r1) (handle-bytes32-field)])]
          [(field-scalar ,ctype)
-          (nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-secp256k1) (handle-low-high-field)]
-            [(curve-secp256r1) (handle-low-high-field)])]))]
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (handle-bytes32-field)]
+            [(curve-secp256r1) (handle-bytes32-field)])]))]
     [(vector->bytes ,triv ,triv* ...)
      (with-output-language (Lzkir Instruction)
        (if (null? triv*)

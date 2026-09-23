@@ -219,7 +219,7 @@
         (format-type declared-type)
         what))
     (define (arithmetic-binop src op result-type expr1 expr2)
-      (define (check-curve-type ctype)
+      (define (valid-curve-type? ctype)
         (strict-nanopass-case (Linlined Curve-Type) ctype
           [(curve-curve25519) #t]
           [(curve-jubjub) #f]
@@ -232,15 +232,15 @@
             (format-type type1) op (format-type type2) (format-type result-type)))
         (unless (T result-type
                   [(tfield ,src (field-native)) #t]
-                  [(tfield ,src (field-base ,ctype)) (check-curve-type ctype)]
-                  [(tfield ,src (field-scalar ,ctype)) (check-curve-type ctype)]
+                  [(tfield ,src (field-base ,ctype)) (valid-curve-type? ctype)]
+                  [(tfield ,src (field-scalar ,ctype)) (valid-curve-type? ctype)]
                   [(tunsigned ,src ,nat) #t])
           (source-errorf src "invalid operation type ~a for ~s" (format-type result-type) op))
         result-type))
 
-    (define (check-byte-length-for ctype len)
+    (define (valid-byte-length? ctype len)
       (strict-nanopass-case (Linlined Curve-Type) ctype
-        [(curve-curve25519) (eqv? len 64)]
+        [(curve-curve25519) (eqv? len 32)]
         [(curve-jubjub) #f]
         [(curve-secp256k1) (eqv? len 32)]
         [(curve-secp256r1) (eqv? len 32)]))
@@ -617,8 +617,8 @@
                (format-type type))])
      (unless (strict-nanopass-case (Linlined Field-Type) ftype
                [(field-native) #t]
-               [(field-base ,ctype) (check-byte-length-for ctype len)]
-               [(field-scalar ,ctype) (check-byte-length-for ctype len)])
+               [(field-base ,ctype) (valid-byte-length? ctype len)]
+               [(field-scalar ,ctype) (valid-byte-length? ctype len)])
        (source-errorf src "cannot cast from Bytes<~d> to ~a" len (format-field-type ftype)))
      (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
@@ -633,8 +633,8 @@
                (format-type type))])
      (unless (strict-nanopass-case (Linlined Field-Type) ftype
                [(field-native) #t]
-               [(field-base ,ctype) (check-byte-length-for ctype len)]
-               [(field-scalar ,ctype) (check-byte-length-for ctype len)])
+               [(field-base ,ctype) (valid-byte-length? ctype len)]
+               [(field-scalar ,ctype) (valid-byte-length? ctype len)])
        (source-errorf src "cannot cast from ~a to Bytes<~d>" (format-field-type ftype) len))
      (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
      (with-output-language (Linlined Type) `(tbytes ,src ,len))]
