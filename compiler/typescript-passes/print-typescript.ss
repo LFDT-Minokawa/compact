@@ -566,6 +566,19 @@
           q
           ")")))
 
+    (define (path-chain-Q path-elt*)
+      (apply make-Qconcat
+             (map (lambda (path-elt)
+                    (nanopass-case (Ltypescript Path-Element) path-elt
+                      [,path-index (format ".asArray()[~d]" path-index)]
+                      [(,src ,type ,expr) (make-Qconcat
+                                            ".asMap().get("
+                                            (construct-typed-value
+                                              (type->descriptor-name type)
+                                              (Expr expr (precedence add1 comma) #f))
+                                            ")")]))
+                  path-elt*)))
+
     (define (print-contract.d.ts src xpelt* uname*)
       ;; Every entry in `Circuits`, `ImpureCircuits`, and `ProvableCircuits` is an async wrapper
       (define (circuit-result-type type)
@@ -1590,18 +1603,6 @@
                                          adt-arg*)))
                            all-op*))))
             (define (adt-op-body-Q src adt-op path-elt* formal* adt-arg*)
-              (define (path-chain-Q path-elt*)
-                (apply make-Qconcat
-                       (map (lambda (path-elt)
-                              (nanopass-case (Ltypescript Path-Element) path-elt
-                                [,path-index (format ".asArray()[~d]" path-index)]
-                                [(,src ,type ,expr) (make-Qconcat
-                                                      ".asMap().get("
-                                                      (construct-typed-value
-                                                        (type->descriptor-name type)
-                                                        (Expr expr (precedence add1 comma) #f))
-                                                      ")")]))
-                            path-elt*)))
               (if (Ltypescript-ADT-Op? adt-op)
                   (nanopass-case (Ltypescript ADT-Op) adt-op
                     [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
@@ -1796,7 +1797,7 @@
                                            (ledger-initializers src state pl-array
                                              (set-operations state xpelt0*
                                                (cons*
-                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState});" constructorContext state constructorContext)
+                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState~a});" constructorContext state constructorContext (if (has-local-ledger? xpelt0*) ", localState: this.initialLocalState()" ""))
                                                  2 "const partialProofData = {"
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
@@ -3206,20 +3207,74 @@
         ;; subst-tcontract substituted for during register-descriptor!.  For other
         ;; types keep the existing descriptor lookup.
         (let ([local? (id-local? ledger-field-name)])
-          (let ([descriptor-name?
-                  (and (eq? op-class 'read)
-                       (type->maybe-descriptor-name (subst-tcontract type)))])
-            (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* local?)])
-              (let ([q (if descriptor-name?
+          (cond
+            [(and local? (vm-code-runtime vm-code))
+             ;; a local-read with a snippet: the vm-code is only the fold pin; the value
+             ;; comes from the snippet against the navigated local state, with undefined
+             ;; resolved by the result type (a Maybe wraps, anything else throws)
+             (let* ([runtime-proc (vm-code-runtime vm-code)]
+                      [pin (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* #t)]
+                      [self (format-internal-binding unique-local-name (make-temp-id src 'self))]
+                      [temp* (map (lambda (var-name)
+                                    (format-internal-binding unique-local-name (make-temp-id src (id-sym var-name))))
+                                  var-name*)]
+                      [snippet (apply make-Qconcat
+                                 (apply runtime-proc
+                                        "__compactRuntime."
+                                        self
+                                        (append
+                                          temp*
+                                          (map (lambda (adt-arg)
+                                                 (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
+                                                   [,nat (number->string nat)]
+                                                   [,type^^ (type->descriptor-name type^^)]))
+                                               adt-arg*))))]
+                      [wrapped
+                        (nanopass-case (Ltypescript Type) (de-alias type)
+                          [(tstruct ,src^ ,struct-name (,elt-name* ,type*^) ...)
+                           (guard (and (eq? struct-name 'Maybe)
+                                       (equal? elt-name* '(is_some value))))
                            (make-Qconcat
-                             descriptor-name?
-                             ".fromValue("
-                             q
-                             ".value)")
-                           q)])
-                (if (and local? (not in-local-body?))
-                    (wrap-private-input-push src type q)
-                    q)))))])]
+                             "((r) => r === undefined ? { is_some: false, value: "
+                             (Expr (with-output-language (Ltypescript Expression)
+                                     `(default ,src ,(cadr type*^)))
+                                   (precedence add1 comma) outer-pure?)
+                             " } : { is_some: true, value: r })("
+                             snippet
+                             ")")]
+                          [else
+                           (make-Qconcat
+                             (format "((r) => { if (r === undefined) { throw new __compactRuntime.CompactError(`~a: no such leaf`); } return r; })(" (format-source-object src))
+                             snippet
+                             ")")])])
+                 (parenthesize level (precedence call)
+                   (make-Qconcat
+                     "("
+                     pin
+                     (format ", ((~a~{, ~a~}) => " self temp*)
+                     wrapped
+                     ")("
+                     (apply (make-Qsep ",")
+                       (make-Qconcat
+                         "context.callContext.currentLocalQueryContext.state.state"
+                         (path-chain-Q path-elt*))
+                       expr*)
+                     "))")))]
+            [else
+             (let ([descriptor-name?
+                     (and (memq op-class '(read local-read))
+                          (type->maybe-descriptor-name (subst-tcontract type)))])
+               (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* local?)])
+                 (let ([q (if descriptor-name?
+                              (make-Qconcat
+                                descriptor-name?
+                                ".fromValue("
+                                q
+                                ".value)")
+                              q)])
+                   (if (and local? (not in-local-body?))
+                       (wrap-private-input-push src type q)
+                       q))))]))])]
     [(contract-call ,src ,elt-name (,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type) ,[Expr : expr* (precedence add1 comma) outer-pure? -> * expr*] ...)
      ;; Lower a cross-contract call to:
      ;;   await __compactRuntime.crossContractCall({

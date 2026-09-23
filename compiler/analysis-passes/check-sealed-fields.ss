@@ -58,7 +58,8 @@
                  [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
                   (guard (eq? ledger-op^ ledger-op))
                   (if (null? accessor*)
-                      (eq? op-class 'read)
+                      ; local-read never writes: the vm-code is a pin or a plain read
+                      (memq op-class '(read local-read))
                       (loop accessor*
                             (nanopass-case (Lnodca Type) (de-alias type)
                               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))

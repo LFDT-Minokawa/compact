@@ -20,7 +20,7 @@
           max-bytes/vector-length len? kindex? max-merkle-tree-depth min-merkle-tree-depth
           zkir-field-rep?
           maximum-ledger-segment-length 
-          make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code
+          make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code vm-code-runtime
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
@@ -114,7 +114,14 @@
 
   (define-record-type vm-code
     (nongenerative)
-    (fields code))
+    ;; runtime is #f, or a procedure producing the JS expression for the op's value when the
+    ;; vm-code is only the local-transcript pin (the local-read class)
+    (fields code runtime)
+    (protocol
+      (lambda (new)
+        (case-lambda
+          [(code) (new code #f)]
+          [(code runtime) (new code runtime)]))))
 
   (define-language/pretty Lsrc
     (terminals

@@ -31330,6 +31330,20 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 3" "~a cannot emit an event" ("local function f")))
     )
 
+  ; a local-read pins observations for the fold, which only local code needs
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tree: MerkleTree<4, Bytes<8>>;"
+      "export circuit peek(): Uint<64> {"
+      "  return disclose(tree.firstFree());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a is only callable from local functions" (firstFree)))
+    )
+
   ; the local constructor is stricter: joins must be derivable from the contract alone,
   ; therefore ledger reads are out too
   (test
@@ -96735,6 +96749,108 @@ groups than for single tests.
         "  });"
         "  const r2 = await contract.circuits.reveal(context2);"
         "  expect(r2.result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  ; a local Merkle tree end to end: inserts, the local-read operations (a plain pinned
+  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof,
+  ; and the root pin letting the fold catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tree: MerkleTree<4, Bytes<8>>;"
+      "local prove(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const m = tree.findPathForLeaf(item);"
+      "  assert(m.is_some, 'leaf not found');"
+      "  return m.value;"
+      "}"
+      "local rootMatches(rt: MerkleTreeDigest): Boolean {"
+      "  return tree.checkRoot(rt) && tree.checkRoot(tree.root());"
+      "}"
+      "local slots(): Uint<64> {"
+      "  return tree.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  tree.insert(item);"
+      "}"
+      "export circuit member(item: Bytes<8>): Boolean {"
+      "  const p = prove(item);"
+      "  return disclose(rootMatches(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(slots());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local Merkle tree proves membership and the fold pins it', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const missing = new Uint8Array([9, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.add(r1.context, b);"
+        "  const r3 = await contract.circuits.count(r2.context);"
+        "  expect(r3.result).toEqual(2n);"
+        "  const prior = r3.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r4 = await contract.circuits.member(r3.context, a);"
+        "  expect(r4.result).toEqual(true);"
+        "  await expect(contract.circuits.member(r4.context, missing)).rejects.toThrow(/leaf not found/);"
+        "  const pd = r4.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r4.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
+        "      .toThrow(/re-executed/);"
+        "});"
+        ))
+    )
+
+  ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
+  ; check rather than a proof, so the negative case is a false answer, not a fault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local hist: HistoricMerkleTree<4, Bytes<8>>;"
+      "local pathAt(index: Field, item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  return hist.pathForLeaf(index, item);"
+      "}"
+      "local free(): Uint<64> {"
+      "  return hist.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  hist.insert(item);"
+      "}"
+      "export circuit proveAt(index: Field, item: Bytes<8>): Boolean {"
+      "  const p = pathAt(index, item);"
+      "  return disclose(hist.checkRoot(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(free());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local historic tree serves indexed paths', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.count(r1.context);"
+        "  expect(r2.result).toEqual(1n);"
+        "  const r3 = await contract.circuits.add(r2.context, b);"
+        "  const r4 = await contract.circuits.count(r3.context);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const prior = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r5 = await contract.circuits.proveAt(r4.context, 0n, a);"
+        "  expect(r5.result).toEqual(true);"
+        "  const r6 = await contract.circuits.proveAt(r5.context, 1n, b);"
+        "  expect(r6.result).toEqual(true);"
+        "  const r7 = await contract.circuits.proveAt(r6.context, 0n, b);"
+        "  expect(r7.result).toEqual(false);"
+        "  const pd = r5.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r5.context.callContext.currentLocalQueryContext!.state.state.toString());"
         "});"
         ))
     )

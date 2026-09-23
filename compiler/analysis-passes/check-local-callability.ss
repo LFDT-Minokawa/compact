@@ -68,11 +68,14 @@
                                  op-class
                                  (loop type (cdr accessor*)))])))])]
                [else #f]))))
-    (define (read-class? op-class)
+    (define (class-memq? op-class class*)
       (and op-class
            (nanopass-case (Lnodca ADT-Op-Class) op-class
-             [,ledger-op-class (eq? ledger-op-class 'read)]
-             [else #f]))))
+             [,ledger-op-class (memq ledger-op-class class*)]
+             [else #f])))
+    (define (final-op-name accessor*)
+      (nanopass-case (Lnodca Ledger-Accessor) (car (last-pair accessor*))
+        [(,src ,ledger-op ,expr* ...) ledger-op])))
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (for-each record-declaration! pelt*)
@@ -103,43 +106,62 @@
     [(local-ledger-declaration ,public-binding* ... (local-constructor ,src ,expr))
      (Expression expr 'local-constructor)
      ir]
+    [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (Expression expr 'circuit)
+     ir]
+    [(public-ledger-declaration ,public-binding* ... (constructor ,src ((,var-name* ,type*) ...) ,expr))
+     (Expression expr 'circuit)
+     ir]
     [else ir])
   (Expression : Expression (ir ctx) -> Expression ()
     [(public-ledger ,src ,ledger-field-name ,sugar? ,[accessor*] ...)
-     (unless (id-local? ledger-field-name)
+     (let ([op-class (final-op-class ledger-field-name accessor*)])
        (cond
+         [(eq? ctx 'circuit)
+          ;; a local-read pins observations for the fold, which only local code needs;
+          ;; from a circuit the ordinary read path is the right tool
+          (when (class-memq? op-class '(local-read))
+            (source-errorf src "~a is only callable from local functions"
+              (final-op-name accessor*)))]
+         [(id-local? ledger-field-name) (void)]
          [(eq? ctx 'local-constructor)
           (source-errorf src "the local constructor cannot access ledger field ~a"
             (id-sym ledger-field-name))]
-         [(read-class? (final-op-class ledger-field-name accessor*))
+         [(class-memq? op-class '(read local-read))
           (source-errorf src "ledger reads from local functions are not yet implemented")]
          [else
           (source-errorf src "~a cannot update ledger field ~a"
             (context-name ctx) (id-sym ledger-field-name))]))
      ir]
     [(call ,src ,function-name ,[expr*] ...)
-     (case (eq-hashtable-ref function-ht function-name #f)
-       [(witness native-witness)
-        (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name))]
-       [(circuit)
-        (unless (id-pure? function-name)
-          (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
-       [else (void)])
+     (unless (eq? ctx 'circuit)
+       (case (eq-hashtable-ref function-ht function-name #f)
+         [(witness native-witness)
+          (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name))]
+         [(circuit)
+          (unless (id-pure? function-name)
+            (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
+         [else (void)]))
      ir]
     [(contract-call ,src ,elt-name (,[expr] ,type) ,[expr*] ...)
-     (source-errorf src "~a cannot make a cross-contract call" (context-name ctx))]
+     (unless (eq? ctx 'circuit)
+       (source-errorf src "~a cannot make a cross-contract call" (context-name ctx)))
+     ir]
     [(emit ,src ,type ,[expr])
-     (source-errorf src "~a cannot emit an event" (context-name ctx))])
+     (unless (eq? ctx 'circuit)
+       (source-errorf src "~a cannot emit an event" (context-name ctx)))
+     ir])
   (Tuple-Argument : Tuple-Argument (ir ctx) -> Tuple-Argument ())
   (Map-Argument : Map-Argument (ir ctx) -> Map-Argument ())
   (Ledger-Accessor : Ledger-Accessor (ir ctx) -> Ledger-Accessor ())
   (Function : Function (ir ctx) -> Function ()
     [(fref ,src ,function-name^)
-     (case (eq-hashtable-ref function-ht function-name^ #f)
-       [(witness native-witness)
-        (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name^))]
-       [(circuit)
-        (unless (id-pure? function-name^)
-          (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]
-       [else (void)])
+     (unless (eq? ctx 'circuit)
+       (case (eq-hashtable-ref function-ht function-name^ #f)
+         [(witness native-witness)
+          (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name^))]
+         [(circuit)
+          (unless (id-pure? function-name^)
+            (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]
+         [else (void)]))
      ir]))
