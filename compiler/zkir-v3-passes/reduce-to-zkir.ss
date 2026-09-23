@@ -855,8 +855,8 @@
        (define (emit-field-default zkir-type var instr*)
          (let* ([tmp (make-temp-id default-src 'tmp)])
            (cons*
-               `(from_bytes32 ,zkir-type ,var ,tmp)
-               `(into_bytes32 ,tmp 0)
+               `(from_bytes ,zkir-type ,var ,tmp)
+               `(to_bytes ,tmp 0)
                instr*)))
        (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
@@ -885,7 +885,7 @@
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
              `(bytes_into_natives (,var-name1 ,var-name0) ,tmp)
-             `(into_bytes32 ,tmp ,triv)
+             `(to_bytes ,tmp ,triv)
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
@@ -1003,14 +1003,15 @@
            `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
            `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
            instr*)))]
-    [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
+    [(bytes->field ,src ,ftype ,len ,triv* ...)
      (with-output-language (Lzkir Instruction)
        ;; Handle a Bytes<32> field.
        (define (handle-bytes32-field)
+         (assert (= (length triv*) 2))
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
-             `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
-             `(bytes_from_natives ,tmp 32 ,triv1 ,triv0)
+             `(from_bytes ,(field-type->string ftype) ,var-name ,tmp)
+             `(bytes_from_natives ,tmp 32 ,(cadr triv*) ,(car triv*))
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
@@ -1021,7 +1022,9 @@
 
           ;; flatten-datatype takes care of this case.
           (assert (> len (field-bytes)))
-          (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*)]
+          (cons
+            `(reconstitute_field ,var-name ,(car triv*) ,(cadr triv*) ,(* 8 (field-bytes)))
+            instr*)]
          [(field-base ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
             [(curve-curve25519) (handle-bytes32-field)]
@@ -1030,7 +1033,17 @@
             [(curve-secp256r1) (handle-bytes32-field)])]
          [(field-scalar ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-curve25519)
+             (cond
+               [(eqv? len 32) (handle-bytes32-field)]
+               [(eqv? len 64)
+                (assert (= (length triv*) 3))
+                (let ([tmp (make-temp-id src 'tmp)])
+                  (cons*
+                    `(from_bytes ,(field-type->string ftype) ,var-name ,tmp)
+                    `(bytes_from_natives ,tmp 64 ,(reverse triv*) ...)
+                    instr*))]
+               [else (assert cannot-happen)])]
             [(curve-jubjub) (assert cannot-happen)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]

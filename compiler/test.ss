@@ -908,6 +908,51 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export ledger bytes: Bytes<64>;"
+      "export circuit test(b: Bytes<64>): Curve25519Scalar {"
+      "  scalar = disclose(b as Curve25519Scalar);"
+      "  return bytes as Curve25519Scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%b.2 "Scalar<BLS12-381>"))
+          ("Scalar<Curve25519>")
+          (constrain_bits %b.0 16)
+          (constrain_bits %b.1 248)
+          (constrain_bits %b.2 248)
+          (bytes_from_natives %tmp.6 64 %b.2 %b.1 %b.0)
+          (from_bytes "Scalar<Curve25519>" %tmp.7 %tmp.6)
+          (encode (%fld.8 %fld.9) %tmp.7)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.8 %fld.9)
+          (impact 1 145)
+          (public_input "Scalar<BLS12-381>" %t.3)
+          (public_input "Scalar<BLS12-381>" %t.4)
+          (public_input "Scalar<BLS12-381>" %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 1 64 %t.3 %t.4 %t.5)
+          (bytes_from_natives %tmp.10 64 %t.5 %t.4 %t.3)
+          (from_bytes "Scalar<Curve25519>" %t.11 %tmp.10)
+          (output %t.11))))
+    ;; HERE!  TODO: Write JS tests to make sure the values agree.
+  )
+)
+
+(run-javascript)
+)
+
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

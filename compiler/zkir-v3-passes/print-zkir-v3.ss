@@ -122,16 +122,14 @@
     [(encode (,outp* ...) ,[* inp])
      (let ([outp* (maplr Output outp*)])
        `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp)))]
-    [(from_bytes32 ,zkir-type ,[* outp] ,[* inp])
-     `((op . "from_bytes32") (type . ,zkir-type) (output . ,outp) (bytes . ,inp))]
+    [(from_bytes ,zkir-type ,[* outp] ,[* inp])
+     `((op . "from_bytes") (type . ,zkir-type) (output . ,outp) (bytes . ,inp))]
     [(from_coordinates ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "from_coordinates") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
     [(hash_to_curve ,[* outp] ,[* inp*] ...)
      `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
     [(impact ,[* inp] ,[* inp*] ...)
      `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
-    [(into_bytes32 ,[* outp] ,[* inp])
-     `((op . "into_bytes32") (output . ,outp) (input . ,inp))]
     [(into_coordinates ,outp0 ,outp1 ,[* inp])
      (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
        `((op . "into_coordinates") (outputs . ,(vector outp0 outp1)) (point . ,inp)))]
@@ -181,6 +179,8 @@
      `((op . "slice") (output . ,outp) (bytes . ,inp) (start . ,imm0) (len . ,imm1))]
     [(test_eq ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
+    [(to_bytes ,[* outp] ,[* inp])
+     `((op . "to_bytes") (output . ,outp) (input . ,inp))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
      `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))])
   (Input : Input (ir) -> * (json)
