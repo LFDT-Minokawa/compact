@@ -37,8 +37,9 @@
           [(feature major minor bugfix tag) (new feature major minor bugfix tag)]))))
 
   ;; `version` with its tag replaced. Separate from the constructor because the
-  ;; tag is not known when the version is committed, and because five regex
-  ;; consumers depend on the literal `(make-version 'compiler M m b)` form.
+  ;; tag is not known when the version is committed, and because
+  ;; scripts/read-version.sh parses the literal `(make-version 'feature M m b)`
+  ;; form for everything outside Scheme.
   (define (version-with-tag version tag)
     (make-version (version-feature version)
                   (version-major version)

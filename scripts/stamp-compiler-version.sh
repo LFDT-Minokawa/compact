@@ -86,12 +86,7 @@ valid_prerelease() {
 # The committed triple is the compiler's own version, bumped per change and
 # checked by changelog-check.yml, so a tag that disagrees is a mistake in the
 # release rather than something to paper over.
-COMMITTED="$(sed -nE "s/.*\(make-version 'compiler ([0-9]+) ([0-9]+) ([0-9]+)\).*/\1.\2.\3/p" "$SOURCE")"
-
-if [ -z "$COMMITTED" ]; then
-  echo "::error::could not read the compiler version from $SOURCE" >&2
-  exit 1
-fi
+COMMITTED="$("$(dirname "$0")/read-version.sh" compiler "$SOURCE")"
 
 if [[ "$RAW" =~ ^([0-9]+\.[0-9]+\.[0-9]+)(.*)$ ]]; then
   if [ "${BASH_REMATCH[1]}" != "$COMMITTED" ]; then
