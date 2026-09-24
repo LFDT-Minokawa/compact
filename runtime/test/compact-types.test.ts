@@ -34,6 +34,8 @@ const SECP256K1_IDENTITY: runtime.Secp256k1Point = runtime.secp256k1MulGenerator
 const SECP256K1_G: runtime.Secp256k1Point = runtime.secp256k1MulGenerator(1n);
 const SECP256R1_IDENTITY: runtime.Secp256r1Point = runtime.secp256r1MulGenerator(0n);
 const SECP256R1_G: runtime.Secp256r1Point = runtime.secp256r1MulGenerator(1n);
+const CURVE25519_IDENTITY: runtime.Curve25519Point = runtime.curve25519MulGenerator(0n);
+const CURVE25519_G: runtime.Curve25519Point = runtime.curve25519MulGenerator(1n);
 
 /** Structural test for the `CompactType` interface on an instance. */
 function isDescriptor(value: unknown): boolean {
@@ -168,6 +170,21 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
       y: 1n,
       identity: false,
     }),
+  ],
+  CompactTypeCurve25519Base: [
+    sample('Curve25519Base', runtime.CompactTypeCurve25519Base, CURVE25519_G.x),
+    sample('Curve25519Base (zero)', runtime.CompactTypeCurve25519Base, 0n),
+    sample('Curve25519Base (max)', runtime.CompactTypeCurve25519Base, runtime.MAX_CURVE25519_BASE),
+  ],
+  CompactTypeCurve25519Scalar: [
+    sample('Curve25519Scalar', runtime.CompactTypeCurve25519Scalar, 987654321n),
+    sample('Curve25519Scalar (zero)', runtime.CompactTypeCurve25519Scalar, 0n),
+    sample('Curve25519Scalar (max)', runtime.CompactTypeCurve25519Scalar, runtime.MAX_CURVE25519_SCALAR),
+  ],
+  CompactTypeCurve25519Point: [
+    sample('Curve25519Point', runtime.CompactTypeCurve25519Point, CURVE25519_G),
+    sample('Curve25519Point (identity)', runtime.CompactTypeCurve25519Point, CURVE25519_IDENTITY),
+    sample('Curve25519Point (all-empty atoms)', runtime.CompactTypeCurve25519Point, { x: 1n, y: 1n }),
   ],
   CompactTypeMerkleTreeDigest: [sample('MerkleTreeDigest', runtime.CompactTypeMerkleTreeDigest, { field: 99n })],
   CompactTypeMerkleTreePathEntry: [

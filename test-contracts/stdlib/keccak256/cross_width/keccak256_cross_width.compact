@@ -1,0 +1,47 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Because the zeros at the end are hashed, a wider value holding the same
+// bytes padded with zeros gets a different digest from the narrower one.
+//
+// These are just the widths the test compares. Pure, so no feature flag.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export circuit hashBytes1(value: Bytes<1>): Bytes<32> {
+    return disclose(keccak256<Bytes<1>>(value));
+}
+
+export circuit hashBytes32(value: Bytes<32>): Bytes<32> {
+    return disclose(keccak256<Bytes<32>>(value));
+}
+
+export circuit hashBytes33(value: Bytes<33>): Bytes<32> {
+    return disclose(keccak256<Bytes<33>>(value));
+}
+
+export circuit hashBytes63(value: Bytes<63>): Bytes<32> {
+    return disclose(keccak256<Bytes<63>>(value));
+}
+
+export circuit hashBytes93(value: Bytes<93>): Bytes<32> {
+    return disclose(keccak256<Bytes<93>>(value));
+}
+
+export circuit hashBytes94(value: Bytes<94>): Bytes<32> {
+    return disclose(keccak256<Bytes<94>>(value));
+}

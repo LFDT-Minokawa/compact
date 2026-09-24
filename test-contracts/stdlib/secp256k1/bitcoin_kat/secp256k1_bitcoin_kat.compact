@@ -1,0 +1,125 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The FULL Bitcoin-style ECDSA flow in-circuit: hash the raw message with
+// SHA-256, then verify. `persistentHash<Bytes<N>>` is a plain SHA-256 of the N
+// message bytes, so the circuit reproduces the corpus's `e = SHA-256(msg)`
+// without any pre-hashing in JS. The companion ../ecdsa_verify feeds a
+// pre-hashed digest instead, isolating the curve arithmetic; this one
+// exercises hashing and verification together.
+//
+// FIXED-LENGTH MESSAGES: `Bytes<N>` is fixed-size and SHA-256 padding depends
+// on the exact length, so there is one circuit per distinct message length in
+// the Wycheproof corpus (0, 3, 5, 6, 7, 8, 9, 10, 11, 20 bytes) and the
+// runtime test routes each vector to the matching circuit. A vector whose
+// length has no circuit is reported rather than skipped, so a corpus refresh
+// that adds a length cannot silently lose coverage.
+//
+// Pure -- no ledger write -- so despite the name nothing is proven here and no
+// keys are generated; `--feature-zkir-v3` is still required for the library.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// 0-byte message.
+export circuit proveBitcoin0(
+    msg: Bytes<0>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<0>>(msg), sig, pk));
+}
+
+// 3-byte message.
+export circuit proveBitcoin3(
+    msg: Bytes<3>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<3>>(msg), sig, pk));
+}
+
+// 5-byte message.
+export circuit proveBitcoin5(
+    msg: Bytes<5>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<5>>(msg), sig, pk));
+}
+
+// 6-byte message.
+export circuit proveBitcoin6(
+    msg: Bytes<6>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<6>>(msg), sig, pk));
+}
+
+// 7-byte message.
+export circuit proveBitcoin7(
+    msg: Bytes<7>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<7>>(msg), sig, pk));
+}
+
+// 8-byte message.
+export circuit proveBitcoin8(
+    msg: Bytes<8>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<8>>(msg), sig, pk));
+}
+
+// 9-byte message.
+export circuit proveBitcoin9(
+    msg: Bytes<9>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<9>>(msg), sig, pk));
+}
+
+// 10-byte message.
+export circuit proveBitcoin10(
+    msg: Bytes<10>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<10>>(msg), sig, pk));
+}
+
+// 11-byte message.
+export circuit proveBitcoin11(
+    msg: Bytes<11>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<11>>(msg), sig, pk));
+}
+
+// 20-byte message.
+export circuit proveBitcoin20(
+    msg: Bytes<20>,
+    sig: Secp256k1EcdsaSignature,
+    pk: Secp256k1Point
+): Boolean {
+    return disclose(secp256k1EcdsaVerify(persistentHash<Bytes<20>>(msg), sig, pk));
+}

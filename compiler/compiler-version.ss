@@ -23,7 +23,7 @@
 
   ; NB: also update compactc version in ../flake.nix
   (define compiler-version
-    (version-with-tag (make-version 'compiler 0 34 105) compiler-version-tag))
+    (version-with-tag (make-version 'compiler 0 34 107) compiler-version-tag))
 
   (define compiler-version-string (make-version-string compiler-version))
 

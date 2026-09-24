@@ -1845,7 +1845,7 @@
        ;; For base and scalar fields, only some casts to/from Bytes are supported.
        (define (valid-length? ctype len)
          (strict-nanopass-case (Ltypes Curve-Type) ctype
-           [(curve-curve25519) (eqv? len 64)]
+           [(curve-curve25519) (eqv? len 32)]
            [(curve-jubjub) #f]
            [(curve-secp256k1) (eqv? len 32)]
            [(curve-secp256r1) (eqv? len 32)]))
