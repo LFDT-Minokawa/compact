@@ -28,7 +28,7 @@ jobs:
       - name: Check compiler and language versions in internal documentation
         run: |
           # check compiler version
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
           DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
           echo "Compiler version: $COMPILER_VERSION"
@@ -42,7 +42,7 @@ jobs:
           echo "Compiler versions match"
 
           # check language version
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          LANGUAGE_VERSION=$(./scripts/read-version.sh language)
           DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
           echo "Language version: $LANGUAGE_VERSION"

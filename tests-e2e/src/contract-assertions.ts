@@ -110,6 +110,11 @@ export class AssertContract {
         return this;
     }
 
+    thatCompilerCommitIs(expectedCommit: string): AssertContract {
+        expect(this.contractInfo?.['compiler-commit'], 'compiler-commit mismatch in contract-info.json').toBe(expectedCommit);
+        return this;
+    }
+
     thatLanguageVersionIs(expectedVersion: string): AssertContract {
         expect(this.contractInfo?.['language-version'], 'language-version mismatch in contract-info.json').toBe(expectedVersion);
         return this;
