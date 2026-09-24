@@ -201,8 +201,15 @@
     (define local-circuit-ht (make-eq-hashtable))
     (define (local-circuit-type function-name)
       (eq-hashtable-ref local-circuit-ht function-name #f))
-    ;; local field name to (path-index* . type), for foreach emission
-    (define local-field-ht (make-eq-hashtable))
+    ;; field name to (path-index* . type), both stores, for foreach and snapshot emission
+    (define field-layout-ht (make-eq-hashtable))
+    (define (record-field-layouts! pl-array)
+      (for-each
+        (lambda (public-binding)
+          (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+            [(,src ,ledger-field-name (,path-index* ...) ,type)
+             (eq-hashtable-set! field-layout-ht ledger-field-name (cons path-index* type))]))
+        (pl-array->public-bindings pl-array)))
     (define in-local-body? #f)
 
     (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
@@ -501,14 +508,17 @@
            ")")))
 
       (define (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* . maybe-local)
+        (let ([mode (if (pair? maybe-local) (car maybe-local) #f)])
         (let ([query (make-Qconcat/src src
-                       (if (and (pair? maybe-local) (car maybe-local))
-                           "__compactRuntime.queryLocalState("
-                           "__compactRuntime.queryLedgerState(")
-                       ((make-Qsep ",")
+                       (case mode
+                         [(snapshot) "__compactRuntime.snapshotLedgerState("]
+                         [(#f) "__compactRuntime.queryLedgerState("]
+                         [else "__compactRuntime.queryLocalState("])
+                       (apply (make-Qsep ",")
                         "context"
-                        "partialProofData"
-                        (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))
+                        (append
+                          (if (eq? mode 'snapshot) '() (list "partialProofData"))
+                          (list (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))))
                        ")")])
           (if (should-check-coin-commitment? adt-op)
               (make-Qconcat
@@ -517,7 +527,7 @@
                 query
                 " : "
                 (format "(() => { throw new __compactRuntime.CompactError(`~a: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`); })()" (format-source-object src)))
-              query))
+              query)))
         ))
 
     (define (has-read? adt-op*)
@@ -2493,14 +2503,10 @@
      (eq-hashtable-set! local-circuit-ht function-name type)
      (XPelt-local-circuit src function-name arg* type stmt)]
     [(public-ledger-declaration ,pl-array ,lconstructor)
+     (record-field-layouts! pl-array)
      (XPelt-public-ledger pl-array lconstructor external-names)]
     [(local-ledger-declaration ,pl-array ,lconstructor)
-     (for-each
-       (lambda (public-binding)
-         (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
-           [(,src ,ledger-field-name (,path-index* ...) ,type)
-            (eq-hashtable-set! local-field-ht ledger-field-name (cons path-index* type))]))
-       (pl-array->public-bindings pl-array))
+     (record-field-layouts! pl-array)
      (XPelt-local-ledger pl-array lconstructor external-names)]
     [,kdecl (XPelt-ledger-kernel)])
   (Untyped-Argument : Argument (ir) -> * (str)
@@ -2558,8 +2564,8 @@
        (apply make-Qlocals! local*)
        ";")]
     [(foreach ,src ,var-name ,ledger-field-name ,type ,stmt)
-     (let ([binding (eq-hashtable-ref local-field-ht ledger-field-name #f)])
-       (assertf binding "local field ~s has no recorded layout" (id-sym ledger-field-name))
+     (let ([binding (eq-hashtable-ref field-layout-ht ledger-field-name #f)])
+       (assertf binding "field ~s has no recorded layout" (id-sym ledger-field-name))
        (let ([path* (car binding)] [ftype (cdr binding)])
          (nanopass-case (Ltypescript Type) (de-alias ftype)
            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -2567,26 +2573,33 @@
               (assertf iter-op "ADT ~s has no iterator" adt-name)
               (nanopass-case (Ltypescript ADT-Runtime-Op) iter-op
                 [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
-                 (make-Qconcat
-                   ;; iteration observes the whole container, so the fold gets a value pin
-                   (format "__compactRuntime.pinLocalContainer(context, partialProofData, [~{~d~^, ~}]);" path*)
-                   0 "for (const "
-                   ;; the binder is a bare id, not an Argument, so it registers directly
-                   (make-Qconcat/src (id-src var-name)
-                     (format-internal-binding unique-local-name var-name))
-                   " of "
-                   (apply make-Qconcat
-                     (apply runtime-code
-                            "__compactRuntime."
-                            (format "context.callContext.currentLocalQueryContext.state.state~{.asArray()[~d]~}" path*)
-                            (map (lambda (adt-arg)
-                                   (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
-                                     [,nat (number->string nat)]
-                                     [,type^ (type->descriptor-name type^)]))
-                                 adt-arg*)))
-                   ") {"
-                   2 (Stmt stmt #f outer-pure?)
-                   0 "}")]))]
+                 (let ([local? (id-local? ledger-field-name)])
+                   (make-Qconcat
+                     ;; iterating a local container observes all of it, so the fold gets a
+                     ;; value pin; a public container read from local code is an unpinned
+                     ;; snapshot quote, so nothing is recorded
+                     (if local?
+                         (format "__compactRuntime.pinLocalContainer(context, partialProofData, [~{~d~^, ~}]);" path*)
+                         "")
+                     0 "for (const "
+                     ;; the binder is a bare id, not an Argument, so it registers directly
+                     (make-Qconcat/src (id-src var-name)
+                       (format-internal-binding unique-local-name var-name))
+                     " of "
+                     (apply make-Qconcat
+                       (apply runtime-code
+                              "__compactRuntime."
+                              (format "context.callContext.~a.state.state~{.asArray()[~d]~}"
+                                (if local? "currentLocalQueryContext" "currentQueryContext")
+                                path*)
+                              (map (lambda (adt-arg)
+                                     (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
+                                       [,nat (number->string nat)]
+                                       [,type^ (type->descriptor-name type^)]))
+                                   adt-arg*)))
+                     ") {"
+                     2 (Stmt stmt #f outer-pure?)
+                     0 "}"))]))]
            [else (assert cannot-happen)])))]
     [(statement-expression (tuple ,src))
      (guard (not return?))
@@ -3277,12 +3290,14 @@
         ;; types keep the existing descriptor lookup.
         (let ([local? (id-local? ledger-field-name)])
           (cond
-            [(and local? (vm-code-runtime vm-code))
-             ;; a local-read with a snippet: the vm-code is only the fold pin; the value
-             ;; comes from the snippet against the navigated local state, with undefined
-             ;; resolved by the result type (a Maybe wraps, anything else throws)
+            [(vm-code-runtime vm-code)
+             ;; a local-read with a snippet: on a local field the vm-code is only the fold
+             ;; pin and the snippet runs on local state; on a public field (reachable only
+             ;; from a local body) the read is an unpinned snapshot quote, so no pin and
+             ;; the snippet runs on the mid-call public state; undefined is resolved by
+             ;; the result type (a Maybe wraps, anything else throws)
              (let* ([runtime-proc (vm-code-runtime vm-code)]
-                      [pin (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* #t)]
+                      [pin (and local? (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* #t))]
                       [self (format-internal-binding unique-local-name (make-temp-id src 'self))]
                       [temp* (map (lambda (var-name)
                                     (format-internal-binding unique-local-name (make-temp-id src (id-sym var-name))))
@@ -3317,23 +3332,25 @@
                              snippet
                              ")")])])
                  (parenthesize level (precedence call)
-                   (make-Qconcat
-                     "("
-                     pin
-                     (format ", ((~a~{, ~a~}) => " self temp*)
-                     wrapped
-                     ")("
-                     (apply (make-Qsep ",")
-                       (make-Qconcat
-                         "context.callContext.currentLocalQueryContext.state.state"
-                         (path-chain-Q path-elt*))
-                       expr*)
-                     "))")))]
+                   (apply make-Qconcat
+                     `(,@(if local? (list "(" pin ", ") '(""))
+                       ,(format "((~a~{, ~a~}) => " self temp*)
+                       ,wrapped
+                       ")("
+                       ,(apply (make-Qsep ",")
+                          (make-Qconcat
+                            (if local?
+                                "context.callContext.currentLocalQueryContext.state.state"
+                                "context.callContext.currentQueryContext.state.state")
+                            (path-chain-Q path-elt*))
+                          expr*)
+                       ,(if local? "))" ")")))))]
             [else
              (let ([descriptor-name?
                      (and (memq op-class '(read local-read))
                           (type->maybe-descriptor-name (subst-tcontract type)))])
-               (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr* local?)])
+               (let ([q (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*
+                          (cond [local? #t] [in-local-body? 'snapshot] [else #f]))])
                  (let ([q (if descriptor-name?
                               (make-Qconcat
                                 descriptor-name?

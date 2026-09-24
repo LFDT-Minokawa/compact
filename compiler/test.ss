@@ -31299,20 +31299,20 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 3" "~a cannot update ledger field ~a" ("local function f" x)))
     )
 
-  ; permitted by the matrix, but the snapshot read path is not emitted yet
+  ; ledger reads from local functions are snapshot quotes and pass; writes stay out
   (test
     '(
       "ledger x: Field;"
-      "local f(): Field {"
-      "  return x;"
+      "local f(): [] {"
+      "  x = 3 as Field;"
       "}"
-      "export circuit g(): Field {"
-      "  return disclose(f());"
+      "export circuit g(): [] {"
+      "  f();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "ledger reads from local functions are not yet implemented" ()))
+      irritants: '("testfile.compact line 3 char 3" "~a cannot update ledger field ~a" ("local function f" x)))
     )
 
   (test
@@ -31360,22 +31360,28 @@ groups than for single tests.
       irritants: '("testfile.compact line 4 char 3" "for-of iteration over a container is only available in local functions" ()))
     )
 
+  ; join-safety is transitive: the constructor cannot reach the ledger through the local
+  ; call graph, and the diagnostic names the function that touches it
   (test
     '(
-      "import CompactStandardLibrary;"
-      "ledger pub: Set<Uint<8>>;"
-      "local f(): [] {"
-      "  for (const v of pub) {"
-      "    assert(v >= 0, 'nope');"
-      "  }"
+      "ledger x: Field;"
+      "local g(): Field {"
+      "  return x;"
       "}"
-      "export circuit g(): [] {"
-      "  f();"
+      "local f(): Field {"
+      "  return g();"
+      "}"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = f();"
+      "}"
+      "export circuit h(): Field {"
+      "  return disclose(credits);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "ledger reads from local functions are not yet implemented" ()))
+      irritants: '("testfile.compact line 10 char 13" "the local constructor cannot access ledger state: it calls (directly or indirectly) local function ~a, which ~a at ~a" (g "reads ledger field x" "line 3 char 10")))
     )
 
   ; the local constructor is stricter: joins must be derivable from the contract alone,
@@ -96980,6 +96986,96 @@ groups than for single tests.
         "  expect(L0.owners.isEmpty()).toEqual(true);"
         "});"
         ))
+    )
+
+  ; ledger reads from local functions are snapshot quotes: nothing reaches the public
+  ; transcript or the local one, the js-only tree reads work on public trees, and a
+  ; public container iterates without a pin
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: HistoricMerkleTree<4, Bytes<8>>;"
+      "local sum: Counter;"
+      "witness pick(): Uint<8>;"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  if (prices.member(k)) {"
+      "    return prices.lookup(k);"
+      "  }"
+      "  return 0;"
+      "}"
+      "local sumPrices(): Uint<64> {"
+      "  sum.resetToDefault();"
+      "  for (const kv of prices) {"
+      "    sum.increment(kv[1]);"
+      "  }"
+      "  return sum.read();"
+      "}"
+      "local proveItem(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const p = registry.findPathForLeaf(item);"
+      "  assert(p.is_some, 'unknown item');"
+      "  return p.value;"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(item: Bytes<8>): [] {"
+      "  registry.insert(disclose(item));"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumPrices());"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return disclose(priceOf(pick()));"
+      "}"
+      "export circuit prove(item: Bytes<8>): Boolean {"
+      "  const p = proveItem(item);"
+      "  return disclose(registry.checkRoot(disclose(merkleTreePathRoot<4, Bytes<8>>(p))));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local functions read the ledger from the snapshot', async () => {"
+        "  const witnesses = {"
+        "    pick(wc: runtime.WitnessContext<{}, number>): [number, bigint] {"
+        "      return [wc.privateState, 3n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.total(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const pd = r3.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript).toEqual([]);"
+        "  expect(pd.localTranscript!.every((e) => e.tag === 'ops')).toBe(true);"
+        "  const r4 = await contract.circuits.chosen(r3.context);"
+        "  expect(r4.result).toEqual(10n);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r5 = await contract.circuits.register(r4.context, a);"
+        "  const r6 = await contract.circuits.prove(r5.context, a);"
+        "  expect(r6.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; a snapshot read's result carries its arguments' taint: witness data cannot launder
+  ; through a public lookup in a local function
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "witness pick(): Uint<8>;"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.lookup(k);"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return priceOf(pick());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness pick at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
     )
 
   ; a local operation's result is witness data: returning it from an exported circuit

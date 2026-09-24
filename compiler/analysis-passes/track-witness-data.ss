@@ -156,6 +156,10 @@
 
     ; function-ht: function name => Fun record
     (define function-ht (make-eq-hashtable))
+    ;; local function names; their bodies' ledger reads are snapshot quotes, so the walk
+    ;; carries a flag set around every local body
+    (define local-fn-ht (make-eq-hashtable))
+    (define in-local-fn? #f)
 
     ; for purposes of path points, all standard library routines are treated as if they have
     ; the same source location
@@ -415,12 +419,16 @@
                                                    abs*
                                                    (if (= (length abs*) 1) '(#f) (enumerate abs*)))
                                               abs*)])
-                                (define (go)
+                                (define (walk)
                                   (Expression
                                     expr
                                     (extend-env empty-env var-name* abs*)
                                     control-witness*
                                     (and return-value-discloses? function-name)))
+                                (define (go)
+                                  (if (eq-hashtable-ref local-fn-ht function-name #f)
+                                      (fluid-let ([in-local-fn? #t]) (walk))
+                                      (walk)))
                                 (if (and src? (not (stdlib-src? src?)) (stdlib-src? (id-src function-name)))
                                     (fluid-let ([record-leak!
                                                  (let ([record-leak! record-leak!])
@@ -588,6 +596,7 @@
                    (Witness-Return-Value function-name))))))]
     ;; a local function's data flow is a circuit's: its body is analyzed per call
     [(local-circuit ,src ,function-name ((,var-name* ,type*) ...) ,type ,expr)
+     (eq-hashtable-set! local-fn-ht function-name #t)
      (hashtable-set! function-ht function-name
        (Fun-circuit src function-name var-name* expr (next-circuit-uid)))]
     [,kdecl (void)]
@@ -871,12 +880,15 @@
     [(safe-cast ,src ,type ,type^ ,[* abs]) abs]
 
     [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
-     ;; each iterated element is a local observation, therefore witness data
+     ;; each iterated element of a local container is a local observation, therefore
+     ;; witness data; a public container's elements are public data read from the snapshot
      (Effect expr
        (extend-env p (list var-name)
-         (list (default-value type
-                 (list (make-witness src (next-witness-uid)
-                         (Local-Operation-Result ledger-field-name))))))
+         (list (if (id-local? ledger-field-name)
+                   (default-value type
+                     (list (make-witness src (next-witness-uid)
+                             (Local-Operation-Result ledger-field-name))))
+                   (default-value type))))
        control-witness*
        disclosing-function-name?)
      (Abs-atomic '())]
@@ -884,11 +896,23 @@
     [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[* abs*] ...)
      (nanopass-case (Lwithpaths ADT-Op) adt-op
        [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
-        (if (id-local? ledger-field-name)
+        (cond
+          [(id-local? ledger-field-name)
             ; a local operation reaches only the local transcript, therefore witness arguments and
             ; witness-dependent control disclose nothing, but its result is itself witness data
             (default-value type
-              (list (make-witness src (next-witness-uid) (Local-Operation-Result ledger-field-name))))
+              (list (make-witness src (next-witness-uid) (Local-Operation-Result ledger-field-name))))]
+          [in-local-fn?
+            ; a ledger read in a local body is a snapshot quote: it never reaches the chain,
+            ; therefore witness arguments and control disclose nothing there; but the result
+            ; is a function of those arguments and of the control that selected the read, so
+            ; it carries their taint (disclosing lookup(key) discloses key)
+            (default-value type
+              (fold-left
+                (lambda (witness* abs) (merge-witnesses (abs->witnesses abs) witness*))
+                control-witness*
+                abs*))]
+          [else
             (begin
               (unless (null? control-witness*)
                 (record-leak! src^ "performing this ledger operation" control-witness*))
@@ -907,7 +931,7 @@
                 abs*
                 discloses?*
                 (if (= (length abs*) 1) '(#f) (enumerate abs*)))
-              (default-value type)))])]
+              (default-value type))])])]
     [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
      (let-values ([(pure? type)
             (nanopass-case (Lwithpaths Type) (de-alias type)
