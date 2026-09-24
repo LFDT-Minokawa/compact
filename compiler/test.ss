@@ -34699,14 +34699,12 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 512)))
-              (== (bytes-ref %value.6 32)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.6 32)) 1)
               (bytes-slice %value.6 33 512))
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tbytes 32)))
-              (== (bytes-ref %value.6 545)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.6 545)) 1)
               (bytes-slice %value.6 546 32))))
         (circuit %deserialize_ShieldedReceive.7 ([%x.8 (tbytes
                                                          578)])
@@ -34797,8 +34795,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-ref %value.5 64)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 64)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 65 16)))))
@@ -34879,8 +34876,7 @@ groups than for single tests.
             (new (tstruct Maybe
                    (is_some (tboolean))
                    (value (tunsigned 340282366920938463463374607431768211455)))
-              (== (bytes-ref %value.5 32)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 32)) 1)
               (cast-from-bytes (tunsigned
                                  340282366920938463463374607431768211455) 16
                 (bytes-slice %value.5 33 16)))))
@@ -34984,8 +34980,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35108,8 +35103,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35300,8 +35294,7 @@ groups than for single tests.
                    (is_left (tboolean))
                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-              (== (bytes-ref %value.5 0)
-                  (safe-cast (tunsigned 255) (tunsigned 1) 1))
+              (== (downcast-unsigned 8 1 (bytes-ref %value.5 0)) 1)
               (new (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))
                 (bytes-slice %value.5 1 32))
               (new (tstruct ContractAddress (bytes (tbytes 32)))
@@ -35591,8 +35584,7 @@ groups than for single tests.
           (new (tstruct Maybe
                  (is_some (tboolean))
                  (value (tbytes 32)))
-            (== (bytes-ref %value.2 0)
-                (safe-cast (tunsigned 255) (tunsigned 1) 1))
+            (== (downcast-unsigned 8 1 (bytes-ref %value.2 0)) 1)
             (bytes-slice %value.2 1 32)))
         (circuit %non_event_deserialize.3 ([%x.4 (tbytes 33)])
              (tstruct Maybe (is_some (tboolean)) (value (tbytes 32)))
@@ -40577,6 +40569,74 @@ groups than for single tests.
                    [[%t.8 (tvector
                             3
                             (tfield (field-scalar (curve-secp256k1))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Secp256r1Scalar>, x: Secp256r1Scalar): Secp256r1Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-secp256r1))))]
+                         [%x.3 (tfield (field-scalar (curve-secp256r1)))])
+             (tfield (field-scalar (curve-secp256r1)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-secp256r1)))]
+                           [%x.6 (tfield (field-scalar (curve-secp256r1)))])
+                      (tfield (field-scalar (curve-secp256r1)))
+                   (* (tfield (field-scalar (curve-secp256r1))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-secp256r1)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-secp256r1))))]
+                    %v.2])
+              (call %circ.4
+                (call %circ.4
+                  (call %circ.4 %t.7 (tuple-ref %t.8 0))
+                  (tuple-ref %t.8 1))
+                (tuple-ref %t.8 2)))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(v: Vector<3, Curve25519Scalar>, x: Curve25519Scalar): Curve25519Scalar {"
+      "  return fold((a, x) => a * x, x, v);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %foo.1 ([%v.2 (tvector
+                                 3
+                                 (tfield (field-scalar (curve-curve25519))))]
+                         [%x.3 (tfield (field-scalar (curve-curve25519)))])
+             (tfield (field-scalar (curve-curve25519)))
+          (flet [%circ.4
+                 (circuit ([%a.5 (tfield (field-scalar (curve-curve25519)))]
+                           [%x.6 (tfield (field-scalar (curve-curve25519)))])
+                      (tfield (field-scalar (curve-curve25519)))
+                   (* (tfield (field-scalar (curve-curve25519))) %a.5 %x.6))]
+            (let* ([[%t.7 (tfield (field-scalar (curve-curve25519)))]
+                    %x.3]
+                   [[%t.8 (tvector
+                            3
+                            (tfield (field-scalar (curve-curve25519))))]
                     %v.2])
               (call %circ.4
                 (call %circ.4
@@ -62744,7 +62804,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62774,7 +62834,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62805,7 +62865,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62835,7 +62895,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62866,7 +62926,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62920,7 +62980,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62939,7 +62999,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -62976,7 +63036,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63021,7 +63081,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -63043,7 +63103,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63079,7 +63139,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63130,7 +63190,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63150,7 +63210,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63180,7 +63240,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%p1.0\", \"type\": \"Point<Jubjub>\" },"
@@ -63247,7 +63307,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63266,7 +63326,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/ismember.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63288,7 +63348,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63307,7 +63367,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/update.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63326,7 +63386,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63366,7 +63426,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63385,7 +63445,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63407,7 +63467,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63445,7 +63505,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63478,7 +63538,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -63505,7 +63565,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -63537,7 +63597,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63572,7 +63632,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63612,7 +63672,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63664,7 +63724,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -63696,7 +63756,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63736,7 +63796,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63822,7 +63882,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -63909,7 +63969,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64062,7 +64122,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64099,7 +64159,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%nv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64204,7 +64264,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64232,7 +64292,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64263,7 +64323,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64293,7 +64353,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64327,7 +64387,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64361,7 +64421,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64388,7 +64448,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64421,7 +64481,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64460,7 +64520,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64505,7 +64565,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64534,7 +64594,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64564,7 +64624,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64599,7 +64659,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64653,7 +64713,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -64674,7 +64734,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64692,7 +64752,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64710,7 +64770,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar4.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64740,7 +64800,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64772,7 +64832,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -64799,7 +64859,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64829,7 +64889,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64857,7 +64917,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64885,7 +64945,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64913,7 +64973,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64943,7 +65003,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -64974,7 +65034,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65006,7 +65066,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65041,7 +65101,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65074,7 +65134,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65107,7 +65167,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65140,7 +65200,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65174,7 +65234,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65212,7 +65272,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65244,7 +65304,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65273,7 +65333,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65305,7 +65365,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65335,7 +65395,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65365,7 +65425,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65396,7 +65456,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65426,7 +65486,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%arg.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65457,7 +65517,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -65488,7 +65548,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65519,7 +65579,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65571,7 +65631,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65648,7 +65708,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -65711,7 +65771,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65738,7 +65798,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65765,7 +65825,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65792,7 +65852,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65819,7 +65879,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65847,7 +65907,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65874,7 +65934,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65901,7 +65961,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65941,7 +66001,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -65977,7 +66037,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -66015,7 +66075,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66047,7 +66107,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66085,7 +66145,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66175,7 +66235,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66466,7 +66526,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%c.0\", \"type\": \"Point<Jubjub>\" }"
@@ -66500,7 +66560,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -66537,7 +66597,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66558,7 +66618,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66595,7 +66655,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66616,7 +66676,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66653,7 +66713,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66679,7 +66739,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66724,7 +66784,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66758,7 +66818,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66812,7 +66872,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66841,7 +66901,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/dos.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66866,7 +66926,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/tres.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66912,7 +66972,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66955,7 +67015,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/uno.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -66995,7 +67055,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/hello.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67030,7 +67090,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/_arguments.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%_eval.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67084,7 +67144,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/red_guess.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%my_guess.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67115,7 +67175,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67147,7 +67207,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67180,7 +67240,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67220,7 +67280,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/rat.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67268,7 +67328,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67301,7 +67361,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/bar.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67384,7 +67444,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67427,7 +67487,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/baz.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67478,7 +67538,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67532,7 +67592,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -67669,7 +67729,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67695,7 +67755,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67784,7 +67844,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67810,7 +67870,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67859,7 +67919,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67878,7 +67938,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/put.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67900,7 +67960,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/get.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67952,7 +68012,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -67971,7 +68031,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/incr_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -67990,7 +68050,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68010,7 +68070,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68077,7 +68137,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68095,7 +68155,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/insert_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68115,7 +68175,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%n.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68196,7 +68256,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_map.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68215,7 +68275,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68235,7 +68295,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/increment_nested_counter.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68255,7 +68315,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68276,7 +68336,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68374,7 +68434,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68407,7 +68467,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%q.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68476,7 +68536,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68580,7 +68640,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68818,7 +68878,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -68848,7 +68908,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68881,7 +68941,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68919,7 +68979,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68951,7 +69011,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -68983,7 +69043,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -69140,7 +69200,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -69172,7 +69232,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -69210,7 +69270,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -69260,7 +69320,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -69388,7 +69448,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -69533,7 +69593,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -69565,7 +69625,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -69603,7 +69663,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -69652,7 +69712,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -69779,7 +69839,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%v.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -69996,7 +70056,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -70031,7 +70091,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test10.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -70099,7 +70159,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test5.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%param1.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -70169,7 +70229,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -70188,7 +70248,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -70208,7 +70268,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test2.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -70228,7 +70288,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test3.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%x.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -70261,7 +70321,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/gris.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%scalar.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -70293,7 +70353,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -70346,7 +70406,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testFtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%f.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -70374,7 +70434,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoF.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -70400,7 +70460,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testUtoJ.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%u.0\", \"type\": \"Scalar<BLS12-381>\" }"
@@ -70430,7 +70490,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/testJtoU.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%j.0\", \"type\": \"Scalar<Jubjub>\" }"
@@ -70482,7 +70542,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test0.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256k1>\" }"
@@ -70500,7 +70560,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test1.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -70580,7 +70640,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256k1>\" }"
@@ -70615,7 +70675,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%a.0\", \"type\": \"Point<Jubjub>\" }"
@@ -70647,7 +70707,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -70684,7 +70744,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256k1>\" },"
@@ -70722,7 +70782,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/foo.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "  ],"
@@ -70759,157 +70819,170 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (bump) ((%d.0 "Scalar<BLS12-381>")
-                         (%d.1 "Scalar<BLS12-381>"))
+        (circuit (bump) ((%d.4 "Scalar<BLS12-381>")
+                         (%d.5 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %d.0 8)
-          (constrain_bits %d.1 248)
-          (private_input "Scalar<Secp256k1>" %sig.39)
-          (private_input "Scalar<Secp256k1>" %sig.52)
-          (private_input "Point<Secp256k1>" %pk.53)
-          (copy %v.3 %d.0)
-          (div_mod_power_of_two %quo.54 %v.2 %d.1 8)
-          (div_mod_power_of_two %quo.55 %v.33 %quo.54 8)
-          (div_mod_power_of_two %quo.56 %v.32 %quo.55 8)
-          (div_mod_power_of_two %quo.57 %v.31 %quo.56 8)
-          (div_mod_power_of_two %quo.58 %v.30 %quo.57 8)
-          (div_mod_power_of_two %quo.59 %v.29 %quo.58 8)
-          (div_mod_power_of_two %quo.60 %v.28 %quo.59 8)
-          (div_mod_power_of_two %quo.61 %v.27 %quo.60 8)
-          (div_mod_power_of_two %quo.62 %v.26 %quo.61 8)
-          (div_mod_power_of_two %quo.63 %v.25 %quo.62 8)
-          (div_mod_power_of_two %quo.64 %v.24 %quo.63 8)
-          (div_mod_power_of_two %quo.65 %v.23 %quo.64 8)
-          (div_mod_power_of_two %quo.66 %v.22 %quo.65 8)
-          (div_mod_power_of_two %quo.67 %v.21 %quo.66 8)
-          (div_mod_power_of_two %quo.68 %v.20 %quo.67 8)
-          (div_mod_power_of_two %quo.69 %v.19 %quo.68 8)
-          (div_mod_power_of_two %quo.70 %v.18 %quo.69 8)
-          (div_mod_power_of_two %quo.71 %v.17 %quo.70 8)
-          (div_mod_power_of_two %quo.72 %v.16 %quo.71 8)
-          (div_mod_power_of_two %quo.73 %v.15 %quo.72 8)
-          (div_mod_power_of_two %quo.74 %v.14 %quo.73 8)
-          (div_mod_power_of_two %quo.75 %v.13 %quo.74 8)
-          (div_mod_power_of_two %quo.76 %v.12 %quo.75 8)
-          (div_mod_power_of_two %quo.77 %v.11 %quo.76 8)
-          (div_mod_power_of_two %quo.78 %v.10 %quo.77 8)
-          (div_mod_power_of_two %quo.79 %v.9 %quo.78 8)
-          (div_mod_power_of_two %quo.80 %v.8 %quo.79 8)
-          (div_mod_power_of_two %quo.81 %v.7 %quo.80 8)
-          (div_mod_power_of_two %quo.82 %v.6 %quo.81 8)
-          (div_mod_power_of_two %quo.83 %v.5 %quo.82 8)
-          (copy %v.4 %quo.83)
-          (copy %beReversed.35 %v.2)
-          (reconstitute_field %div.84 %v.33 %v.32 8)
-          (reconstitute_field %div.85 %div.84 %v.31 8)
-          (reconstitute_field %div.86 %div.85 %v.30 8)
-          (reconstitute_field %div.87 %div.86 %v.29 8)
-          (reconstitute_field %div.88 %div.87 %v.28 8)
-          (reconstitute_field %div.89 %div.88 %v.27 8)
-          (reconstitute_field %div.90 %div.89 %v.26 8)
-          (reconstitute_field %div.91 %div.90 %v.25 8)
-          (reconstitute_field %div.92 %div.91 %v.24 8)
-          (reconstitute_field %div.93 %div.92 %v.23 8)
-          (reconstitute_field %div.94 %div.93 %v.22 8)
-          (reconstitute_field %div.95 %div.94 %v.21 8)
-          (reconstitute_field %div.96 %div.95 %v.20 8)
-          (reconstitute_field %div.97 %div.96 %v.19 8)
-          (reconstitute_field %div.98 %div.97 %v.18 8)
-          (reconstitute_field %div.99 %div.98 %v.17 8)
-          (reconstitute_field %div.100 %div.99 %v.16 8)
-          (reconstitute_field %div.101 %div.100 %v.15 8)
-          (reconstitute_field %div.102 %div.101 %v.14 8)
-          (reconstitute_field %div.103 %div.102 %v.13 8)
-          (reconstitute_field %div.104 %div.103 %v.12 8)
-          (reconstitute_field %div.105 %div.104 %v.11 8)
-          (reconstitute_field %div.106 %div.105 %v.10 8)
-          (reconstitute_field %div.107 %div.106 %v.9 8)
-          (reconstitute_field %div.108 %div.107 %v.8 8)
-          (reconstitute_field %div.109 %div.108 %v.7 8)
-          (reconstitute_field %div.110 %div.109 %v.6 8)
-          (reconstitute_field %div.111 %div.110 %v.5 8)
-          (reconstitute_field %div.112 %div.111 %v.4 8)
-          (reconstitute_field %beReversed.34 %div.112 %v.3 8)
+          (constrain_bits %d.4 8)
+          (constrain_bits %d.5 248)
+          (private_input "Scalar<Secp256k1>" %sig.42)
+          (private_input "Scalar<Secp256k1>" %sig.64)
+          (private_input "Point<Secp256k1>" %pk.1)
+          (into_bytes32 %tmp.65 0)
+          (from_bytes32 "Scalar<Secp256k1>" %tmp.66 %tmp.65)
+          (ec_mul_generator %t.0 %tmp.66)
+          (test_eq %t.2 %pk.1 %t.0)
+          (cond_select %t.3 %t.2 0 1)
+          (assert %t.3)
+          (copy %v.7 %d.4)
+          (div_mod_power_of_two %quo.67 %v.6 %d.5 8)
+          (div_mod_power_of_two %quo.68 %v.37 %quo.67 8)
+          (div_mod_power_of_two %quo.69 %v.36 %quo.68 8)
+          (div_mod_power_of_two %quo.70 %v.35 %quo.69 8)
+          (div_mod_power_of_two %quo.71 %v.34 %quo.70 8)
+          (div_mod_power_of_two %quo.72 %v.33 %quo.71 8)
+          (div_mod_power_of_two %quo.73 %v.32 %quo.72 8)
+          (div_mod_power_of_two %quo.74 %v.31 %quo.73 8)
+          (div_mod_power_of_two %quo.75 %v.30 %quo.74 8)
+          (div_mod_power_of_two %quo.76 %v.29 %quo.75 8)
+          (div_mod_power_of_two %quo.77 %v.28 %quo.76 8)
+          (div_mod_power_of_two %quo.78 %v.27 %quo.77 8)
+          (div_mod_power_of_two %quo.79 %v.26 %quo.78 8)
+          (div_mod_power_of_two %quo.80 %v.25 %quo.79 8)
+          (div_mod_power_of_two %quo.81 %v.24 %quo.80 8)
+          (div_mod_power_of_two %quo.82 %v.23 %quo.81 8)
+          (div_mod_power_of_two %quo.83 %v.22 %quo.82 8)
+          (div_mod_power_of_two %quo.84 %v.21 %quo.83 8)
+          (div_mod_power_of_two %quo.85 %v.20 %quo.84 8)
+          (div_mod_power_of_two %quo.86 %v.19 %quo.85 8)
+          (div_mod_power_of_two %quo.87 %v.18 %quo.86 8)
+          (div_mod_power_of_two %quo.88 %v.17 %quo.87 8)
+          (div_mod_power_of_two %quo.89 %v.16 %quo.88 8)
+          (div_mod_power_of_two %quo.90 %v.15 %quo.89 8)
+          (div_mod_power_of_two %quo.91 %v.14 %quo.90 8)
+          (div_mod_power_of_two %quo.92 %v.13 %quo.91 8)
+          (div_mod_power_of_two %quo.93 %v.12 %quo.92 8)
+          (div_mod_power_of_two %quo.94 %v.11 %quo.93 8)
+          (div_mod_power_of_two %quo.95 %v.10 %quo.94 8)
+          (div_mod_power_of_two %quo.96 %v.9 %quo.95 8)
+          (copy %v.8 %quo.96)
+          (copy %beReversed.39 %v.6)
+          (reconstitute_field %div.97 %v.37 %v.36 8)
+          (reconstitute_field %div.98 %div.97 %v.35 8)
+          (reconstitute_field %div.99 %div.98 %v.34 8)
+          (reconstitute_field %div.100 %div.99 %v.33 8)
+          (reconstitute_field %div.101 %div.100 %v.32 8)
+          (reconstitute_field %div.102 %div.101 %v.31 8)
+          (reconstitute_field %div.103 %div.102 %v.30 8)
+          (reconstitute_field %div.104 %div.103 %v.29 8)
+          (reconstitute_field %div.105 %div.104 %v.28 8)
+          (reconstitute_field %div.106 %div.105 %v.27 8)
+          (reconstitute_field %div.107 %div.106 %v.26 8)
+          (reconstitute_field %div.108 %div.107 %v.25 8)
+          (reconstitute_field %div.109 %div.108 %v.24 8)
+          (reconstitute_field %div.110 %div.109 %v.23 8)
+          (reconstitute_field %div.111 %div.110 %v.22 8)
+          (reconstitute_field %div.112 %div.111 %v.21 8)
+          (reconstitute_field %div.113 %div.112 %v.20 8)
+          (reconstitute_field %div.114 %div.113 %v.19 8)
+          (reconstitute_field %div.115 %div.114 %v.18 8)
+          (reconstitute_field %div.116 %div.115 %v.17 8)
+          (reconstitute_field %div.117 %div.116 %v.16 8)
+          (reconstitute_field %div.118 %div.117 %v.15 8)
+          (reconstitute_field %div.119 %div.118 %v.14 8)
+          (reconstitute_field %div.120 %div.119 %v.13 8)
+          (reconstitute_field %div.121 %div.120 %v.12 8)
+          (reconstitute_field %div.122 %div.121 %v.11 8)
+          (reconstitute_field %div.123 %div.122 %v.10 8)
+          (reconstitute_field %div.124 %div.123 %v.9 8)
+          (reconstitute_field %div.125 %div.124 %v.8 8)
+          (reconstitute_field %beReversed.38 %div.125 %v.7 8)
           (bytes32_from_low_high
-            %tmp.113
-            %beReversed.34
-            %beReversed.35)
-          (from_bytes32 "Scalar<Secp256k1>" %z.114 %tmp.113)
-          (inv %w.115 %sig.52)
-          (mul %u1.116 %z.114 %w.115)
-          (mul %u2.117 %sig.39 %w.115)
-          (ec_mul_generator %t.118 %u1.116)
-          (ec_mul %t.119 %pk.53 %u2.117)
-          (add %point.120 %t.118 %t.119)
-          (into_coordinates %t.36 %ignore.121 %point.120)
-          (into_bytes32 %tmp.122 %t.36)
-          (bytes32_into_low_high %t.37 %t.38 %tmp.122)
-          (bytes32_from_low_high %tmp.123 %t.37 %t.38)
-          (from_bytes32 "Scalar<Secp256k1>" %t.40 %tmp.123)
-          (test_eq %t.41 %t.40 %sig.39)
-          (assert %t.41)
-          (private_input "Scalar<Secp256k1>" %sig.47)
-          (private_input "Scalar<Secp256k1>" %sig.124)
-          (private_input "Point<Secp256k1>" %pk.125)
-          (copy %beReversed.43 %v.2)
-          (reconstitute_field %div.126 %v.33 %v.32 8)
-          (reconstitute_field %div.127 %div.126 %v.31 8)
-          (reconstitute_field %div.128 %div.127 %v.30 8)
-          (reconstitute_field %div.129 %div.128 %v.29 8)
-          (reconstitute_field %div.130 %div.129 %v.28 8)
-          (reconstitute_field %div.131 %div.130 %v.27 8)
-          (reconstitute_field %div.132 %div.131 %v.26 8)
-          (reconstitute_field %div.133 %div.132 %v.25 8)
-          (reconstitute_field %div.134 %div.133 %v.24 8)
-          (reconstitute_field %div.135 %div.134 %v.23 8)
-          (reconstitute_field %div.136 %div.135 %v.22 8)
-          (reconstitute_field %div.137 %div.136 %v.21 8)
-          (reconstitute_field %div.138 %div.137 %v.20 8)
-          (reconstitute_field %div.139 %div.138 %v.19 8)
-          (reconstitute_field %div.140 %div.139 %v.18 8)
-          (reconstitute_field %div.141 %div.140 %v.17 8)
-          (reconstitute_field %div.142 %div.141 %v.16 8)
-          (reconstitute_field %div.143 %div.142 %v.15 8)
-          (reconstitute_field %div.144 %div.143 %v.14 8)
-          (reconstitute_field %div.145 %div.144 %v.13 8)
-          (reconstitute_field %div.146 %div.145 %v.12 8)
-          (reconstitute_field %div.147 %div.146 %v.11 8)
-          (reconstitute_field %div.148 %div.147 %v.10 8)
-          (reconstitute_field %div.149 %div.148 %v.9 8)
-          (reconstitute_field %div.150 %div.149 %v.8 8)
-          (reconstitute_field %div.151 %div.150 %v.7 8)
-          (reconstitute_field %div.152 %div.151 %v.6 8)
-          (reconstitute_field %div.153 %div.152 %v.5 8)
-          (reconstitute_field %div.154 %div.153 %v.4 8)
-          (reconstitute_field %beReversed.42 %div.154 %v.3 8)
+            %tmp.126
+            %beReversed.38
+            %beReversed.39)
+          (from_bytes32 "Scalar<Secp256k1>" %z.41 %tmp.126)
+          (inv %w.40 %sig.64)
+          (mul %u1.127 %z.41 %w.40)
+          (mul %u2.128 %sig.42 %w.40)
+          (ec_mul_generator %t.129 %u1.127)
+          (ec_mul %t.130 %pk.1 %u2.128)
+          (add %point.131 %t.129 %t.130)
+          (into_coordinates %t.43 %ignore.132 %point.131)
+          (into_bytes32 %tmp.133 %t.43)
+          (bytes32_into_low_high %t.44 %t.45 %tmp.133)
+          (bytes32_from_low_high %tmp.134 %t.44 %t.45)
+          (from_bytes32 "Scalar<Secp256k1>" %t.46 %tmp.134)
+          (test_eq %t.47 %t.46 %sig.42)
+          (assert %t.47)
+          (private_input "Scalar<Secp256k1>" %sig.56)
+          (private_input "Scalar<Secp256k1>" %sig.135)
+          (private_input "Point<Secp256k1>" %pk.49)
+          (into_bytes32 %tmp.136 0)
+          (from_bytes32 "Scalar<Secp256k1>" %tmp.137 %tmp.136)
+          (ec_mul_generator %t.48 %tmp.137)
+          (test_eq %t.50 %pk.49 %t.48)
+          (cond_select %t.51 %t.50 0 1)
+          (assert %t.51)
+          (copy %beReversed.53 %v.6)
+          (reconstitute_field %div.138 %v.37 %v.36 8)
+          (reconstitute_field %div.139 %div.138 %v.35 8)
+          (reconstitute_field %div.140 %div.139 %v.34 8)
+          (reconstitute_field %div.141 %div.140 %v.33 8)
+          (reconstitute_field %div.142 %div.141 %v.32 8)
+          (reconstitute_field %div.143 %div.142 %v.31 8)
+          (reconstitute_field %div.144 %div.143 %v.30 8)
+          (reconstitute_field %div.145 %div.144 %v.29 8)
+          (reconstitute_field %div.146 %div.145 %v.28 8)
+          (reconstitute_field %div.147 %div.146 %v.27 8)
+          (reconstitute_field %div.148 %div.147 %v.26 8)
+          (reconstitute_field %div.149 %div.148 %v.25 8)
+          (reconstitute_field %div.150 %div.149 %v.24 8)
+          (reconstitute_field %div.151 %div.150 %v.23 8)
+          (reconstitute_field %div.152 %div.151 %v.22 8)
+          (reconstitute_field %div.153 %div.152 %v.21 8)
+          (reconstitute_field %div.154 %div.153 %v.20 8)
+          (reconstitute_field %div.155 %div.154 %v.19 8)
+          (reconstitute_field %div.156 %div.155 %v.18 8)
+          (reconstitute_field %div.157 %div.156 %v.17 8)
+          (reconstitute_field %div.158 %div.157 %v.16 8)
+          (reconstitute_field %div.159 %div.158 %v.15 8)
+          (reconstitute_field %div.160 %div.159 %v.14 8)
+          (reconstitute_field %div.161 %div.160 %v.13 8)
+          (reconstitute_field %div.162 %div.161 %v.12 8)
+          (reconstitute_field %div.163 %div.162 %v.11 8)
+          (reconstitute_field %div.164 %div.163 %v.10 8)
+          (reconstitute_field %div.165 %div.164 %v.9 8)
+          (reconstitute_field %div.166 %div.165 %v.8 8)
+          (reconstitute_field %beReversed.52 %div.166 %v.7 8)
           (bytes32_from_low_high
-            %tmp.155
-            %beReversed.42
-            %beReversed.43)
-          (from_bytes32 "Scalar<Secp256k1>" %z.156 %tmp.155)
-          (inv %w.157 %sig.124)
-          (mul %u1.158 %z.156 %w.157)
-          (mul %u2.159 %sig.47 %w.157)
-          (ec_mul_generator %t.160 %u1.158)
-          (ec_mul %t.161 %pk.125 %u2.159)
-          (add %point.162 %t.160 %t.161)
-          (into_coordinates %t.44 %ignore.163 %point.162)
-          (into_bytes32 %tmp.164 %t.44)
-          (bytes32_into_low_high %t.45 %t.46 %tmp.164)
-          (bytes32_from_low_high %tmp.165 %t.45 %t.46)
-          (from_bytes32 "Scalar<Secp256k1>" %t.48 %tmp.165)
-          (test_eq %t.49 %t.48 %sig.47)
-          (assert %t.49)
-          (public_input "Scalar<BLS12-381>" %t.50)
+            %tmp.167
+            %beReversed.52
+            %beReversed.53)
+          (from_bytes32 "Scalar<Secp256k1>" %z.55 %tmp.167)
+          (inv %w.54 %sig.135)
+          (mul %u1.168 %z.55 %w.54)
+          (mul %u2.169 %sig.56 %w.54)
+          (ec_mul_generator %t.170 %u1.168)
+          (ec_mul %t.171 %pk.49 %u2.169)
+          (add %point.172 %t.170 %t.171)
+          (into_coordinates %t.57 %ignore.173 %point.172)
+          (into_bytes32 %tmp.174 %t.57)
+          (bytes32_into_low_high %t.58 %t.59 %tmp.174)
+          (bytes32_from_low_high %tmp.175 %t.58 %t.59)
+          (from_bytes32 "Scalar<Secp256k1>" %t.60 %tmp.175)
+          (test_eq %t.61 %t.60 %sig.56)
+          (assert %t.61)
+          (public_input "Scalar<BLS12-381>" %t.62)
           (impact 1 48)
           (impact 1 80 1 1 0)
-          (impact 1 12 1 8 %t.50)
-          (add %t.51 %t.50 1)
-          (constrain_bits %t.51 64)
-          (copy %tmp.166 %t.51)
+          (impact 1 12 1 8 %t.62)
+          (add %t.63 %t.62 1)
+          (constrain_bits %t.63 64)
+          (copy %tmp.176 %t.63)
           (impact 1 16 1 1 1 0)
-          (impact 1 17 1 1 8 %tmp.166)
-          (impact 1 145)))))
+          (impact 1 17 1 1 8 %tmp.176)
+          (impact 1 145))))
+    )
 
     (test
       '(
@@ -70930,7 +71003,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/test.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
         "    { \"name\": \"%e.0\", \"type\": \"Scalar<BLS12-381>\" },"
@@ -71000,6 +71073,303 @@ groups than for single tests.
         "  ]"
         "}"))
       )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
+      "export circuit d1(bv: Bytes<1>): Boolean {"
+      "  forceProof();"
+      "  return deserialize<Boolean, 1>(bv);"
+      "}"
+      "struct S { a: Boolean, b: Uint<16>, c: Boolean, d: Uint<8>, e: Boolean};"
+      "export circuit d2(bv: Bytes<6>): S {"
+      "  forceProof();"
+      "  return deserialize<S, 6>(bv);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/d1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 8 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%ignore.2\"], \"val\": \"%bv.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.3\", \"%t.4\"], \"val\": \"%quo.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.5\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%t.5\", \"b\": \"0x01\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/d2.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%bv.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\","
+        "    \"Scalar<BLS12-381>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_bits\", \"val\": \"%bv.0\", \"bits\": 48 },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.1\", \"%ignore.2\"], \"val\": \"%bv.0\", \"bits\": 0 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.3\", \"%t.4\"], \"val\": \"%quo.1\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.5\", \"val\": \"%t.4\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.6\", \"a\": \"%t.5\", \"b\": \"0x01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.7\", \"%ignore.8\"], \"val\": \"%bv.0\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.9\", \"%t.10\"], \"val\": \"%quo.7\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.11\", \"%ignore.12\"], \"val\": \"%bv.0\", \"bits\": 16 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.13\", \"%t.14\"], \"val\": \"%quo.11\", \"bits\": 8 },"
+        "    { \"op\": \"reconstitute_field\", \"output\": \"%t.15\", \"divisor\": \"%t.14\", \"modulus\": \"%t.10\", \"bits\": 8 },"
+        "    { \"op\": \"copy\", \"output\": \"%t.16\", \"val\": \"%t.15\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.16\", \"bits\": 16 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.17\", \"%ignore.18\"], \"val\": \"%bv.0\", \"bits\": 24 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.19\", \"%t.20\"], \"val\": \"%quo.17\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.20\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.21\", \"val\": \"%t.20\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.22\", \"a\": \"%t.21\", \"b\": \"0x01\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.23\", \"%ignore.24\"], \"val\": \"%bv.0\", \"bits\": 32 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.25\", \"%t.26\"], \"val\": \"%quo.23\", \"bits\": 8 },"
+        "    { \"op\": \"copy\", \"output\": \"%t.27\", \"val\": \"%t.26\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.28\", \"val\": \"%t.27\" },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%t.28\", \"bits\": 8 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%quo.29\", \"%ignore.30\"], \"val\": \"%bv.0\", \"bits\": 40 },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%ignore.31\", \"%t.32\"], \"val\": \"%quo.29\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%t.32\" },"
+        "    { \"op\": \"copy\", \"output\": \"%t.33\", \"val\": \"%t.32\" },"
+        "    { \"op\": \"test_eq\", \"output\": \"%t.34\", \"a\": \"%t.33\", \"b\": \"0x01\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.6\", \"%t.16\", \"%t.22\", \"%t.28\", \"%t.34\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test0(b: Secp256r1Base): Secp256r1Base {"
+      "  wantProof = true;"
+      "  return b;"
+      "}"
+      "export circuit test1(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  wantProof = true;"
+      "  return s;"
+      "}"
+      )
+    (pass-returns parse-file
+      (program
+        (import CompactStandardLibrary () "")
+        (public-ledger-declaration #f #f wantProof (tboolean))
+        (circuit #t #f test0 () ([b (type-ref Secp256r1Base)])
+             (type-ref Secp256r1Base)
+          (block (= wantProof #t) (return b)))
+        (circuit #t #f test1 () ([s (type-ref Secp256r1Scalar)])
+             (type-ref Secp256r1Scalar)
+          (block (= wantProof #t) (return s)))))
+    (output-file "compiler/testdir/zkir/test0.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%b.0\", \"type\": \"Base<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%b.0\"] }"
+        "  ]"
+        "}"))
+    (output-file "compiler/testdir/zkir/test1.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"output\", \"vals\": [\"%s.0\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256r1Scalar): [Secp256r1Scalar, Secp256r1Scalar] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256r1>\","
+        "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  wantProof = true;"
+      "  return s0 * s1;"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s0.0\", \"type\": \"Scalar<Secp256r1>\" },"
+        "    { \"name\": \"%s1.1\", \"type\": \"Scalar<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"mul\", \"output\": \"%t.2\", \"a\": \"%s0.0\", \"b\": \"%s1.1\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(r: Secp256r1Scalar, s: Secp256r1Scalar,"
+      "                    z: Secp256r1Scalar,"
+      "                    pk: Secp256r1Point)"
+      "    : Secp256r1Point {"
+      "  wantProof = true;"
+      "  const w = inv(s);"
+      "  const u1 = z * w;"
+      "  const u2 = r * w;"
+      "  return ecAdd(ecMulGenerator(u1), ecMul(pk, u2));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%r.0\", \"type\": \"Scalar<Secp256r1>\" },"
+        "    { \"name\": \"%s.1\", \"type\": \"Scalar<Secp256r1>\" },"
+        "    { \"name\": \"%z.2\", \"type\": \"Scalar<Secp256r1>\" },"
+        "    { \"name\": \"%pk.3\", \"type\": \"Point<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Point<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"inv\", \"output\": \"%w.4\", \"a\": \"%s.1\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u1.5\", \"a\": \"%z.2\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"mul\", \"output\": \"%u2.6\", \"a\": \"%r.0\", \"b\": \"%w.4\" },"
+        "    { \"op\": \"ec_mul_generator\", \"output\": \"%t.7\", \"scalar\": \"%u1.5\" },"
+        "    { \"op\": \"ec_mul\", \"output\": \"%t.8\", \"a\": \"%pk.3\", \"scalar\": \"%u2.6\" },"
+        "    { \"op\": \"add\", \"output\": \"%t.9\", \"a\": \"%t.7\", \"b\": \"%t.8\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.9\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(sha512<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%pt0.0\", \"type\": \"Point<Secp256k1>\" },"
+        "    { \"name\": \"%pt1.1\", \"type\": \"Point<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\"], \"input\": \"%pt0.0\" },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"], \"input\": \"%pt1.1\" },"
+        "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
+        "    { \"op\": \"slice\", \"output\": \"%low32.13\", \"bytes\": \"%bytes.12\", \"start\": 0, \"len\": 32 },"
+        "    { \"op\": \"slice\", \"output\": \"%high32.14\", \"bytes\": \"%bytes.12\", \"start\": 32, \"len\": 32 },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.15\", \"%byte31.16\"], \"bytes\": \"%low32.13\" },"
+        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%bytes32to62.17\", \"%byte63.18\"], \"bytes\": \"%high32.14\" },"
+        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%byte62.19\", \"%bytes32to61.20\"], \"val\": \"%bytes32to62.17\", \"bits\": 240 },"
+        "    { \"op\": \"mul\", \"output\": \"%temp0.21\", \"a\": \"%bytes32to61.20\", \"b\": \"0x0001\" },"
+        "    { \"op\": \"add\", \"output\": \"%tmp.22\", \"a\": \"%byte31.16\", \"b\": \"%temp0.21\" },"
+        "    { \"op\": \"mul\", \"output\": \"%temp1.23\", \"a\": \"%byte63.18\", \"b\": \"0x0001\" },"
+        "    { \"op\": \"add\", \"output\": \"%tmp.24\", \"a\": \"%byte62.19\", \"b\": \"%temp1.23\" },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.24\", \"%tmp.22\", \"%tmp.15\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
+        "  ]"
+        "}"))
+    )
   )
 )
 
@@ -71015,7 +71385,7 @@ groups than for single tests.
     (output-file "compiler/testdir/zkir/fisk.zkir"
       '(
         "{"
-        "  \"version\": { \"major\": 3, \"minor\": 0 },"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": false,"
         "  \"inputs\": ["
         "  ],"
@@ -85425,6 +85795,7 @@ groups than for single tests.
         "  await expect(C.circuits.foo(Ctxt, 3)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, 3)).rejects.toThrow('testfile.compact line 4 char 7: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "  await expect(C.circuits.foo(Ctxt, 4)).rejects.toThrow(runtime.CompactError);"
+
         "  await expect(C.circuits.foo(Ctxt, 4)).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type Enum<E, spring, summer, fall, winter> but received 4');"
         "});"
         ))
@@ -90776,6 +91147,39 @@ groups than for single tests.
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
+      "export circuit d1(bv: Bytes<1>): Boolean {"
+      "  forceProof();"
+      "  return deserialize<Boolean, 1>(bv);"
+      "}"
+      "struct S { a: Boolean, b: Uint<16>, c: Boolean, d: Uint<8>, e: Boolean};"
+      "export circuit d2(bv: Bytes<6>): S {"
+      "  forceProof();"
+      "  return deserialize<S, 6>(bv);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([0]))).result).toEqual(false);"
+        "  expect((await C.circuits.d1(Ctxt, new Uint8Array([1]))).result).toEqual(true);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([2]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([3]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([32]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d1(Ctxt, new Uint8Array([255]))).rejects.toThrow(runtime.CompactError);"
+        "  expect((await C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0x01]))).result)"
+        "              .toEqual({a: true, b: 0xff07n, c: false, d: 0xc1n, e: true});"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x03, 0x07, 0xff, 0x00, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x32, 0xc1, 0x01]))).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.d2(Ctxt, new Uint8Array([0x01, 0x07, 0xff, 0x00, 0xc1, 0xff]))).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
@@ -90940,6 +91344,192 @@ groups than for single tests.
                       (safe-cast (tfield (field-base (curve-secp256k1)))
                                  (talias #t Base
                                    (tfield (field-base (curve-secp256k1))))
+                        %b2.4)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Base = Secp256r1Base;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))])
+             (talias #t Base (tfield (field-base (curve-secp256r1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256r1))))
+                     (tfield (field-base (curve-secp256r1)))
+            (+ (tfield (field-base (curve-secp256r1)))
+               (safe-cast (tfield (field-base (curve-secp256r1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256r1))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-secp256r1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256r1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256r1))))
+                            (tfield (field-base (curve-secp256r1)))
+                   (* (tfield (field-base (curve-secp256r1)))
+                      (safe-cast (tfield (field-base (curve-secp256r1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-secp256r1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))
+                        %b2.4)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.5 (talias #t Base
+                           (tfield (field-base (curve-secp256r1)))))
+          (%descriptor.6 (tunsigned 18446744073709551615))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tbytes 32))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.10 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.11 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))])
+             (talias #t Base (tfield (field-base (curve-secp256r1))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-secp256r1))))
+                     (tfield (field-base (curve-secp256r1)))
+            (+ (tfield (field-base (curve-secp256r1)))
+               (safe-cast (tfield (field-base (curve-secp256r1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256r1))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-secp256r1)))
+                          (talias #t Base
+                            (tfield (field-base (curve-secp256r1))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-secp256r1))))
+                            (tfield (field-base (curve-secp256r1)))
+                   (* (tfield (field-base (curve-secp256r1)))
+                      (safe-cast (tfield (field-base (curve-secp256r1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-secp256r1)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-secp256r1))))
+                        %b2.4)))))))))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Base = Curve25519Base;"
+      "export circuit test(b0: Base, b1: Base, b2: Base): Base {"
+      "  return b0 + b1 * b2;"
+      "}"
+      )
+    (pass-returns infer-types
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))])
+             (talias #t Base (tfield (field-base (curve-curve25519))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-curve25519))))
+                     (tfield (field-base (curve-curve25519)))
+            (+ (tfield (field-base (curve-curve25519)))
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-curve25519))))
+                            (tfield (field-base (curve-curve25519)))
+                   (* (tfield (field-base (curve-curve25519)))
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b2.4)))))))))
+    (returns
+      (program
+        (type-descriptors
+          (%descriptor.5 (talias #t Base
+                           (tfield (field-base (curve-curve25519)))))
+          (%descriptor.6 (tunsigned 18446744073709551615))
+          (%descriptor.7 (tboolean))
+          (%descriptor.8 (tbytes 32))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tbytes 32))
+                           (right (tbytes 32))))
+          (%descriptor.10 (tunsigned
+                            340282366920938463463374607431768211455))
+          (%descriptor.11 (tstruct ContractAddress
+                            (bytes (tbytes 32))))
+          (%descriptor.12 (tunsigned 255))
+          (%descriptor.13 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
+        (public-ledger-declaration () (constructor () (tuple)))
+        (circuit %test.1 ([%b0.2 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b1.3 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))]
+                          [%b2.4 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))])
+             (talias #t Base (tfield (field-base (curve-curve25519))))
+          (safe-cast (talias #t Base
+                       (tfield (field-base (curve-curve25519))))
+                     (tfield (field-base (curve-curve25519)))
+            (+ (tfield (field-base (curve-curve25519)))
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 %b0.2)
+               (safe-cast (tfield (field-base (curve-curve25519)))
+                          (talias #t Base
+                            (tfield (field-base (curve-curve25519))))
+                 (safe-cast (talias #t Base
+                              (tfield (field-base (curve-curve25519))))
+                            (tfield (field-base (curve-curve25519)))
+                   (* (tfield (field-base (curve-curve25519)))
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
+                        %b1.3)
+                      (safe-cast (tfield (field-base (curve-curve25519)))
+                                 (talias #t Base
+                                   (tfield (field-base (curve-curve25519))))
                         %b2.4)))))))))
     )
 )
@@ -91134,8 +91724,10 @@ groups than for single tests.
       "  point = disclose(pt);"
       "  return point;"
       "}"
-      "// TODO(kmillikin): test extracting x and y coordinates here when they"
-      "// are available in the ledger."
+      "export circuit test1(): [Secp256k1Base, Secp256k1Base] {"
+      "  const pt = point;"
+      "  return [secp256k1PointX(pt), secp256k1PointY(pt)];"
+      "}"
       )
     (pass-returns reduce-to-zkir
       (program
@@ -91152,7 +91744,18 @@ groups than for single tests.
           (impact 1 80 1 1 0)
           (impact 1 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9 %fld.10
             %fld.11)
-          (output %t.6))))
+          (output %t.6))
+        (circuit (test1) ()
+          ("Base<Secp256k1>" "Base<Secp256k1>")
+          (public_input "Point<Secp256k1>" %pt.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %pt.12)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.13 %fld.14 %fld.15 %fld.16
+            %fld.17)
+          (into_coordinates %t.18 %ignore.19 %pt.12)
+          (into_coordinates %ignore.20 %t.21 %pt.12)
+          (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256k1Point round tripping through the ledger', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
@@ -91165,6 +91768,7 @@ groups than for single tests.
         "  var r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "  // The point G."
         "  pt = {"
         "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
@@ -91174,6 +91778,7 @@ groups than for single tests.
         "  r = await contract.circuits.test0(context, pt);"
         "  expect(r.result).toEqual(pt);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
         "});"
         ))
     )
@@ -91354,7 +91959,7 @@ groups than for single tests.
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('Bytes to secp256k1 fields casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -91462,7 +92067,7 @@ groups than for single tests.
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
     (stage-javascript
-      '("test('Bytes to secp256k1 field casts', async () => {"
+      '("test('secp256k1 fields to Bytes casts', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
@@ -91536,7 +92141,6 @@ groups than for single tests.
       "  return B;"
       "}"
       )
-
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -91549,6 +92153,9 @@ groups than for single tests.
         "    identity: false,"
         "  };"
         "  expect((await C.circuits.foo(Ctxt, msg, sig, pk)).result).toEqual(false);"
+        "  const identity = { x: 0n, y: 0n, identity: true };"
+        "  await expect(C.circuits.foo(Ctxt, msg, sig, identity)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(C.circuits.foo(Ctxt, msg, sig, identity)).rejects.toThrow('failed assert: Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key');"
         "});"
         ))
     )
@@ -91615,6 +92222,25 @@ groups than for single tests.
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test0(context, p0);"
         "  await contract.circuits.test1(context, p0, p1);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<64>;"
+      "export circuit test(pt0: Secp256k1Point, pt1: Secp256k1Point): [] {"
+      "  hash = disclose(sha512<[Secp256k1Point, Secp256k1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('sha512 hashing', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256k1MulGenerator(5n);"
+        "  const p1 = runtime.secp256k1MulGenerator(7n);"
+        "  await contract.circuits.test(context, p0, p1);"
         "});"
         ))
     )
@@ -92401,6 +93027,1714 @@ groups than for single tests.
          "});"
          ))))
 
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export circuit test(b: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b);"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (encode (%fld.1 %fld.2) %b.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Secp256r1Base round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1000n);"
+        ,(format "  const MAX_SECP256R1_BASE = ~dn;" (max-secp256r1-base))
+        "  expect(runtime.MAX_SECP256R1_BASE).toEqual(MAX_SECP256R1_BASE);"
+        "  r = await contract.circuits.test(context, MAX_SECP256R1_BASE);"
+        "  expect(r.result).toEqual(MAX_SECP256R1_BASE);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base)"
+        "      .toEqual(MAX_SECP256R1_BASE);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256R1_BASE + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "witness add1(b: Secp256r1Base): Secp256r1Base;"
+      "export circuit test(b: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(add1(b));"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (private_input "Base<Secp256r1>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Secp256r1Base passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1001n);"
+        ,(format "  const MAX_SECP256R1_BASE = ~dn;" (max-secp256r1-base))
+        "  await expect(contract.circuits.test(context, MAX_SECP256R1_BASE))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit test(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (encode (%fld.1 %fld.2) %s.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Secp256r1Scalar round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1000n);"
+        ,(format "  const MAX_SECP256R1_SCALAR = ~dn;" (max-secp256r1-scalar))
+        "  expect(runtime.MAX_SECP256R1_SCALAR).toEqual(MAX_SECP256R1_SCALAR);"
+        "  r = await contract.circuits.test(context, MAX_SECP256R1_SCALAR);"
+        "  expect(r.result).toEqual(MAX_SECP256R1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar)"
+        "      .toEqual(MAX_SECP256R1_SCALAR);"
+        "  await expect(contract.circuits.test(context, MAX_SECP256R1_SCALAR + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "witness add1(s: Secp256r1Scalar): Secp256r1Scalar;"
+      "export circuit test(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(add1(s));"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (private_input "Scalar<Secp256r1>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Secp256r1Scalar passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1001n);"
+        ,(format "  const MAX_SECP256R1_SCALAR = ~dn;" (max-secp256r1-scalar))
+        "  await expect(contract.circuits.test(context, MAX_SECP256R1_SCALAR))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "export circuit test0(pt: Secp256r1Point): Secp256r1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit test1(): [Secp256r1Base, Secp256r1Base] {"
+      "  const pt = point;"
+      "  return [secp256r1PointX(pt), secp256r1PointY(pt)];"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ((%pt.0 "Point<Secp256r1>"))
+          ("Point<Secp256r1>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %pt.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 5 24 8 24 8 -2 %fld.1 %fld.2 %fld.3 %fld.4
+            %fld.5)
+          (impact 1 145)
+          (public_input "Point<Secp256r1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9 %fld.10
+            %fld.11)
+          (output %t.6))
+        (circuit (test1) ()
+          ("Base<Secp256r1>" "Base<Secp256r1>")
+          (public_input "Point<Secp256r1>" %pt.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %pt.12)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.13 %fld.14 %fld.15 %fld.16
+            %fld.17)
+          (into_coordinates %t.18 %ignore.19 %pt.12)
+          (into_coordinates %ignore.20 %t.21 %pt.12)
+          (output %t.18 %t.21))))
+    (stage-javascript
+      '("test('Secp256r1Point round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // The point at X=0."
+        "  var pt = {"
+        "      x: 0x0n,"
+        "      y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
+        "      identity: false,"
+        "  };"
+        "  var r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "      y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "      identity: false,"
+        "  };"
+        "  r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "witness point0(): Secp256r1Point;"
+      "witness point1(): Secp256r1Point;"
+      "export circuit test0(): Secp256r1Point {"
+      "  point = disclose(point0());"
+      "  return point;"
+      "}"
+      "export circuit test1(): Secp256r1Point {"
+      "  point = disclose(point1());"
+      "  return point;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ()
+          ("Point<Secp256r1>")
+          (private_input "Point<Secp256r1>" %tmp.0)
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4 %fld.5) %tmp.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 5 24 8 24 8 -2 %fld.1 %fld.2 %fld.3 %fld.4
+            %fld.5)
+          (impact 1 145)
+          (public_input "Point<Secp256r1>" %t.6)
+          (encode (%fld.7 %fld.8 %fld.9 %fld.10 %fld.11) %t.6)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.7 %fld.8 %fld.9 %fld.10
+            %fld.11)
+          (output %t.6))
+        (circuit (test1) ()
+          ("Point<Secp256r1>")
+          (private_input "Point<Secp256r1>" %tmp.12)
+          (encode (%fld.13 %fld.14 %fld.15 %fld.16 %fld.17) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 5 24 8 24 8 -2 %fld.13 %fld.14 %fld.15
+            %fld.16 %fld.17)
+          (impact 1 145)
+          (public_input "Point<Secp256r1>" %t.18)
+          (encode (%fld.19 %fld.20 %fld.21 %fld.22 %fld.23) %t.18)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 5 24 8 24 8 -2 %fld.19 %fld.20 %fld.21 %fld.22
+            %fld.23)
+          (output %t.18))))
+    (stage-javascript
+      '("test('Secp256r1Point coming from witnesses', async () => {"
+        "  const witnesses = {"
+        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 0x0n,"
+        "          y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
+        "          identity: false,"
+        "        },"
+        "      ];"
+        "    },"
+        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "          y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "          identity: false,"
+        "        },"
+        "      ];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  // The point at X=1."
+        "  var pt = {"
+        "      x: 0x0n,"
+        "      y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
+        "      identity: false,"
+        "  };"
+        "  var r = await contract.circuits.test0(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "      y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "      identity: false,"
+        "  };"
+        "  r = await contract.circuits.test1(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(b: Secp256r1Base): Bytes<31> { return b as Bytes<31>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 59" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Bytes<31>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(s: Secp256r1Scalar): Bytes<33> { return s as Bytes<33>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "cannot cast from type ~a to type ~a" ("Secp256r1Scalar" "Bytes<33>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<33>): Secp256r1Base { return bs as Secp256r1Base; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 60" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Secp256r1Base"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<31>): Secp256r1Scalar { return bs as Secp256r1Scalar; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 62" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Secp256r1Scalar"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
+      "  base = disclose(b as Secp256r1Base);"
+      "  scalar = disclose(s as Secp256r1Scalar);"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
+                         (%b.0 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>"))
+          ()
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
+          (from_bytes32 "Base<Secp256r1>" %tmp.5 %tmp.4)
+          (encode (%fld.6 %fld.7) %tmp.5)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.6 %fld.7)
+          (impact 1 145)
+          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
+          (from_bytes32 "Scalar<Secp256r1>" %tmp.9 %tmp.8)
+          (encode (%fld.10 %fld.11) %tmp.9)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.10 %fld.11)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('Bytes to secp256r1 fields casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_SECP256R1_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0x50, 0x25, 0x63, 0xfc, 0xc2, 0xca, 0xb9, 0xf3,"
+        "    0x84, 0x9e, 0x17, 0xa7, 0xad, 0xfa, 0xe6, 0xbc,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = runtime.MAX_SECP256R1_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(b: Secp256r1Base, s: Secp256r1Scalar): [] {"
+      "  base = disclose(b as Bytes<32>);"
+      "  scalar = disclose(s as Bytes<32>);"
+      "}"
+      )
+    (pass-returns optimize-circuit2
+      (program
+        (kernel-declaration (%kernel.2 () (Kernel)))
+        (public-ledger-declaration
+          ((%base.3
+             (0)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+           (%scalar.4
+             (1)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+        (circuit %test.5 ((argument
+                            (%b.0)
+                            (ty ((anative "Secp256r1Base"))
+                                ((tfield (field-base (curve-secp256r1))))))
+                          (argument
+                            (%s.1)
+                            (ty ((anative "Secp256r1Scalar"))
+                                ((tfield (field-scalar (curve-secp256r1)))))))
+             (ty () ())
+          (= 1 (%tmp.6 %tmp.7)
+             (field->bytes 32 (field-base (curve-secp256r1)) %b.0))
+          (= 1 () (public-ledger %base.3 (0) write %tmp.6 %tmp.7))
+          (= 1 (%tmp.8 %tmp.9)
+             (field->bytes 32 (field-scalar (curve-secp256r1)) %s.1))
+          (= 1 () (public-ledger %scalar.4 (1) write %tmp.8 %tmp.9))
+          ())))
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Secp256r1>")
+                         (%s.1 "Scalar<Secp256r1>"))
+          ()
+          (into_bytes32 %tmp.10 %b.0)
+          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 32 %tmp.6 %tmp.7)
+          (impact 1 145)
+          (into_bytes32 %tmp.11 %s.1)
+          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 1 32 %tmp.8 %tmp.9)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('secp256r1 fields to Bytes casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_SECP256R1_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0x50, 0x25, 0x63, 0xfc, 0xc2, 0xca, 0xb9, 0xf3,"
+        "    0x84, 0x9e, 0x17, 0xa7, 0xad, 0xfa, 0xe6, 0xbc,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0x00, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = runtime.MAX_SECP256R1_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xfe, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x01, 0x00, 0x00, 0x00, 0xff, 0xff, 0xff, 0xff,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Secp256r1Point {"
+      "  return default<Secp256r1Point>;"
+      "}"
+      "export circuit pointsEqual(a: Secp256r1Point, b: Secp256r1Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Secp256r1Point, b: Secp256r1Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.secp256r1MulGenerator(5n);"
+        "  const p2 = runtime.secp256r1MulGenerator(5n);"
+        "  const p3 = runtime.secp256r1MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.secp256r1MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit addb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 + b1);"
+      "  return base;"
+      "}"
+      "export circuit subb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 - b1);"
+      "  return base;"
+      "}"
+      "export circuit mulb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
+      "  base = disclose(b0 * b1);"
+      "  return base;"
+      "}"
+      "export circuit adds(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 + s1);"
+      "  return scalar;"
+      "}"
+      "export circuit subs(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 - s1);"
+      "  return scalar;"
+      "}"
+      "export circuit muls(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
+      "  scalar = disclose(s0 * s1);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (addb) ((%b0.9 "Base<Secp256r1>")
+                         (%b1.8 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (add %tmp.12 %b0.9 %b1.8)
+          (encode (%fld.13 %fld.14) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.15)
+          (encode (%fld.16 %fld.17) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.16 %fld.17)
+          (output %t.15))
+        (circuit (subb) ((%b0.11 "Base<Secp256r1>")
+                         (%b1.10 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (neg %neg.18 %b1.10)
+          (add %tmp.19 %b0.11 %neg.18)
+          (encode (%fld.20 %fld.21) %tmp.19)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.20 %fld.21)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.22)
+          (encode (%fld.23 %fld.24) %t.22)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.23 %fld.24)
+          (output %t.22))
+        (circuit (mulb) ((%b0.5 "Base<Secp256r1>")
+                         (%b1.4 "Base<Secp256r1>"))
+          ("Base<Secp256r1>")
+          (mul %tmp.25 %b0.5 %b1.4)
+          (encode (%fld.26 %fld.27) %tmp.25)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.26 %fld.27)
+          (impact 1 145)
+          (public_input "Base<Secp256r1>" %t.28)
+          (encode (%fld.29 %fld.30) %t.28)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.29 %fld.30)
+          (output %t.28))
+        (circuit (adds) ((%s0.7 "Scalar<Secp256r1>")
+                         (%s1.6 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (add %tmp.31 %s0.7 %s1.6)
+          (encode (%fld.32 %fld.33) %tmp.31)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.32 %fld.33)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.34)
+          (encode (%fld.35 %fld.36) %t.34)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.35 %fld.36)
+          (output %t.34))
+        (circuit (subs) ((%s0.1 "Scalar<Secp256r1>")
+                         (%s1.0 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (neg %neg.37 %s1.0)
+          (add %tmp.38 %s0.1 %neg.37)
+          (encode (%fld.39 %fld.40) %tmp.38)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.39 %fld.40)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.41)
+          (encode (%fld.42 %fld.43) %t.41)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.42 %fld.43)
+          (output %t.41))
+        (circuit (muls) ((%s0.3 "Scalar<Secp256r1>")
+                         (%s1.2 "Scalar<Secp256r1>"))
+          ("Scalar<Secp256r1>")
+          (mul %tmp.44 %s0.3 %s1.2)
+          (encode (%fld.45 %fld.46) %tmp.44)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 24 8 %fld.45 %fld.46)
+          (impact 1 145)
+          (public_input "Scalar<Secp256r1>" %t.47)
+          (encode (%fld.48 %fld.49) %t.47)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 24 8 %fld.48 %fld.49)
+          (output %t.47))))
+    (stage-javascript
+      ;; Test against some random base and scalar values.
+      (let ([base0 52584276415898193626173731049016156782780531967106776553089736481455217153711]
+            [base1 101724073669754816760231198588846155972783226750243314995576536951426993649219]
+            [scalar0 58103357790562692890356380673073847817029214593712501886367742447833320047597]
+            [scalar1 89767741681767092464929206432342796822339894083881471054469222796017018470626]
+            [expect
+              (lambda (circuit left right result)
+                (format
+                  "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
+                  circuit left right result))])
+        `(
+          "test('secp256r1 field arithmetic', async () => {"
+          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          ,(expect 'addb base0 0 base0)
+          ,(expect 'addb base1 0 base1)
+          ,(expect 'addb base0 (max-secp256r1-base) (1- base0))
+          ,(expect 'addb base1 (max-secp256r1-base) (1- base1))
+          ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'subb base0 0 base0)
+          ,(expect 'subb base1 0 base1)
+          ,(expect 'subb base0 (max-secp256r1-base) (1+ base0))
+          ,(expect 'subb base1 (max-secp256r1-base) (1+ base1))
+          ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base0 0 0)
+          ,(expect 'mulb base1 0 0)
+          ,(expect 'mulb base0 1 base0)
+          ,(expect 'mulb base1 1 base1)
+          ,(expect 'mulb base0 (max-secp256r1-base)
+             (modulo (* base0 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base1 (max-secp256r1-base)
+             (modulo (* base1 (max-secp256r1-base)) (1+ (max-secp256r1-base))))
+          ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-secp256r1-base))))
+          ,(expect 'adds scalar0 0 scalar0)
+          ,(expect 'adds scalar1 0 scalar1)
+          ,(expect 'adds scalar0 (max-secp256r1-scalar) (1- scalar0))
+          ,(expect 'adds scalar1 (max-secp256r1-scalar) (1- scalar1))
+          ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+          ,(expect 'subs scalar0 0 scalar0)
+          ,(expect 'subs scalar1 0 scalar1)
+          ,(expect 'subs scalar0 (max-secp256r1-scalar) (1+ scalar0))
+          ,(expect 'subs scalar1 (max-secp256r1-scalar) (1+ scalar1))
+          ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar0 0 0)
+          ,(expect 'muls scalar1 0 0)
+          ,(expect 'muls scalar0 1 scalar0)
+          ,(expect 'muls scalar1 1 scalar1)
+          ,(expect 'muls scalar0 (max-secp256r1-scalar)
+             (modulo (* scalar0 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar1 (max-secp256r1-scalar)
+             (modulo (* scalar1 (max-secp256r1-scalar)) (1+ (max-secp256r1-scalar))))
+          ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256r1-scalar))))
+        "});"
+        )))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test0(pt: Secp256r1Point): Secp256r1Base {"
+      "  return secp256r1PointX(pt);"
+      "}"
+      "export circuit test1(pt: Secp256r1Point): Secp256r1Base {"
+      "  return secp256r1PointY(pt);"
+      "}"
+      "export circuit test2(pt: Secp256r1Point): [Secp256r1Base, Secp256r1Base] {"
+      "  return pt == default<Secp256r1Point>"
+      "      ? [default<Secp256r1Base>, default<Secp256r1Base>]"
+      "      : [secp256r1PointX(pt), secp256r1PointY(pt)];"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on the identity', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 3n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  await expect(contract.circuits.test0(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity0)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity0)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity1)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity1)).result).toEqual([0n, 0n]);"
+        "  await expect(contract.circuits.test0(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.test1(context, identity2)).rejects.toThrow(runtime.CompactError);"
+        "  expect((await contract.circuits.test2(context, identity2)).result).toEqual([0n, 0n]);"
+        "});"
+        ))
+    )
+
+  ;; impure circuit which generates zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export ledger y: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeX(): [] {"
+      "  x = secp256r1PointX(pt);"
+      "}"
+      "export circuit storeY(): [] {"
+      "  y = secp256r1PointY(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on a ledger point', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // A Secp256r1Point ledger cell starts out holding the identity, which"
+        "  // has no coordinates."
+        "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(context)).rejects.toThrow(runtime.CompactError);"
+        "  // The point G, whose coordinates are available."
+        "  const G = {"
+        "    x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "    y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "    identity: false,"
+        "  };"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  L = contractCode.ledger(stored.context.callContext.currentQueryContext.state);"
+        "  expect(L.pt).toEqual(G);"
+        "  const withX = await contract.circuits.storeX(stored.context);"
+        "  L = contractCode.ledger(withX.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const withY = await contract.circuits.storeY(withX.context);"
+        "  L = contractCode.ledger(withY.context.callContext.currentQueryContext.state);"
+        "  expect(L.y).toEqual(G.y);"
+        "  // Storing the identity again makes the coordinates unavailable again."
+        "  const back = await contract.circuits.storePoint(withY.context,"
+        "                                                  { x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeX(back.context)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeY(back.context)).rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXOfGenerator(k: Secp256r1Scalar): [] {"
+      "  x = disclose(secp256r1PointX(ecMulGenerator(k)));"
+      "}"
+      "export circuit storeXOfMul(k: Secp256r1Scalar): [] {"
+      "  x = disclose(secp256r1PointX(ecMul(pt, k)));"
+      "}"
+      "export circuit storeXOfSum(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  x = disclose(secp256r1PointX(ecAdd(a, b)));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors on an identity computed in circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const G = runtime.secp256r1MulGenerator(1n);"
+        "  const negG = runtime.secp256r1Mul(G, runtime.SECP256R1_SCALAR_MODULUS - 1n);"
+        "  expect(runtime.secp256r1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
+        "  await expect(contract.circuits.storeXOfGenerator(context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  await expect(contract.circuits.storeXOfSum(context, G, negG))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  await expect(contract.circuits.storeXOfMul(stored.context, 0n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "  const twoG = runtime.secp256r1MulGenerator(2n);"
+        "  const gen = await contract.circuits.storeXOfGenerator(context, 1n);"
+        "  let L = contractCode.ledger(gen.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "  const sum = await contract.circuits.storeXOfSum(context, G, G);"
+        "  L = contractCode.ledger(sum.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "  const mul = await contract.circuits.storeXOfMul(stored.context, 2n);"
+        "  L = contractCode.ledger(mul.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(twoG.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pt: Secp256r1Point;"
+      "export ledger x: Secp256r1Base;"
+      "export circuit storePoint(p: Secp256r1Point): [] {"
+      "  pt = disclose(p);"
+      "}"
+      "export circuit storeXChecked(): [] {"
+      "  assert(pt != default<Secp256r1Point>, 'the identity has no coordinates');"
+      "  x = secp256r1PointX(pt);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point accessors guarded by an assert', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.storeXChecked(context))"
+        "      .rejects.toThrow(/the identity has no coordinates/);"
+        "  const G = runtime.secp256r1MulGenerator(1n);"
+        "  const stored = await contract.circuits.storePoint(context, G);"
+        "  const checked = await contract.circuits.storeXChecked(stored.context);"
+        "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
+        "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export circuit test(b: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b);"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (encode (%fld.1 %fld.2) %b.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Curve25519Base round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1000n);"
+        ,(format "  const MAX_CURVE25519_BASE = ~dn;" (max-curve25519-base))
+        "  expect(runtime.MAX_CURVE25519_BASE).toEqual(MAX_CURVE25519_BASE);"
+        "  r = await contract.circuits.test(context, MAX_CURVE25519_BASE);"
+        "  expect(r.result).toEqual(MAX_CURVE25519_BASE);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base)"
+        "      .toEqual(MAX_CURVE25519_BASE);"
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_BASE + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "witness add1(b: Curve25519Base): Curve25519Base;"
+      "export circuit test(b: Curve25519Base): Curve25519Base {"
+      "  base = disclose(add1(b));"
+      "  return base;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (private_input "Base<Curve25519>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Curve25519Base passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1001n);"
+        ,(format "  const MAX_CURVE25519_BASE = ~dn;" (max-curve25519-base))
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_BASE))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (encode (%fld.1 %fld.2) %s.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.1 %fld.2)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.3)
+          (encode (%fld.4 %fld.5) %t.3)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 26 7 %fld.4 %fld.5)
+          (output %t.3))))
+    (stage-javascript
+      `("test('Curve25519Scalar round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1000n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1000n);"
+        ,(format "  const MAX_CURVE25519_SCALAR = ~dn;" (max-curve25519-scalar))
+        "  expect(runtime.MAX_CURVE25519_SCALAR).toEqual(MAX_CURVE25519_SCALAR);"
+        "  r = await contract.circuits.test(context, MAX_CURVE25519_SCALAR);"
+        "  expect(r.result).toEqual(MAX_CURVE25519_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar)"
+        "      .toEqual(MAX_CURVE25519_SCALAR);"
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_SCALAR + 1n))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "witness add1(s: Curve25519Scalar): Curve25519Scalar;"
+      "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(add1(s));"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%s.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (private_input "Scalar<Curve25519>" %tmp.1)
+          (encode (%fld.2 %fld.3) %tmp.1)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.2 %fld.3)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.4)
+          (encode (%fld.5 %fld.6) %t.4)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 26 7 %fld.5 %fld.6)
+          (output %t.4))))
+    (stage-javascript
+      `("test('Curve25519Scalar passing through witnesses', async () => {"
+        "  const witnesses = {"
+        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
+        "      return [wc.privateState, s + 1n];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  var r = await contract.circuits.test(context, 0n);"
+        "  expect(r.result).toEqual(1n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
+        "  r = await contract.circuits.test(context, 1000n);"
+        "  expect(r.result).toEqual(1001n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1001n);"
+        ,(format "  const MAX_CURVE25519_SCALAR = ~dn;" (max-curve25519-scalar))
+        "  await expect(contract.circuits.test(context, MAX_CURVE25519_SCALAR))"
+        "      .rejects.toThrow(runtime.CompactError);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Curve25519Point;"
+      "export circuit test0(pt: Curve25519Point): Curve25519Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit test1(): [Curve25519Base, Curve25519Base] {"
+      "  const pt = point;"
+      "  return [curve25519PointX(pt), curve25519PointY(pt)];"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ((%pt.0 "Point<Curve25519>"))
+          ("Point<Curve25519>")
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %pt.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.1 %fld.2 %fld.3 %fld.4)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.6 %fld.7 %fld.8 %fld.9)
+          (output %t.5))
+        (circuit (test1) ()
+          ("Base<Curve25519>" "Base<Curve25519>")
+          (public_input "Point<Curve25519>" %pt.10)
+          (encode (%fld.11 %fld.12 %fld.13 %fld.14) %pt.10)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.11 %fld.12 %fld.13 %fld.14)
+          (into_coordinates %t.15 %ignore.16 %pt.10)
+          (into_coordinates %ignore.17 %t.18 %pt.10)
+          (output %t.15 %t.18))))
+    (stage-javascript
+      '("test('Curve25519Point round tripping through the ledger', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // ecMulGenerator(2n)."
+        "  var pt = {"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "  // The point G."
+        "  var pt = {"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context, pt);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  expect((await contract.circuits.test1(r.context)).result).toEqual([pt.x, pt.y]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Curve25519Point;"
+      "witness point0(): Curve25519Point;"
+      "witness point1(): Curve25519Point;"
+      "export circuit test0(): Curve25519Point {"
+      "  point = disclose(point0());"
+      "  return point;"
+      "}"
+      "export circuit test1(): Curve25519Point {"
+      "  point = disclose(point1());"
+      "  return point;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test0) ()
+          ("Point<Curve25519>")
+          (private_input "Point<Curve25519>" %tmp.0)
+          (encode (%fld.1 %fld.2 %fld.3 %fld.4) %tmp.0)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.1 %fld.2 %fld.3 %fld.4)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.5)
+          (encode (%fld.6 %fld.7 %fld.8 %fld.9) %t.5)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.6 %fld.7 %fld.8 %fld.9)
+          (output %t.5))
+        (circuit (test1) ()
+          ("Point<Curve25519>")
+          (private_input "Point<Curve25519>" %tmp.10)
+          (encode (%fld.11 %fld.12 %fld.13 %fld.14) %tmp.10)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 4 24 8 24 8 %fld.11 %fld.12 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Point<Curve25519>" %t.15)
+          (encode (%fld.16 %fld.17 %fld.18 %fld.19) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 4 24 8 24 8 %fld.16 %fld.17 %fld.18 %fld.19)
+          (output %t.15))))
+    (stage-javascript
+      '("test('Curve25519Point coming from witnesses', async () => {"
+        "  const witnesses = {"
+        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "          y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "        },"
+        "      ];"
+        "    },"
+        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
+        "      return ["
+        "        wc.privateState,"
+        "        {"
+        "          x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "          y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "        },"
+        "      ];"
+        "    },"
+        "  };"
+        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  // The point at X=1."
+        "  var pt = {"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "  };"
+        "  var r = await contract.circuits.test0(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "  // The point G."
+        "  pt = {"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "  };"
+        "  r = await contract.circuits.test1(context);"
+        "  expect(r.result).toEqual(pt);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(pt);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(b: Curve25519Base): Bytes<31> { return b as Bytes<31>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 60" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Bytes<31>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(s: Curve25519Scalar): Bytes<33> { return s as Bytes<33>; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 62" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Bytes<33>"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<33>): Curve25519Base { return bs as Curve25519Base; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "cannot cast from type ~a to type ~a" ("Bytes<33>" "Curve25519Base"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit test(bs: Bytes<31>): Curve25519Scalar { return bs as Curve25519Scalar; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 63" "cannot cast from type ~a to type ~a" ("Bytes<31>" "Curve25519Scalar"))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(b: Bytes<32>, s: Bytes<32>): [] {"
+      "  base = disclose(b as Curve25519Base);"
+      "  scalar = disclose(s as Curve25519Scalar);"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
+                         (%b.0 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>"))
+          ()
+          (constrain_bits %b.1 8)
+          (constrain_bits %b.0 248)
+          (constrain_bits %s.3 8)
+          (constrain_bits %s.2 248)
+          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
+          (from_bytes32 "Base<Curve25519>" %tmp.5 %tmp.4)
+          (encode (%fld.6 %fld.7) %tmp.5)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.6 %fld.7)
+          (impact 1 145)
+          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
+          (from_bytes32 "Scalar<Curve25519>" %tmp.9 %tmp.8)
+          (encode (%fld.10 %fld.11) %tmp.9)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.10 %fld.11)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('Bytes to Curve25519 field casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x61, 0xbb, 0xd2, 0x3a, 0xdf, 0x1c, 0x93, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0xd4, 0xad, 0x12, 0xcb,"
+        "    0xb3, 0x54, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_CURVE25519_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  base = runtime.MAX_CURVE25519_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(b: Curve25519Base, s: Curve25519Scalar): [] {"
+      "  base = disclose(b as Bytes<32>);"
+      "  scalar = disclose(s as Bytes<32>);"
+      "}"
+      )
+    (pass-returns optimize-circuit2
+      (program
+        (kernel-declaration (%kernel.2 () (Kernel)))
+        (public-ledger-declaration
+          ((%base.3
+             (0)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+           (%scalar.4
+             (1)
+             (__compact_Cell
+               (ty ((abytes 32))
+                   ((tunsigned 255)
+                     (tunsigned
+                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))))
+        (circuit %test.5 ((argument
+                            (%b.0)
+                            (ty ((anative "Curve25519Base"))
+                                ((tfield (field-base (curve-curve25519))))))
+                          (argument
+                            (%s.1)
+                            (ty ((anative "Curve25519Scalar"))
+                                ((tfield (field-scalar (curve-curve25519)))))))
+             (ty () ())
+          (= 1 (%tmp.6 %tmp.7)
+             (field->bytes 32 (field-base (curve-curve25519)) %b.0))
+          (= 1 () (public-ledger %base.3 (0) write %tmp.6 %tmp.7))
+          (= 1 (%tmp.8 %tmp.9)
+             (field->bytes 32 (field-scalar (curve-curve25519)) %s.1))
+          (= 1 () (public-ledger %scalar.4 (1) write %tmp.8 %tmp.9))
+          ())))
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%b.0 "Base<Curve25519>")
+                         (%s.1 "Scalar<Curve25519>"))
+          ()
+          (into_bytes32 %tmp.10 %b.0)
+          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 1 32 %tmp.6 %tmp.7)
+          (impact 1 145)
+          (into_bytes32 %tmp.11 %s.1)
+          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 1 32 %tmp.8 %tmp.9)
+          (impact 1 145))))
+    (stage-javascript
+      '("test('Curve25519 field to Bytes casts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x61, 0xbb, 0xd2, 0x3a, 0xdf, 0x1c, 0x93, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0xd4, 0xad, 0x12, 0xcb,"
+        "    0xb3, 0x54, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ]);"
+        "  var r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = 0n;"
+        "  scalar = runtime.MAX_CURVE25519_SCALAR;"
+        "  baseBytes = new Uint8Array(32);  // Initialized to zeros."
+        "  scalarBytes = new Uint8Array(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  base = runtime.MAX_CURVE25519_BASE;"
+        "  scalar = 0n;"
+        "  baseBytes = new Uint8Array(["
+        "    0xec, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff,"
+        "    0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x7f,"
+        "  ]);"
+        "  scalarBytes = new Uint8Array(32);"
+        "  r = await contract.circuits.test(context, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger checkResult: Boolean;"
+      "export circuit getDefault(): Curve25519Point {"
+      "  return default<Curve25519Point>;"
+      "}"
+      "export circuit pointsEqual(a: Curve25519Point, b: Curve25519Point): Boolean {"
+      "  const result = a == b;"
+      "  // Verify in circuit that the ZKIR and JS result agree."
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      "export circuit pointsNotEqual(a: Curve25519Point, b: Curve25519Point): Boolean {"
+      "  const result = a != b;"
+      "  checkResult = disclose(result);"
+      "  return result;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519Point equality', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p1 = runtime.curve25519MulGenerator(5n);"
+        "  const p2 = runtime.curve25519MulGenerator(5n);"
+        "  const p3 = runtime.curve25519MulGenerator(7n);"
+        "  const p4 = (await contract.circuits.getDefault(context)).result;"
+        "  const p5 = runtime.curve25519MulGenerator(0n);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p2)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p3)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p2)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p3)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p4, p5)).result).toEqual(true);"
+        "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
+        "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Curve25519Base;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit addb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 + b1);"
+      "  return base;"
+      "}"
+      "export circuit subb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 - b1);"
+      "  return base;"
+      "}"
+      "export circuit mulb(b0: Curve25519Base, b1: Curve25519Base): Curve25519Base {"
+      "  base = disclose(b0 * b1);"
+      "  return base;"
+      "}"
+      "export circuit adds(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 + s1);"
+      "  return scalar;"
+      "}"
+      "export circuit subs(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 - s1);"
+      "  return scalar;"
+      "}"
+      "export circuit muls(s0: Curve25519Scalar, s1: Curve25519Scalar): Curve25519Scalar {"
+      "  scalar = disclose(s0 * s1);"
+      "  return scalar;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (addb) ((%b0.9 "Base<Curve25519>")
+                         (%b1.8 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (add %tmp.12 %b0.9 %b1.8)
+          (encode (%fld.13 %fld.14) %tmp.12)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.13 %fld.14)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.15)
+          (encode (%fld.16 %fld.17) %t.15)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.16 %fld.17)
+          (output %t.15))
+        (circuit (subb) ((%b0.11 "Base<Curve25519>")
+                         (%b1.10 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (neg %neg.18 %b1.10)
+          (add %tmp.19 %b0.11 %neg.18)
+          (encode (%fld.20 %fld.21) %tmp.19)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.20 %fld.21)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.22)
+          (encode (%fld.23 %fld.24) %t.22)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.23 %fld.24)
+          (output %t.22))
+        (circuit (mulb) ((%b0.5 "Base<Curve25519>")
+                         (%b1.4 "Base<Curve25519>"))
+          ("Base<Curve25519>")
+          (mul %tmp.25 %b0.5 %b1.4)
+          (encode (%fld.26 %fld.27) %tmp.25)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 24 8 %fld.26 %fld.27)
+          (impact 1 145)
+          (public_input "Base<Curve25519>" %t.28)
+          (encode (%fld.29 %fld.30) %t.28)
+          (impact 1 48)
+          (impact 1 80 1 1 0)
+          (impact 1 12 2 24 8 %fld.29 %fld.30)
+          (output %t.28))
+        (circuit (adds) ((%s0.7 "Scalar<Curve25519>")
+                         (%s1.6 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (add %tmp.31 %s0.7 %s1.6)
+          (encode (%fld.32 %fld.33) %tmp.31)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.32 %fld.33)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.34)
+          (encode (%fld.35 %fld.36) %t.34)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.35 %fld.36)
+          (output %t.34))
+        (circuit (subs) ((%s0.1 "Scalar<Curve25519>")
+                         (%s1.0 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (neg %neg.37 %s1.0)
+          (add %tmp.38 %s0.1 %neg.37)
+          (encode (%fld.39 %fld.40) %tmp.38)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.39 %fld.40)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.41)
+          (encode (%fld.42 %fld.43) %t.41)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.42 %fld.43)
+          (output %t.41))
+        (circuit (muls) ((%s0.3 "Scalar<Curve25519>")
+                         (%s1.2 "Scalar<Curve25519>"))
+          ("Scalar<Curve25519>")
+          (mul %tmp.44 %s0.3 %s1.2)
+          (encode (%fld.45 %fld.46) %tmp.44)
+          (impact 1 16 1 1 1 1)
+          (impact 1 17 1 2 26 7 %fld.45 %fld.46)
+          (impact 1 145)
+          (public_input "Scalar<Curve25519>" %t.47)
+          (encode (%fld.48 %fld.49) %t.47)
+          (impact 1 48)
+          (impact 1 80 1 1 1)
+          (impact 1 12 2 26 7 %fld.48 %fld.49)
+          (output %t.47))))
+    (stage-javascript
+      ;; Test against some random base and scalar values.
+      (let ([base0 46650258000037232366158629642678773672890852140699407193528319184985912425313]
+            [base1 49961613701950065613888640415520526451680684154063724202376116341690939128786]
+            [scalar0 5948327237387204834652094275838137212488037732685655042485173562585977092618]
+            [scalar1 2100845238381794491716329709363577811011894756668248605533131370056148941441]
+            [expect
+              (lambda (circuit left right result)
+                (format
+                  "  expect((await contract.circuits.~a(context, ~dn, ~dn)).result).toEqual(~dn);"
+                  circuit left right result))])
+        `(
+          "test('secp256r1 field arithmetic', async () => {"
+          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          ,(expect 'addb base0 0 base0)
+          ,(expect 'addb base1 0 base1)
+          ,(expect 'addb base0 (max-curve25519-base) (1- base0))
+          ,(expect 'addb base1 (max-curve25519-base) (1- base1))
+          ,(expect 'addb base0 base1 (modulo (+ base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'subb base0 0 base0)
+          ,(expect 'subb base1 0 base1)
+          ,(expect 'subb base0 (max-curve25519-base) (1+ base0))
+          ,(expect 'subb base1 (max-curve25519-base) (1+ base1))
+          ,(expect 'subb base0 base1 (modulo (- base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base0 0 0)
+          ,(expect 'mulb base1 0 0)
+          ,(expect 'mulb base0 1 base0)
+          ,(expect 'mulb base1 1 base1)
+          ,(expect 'mulb base0 (max-curve25519-base)
+             (modulo (* base0 (max-curve25519-base)) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base1 (max-curve25519-base)
+             (modulo (* base1 (max-curve25519-base)) (1+ (max-curve25519-base))))
+          ,(expect 'mulb base0 base1 (modulo (* base0 base1) (1+ (max-curve25519-base))))
+          ,(expect 'adds scalar0 0 scalar0)
+          ,(expect 'adds scalar1 0 scalar1)
+          ,(expect 'adds scalar0 (max-curve25519-scalar) (1- scalar0))
+          ,(expect 'adds scalar1 (max-curve25519-scalar) (1- scalar1))
+          ,(expect 'adds scalar0 scalar1 (modulo (+ scalar0 scalar1) (1+ (max-curve25519-scalar))))
+          ,(expect 'subs scalar0 0 scalar0)
+          ,(expect 'subs scalar1 0 scalar1)
+          ,(expect 'subs scalar0 (max-curve25519-scalar) (1+ scalar0))
+          ,(expect 'subs scalar1 (max-curve25519-scalar) (1+ scalar1))
+          ,(expect 'subs scalar0 scalar1 (modulo (- scalar0 scalar1) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar0 0 0)
+          ,(expect 'muls scalar1 0 0)
+          ,(expect 'muls scalar0 1 scalar0)
+          ,(expect 'muls scalar1 1 scalar1)
+          ,(expect 'muls scalar0 (max-curve25519-scalar)
+             (modulo (* scalar0 (max-curve25519-scalar)) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar1 (max-curve25519-scalar)
+             (modulo (* scalar1 (max-curve25519-scalar)) (1+ (max-curve25519-scalar))))
+          ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-curve25519-scalar))))
+        "});"
+        )))
+    )
 )
 
 (run-javascript)
