@@ -1110,17 +1110,20 @@
                    ;; unbounded check here would let the same bigint through as
                    ;; a coordinate, so bound these too - otherwise the
                    ;; failure surfaces inside CompactTypeSecp256k1Base.toValue,
-                   ;; far from the call site. Curve membership and canonical
-                   ;; identity points are still unchecked.
+                   ;; far from the call site. Curve25519 points are also checked
+                   ;; to lie on the curve, so the runtime point operations can
+                   ;; trust them. For the other curves, curve membership and
+                   ;; canonical identity points are still unchecked.
                    (let ([coordinate
                            (lambda (field bound)
                              (format "typeof(~a.~a) === 'bigint' && ~a.~a >= 0n && ~a.~a <= __compactRuntime.~a"
                                var field var field var field bound))])
                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
                        [(curve-curve25519)
-                        (format "~a && ~a"
+                        (format "~a && ~a && __compactRuntime.curve25519IsValidPoint(~a)"
                           (coordinate "x" "MAX_CURVE25519_BASE")
-                          (coordinate "y" "MAX_CURVE25519_BASE"))]
+                          (coordinate "y" "MAX_CURVE25519_BASE")
+                          var)]
                        [(curve-jubjub)
                         (format "~a && ~a"
                           (coordinate "x" "MAX_FIELD")

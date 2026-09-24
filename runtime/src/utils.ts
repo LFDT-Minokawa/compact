@@ -131,28 +131,39 @@ export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffi
 }
 
 /**
- * Lift the simple affine `Curve25519Point` representation into a noble-curves
- * projective point. The identity is the ordinary affine point (0, 1), so every
- * input is checked to have in-range coordinates and to lie on the curve.
+ * Check whether a `Curve25519Point` has in-range coordinates and lies on the
+ * curve. The identity is the ordinary affine point (0, 1).
  *
  * `fromAffine` only checks the coordinates fit in 256 bits, so the field range
  * is checked here. `assertValidity` checks the curve equation but rejects the
- * identity, so the identity is returned before it.
+ * identity, so the identity is accepted before it.
+ */
+export function curve25519IsValidPoint(p: Curve25519Point): boolean {
+  if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
+    return false;
+  }
+  if (p.x === 0n && p.y === 1n) {
+    return true;
+  }
+  try {
+    ed25519.Point.fromAffine({ x: p.x, y: p.y }).assertValidity();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Lift the simple affine `Curve25519Point` representation into a noble-curves
+ * projective point. The point must already be valid; compiled contracts check
+ * points when they come in as circuit arguments or witness results.
+ * @internal
  */
 export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
-  if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
-    throw new CompactError('not a valid curve25519 point: coordinate out of range');
-  }
   if (p.x === 0n && p.y === 1n) {
     return ed25519.Point.ZERO;
   }
-  try {
-    const q = ed25519.Point.fromAffine({ x: p.x, y: p.y });
-    q.assertValidity();
-    return q;
-  } catch (e) {
-    throw new CompactError(`not a valid curve25519 point: ${e instanceof Error ? e.message : String(e)}`);
-  }
+  return ed25519.Point.fromAffine({ x: p.x, y: p.y });
 }
 
 /**
