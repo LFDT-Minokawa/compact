@@ -71347,6 +71347,134 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256k1Base): [Secp256k1Base, Secp256k1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256k1>\","
+        "    \"Base<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256r1Base): [Secp256r1Base, Secp256r1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256r1>\","
+        "    \"Base<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Base): [Curve25519Base, Curve25519Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Curve25519>\","
+        "    \"Base<Curve25519>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Scalar): [Curve25519Scalar, Curve25519Scalar] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Curve25519>\","
+        "    \"Scalar<Curve25519>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
       "import { Secp256r1Scalar } from CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test(s0: Secp256r1Scalar, s1: Secp256r1Scalar): Secp256r1Scalar {"
