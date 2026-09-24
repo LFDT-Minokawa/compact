@@ -17,7 +17,7 @@
     { "op": "private_input", "type": "Scalar<BLS12-381>", "output": "%sk.3", "guard": null },
     { "op": "constrain_bits", "val": "%sk.3", "bits": 248 },
     { "op": "persistent_hash", "output": "%bytes.4", "alignment": [{ "tag": "atom", "value": { "length": 32, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x00", "0x6c617265733a74696e793a706b3a", "%sk.2", "%sk.3"] },
-    { "op": "bytes32_into_low_high", "outputs": ["%apk.5", "%apk.6"], "bytes": "%bytes.4" },
+    { "op": "bytes_into_natives", "outputs": ["%apk.5", "%apk.6"], "bytes": "%bytes.4" },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.7", "guard": null },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.8", "guard": null },
     { "op": "impact", "guard": "0x01", "inputs": ["0x30"] },

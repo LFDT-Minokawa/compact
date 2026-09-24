@@ -468,7 +468,7 @@
                  (paragraph "# Ledger data types")
                  (paragraph "Compact language version ~a, compiler version ~a."
                    language-version-string
-                   compiler-version-string)
+                   compiler-version-triple-string)
                  (load "midnight-ledger.ss"
                    (lambda (x) (process-form (datum->syntax #'k x))))
                  (newline))

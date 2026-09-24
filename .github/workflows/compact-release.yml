@@ -43,7 +43,15 @@ on:
   pull_request:
   push:
     tags:
+      # dist generates the first pattern from `tag-namespace = "compact"`, so it also
+      # matches the `compactc-v*` toolchain tags and the `compact-vsc-plugin-*` plugin
+      # tags -- which dist cannot parse, because it reads the text after the namespace
+      # as a version. Every toolchain and plugin release therefore started a run of this
+      # workflow that could only fail. Excluded here rather than by narrowing dist's own
+      # pattern, so a regenerated CI file still diffs cleanly.
       - "compact**[0-9]+.[0-9]+.[0-9]+*"
+      - "!compactc-*"
+      - "!compact-vsc-plugin-*"
 
 jobs:
   # Run 'dist plan' (or host) to determine what tasks we need to do
