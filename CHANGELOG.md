@@ -5,6 +5,265 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.108, language 0.26.104, runtime 0.19.104]
+
+### Added
+
+- There is one new cast available, from `Bytes<64>` to `Curve25519Scalar`.  The
+  semantics is the same as the other from-bytes casts for foreign fields---it
+  performs modular reduction by the field modulus of the value represented by
+  the byte vector.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+## [Toolchain 0.34.107, language 0.26.103, runtime 0.19.104]
+
+### Fixed
+
+- `compactc --version` now reports the release it was built from, including any
+  prerelease identifier and the commit. It previously reported only the
+  major.minor.bugfix triple, so every candidate for a release reported that release.
+
+  The version a build reports is now a fact about the build.
+  Builds that are not releases report `-dev`: the scheduled build
+  and the on-demand dev publish have no release to name, and a dev publish is
+  installable, so one reporting the same shape as a finished release could pass
+  for it. `-dev` sorts below every release of the same triple, so a version
+  check that wanted a release fails instead of passing. That is also the value
+  committed in `compiler/version-config.ss`, so a build nothing stamped cannot
+  pass for a release either.
+
+  The commit is reported beside the version rather than inside it --
+  `0.34.102-rc.2 (a1b2c3d4e 2026-09-10)` -- and is recorded in full in `contract-info.json` and
+  `contract-manifest.json` as a new `compiler-commit` field, leaving
+  `compiler-version` a valid semver string. That string is what gets pinned in
+  CI and compared by tooling, and semver build metadata is not reliably ignored
+  in comparison, so a version carrying it reads as a different version.
+
+  `compactc --version --verbose` reports `release`, `commit-hash`,
+  `commit-date`, `language-version` and `runtime-version` as separate fields,
+  so a script need not parse one out of the other and a bug report needs one
+  command rather than three. Fields the build did not record read `unknown`
+  rather than being dropped, so the set of fields does not depend on how the
+  compiler was built.
+
+  Release candidates still satisfy the same `pragma compiler_version`
+  constraints as the release they are candidates for.
+
+- The first of `--help`, `--version`, `--language-version`, `--ledger-version`
+  and `--runtime-version` on the command line is the one that acts. Flag
+  actions used to run mid-parse, so `--ledger-version --feature-zkir-v3`
+  reported the zkir-v2 ledger version -- the feature flag had not been seen
+  yet -- while the reverse order reported v3. Both orders now report v3.
+
+- `format-compact --version` and `fixup-compact --version` report the commit
+  and its date the same way as `compactc --version`: the three tools share one
+  version printer.
+
+## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
+
+### Added
+
+- The standard library now has support for `sha512` hashing.  The signature is
+  like `persistentHash` (that is, SHA-256) and `keccak256`, except that the
+  return type is `Bytes<64>`.  There is a corresponding function `sha512`
+  exported from the Compact runtime.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+## [Toolchain 0.34.105, language 0.26.102, runtime 0.19.103]
+
+### Added
+
+- The standard library now has support for the Curve25519 curve.  It exports two
+  new field types `Curve25519Base` and `Curve25519Scalar` and a new point type
+  `Curve25519Point`.  They are similer to the secp256k1 and secp256r1 foreign
+  curves, with the exception that the JavaScript point type does not have an
+  identity flag.  The curve is a twisted Edwards curve and the identity point is
+  `{ x: 0, y: 1 }`.
+
+  The fields and curve points support the same operations as the other foreign
+  fields and curve points.  The Compact runtime exports types, constants, and
+  functions analogous to the ones for the other foreign fields and curves.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+## [Toolchain 0.34.104, language 0.26.101, runtime 0.19.102]
+
+- Any call to the Compact standard library implementations of `jubjubSchnorrVerify`
+  and `secp256k1EcdsaVerify` that passes the identity point as the public key now
+  results in a failed assertion, because doing so is inherently unsafe.
+  This is a **breaking change**.
+
+## [Toolchain 0.34.103, language 0.26.100, runtime 0.19.102]
+
+### Added
+
+- The standard library now has support for the secp256r1 (also known as P256)
+  curve.  It exports two new field types, `Secp256r1Base` and `Secp256r1Scalar`,
+  and a new point type `Secp256r1Point`.  These behave exactly as the similar
+  secp256k1 curve.
+
+  The fields support equals and not-equals comparisons (not relational
+  comparisons) and the full set of arithmetic operations `+`, (binary) `-`, `*`,
+  `neg`, and `inv`.  The point cannot be constructed in Compact code but it has
+  accessors `secp256r1PointX` and `secp256r1PointY`.  The point type supports
+  `ecAdd`, `ecMul`, and `ecMulGenerator`.
+
+  The Compact runtime exports an interface `Secp256r1Point` for the point type.
+  The interface is identical to `Secp256k1Point`, with a read-only `identity`
+  boolean property to indicate the (additive) identity point.  There are also
+  descriptors and implementations of the arithmetic operations in the Compact
+  runtime.
+
+  The runtime also exports constants for the field modulus and the maximum field
+  values for the new field types.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+### Fixed
+
+- Fixed a bug in `default` values for secp256k1 field types in ZKIR.  A literal
+  0 was used, which has type `Scalar<BLS12-381>`, so the resulting ZKIR code was
+  not well-typed.  Instead, we need to cast that value (indirectly through
+  `Bytes<32>`) to the correct secp256k1 field type.
+
+### Removed
+
+- `SECP256K1_LOW_LIMB_BOUND` is removed.  It's purely an implementation detail that
+  does not need to be exposed by the runtime.  This feature was introduced in
+  Compact runtime 0.19.100, so it's not a breaking change with respect to the
+  released 0.19.0.
+
+## [Toolchain 0.34.102, language 0.26.0, runtime 0.19.101]
+
+### Fixed
+
+The `deserialize` operator now requires the byte representing a `Boolean`
+value to be either 0 or 1.
+
+## [Toolchain 0.34.101, language 0.26.0, runtime 0.19.101]
+
+### Added
+
+- Cross-contract calls now resolve their callee's implementation at run time
+  rather than importing it at compile time.
+  A caller no longer names the module implementing the contract deployed at the
+  call target: the application supplies one, and the runtime checks it against
+  both the caller's contract type and the chain before entering it. Deploying a
+  new implementation at an address no longer means recompiling its callers.
+- Every generated contract module gains two tables:
+  * `declaredInterfaces` — for each contract type the contract calls through,
+    the circuit signatures that type declares. Passed to `crossContractCall` at
+    the call site, because the descriptor lives in the caller's module and the
+    runtime is reached *from* it.
+  * `circuitSignatures` — one entry per external circuit name, carrying `pure`,
+    `provable`, `argumentTypes` and `resultType`. This is the callee side of
+    that comparison.
+    Both appear in the emitted `.d.ts`. The `expectedVk` table is unchanged, 
+    but is now checked past the called circuit — see below.
+- Adds the runtime machinery behind the above. New modules, all re-exported
+  from the package index:
+  * `providers.ts` — `ContractModuleProvider`, a user-supplied
+    `resolve(address)` returning a `ModuleThunk` for the module deployed there,
+    or `undefined` when the application has no binding for it. `resolve` is
+    synchronous and total; loading is deferred into the thunk.
+  * `module.ts` — `Module`, the exports the runtime needs from a callee, plus
+    `ContractCtor`, `ContractInstance`, `ProvableCircuit(s)`, `PureCircuit(s)`.
+  * `interface-descriptor.ts` — `SignatureType`, `InterfaceDescriptor`,
+    `CircuitSignature(s)`, `DeclaredInterfaces` and friends: the type language
+    the two emitted tables are written in.
+  * `conformance.ts` — `checkConformance` and `signatureTypesEqual`, which
+    compare a resolved module's signatures against the caller's contract type
+    under six rules (`Existence`, `Purity`, `Provability`, `Arity`,
+    `ArgumentType`, `ResultType`), plus `UnreadableSignature` for a type
+    constructor this runtime does not know.
+  * `verifier-key-hash.ts` — the branded `VerifierKeyHash` and
+    `isVerifierKeyHash` / `asVerifierKeyHash` / `verifierKeyHashOf`.
+  * `module-resolution.ts` — `ModuleResolutionError`, carrying a
+    `ModuleResolutionFailure` discriminated union with eleven kinds:
+    `ModuleProviderAbsent`, `PureInterfaceCircuit`, `OperationAbsent`,
+    `UnsupportedImplementation`, `ProviderThrew`, `NonconformantImplementation`,
+    `UnreadableModule`, `MalformedVerifierKeyHash`, `ImplementationMismatch`,
+    `ModuleLoadRejected` and `IncompleteModule`. A payload rather than an error
+    subclass, so it survives an application re-throwing through its own error
+    type. The last of these covers a module built before dynamic resolution: the
+    exports resolution reads are checked as the module loads, so a stale
+    artifact names itself instead of failing later as a type error inside
+    conformance checking.
+- Adds `CompactError.is`, which recognizes runtime errors and their subclasses
+  across duplicate installs of the package. A generated contract module resolves
+  its own copy of the runtime, so the copy that throws is not the copy an
+  application catches with, and `instanceof` fails.
+- Key agreement extends past the called circuit: its fingerprint is mandatory
+  and must match, and every other circuit present in both `expectedVk` and the
+  deployed operations must agree. One circuit is too weak a check, since two
+  versions of a contract agree on whatever they did not change; requiring the
+  module's whole set is too strong, since removing an entry point would make the
+  callee unusable for every other circuit.
+
+### Changed
+
+- **Breaking:** `createCircuitContext` takes a single `CircuitContextOptions`
+  object rather than eleven positional parameters. The two providers are grouped
+  under one optional `crossContract` member, so an execution either can make
+  cross-contract calls or cannot, with no half-provisioned combination in
+  between. `parentBlockHash` stays outside the group: it also reaches the VM's
+  block context.
+- **Breaking:** `crossContractCall` takes a `CrossContractCallOptions` object,
+  with two new required fields — `interfaceName` and `declaration`.
+- Conformance is checked before key agreement, so a module that does not
+  implement the contract type is diagnosed as such rather than as a key
+  mismatch.
+
+### Fixed
+
+- A coin commitment created before a cross-contract call is no longer lost when
+  the call returns. `createZswapOutput` recorded the commitment only on the live
+  call context, never on the per-address query-context map, so restoring the
+  caller rewound it and a later `update-with-coin-check` ledger op on that coin
+  failed with "Coin commitment not found". The same write-back also means a
+  second call into a contract resumes from the commitments its first turn made.
+
+### Removed
+
+- **Breaking:** the static dependency crawler, `contract-dependencies.ts`, and
+  its thirteen exports have been removed. These API elements have been used for
+  a while.
+- **Breaking:** generated contract modules no longer export
+  `contractReferenceLocations`, which existed to feed the dependency crawler.
+  It is gone from the emitted `.d.ts` as well.
+- **Breaking:** `ContractInterfaceMismatchError`, replaced by
+  `ModuleResolutionError` with an `ImplementationMismatch` failure.
+- **Breaking:** `reentrancyGuard`, from both `CrossContractInputs` and
+  `CircuitContext`. The guard is unconditional: the ledger can mis-apply a
+  re-entrant transcript, so there is no execution it is correct to skip it for.
+- **Breaking:** `isEncodedContractAddress`, which lost its last caller with the
+  dependency crawler.
+- The compiler no longer emits an import of the callee's module into a caller's
+  generated code, since that is what the provider now supplies.
+
+### Internal notes
+
+- The compiler's `print-contract-header` no longer takes `contract-type*`, and
+  `contract-import-binding`, `contract-import-path`, `get-self-contract-name`
+  and `print-contract-name` went with the callee import.
+- `test-center` gains a `TestChain` that implements `ContractModuleProvider`
+  alongside `ContractStateProvider`, binding each deployed address to its
+  module, plus an `overrideModule` hook so a test can hand the runtime a callee
+  that disagrees with the chain. Verifier keys are installed from one real
+  compiled key with its payload spliced per contract, committed under
+  `test-center/fixtures/verifier-keys/`.
+- `stage-javascript`'s `copy-file` now copies byte-for-byte. It read through a
+  textual port, so Chez transcoded UTF-8 and every invalid byte became U+FFFD —
+  harmless for the `.js` and `.zkir` files it had ever staged, and fatal the
+  first time it staged a `.verifier`.
+- The runtime's `tsconfig` `lib` moves to `es2022` for `Object.hasOwn`, and
+  gains a `typecheck` script that the `test` script runs.
+- `tests-e2e` type-checks for the first time: `moduleResolution` moves to
+  `bundler`, which drops the deprecated `baseUrl` and resolves `vite`'s
+  subpath imports without `skipLibCheck`, plus an explicit `rootDir`.
+
 ## [Toolchain 0.34.100, language 0.26.0, runtime 0.19.100]
 
 ### Fixed

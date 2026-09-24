@@ -60,14 +60,46 @@ export const SECP256K1_SCALAR_MODULUS: bigint =
 export const MAX_SECP256K1_SCALAR: bigint = SECP256K1_SCALAR_MODULUS - 1n;
 
 /**
- * The exclusive upper bound of the low-order limb of a secp256k1 field value
- * in its field-aligned binary representation.
- *
- * A secp256k1 field value is 256 bits wide but a native field element holds
- * only 255, so it is split across two atoms: 192 low-order bits (24
- * bytes), then 64 high-order bits (8 bytes).
+ * The order of the secp256r1 base field
  */
-export const SECP256K1_LOW_LIMB_BOUND: bigint = 1n << 192n;
+export const SECP256R1_BASE_MODULUS: bigint = 2n**256n - 2n**224n + 2n**192n + 2n**96n - 1n;
+
+/**
+ * The maximum value of a `Secp256r1Base` foreign field value
+ */
+export const MAX_SECP256R1_BASE: bigint = SECP256R1_BASE_MODULUS - 1n;
+
+/**
+ * The order of the secp256r1 scalar field
+ */
+export const SECP256R1_SCALAR_MODULUS: bigint =
+  0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632551n;
+
+/**
+ * The maximum value of a `Secp256r1Scalar` foreign field value
+ */
+export const MAX_SECP256R1_SCALAR: bigint = SECP256R1_SCALAR_MODULUS - 1n;
+
+/**
+ * The order of the Curve25519 base field
+ */
+export const CURVE25519_BASE_MODULUS: bigint = 2n**255n - 19n;
+
+/**
+ * The maximum value of a `Curve25519Base` foreign field value
+ */
+export const MAX_CURVE25519_BASE: bigint = CURVE25519_BASE_MODULUS - 1n;
+
+/**
+ * The order of the Curve25519 scalar field
+ */
+export const CURVE25519_SCALAR_MODULUS: bigint =
+  2n**252n + 27742317777372353535851937790883648493n;
+
+/**
+ * The maximum value of a `Curve25519Scalar` foreign field value
+ */
+export const MAX_CURVE25519_SCALAR: bigint = CURVE25519_SCALAR_MODULUS - 1n;
 
 /**
  * A valid placeholder contract address

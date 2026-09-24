@@ -23,13 +23,20 @@ export default defineConfig({
             '@test/compact-test': fileURLToPath(
                 new URL('./compact-test.ts', import.meta.url),
             ),
+            '@test/crypto': fileURLToPath(
+                new URL('./support/crypto/index.ts', import.meta.url),
+            ),
         },
     },
     test: {
         include: ['compact-test-orchestrator.test.ts'],
-        exclude: ['**/.build/**', '**/.compact-test-build/**', 'node_modules/**'],
+        exclude: [
+            '**/.build/**',
+            '**/.compact-test-build/**',
+            'node_modules/**',
+        ],
         environment: 'node',
-        reporters: ['./compact-test-fixture-reporter.mjs'],
+        reporters: ['./compact-test-fixture-reporter.ts'],
         testTimeout: 300_000,
     },
 });

@@ -4,18 +4,21 @@
     "private": true,
     "type": "module",
     "scripts": {
-        "format": "prettier --write \"**/*.{ts,mjs,json,md}\"",
-        "format:check": "prettier --check \"**/*.{ts,mjs,json,md}\"",
-        "lint": "node ./compact-test-runner.mjs --prepare-artifacts && tsc --noEmit -p tsconfig.json",
+        "format": "prettier --write \"**/*.{ts,json,md}\"",
+        "format:check": "prettier --check \"**/*.{ts,json,md}\"",
+        "lint": "node ./compact-test-runner.ts --prepare-artifacts && tsc --noEmit -p tsconfig.json",
         "typecheck": "yarn lint",
         "test": "node ./compact-test-runner.mjs",
         "usage-index": "node ./coverage/usage-index.ts"
+        "test": "node ./compact-test-runner.ts"
     },
     "license": "Apache-2.0",
     "dependencies": {
         "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
     },
     "devDependencies": {
+        "@noble/curves": "^2.2.0",
+        "@noble/hashes": "^2.0.1",
         "@types/node": "^25.5.0",
         "prettier": "^3.8.2",
         "typescript": "^6.0.3",

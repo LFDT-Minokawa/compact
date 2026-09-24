@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger stored: Secp256k1Base;
+
+// A Secp256k1Base survives a round trip through the ledger.
+//
+// The value does not fit in a native field element, so writing it splits it
+// across two field-aligned binary atoms -- 192 low-order bits then 64
+// high-order bits -- and reading it back applies the inverse decoding. The
+// assignment writes and the return reads, so both directions are exercised.
+export circuit secp256k1_base_roundtrip(value: Secp256k1Base): Secp256k1Base {
+    stored = disclose(value);
+    return stored;
+}

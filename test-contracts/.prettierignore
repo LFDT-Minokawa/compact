@@ -3,3 +3,6 @@ node_modules/
 **/.compact-test-build/
 package-lock.json
 coverage/usage.md
+
+# Vendored verbatim upstream; reformatting invalidates the recorded SHA-256s.
+support/crypto/data/*.json

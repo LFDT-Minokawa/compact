@@ -36,7 +36,12 @@ circuits.
 The following flags, if present, affect the compiler's behavior as follows:
   --help prints help text and exits.
 
-  --version prints the compiler version and exits.
+  --version prints the compiler version and exits.  Builds that recorded a
+    commit follow the version with that commit and its date in parentheses.
+
+  --verbose, given with --version in either order, prints the version, commit,
+    commit date, and language and runtime versions as separate fields, showing
+    unknown for anything the build did not record.
 
   --language-version prints the language version and exits.
 
@@ -86,13 +91,33 @@ The following flags, if present, affect the compiler's behavior as follows:
 
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
 
+;; The first of these flags on the command line is the one that acts, but a flag
+;; action runs as that flag is parsed -- before a later --verbose or
+;; --feature-zkir-v3 has been seen -- so each one records itself here instead and
+;; the clause body prints.
+(define first-exit-flag #f)
+
+(define (exit-flag! which)
+  (unless first-exit-flag (set! first-exit-flag which)))
+
+(define (print-exit-flag verbose? feature-zkir-v3?)
+  (case first-exit-flag
+    [(help) (print-help)]
+    [(version) (print-compiler-version verbose?)]
+    [(language-version) (print-language-version)]
+    [(ledger-version) (print-ledger-version feature-zkir-v3?)]
+    [(runtime-version) (print-runtime-version)]))
+
 (parameterize ([reset-handler abort])
   (command-line-case (command-line)
-    [((flags [(--help) $ (begin (print-help) (exit))]
-             [(--version) $ (begin (print-compiler-version) (exit))]
-             [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
-             [(--runtime-version) $ (begin (print-runtime-version) (exit))]
+    [((flags [(--help) $ (exit-flag! 'help)]
+             [(--version) $ (exit-flag! 'version)]
+             [(--language-version) $ (exit-flag! 'language-version)]
+             [(--ledger-version) $ (exit-flag! 'ledger-version)]
+             [(--runtime-version) $ (exit-flag! 'runtime-version)]
+             ;; Declared so that a --verbose given with two pathnames still
+             ;; matches this clause rather than falling through to the next.
+             [(--verbose)]
              [(--vscode)]
              [(--skip-zk)]
              [(--no-communications-commitment)]
@@ -103,6 +128,9 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--feature-zkir-v3)])
       (string source-pathname)
       (string target-directory-pathname))
+     (when first-exit-flag
+       (print-exit-flag ?--verbose ?--feature-zkir-v3)
+       (exit))
      (check-pathname source-pathname)
      (check-pathname target-directory-pathname)
      (parameterize ([trace-passes ?--trace-passes]
@@ -114,12 +142,14 @@ The following flags, if present, affect the compiler's behavior as follows:
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
          (generate-everything source-pathname target-directory-pathname)))]
-    [((flags [(--help) $ (begin (print-help) (exit))]
-             [(--version) $ (begin (print-compiler-version) (exit))]
-             [(--language-version) $ (begin (print-language-version) (exit))]
-             [(--ledger-version) $ (begin (print-ledger-version ?--feature-zkir-v3) (exit))]
-             [(--runtime-version) $ (begin (print-runtime-version) (exit))]
+    [((flags [(--help) $ (exit-flag! 'help)]
+             [(--version) $ (exit-flag! 'version)]
+             [(--language-version) $ (exit-flag! 'language-version)]
+             [(--ledger-version) $ (exit-flag! 'ledger-version)]
+             [(--runtime-version) $ (exit-flag! 'runtime-version)]
+             [(--verbose)]
              [(--feature-zkir-v3)])
       (string arg) ...)
-     (print-usage #t)
-     (exit 1)]))
+     (unless first-exit-flag (print-usage #t) (exit 1))
+     (print-exit-flag ?--verbose ?--feature-zkir-v3)
+     (exit)]))

@@ -20,8 +20,11 @@ mod common;
 
 #[test]
 fn test_compact_check_no_param() {
+    let temp_dir = tempfile::tempdir().unwrap();
+    let temp_path = temp_dir.path();
+
     run_command(
-        &["check"],
+        &["--directory", &format!("{}", temp_path.display()), "check"],
         None,
         Some("./output/check/std_default.txt"),
         None,

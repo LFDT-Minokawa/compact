@@ -49,7 +49,13 @@ const { currentContractState, currentPrivateState } = await sc.initialState(
 );
 
 export const execCtx = (circuitId: string) =>
-  createCircuitContext(circuitId, dummyContractAddress(), '0'.repeat(64), currentContractState, currentPrivateState);
+  createCircuitContext({
+    circuitId,
+    contractAddress: dummyContractAddress(),
+    coinPublicKeyOrZswapState: '0'.repeat(64),
+    contractState: currentContractState,
+    privateState: currentPrivateState,
+  });
 
 // helper types
 

@@ -623,16 +623,80 @@ This function extracts the affine y-coordinate from a
 circuit secp256k1PointY(pt: Secp256k1Point): Secp256k1Base;
 ```
 
+### `Secp256r1Point`
+
+This is a native type.
+
+The type of points on the secp256r1 elliptic curve.  It represents a pair of
+affine x- and y-coordinates.  The coordinates are `Secp256r1Base` values.
+Secp256r1 points cannot be created in Compact, but they can be passed as circuit
+arguments and returned from witness functions.  The behavior of operating on an
+invalid secp256r1 curve point is undefined.  You will not normally be able to
+construct proofs involving invalid secp256r1 curve points.
+
+The (additive) identity point does not have a representation as a pair of
+coordinates.  It is represented in Compact as `default<Secp256r1Point>`.
+
+### `Secp256r1Base`
+
+This is a native type.
+
+The type of values between 0 (inclusive) and the order of the base field of the
+secp256r1 elliptic curve (exclusive).  It is the type of the affine coordinates
+of a point on that curve.
+
+The maximum value (one less than the field order) is (decimal)
+115792089210356248762697446949407573530086143415290314195533631308867097853950
+and (hexadecimal)
+0xffffffff00000001000000000000000000000000fffffffffffffffffffffffe.
+
+### `Secp256r1Scalar`
+
+This is a native type.
+
+The type of numeric values betwen 0 (inclusive) and the order of the secp256r1
+group (exclusive).  This is the type of the scalars used to multiply secp256r1
+curve points.
+
+The maximum value (one less than the field order) is (decimal)
+115792089210356248762697446949407573529996955224135760342422259061068512044368
+and (hexadecimal)
+0xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550.
+
+### `secp256r1PointX`
+
+This is a native type.
+
+This function extracts the affine x-coordinate from a
+[`Secp256r1Point`](#secp256r1point).
+
+```compact
+circuit secp256r1PointX(pt: Secp256r1Point): Secp256r1Base;
+```
+
+### `secp256r1PointY`
+
+This is a native type.
+
+This function extracts the affine y-coordinate from a
+[`Secp256r1Point`](#secp256r1point).
+
+```compact
+circuit secp256r1PointY(pt: Secp256r1Point): Secp256r1Base;
+```
+
 ### `ecAdd`
 
 This function adds two elliptic curve points. It is polymorphic for the
 following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
+* [`Secp256r1Point`](#secp256r1point)s.
 
 ```compact
 circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
 circuit ecAdd(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point;
+circuit ecAdd(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point;
 ```
 
 ### `ecNeg`
@@ -650,10 +714,12 @@ This function multiplies an elliptic curve point by a scalar. It is polymorphic 
 following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
+* [`Secp256r1Point`](#secp256r1point)s.
 
 ```compact
 circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint;
 circuit ecMul(a: Secp256k1Point, b: Secp256k1Scalar): Secp256k1Point;
+circuit ecMul(a: Secp256r1Point, b: Secp256r1Scalar): Secp256r1Point;
 ```
 
 ### `ecMulGenerator`
@@ -662,10 +728,12 @@ This function multiplies the primary group generator of a curve by a
 scalar. It is polymorphic for the following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
+* [`Secp256r1Point`](#secp256r1point)s.
 
 ```compact
 circuit ecMulGenerator(b: JubjubScalar): JubjubPoint;
 circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
+circuit ecMulGenerator(b: Secp256r1Scalar): Secp256r1Point;
 ```
 
 ### `neg`
@@ -673,12 +741,16 @@ circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
 Negates a field element, i.e. returns the value `y` such that
 `add(x, y)` is `0` in the field. Polymorphic function
 that works over types: 
-* `Secp256k1Scalar`
 * `Secp256k1Base`
+* `Secp256k1Scalar`
+* `Secp256r1Base`
+* `Secp256r1Scalar`
 
 ```compact
-circuit neg(x: Secp256k1Scalar): Secp256k1Scalar;
 circuit neg(x: Secp256k1Base): Secp256k1Base;
+circuit neg(x: Secp256k1Scalar): Secp256k1Scalar;
+circuit neg(x: Secp256r1Base): Secp256r1Base;
+circuit neg(x: Secp256r1Scalar): Secp256r1Scalar;
 ```
 
 ### `inv`
@@ -686,12 +758,16 @@ circuit neg(x: Secp256k1Base): Secp256k1Base;
 Returns the multiplicative inverse of a field element, i.e. the value
 `y` such that `mul(x, y)` is `1` in the field. Polymorphic function
 that works over types: 
-* `Secp256k1Scalar`
 * `Secp256k1Base`
+* `Secp256k1Scalar`
+* `Secp256r1Base`
+* `Secp256r1Scalar`
 
 ```compact
-circuit inv(x: Secp256k1Scalar): Secp256k1Scalar;
 circuit inv(x: Secp256k1Base): Secp256k1Base;
+circuit inv(x: Secp256k1Scalar): Secp256k1Scalar;
+circuit inv(x: Secp256r1Base): Secp256r1Base;
+circuit inv(x: Secp256r1Scalar): Secp256r1Scalar;
 ```
 
 ### `hashToCurve`
@@ -714,7 +790,8 @@ circuit hashToCurve<T>(value: T): JubjubPoint;
 Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
 as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
 and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
-Returns true if the signature is valid; false if the signature does not verify.
+Asserts that the verification key is not the identity (default) JubjubPoint, which is not permitted because it would make verification independent of the message.
+Returns true if the signature is valid; false otherwise.
 
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.
@@ -727,23 +804,13 @@ circuit jubjubSchnorrVerify<#N>(
           ): Boolean;
 ```
 
-### `jubjubSchnorrVerify`
-
-Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
-as a vector of `n` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
-and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
-Asserts that the signature is valid; fails if the signature does not verify.
-
-```compact
-circuit jubjubSchnorrVerify<#n>(msg: Vector<n, Field>, signature: JubjubSchnorrSignature, vk: JubjubPoint): [];
-```
-
 ### `secp256k1EcdsaVerify`
 
 Verifies an ECDSA signature over the secp256k1 curve. Takes a 32-byte message
 hash, a [`Secp256k1EcdsaSignature`](#secp256k1ecdsasignature), and a public key
-(a [`Secp256k1Point`](#secp256k1point)). Returns true if the signature is valid;
-false otherwise.
+(a [`Secp256k1Point`](#secp256k1point)).
+Asserts that the verification key is not the identity (default) Secp256k1Point, which is not permitted because it would make verification independent of the message hash.
+Returns true if the signature is valid; false otherwise.
 
 The circuit takes `msgHash` as given and does not constrain it to any message.
 The caller is expected to bind it to the actual message by hashing that message

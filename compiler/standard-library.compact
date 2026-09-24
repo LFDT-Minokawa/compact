@@ -369,6 +369,7 @@ export circuit jubjubSchnorrVerify<#N>(
                  signature: JubjubSchnorrSignature,
                  pk: JubjubPoint
                  ): Boolean {
+  assert(pk != default<JubjubPoint>, "JubjubPoint identity is not a permitted jubjubSchnorrVerify verification key");
   const {announcement, response} = signature;
   const cNative = transientHash<JubjubSchnorrHashInput<N>>(
                     JubjubSchnorrHashInput<N> { annX: jubjubPointX(announcement),
