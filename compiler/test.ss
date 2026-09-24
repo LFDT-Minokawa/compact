@@ -66431,7 +66431,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.38\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x33\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.40\", \"%hash.39\"] },"
@@ -66451,7 +66451,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.44\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.42\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.45\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.43\", \"%data.44\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x34\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.47\", \"%hash.46\"] },"
@@ -66473,7 +66473,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.50\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.48\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.51\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.49\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.52\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.50\", \"%data.51\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x35\"] },"
@@ -66495,7 +66495,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.57\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.55\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.58\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.56\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.59\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.57\", \"%data.58\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
@@ -67230,7 +67230,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"%x.0\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%t.2\", \"%t.3\"], \"bytes\": \"%bytes.1\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%t.2\", \"%t.3\"], \"bytes\": \"%bytes.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\", \"%t.2\"] }"
         "  ]"
         "}"))
@@ -67304,7 +67304,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.0\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"0x47\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"bytes\": \"%bytes.0\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"bytes\": \"%bytes.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
@@ -67461,7 +67461,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.2\", \"%hash.3\"], \"bytes\": \"%bytes.1\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.2\", \"%hash.3\"], \"bytes\": \"%bytes.1\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
@@ -70835,8 +70835,8 @@ groups than for single tests.
           (private_input "Scalar<Secp256k1>" %sig.42)
           (private_input "Scalar<Secp256k1>" %sig.64)
           (private_input "Point<Secp256k1>" %pk.1)
-          (into_bytes32 %tmp.65 0)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.66 %tmp.65)
+          (to_bytes %tmp.65 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.66 %tmp.65)
           (ec_mul_generator %t.0 %tmp.66)
           (test_eq %t.2 %pk.1 %t.0)
           (cond_select %t.3 %t.2 0 1)
@@ -70873,7 +70873,7 @@ groups than for single tests.
           (div_mod_power_of_two %quo.95 %v.10 %quo.94 8)
           (div_mod_power_of_two %quo.96 %v.9 %quo.95 8)
           (copy %v.8 %quo.96)
-          (copy %beReversed.39 %v.6)
+          (copy %beReversed.38 %v.6)
           (reconstitute_field %div.97 %v.37 %v.36 8)
           (reconstitute_field %div.98 %div.97 %v.35 8)
           (reconstitute_field %div.99 %div.98 %v.34 8)
@@ -70903,12 +70903,13 @@ groups than for single tests.
           (reconstitute_field %div.123 %div.122 %v.10 8)
           (reconstitute_field %div.124 %div.123 %v.9 8)
           (reconstitute_field %div.125 %div.124 %v.8 8)
-          (reconstitute_field %beReversed.38 %div.125 %v.7 8)
-          (bytes32_from_low_high
+          (reconstitute_field %beReversed.39 %div.125 %v.7 8)
+          (bytes_from_natives
             %tmp.126
-            %beReversed.38
-            %beReversed.39)
-          (from_bytes32 "Scalar<Secp256k1>" %z.41 %tmp.126)
+            32
+            %beReversed.39
+            %beReversed.38)
+          (from_bytes "Scalar<Secp256k1>" %z.41 %tmp.126)
           (inv %w.40 %sig.64)
           (mul %u1.127 %z.41 %w.40)
           (mul %u2.128 %sig.42 %w.40)
@@ -70916,22 +70917,22 @@ groups than for single tests.
           (ec_mul %t.130 %pk.1 %u2.128)
           (add %point.131 %t.129 %t.130)
           (into_coordinates %t.43 %ignore.132 %point.131)
-          (into_bytes32 %tmp.133 %t.43)
-          (bytes32_into_low_high %t.44 %t.45 %tmp.133)
-          (bytes32_from_low_high %tmp.134 %t.44 %t.45)
-          (from_bytes32 "Scalar<Secp256k1>" %t.46 %tmp.134)
+          (to_bytes %tmp.133 %t.43)
+          (bytes_into_natives (%t.45 %t.44) %tmp.133)
+          (bytes_from_natives %tmp.134 32 %t.45 %t.44)
+          (from_bytes "Scalar<Secp256k1>" %t.46 %tmp.134)
           (test_eq %t.47 %t.46 %sig.42)
           (assert %t.47)
           (private_input "Scalar<Secp256k1>" %sig.56)
           (private_input "Scalar<Secp256k1>" %sig.135)
           (private_input "Point<Secp256k1>" %pk.49)
-          (into_bytes32 %tmp.136 0)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.137 %tmp.136)
+          (to_bytes %tmp.136 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.137 %tmp.136)
           (ec_mul_generator %t.48 %tmp.137)
           (test_eq %t.50 %pk.49 %t.48)
           (cond_select %t.51 %t.50 0 1)
           (assert %t.51)
-          (copy %beReversed.53 %v.6)
+          (copy %beReversed.52 %v.6)
           (reconstitute_field %div.138 %v.37 %v.36 8)
           (reconstitute_field %div.139 %div.138 %v.35 8)
           (reconstitute_field %div.140 %div.139 %v.34 8)
@@ -70961,12 +70962,13 @@ groups than for single tests.
           (reconstitute_field %div.164 %div.163 %v.10 8)
           (reconstitute_field %div.165 %div.164 %v.9 8)
           (reconstitute_field %div.166 %div.165 %v.8 8)
-          (reconstitute_field %beReversed.52 %div.166 %v.7 8)
-          (bytes32_from_low_high
+          (reconstitute_field %beReversed.53 %div.166 %v.7 8)
+          (bytes_from_natives
             %tmp.167
-            %beReversed.52
-            %beReversed.53)
-          (from_bytes32 "Scalar<Secp256k1>" %z.55 %tmp.167)
+            32
+            %beReversed.53
+            %beReversed.52)
+          (from_bytes "Scalar<Secp256k1>" %z.55 %tmp.167)
           (inv %w.54 %sig.135)
           (mul %u1.168 %z.55 %w.54)
           (mul %u2.169 %sig.56 %w.54)
@@ -70974,10 +70976,10 @@ groups than for single tests.
           (ec_mul %t.171 %pk.49 %u2.169)
           (add %point.172 %t.170 %t.171)
           (into_coordinates %t.57 %ignore.173 %point.172)
-          (into_bytes32 %tmp.174 %t.57)
-          (bytes32_into_low_high %t.58 %t.59 %tmp.174)
-          (bytes32_from_low_high %tmp.175 %t.58 %t.59)
-          (from_bytes32 "Scalar<Secp256k1>" %t.60 %tmp.175)
+          (to_bytes %tmp.174 %t.57)
+          (bytes_into_natives (%t.59 %t.58) %tmp.174)
+          (bytes_from_natives %tmp.175 32 %t.59 %t.58)
+          (from_bytes "Scalar<Secp256k1>" %t.60 %tmp.175)
           (test_eq %t.61 %t.60 %sig.56)
           (assert %t.61)
           (public_input "Scalar<BLS12-381>" %t.62)
@@ -71055,7 +71057,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_eq\", \"a\": \"%e.10\", \"b\": \"0x00\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%e.11\", \"bits\": 64 },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
@@ -71363,17 +71365,9 @@ groups than for single tests.
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\"], \"input\": \"%pt0.0\" },"
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"], \"input\": \"%pt1.1\" },"
         "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
-        "    { \"op\": \"slice\", \"output\": \"%low32.13\", \"bytes\": \"%bytes.12\", \"start\": 0, \"len\": 32 },"
-        "    { \"op\": \"slice\", \"output\": \"%high32.14\", \"bytes\": \"%bytes.12\", \"start\": 32, \"len\": 32 },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.15\", \"%byte31.16\"], \"bytes\": \"%low32.13\" },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%bytes32to62.17\", \"%byte63.18\"], \"bytes\": \"%high32.14\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%byte62.19\", \"%bytes32to61.20\"], \"val\": \"%bytes32to62.17\", \"bits\": 240 },"
-        "    { \"op\": \"mul\", \"output\": \"%temp0.21\", \"a\": \"%bytes32to61.20\", \"b\": \"0x0001\" },"
-        "    { \"op\": \"add\", \"output\": \"%tmp.22\", \"a\": \"%byte31.16\", \"b\": \"%temp0.21\" },"
-        "    { \"op\": \"mul\", \"output\": \"%temp1.23\", \"a\": \"%byte63.18\", \"b\": \"0x0001\" },"
-        "    { \"op\": \"add\", \"output\": \"%tmp.24\", \"a\": \"%byte62.19\", \"b\": \"%temp1.23\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\", \"%tmp.15\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.24\", \"%tmp.22\", \"%tmp.15\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.15\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
         "  ]"
         "}"))
@@ -91947,23 +91941,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Secp256k1>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Secp256k1>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Secp256k1>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
@@ -92066,13 +92060,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Secp256k1>")
                          (%s.1 "Scalar<Secp256k1>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -93426,23 +93420,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Secp256r1>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Secp256r1>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Secp256r1>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Secp256r1>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
@@ -93545,13 +93539,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Secp256r1>")
                          (%s.1 "Scalar<Secp256r1>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -94354,23 +94348,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Curve25519>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Curve25519>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Curve25519>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Curve25519>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 26 7 %fld.10 %fld.11)
@@ -94473,13 +94467,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Curve25519>")
                          (%s.1 "Scalar<Curve25519>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -94745,6 +94739,87 @@ groups than for single tests.
         "});"
         )))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(bytes: Bytes<64>): Curve25519Scalar {"
+      "  const s = bytes as Curve25519Scalar;"
+      "  scalar = disclose(s);"
+      "  return s;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%bytes.0 "Scalar<BLS12-381>")
+                         (%bytes.1 "Scalar<BLS12-381>")
+                         (%bytes.2 "Scalar<BLS12-381>"))
+          ("Scalar<Curve25519>")
+          (constrain_bits %bytes.0 16)
+          (constrain_bits %bytes.1 248)
+          (constrain_bits %bytes.2 248)
+          (bytes_from_natives %tmp.3 64 %bytes.2 %bytes.1 %bytes.0)
+          (from_bytes "Scalar<Curve25519>" %s.4 %tmp.3)
+          (encode (%fld.5 %fld.6) %s.4)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.5 %fld.6)
+          (impact 1 145)
+          (output %s.4))))
+    (stage-javascript
+      '("test('Bytes<64> cast to Curve25519Scalar', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random value in range."
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var bytes = new Uint8Array(64);"
+        "  bytes.set(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ], 0);"
+        "  var r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // Zero."
+        "  bytes = new Uint8Array(64);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  // Maximum value."
+        "  bytes = new Uint8Array(64);"
+        "  bytes.set(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ], 0);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(runtime.MAX_CURVE25519_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual("
+        "      runtime.MAX_CURVE25519_SCALAR);"
+        "  // Maximum value plus one."
+        "  bytes[0] += 1;"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  // This is scalar * 10^42 in the field."
+        "  bytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x37, 0x60, 0xbc,"
+        "    0x8d, 0x22, 0x78, 0x88, 0x98, 0xaf, 0x00, 0x71,"
+        "    0x07, 0xd2, 0x99, 0xf6, 0xc2, 0xd6, 0x37, 0x66,"
+        "    0x6e, 0xef, 0xef, 0xf5, 0x8d, 0xb0, 0xd0, 0xa4,"
+        "    0xef, 0x00, 0x00, 0x00, 0x40, 0x9e, 0x3d, 0x4a,"
+        "    0xf1, 0xad, 0x05, 0x03, 0x05, 0x27, 0xc6, 0xab,"
+        "    0xb7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+  )
 )
 
 (run-javascript)
