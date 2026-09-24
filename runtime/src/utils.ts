@@ -15,11 +15,21 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { p256 } from '@noble/curves/nist.js';
+import { ed25519 } from '@noble/curves/ed25519.js';
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
 import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, Secp256k1Point } from './compact-types.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  Curve25519Point,
+  JubjubPoint,
+  Secp256k1Point,
+  Secp256r1Point,
+} from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
+import { CURVE25519_BASE_MODULUS } from './constants.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
 /**
@@ -47,21 +57,9 @@ export function assertIsContractAddress(x: unknown): asserts x is ContractAddres
   }
 }
 
-export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
-  return (
-    typeof x === 'object' &&
-    x !== null &&
-    x !== undefined &&
-    'bytes' in x &&
-    x.bytes instanceof Uint8Array &&
-    x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
-  );
-}
-
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
-
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
@@ -87,6 +85,66 @@ export function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fro
     const { x, y } = k;
     return { x: x, y: y, identity: false };
   }
+}
+
+/**
+ * Lift the simple affine `Secp256r1Point` representation into a noble-curves
+ * projective point. Identity maps to `Point.ZERO`; every other input is validated
+ * to lie on the curve by `fromAffine`.
+ */
+export function secp256r1ToProjective(p: Secp256r1Point): ReturnType<typeof p256.Point.fromAffine> {
+  if (p.identity) {
+    return p256.Point.ZERO;
+  }
+  return p256.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Secp256r1Point` representation.
+ */
+export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffine>): Secp256r1Point {
+  const k = p.toAffine();
+  if (/* k == p256.Point.ZERO */ k.x == 0n && k.y == 0n) {
+    return { x: 0n, y: 0n, identity: true };
+  } else {
+    const { x, y } = k;
+    return { x: x, y: y, identity: false };
+  }
+}
+
+/**
+ * Lift the simple affine `Curve25519Point` representation into a noble-curves
+ * projective point. The identity is the ordinary affine point (0, 1), so every
+ * input is checked to have in-range coordinates and to lie on the curve.
+ *
+ * `fromAffine` only checks the coordinates fit in 256 bits, so the field range
+ * is checked here. `assertValidity` checks the curve equation but rejects the
+ * identity, so the identity is returned before it.
+ */
+export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
+  if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
+    throw new CompactError('not a valid curve25519 point: coordinate out of range');
+  }
+  if (p.x === 0n && p.y === 1n) {
+    return ed25519.Point.ZERO;
+  }
+  try {
+    const q = ed25519.Point.fromAffine({ x: p.x, y: p.y });
+    q.assertValidity();
+    return q;
+  } catch (e) {
+    throw new CompactError(`not a valid curve25519 point: ${e instanceof Error ? e.message : String(e)}`);
+  }
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Curve25519Point` representation.
+ */
+export function curve25519FromProjective(p: ReturnType<typeof ed25519.Point.fromAffine>): Curve25519Point {
+  const { x, y } = p.toAffine();
+  return { x: x, y: y };
 }
 
 /**

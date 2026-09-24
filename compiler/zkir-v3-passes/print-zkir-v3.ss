@@ -71,7 +71,7 @@
                                           var-name* zkir-type*))]
                   [instructions (list->vector (maplr Instruction instr*))]
                   [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 0)))
+             `((version . ((major . 3) (minor . 1)))
                (do_communications_commitment . ,(not (no-communications-commitment)))
                (inputs . ,inputs)
                (outputs . ,outputs)
@@ -140,8 +140,8 @@
     [(jubjub_scalar_from_native ,[* outp] ,[* inp])
      `((op . "jubjub_scalar_from_native") (output . ,outp) (native . ,inp))]
     [(keccak256 ,[* outp] (,alignment* ...) ,[* inp*] ...)
-     `((op . "keccak256") (output . ,outp)
-       (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
+     `((op . "keccak256") (output . ,outp) (alignment . ,(alignment->vector alignment*))
+       (inputs . ,(list->vector inp*)))]
     [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
      `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
     [(mul ,[* outp] ,[* inp0] ,[* inp1])
@@ -174,6 +174,11 @@
        (bits . ,imm))]
     [(reverse_bytes ,[* outp] ,[* inp])
      `((op . "reverse_bytes") (output . ,outp) (bytes . ,inp))]
+    [(sha512 ,[* outp] (,alignment* ...) ,[* inp*] ...)
+     `((op . "sha512") (output . ,outp) (alignment . ,(alignment->vector alignment*))
+       (inputs . ,(list->vector inp*)))]
+    [(slice ,[* outp] ,[* inp] ,imm0 ,imm1)
+     `((op . "slice") (output . ,outp) (bytes . ,inp) (start . ,imm0) (len . ,imm1))]
     [(test_eq ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(transient_hash ,[* outp] ,[* inp*] ...)

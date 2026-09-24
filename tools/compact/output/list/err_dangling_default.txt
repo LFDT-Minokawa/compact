@@ -1,0 +1,5 @@
+Error: Failed to list available versions
+
+Caused by:
+    0: Failed to get the current compiler
+    1: The default compiler is missing: `"[COMPACT_DIR]/bin/compactc"' points at `"[COMPACT_DIR]/versions/[COMPACTC_VERSION]/[SYSTEM_VERSION]/compactc"', which does not exist. Run `compact update [COMPACTC_VERSION]' to reinstall it.
