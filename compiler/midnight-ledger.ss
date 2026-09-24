@@ -81,6 +81,12 @@
             (type-ref UserAddress))
   "UnshieldedRecipient")
 
+(declare-ledger-type PublicAddress ()
+  (type-ref Either
+            (type-ref ContractAddress)
+            (type-ref UserAddress))
+  "PublicAddress")
+
 (declare-ledger-type TokenType ()
   (type-ref Either
             (primitive-type Bytes 32)
@@ -131,8 +137,9 @@
 ;;
 ;; The following variables should be instantiated at compile time to the context
 ;; where the form is being used:
-;; - f, the path to the field being operated on, and
-;; - f-cached, a boolean indicating if f is guaranteed to be in cache.
+;; - f, the path to the field being operated on,
+;; - f-cached, a boolean indicating if f is guaranteed to be in cache, and
+;; - result_type, the declared result type of the operation.
 ;;
 ;; A path is a list of either aligned value instances, or the symbol 'stack.
 ;; Aligned value literals are created with the (align value bytes) literal, which
@@ -258,6 +265,57 @@
     ((dup [n 2])
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
+  (function read caller () (Maybe PublicAddress)
+    "Returns the caller of this circuit invocation: `left(addr)` when called by \
+     contract `addr`; `right(addr)` when this is a top-level call whose intent's \
+     unshielded inputs all belong to user `addr`; `none` otherwise, and always in \
+     a constructor. Off-chain execution cannot yet know a top-level caller and \
+     records `none`, so a top-level call that reads `caller` fails on chain \
+     whenever the intent's unshielded inputs turn out to belong to one user, as \
+     they do when the user pays unshielded tokens to the contract. Read `caller` \
+     only where the call is known to come from a contract. Maybe, Either, \
+     ContractAddress, UserAddress and PublicAddress are defined in \
+     CompactStandardLibrary."
+    ;; [context, effects, state]
+    ((dup [n 2])
+     ;; [context, effects, state, context]
+     ;; The context array is built by `From<&QueryContext> for VmValue` in the
+     ;; ledger's onchain-runtime/src/context.rs: [own_address, com_indices,
+     ;; tblock, tblock_err, parent_block_hash, balance, caller,
+     ;; last_block_time], so caller is at index 6 (cf. self at 0, block time
+     ;; at 2, balance at 5 elsewhere in this file).
+     (idx [cached #t] [pushPath #f] [path (list (align 6 1))])
+     ;; [context, effects, state, caller_slot]
+     ;;   caller_slot is Cell(PublicAddress) or Null
+     (dup [n 0])
+     ;; [context, effects, state, caller_slot, caller_slot]
+     (type)
+     ;; [context, effects, state, caller_slot, type_tag]
+     ;;   type_tag = 0 if Cell (some), 1 if Null (none)
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, type_tag, 1]
+     (eq)
+     ;; [context, effects, state, caller_slot, is_none]
+     (branch [skip 4])
+     ;; some-branch:
+     ;; [context, effects, state, caller_slot]
+     (push [storage #f] [value (state-value 'cell (align 1 1))])
+     ;; [context, effects, state, caller_slot, is_some=1]
+     (swap [n 0])
+     ;; [context, effects, state, is_some=1, caller_slot]
+     (concat [cached #f] [n (rt-max-sizeof result_type)])
+     ;; [context, effects, state, (1, public_address)]
+     (jmp [skip 2])
+     ;; none-branch:
+     ;; [context, effects, state, caller_slot]
+     (pop)
+     ;; [context, effects, state]
+     (push [storage #f] [value (state-value 'cell (rt-null result_type))])
+     ;; merge:
+     ;; [context, effects, state, (0|1, addr_or_default)]
+     (popeq [cached #t] [result (void)])
+     ;; [context, effects, state]
+     ))
   (function update mintUnshielded
             ([domain_sep Bytes32 (discloses "the domain separator of the unshielded token being minted given by")]
              [amount Uint64 (discloses "the amount of the unshielded token being minted given by")])
@@ -858,8 +916,9 @@
      (push [storage #f] [value (state-value 'cell (align 1 1))])
      ;; [context, effects, state, head, type, 1]
      (eq)
-     ;; @tkerber - I don't understand this branching. Since '1' encodes a cell, it looks like the branch where the Maybe
-     ;;            is 'None' it followed when the head value is non-null, which is the opposite of what I'd expect.
+     ;; `type` yields 0 for a cell and 1 for null, therefore `type == 1` is
+     ;; "head is null" and `branch` (which skips when true) jumps over the
+     ;; some-arm to the none-arm.
      ;; [context, effects, state, head, type == 1]
      (branch [skip 4])
      ;; [context, effects, state, head]

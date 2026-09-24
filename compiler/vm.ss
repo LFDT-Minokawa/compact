@@ -109,7 +109,10 @@
       (syntax-error x complaint)))
 
   (define (make-check-vm-expr arg-name*)
-    (let ([free-name* (cons* 'f 'f-cached arg-name*)])
+    ;; names the checker accepts in VM expressions. `f` and `f-cached` are bound
+    ;; by every expansion but `result_type` only by ledger-operation expansions,
+    ;; therefore an `emit` body must not use it.
+    (let ([free-name* (cons* 'f 'f-cached 'result_type arg-name*)])
       (define (free-name? x) (memq x free-name*))
       (rec check-vm-expr
         (lambda (e)
