@@ -75791,6 +75791,14 @@ groups than for single tests.
     ((source-file "test-center/composable/Events/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/events.ts")))
 
+  (test-group
+    ((source-file "test-center/composable/Caller/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Caller/Middle.compact")
+     (stage-javascript middleCode '()))
+    ((source-file "test-center/composable/Caller/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/caller.ts")))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/contract/index.d.ts"
