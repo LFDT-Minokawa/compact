@@ -28,6 +28,6 @@ jobs:
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1  #v7.0.1
 
       - name: Scan code
-        uses: midnightntwrk/upload-sarif-github-action@0fb83f20a00c45709de4a57d628cedbc38be46c5
+        uses: midnightntwrk/upload-sarif-github-action@27db6987fad0e7a8eb7b337775d3dd2b876c9608
         with:
           scorecard_checks: "Binary-Artifacts,Branch-Protection,CI-Tests,CII-Best-Practices,Code-Review,Dangerous-Workflow,Dependency-Update-Tool,Fuzzing,License,Maintained,Pinned-Dependencies,SAST,Security-Policy,Signed-Releases,Vulnerabilities"
