@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Ed25519 is exposed to Compact as Curve25519Base, Curve25519Scalar and
+// Curve25519 is exposed to Compact as Curve25519Base, Curve25519Scalar and
 // Curve25519Point, so the runtime functions tested here use those names.
 
 import { describe, expect, test } from 'vitest';
 import * as runtime from '../src/index.js';
 
-// The Ed25519 generator and the group identity. Unlike secp256k1 and
+// The Curve25519 generator and the group identity. Unlike secp256k1 and
 // secp256r1, the identity is an ordinary affine point, (0, 1).
 const G: runtime.Curve25519Point = {
   x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
@@ -33,7 +33,7 @@ const negate = (p: runtime.Curve25519Point): runtime.Curve25519Point => ({
   y: p.y,
 });
 
-describe('ed25519 group operations', () => {
+describe('curve25519 group operations', () => {
   test('mulGenerator matches the generator and the identity', () => {
     expect(runtime.curve25519MulGenerator(1n)).toEqual(G);
     expect(runtime.curve25519MulGenerator(0n)).toEqual(IDENTITY);
@@ -96,7 +96,7 @@ describe('ed25519 group operations', () => {
   });
 });
 
-describe('ed25519 point validation', () => {
+describe('curve25519 point validation', () => {
   const P = runtime.CURVE25519_BASE_MODULUS;
 
   test('the identity is accepted, it lies on the curve', () => {
@@ -150,7 +150,7 @@ describe('ed25519 point validation', () => {
   });
 });
 
-describe('ed25519 point coordinates', () => {
+describe('curve25519 point coordinates', () => {
   test('pointX and pointY extract the affine coordinates', () => {
     expect(runtime.curve25519PointX(G)).toEqual(G.x);
     expect(runtime.curve25519PointY(G)).toEqual(G.y);
@@ -162,7 +162,7 @@ describe('ed25519 point coordinates', () => {
   });
 });
 
-describe('ed25519 scalar field operations', () => {
+describe('curve25519 scalar field operations', () => {
   const L = runtime.CURVE25519_SCALAR_MODULUS;
   const a = 123456789n;
   const b = L - 7n;
@@ -214,7 +214,7 @@ describe('ed25519 scalar field operations', () => {
   });
 });
 
-describe('ed25519 base field operations', () => {
+describe('curve25519 base field operations', () => {
   const P = runtime.CURVE25519_BASE_MODULUS;
   const a = 987654321n;
   const b = P - 11n;
@@ -260,7 +260,7 @@ describe('ed25519 base field operations', () => {
   });
 
   test('the generator satisfies the curve equation', () => {
-    // Ed25519 is -x^2 + y^2 = 1 + d*x^2*y^2 with d = -121665/121666.
+    // In twisted Edwards form, Curve25519 is -x^2 + y^2 = 1 + d*x^2*y^2 with d = -121665/121666.
     const d = runtime.curve25519BaseMul(runtime.curve25519BaseNeg(121665n), runtime.curve25519BaseInv(121666n));
     const x2 = runtime.curve25519BaseMul(G.x, G.x);
     const y2 = runtime.curve25519BaseMul(G.y, G.y);
@@ -270,7 +270,7 @@ describe('ed25519 base field operations', () => {
   });
 });
 
-describe('ed25519 serialization', () => {
+describe('curve25519 serialization', () => {
   const L = runtime.CURVE25519_SCALAR_MODULUS;
   const P = runtime.CURVE25519_BASE_MODULUS;
   const Scalar = runtime.CompactTypeCurve25519Scalar;
