@@ -13,22 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-const { common } = require('../grammar/common.cjs');
+export type Token = string;
 
-/*
- * Create a simple config for fuzzer.
- */
-function buildConfig(grammar, startNode, outputDir, outputName, contractAmount) {
-    return {
-        grammar: Object.assign(grammar, common),
-        startNode: startNode,
-        outputDir: outputDir,
-        outputName: outputName,
-        contractAmount: contractAmount,
-        stringLength: 32,
-        numberPower: 128,
-        tableLength: 200,
-    };
-}
+export type Alternative = Token[];
 
-exports.buildConfig = buildConfig;
+/* A flat keyword list or a set of expansion alternatives. */
+export type Production = (Alternative | Token)[];
+
+export type Grammar = Record<string, Production>;
