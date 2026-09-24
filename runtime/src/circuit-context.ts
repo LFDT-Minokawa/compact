@@ -542,3 +542,31 @@ export const queryLedgerState = (
     throw err;
   }
 };
+
+/**
+ * Runs a read-only query against the current mid-call ledger state without recording it.
+ * A local function's ledger read is served from this snapshot: appending it to the public
+ * transcript would make it an on-chain-replayed observation, so the query runs in gather
+ * mode and is recorded nowhere — tier 1 replays only the local ops (which already embed
+ * what the read produced), and tier 2 re-executes the call against the basis block.
+ *
+ * @param circuitContext The context for the currently executing circuit.
+ * @param program The read-only query to run.
+ */
+export const snapshotLedgerState = (
+  circuitContext: CircuitContext,
+  program: ocrt.Op<null>[],
+): ocrt.AlignedValue | undefined => {
+  try {
+    const res = circuitContext.callContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
+    if (res.events.length === 1 && res.events[0].tag === 'read') {
+      return res.events[0].content;
+    }
+    return undefined;
+  } catch (err) {
+    if (err instanceof Error) {
+      throw new CompactError(err.toString());
+    }
+    throw err;
+  }
+};
