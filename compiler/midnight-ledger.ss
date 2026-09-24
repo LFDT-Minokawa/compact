@@ -266,14 +266,16 @@
      (idx [cached #t] [pushPath #f] [path (list (align 0 1))])
      (popeq [cached #t] [result (void)])))
   (function read caller () (Maybe PublicAddress)
-    "Returns the caller of this circuit invocation, if known. \
-     `left(addr)` when called by contract `addr`; `right(addr)` when this is the \
-     top-level call for user `addr` (uniquely identified by the transaction's \
-     unshielded inputs). None when no caller can be determined (e.g. a purely \
-     shielded top-level transaction, or one with unshielded inputs from \
-     multiple distinct owners). \
-     Maybe, Either, ContractAddress, UserAddress, and the PublicAddress alias \
-     for Either<ContractAddress, UserAddress> are defined in CompactStandardLibrary."
+    "Returns the caller of this circuit invocation: `left(addr)` when called by \
+     contract `addr`; `right(addr)` when this is a top-level call whose intent's \
+     unshielded inputs all belong to user `addr`; `none` otherwise, and always in \
+     a constructor. Off-chain execution cannot yet know a top-level caller and \
+     records `none`, so a top-level call that reads `caller` fails on chain \
+     whenever the intent's unshielded inputs turn out to belong to one user, as \
+     they do when the user pays unshielded tokens to the contract. Read `caller` \
+     only where the call is known to come from a contract. Maybe, Either, \
+     ContractAddress, UserAddress and PublicAddress are defined in \
+     CompactStandardLibrary."
     ;; [context, effects, state]
     ((dup [n 2])
      ;; [context, effects, state, context]
@@ -914,8 +916,9 @@
      (push [storage #f] [value (state-value 'cell (align 1 1))])
      ;; [context, effects, state, head, type, 1]
      (eq)
-     ;; @tkerber - I don't understand this branching. Since '1' encodes a cell, it looks like the branch where the Maybe
-     ;;            is 'None' it followed when the head value is non-null, which is the opposite of what I'd expect.
+     ;; `type` yields 0 for a cell and 1 for null, therefore `type == 1` is
+     ;; "head is null" and `branch` (which skips when true) jumps over the
+     ;; some-arm to the none-arm.
      ;; [context, effects, state, head, type == 1]
      (branch [skip 4])
      ;; [context, effects, state, head]

@@ -12,8 +12,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `kernel.caller()` ledger operation returns the caller of a circuit invocation
   as `Maybe<PublicAddress>`:
   - `left(addr)` when called by contract `addr`;
-  - `right(addr)` when this is the top-level call for user `addr`;
-  - `None` when no caller can be determined.
+  - `right(addr)` when this is a top-level call and every unshielded input of
+    the containing intent is owned by user `addr` (their unshielded address);
+  - `none` otherwise, and always in a constructor.
+
+  The ledger derives the top-level value from the intent's unshielded inputs,
+  which the wallet adds when it balances the transaction, after the transcript
+  that read `caller` was fixed by proving. Off-chain execution records `none`
+  for a top-level call, so such a call fails on chain with a read mismatch
+  whenever the balanced intent's unshielded inputs all belong to one user.
+  `left(addr)` is reliable: the runtime sets the calling contract for callees
+  and the ledger gives a claiming contract precedence over the inputs. Until
+  an intent can explicitly set the top-level caller, read `kernel.caller()` only where
+  the call is known to come from a contract.
 - `PublicAddress` standard library type alias for
   `Either<ContractAddress, UserAddress>`.
 
@@ -469,6 +480,7 @@ and Compact runtime versions in the range between 0.18.100 and 0.19.0.
   equivalent to `Uint<0..1>` by the rule and the fact that 2^0 equals 1.
   `Uint<0..1>` is allowed so there is no reason to prohibit `Uint<0>` even
   though it's not super useful.
+
 ## [Toolchain 0.33.110, language 0.25.102, runtime 0.18.102]
 
 ### Added
