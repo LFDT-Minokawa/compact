@@ -21,7 +21,9 @@
           max-secp256k1-base secp256k1-base?
           max-secp256k1-scalar secp256k1-scalar?
           max-secp256r1-base secp256r1-base?
-          max-secp256r1-scalar secp256r1-scalar?)
+          max-secp256r1-scalar secp256r1-scalar?
+          max-curve25519-base curve25519-base?
+          max-curve25519-scalar curve25519-scalar?)
   (import (chezscheme))
 
   (define-syntax define-field-predicate
@@ -60,4 +62,12 @@
   (define (max-secp256r1-scalar)
     #xffffffff00000000ffffffffffffffffbce6faada7179e84f3b9cac2fc632550)
   (define-field-predicate secp256r1-scalar? max-secp256r1-scalar)
+
+  (define (max-curve25519-base)
+    (1- (- (expt 2 255) 19)))
+  (define-field-predicate curve25519-base? max-curve25519-base)
+
+  (define (max-curve25519-scalar)
+    (1- (+ (expt 2 252) 27742317777372353535851937790883648493)))
+  (define-field-predicate curve25519-scalar? max-curve25519-scalar)
 )
