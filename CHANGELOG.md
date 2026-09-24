@@ -5,6 +5,17 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.107, language 0.26.104, runtime 0.19.104]
+
+### Added
+
+- There is one new cast available, from `Bytes<64>` to `Curve25519Scalar`.  The
+  semantics is the same as the other from-bytes casts for foreign fields---it
+  performs modular reduction by the field modulus of the value represented by
+  the byte vector.
+  
+  **This feature requires the flag `--feature-zkir-v3`.**
+
 ## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
 
 ### Added
