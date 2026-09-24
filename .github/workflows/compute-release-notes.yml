@@ -13,7 +13,7 @@ on:
         required: true
         type: string
       language_version:
-        description: 'Language version (e.g. v1.2.3)'
+        description: 'Language version as x.y.z. The calling workflow derives it from the released compactc binary rather than from a human'
         required: true
         type: string
       branch:

@@ -160,6 +160,7 @@ export type LedgerAdtType =
 /** Structure of contract-info.json */
 export interface ContractInfo {
     'compiler-version': string;
+    'compiler-commit': string;
     'language-version': string;
     'runtime-version': string;
     circuits: ContractInfoCircuit[];

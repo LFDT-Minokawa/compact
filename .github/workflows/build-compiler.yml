@@ -56,7 +56,7 @@ jobs:
         run: |
           FLAKE_VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+(?=";.*# NB: also update compiler-version)' flake.nix)
 
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
 
           echo "flake.nix version:                    $FLAKE_VERSION"
           echo "compiler/compiler-version.ss version: $COMPILER_VERSION"
@@ -77,13 +77,9 @@ jobs:
         run: |
           FAILED=0
 
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
           DOCS_COMPILER=$(grep -m1 -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
-          if [ -z "$COMPILER_VERSION" ]; then
-            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$DOCS_COMPILER" ]; then
             echo "::error::Could not extract compiler version from doc/ledger-adt.mdx. Check that it contains a 'compiler version X.Y.Z' string."
             exit 1
@@ -99,13 +95,9 @@ jobs:
             echo "Compiler versions match: $COMPILER_VERSION"
           fi
 
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          LANGUAGE_VERSION=$(./scripts/read-version.sh language)
           DOCS_LANGUAGE=$(grep -m1 -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
-          if [ -z "$LANGUAGE_VERSION" ]; then
-            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$DOCS_LANGUAGE" ]; then
             echo "::error::Could not extract language version from doc/ledger-adt.mdx. Check that it contains a 'language version X.Y.Z' string."
             exit 1
@@ -130,18 +122,10 @@ jobs:
           FAILED=0
 
           # Extract versions from source files
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
+          LANGUAGE_VERSION=$(./scripts/read-version.sh language)
           RUNTIME_VERSION=$(grep -oP '"version":\s*"\K[0-9]+\.[0-9]+\.[0-9]+' runtime/package.json | head -1)
 
-          if [ -z "$COMPILER_VERSION" ]; then
-            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
-            exit 1
-          fi
-          if [ -z "$LANGUAGE_VERSION" ]; then
-            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$RUNTIME_VERSION" ]; then
             echo "::error::Could not extract runtime version from runtime/package.json. Check the version field."
             exit 1
