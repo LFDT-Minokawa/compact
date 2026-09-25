@@ -16,13 +16,21 @@
 #!chezscheme
 
 (library (compiler-version)
-  (export compiler-version-string check-compiler-version)
-  (import (chezscheme) (version))
+  (export compiler-version-string compiler-version-triple-string
+          compiler-version-commit compiler-version-commit-date
+          check-compiler-version)
+  (import (chezscheme) (version) (version-config))
 
   ; NB: also update compactc version in ../flake.nix
-  (define compiler-version (make-version 'compiler 0 34 107))
+  (define compiler-version
+    (version-with-tag (make-version 'compiler 0 34 110) compiler-version-tag))
 
   (define compiler-version-string (make-version-string compiler-version))
+
+  ;; The bare triple, for generated documents: a document is source, not a
+  ;; build, so it cannot truthfully carry a build's tag.
+  (define compiler-version-triple-string
+    (make-version-string (version-with-tag compiler-version "")))
 
   (define check-compiler-version (make-version-checker compiler-version))
 )
