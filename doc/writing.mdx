@@ -94,6 +94,32 @@ Here `export` marks this circuit as an entry point to the smart contract, and
 state. The [language reference](./compact-reference.mdx#circuit-definitions) details permissible contents
 of `circuit`s.
 
+:::note Choosing between `Field` and `Uint` for numeric checks
+
+Compact has two numeric types: `Field` and `Uint<N>`. A common mistake is
+using `Field` when writing circuits that enforce numeric conditions such as
+balance validation.
+
+`Field` supports only equality operators (`==` and `!=`). The relational
+operators `<`, `>`, `<=`, and `>=` require an unsigned integer type such
+as `Uint<64>`.
+
+```compact
+// Does not compile — Field does not support >=
+circuit check(balance: Field, amount: Field): [] {
+  assert(balance >= amount, "Insufficient balance");
+}
+
+// Compiles — Uint<64> supports all relational operators
+circuit check(balance: Uint<64>, amount: Uint<64>): [] {
+  assert(balance >= amount, "Insufficient balance");
+}
+```
+
+Use `Field` for cryptographic values such as hash inputs. Use `Uint<N>`
+for any values that require comparison or bounds checking.
+:::
+
 ## Local state and computations
 
 The third context mentioned was the local machine of the user. This is
@@ -239,7 +265,7 @@ being suitable for storage in a contract's `ledger` state.
 
 ## Next steps
 
-[Compact reference](compact-reference) provides a compelete and detailed overview
+[Compact reference](compact-reference) provides a complete and detailed overview
 of the Compact language.
 Alternatively, you may wish to jump to a [more detailed example](../../examples/dapps/bboard.mdx)
 that showcases some more interesting things you can do with a DApp on Midnight.
