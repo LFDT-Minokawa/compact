@@ -19,11 +19,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- The Compact runtime now rejects invalid secp256k1 and secp256r1 points instead
-  of computing with them.  `ecAdd` and `ecMul` on a point whose coordinates are
-  out of range, or that does not satisfy the curve equation, now throw a
-  `CompactError` naming the curve.  A point belonging to the other curve is one
-  of the cases this catches.
+- Compiled contracts now reject invalid `Secp256k1Point`, `Secp256r1Point` and
+  `Curve25519Point` values passed in from JavaScript as circuit or constructor
+  arguments or as witness results.  A point is invalid if a coordinate is
+  outside the curve's base field, or if it is not on the curve. An
+  invalid point is now a type error instead of being computed with.
 
 ## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
 
