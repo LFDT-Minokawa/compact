@@ -1,0 +1,164 @@
+# This file is part of Compact.
+# Copyright (C) 2026 Midnight Foundation
+# SPDX-License-Identifier: Apache-2.0
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# 	http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Format, lint and test the `midnight-compact-runtime` crate.
+#
+# This workflow is deliberately self-contained, and every part of that is a
+# decision rather than an omission:
+#
+#   * It needs no `compactc`. The crate is the library that generated Rust
+#     links against; it does not invoke the compiler, so there is nothing here
+#     that has to wait on a Scheme build.
+#   * It needs no nix. Plain `cargo` on the GitHub-hosted runners is enough,
+#     which keeps the job to a couple of minutes and independent of the nix
+#     toolchain the compiler jobs depend on.
+#   * It runs in `runtime-rs/`, which is its own Cargo workspace. The root
+#     workspace is untouched by this crate, so `tools/compact`'s dependency
+#     resolution cannot be perturbed by anything here — and this workflow
+#     cannot perturb `compact-test.yml` either.
+#
+# The `paths` filter is scoped to the crate and this file. It deliberately does
+# NOT include the root `Cargo.toml` or `Cargo.lock`: this crate does not read
+# them, and adding them would couple every root-workspace change to a job that
+# cannot be affected by one.
+
+name: midnight-compact-runtime
+
+on:
+  pull_request:
+    paths:
+      - "runtime-rs/**"
+      - "runtime-rs-macros/**"
+      - ".github/workflows/midnight-compact-runtime.yml"
+  push:
+    branches: [main]
+    paths:
+      - "runtime-rs/**"
+      - "runtime-rs-macros/**"
+      - ".github/workflows/midnight-compact-runtime.yml"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  CARGO_INCREMENTAL: 0
+  CARGO_NET_RETRY: 10
+  RUST_BACKTRACE: short
+  RUSTUP_MAX_RETRIES: 10
+
+defaults:
+  run:
+    working-directory: runtime-rs
+
+jobs:
+  # Formatting and lints fail fast and cost almost nothing, so they run once on
+  # Linux rather than across the matrix.
+  lint:
+    name: Format + Clippy
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+        with:
+          components: rustfmt, clippy
+
+      - name: Cache cargo registry and git trees
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          # Keyed on this workspace's own lockfile. The crate's dependencies
+          # are git-pinned to a midnight-ledger tag, so the key only moves when
+          # that pin does.
+          key: ${{ runner.os }}-cargo-runtime-${{ hashFiles('runtime-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-runtime-
+
+      - name: Check formatting
+        run: cargo fmt --all --check
+
+      # `-D warnings` makes lints errors. Scoped to this workspace, so it
+      # cannot start gating on changes elsewhere in the repository.
+      - name: Run Clippy
+        run: cargo clippy --all-targets --all-features --locked -- -D warnings
+
+  test:
+    name: Test ${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@631a55b12751854ce901bb631d5902ceb48146f7 # stable
+
+      - name: Cache cargo registry and git trees
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: |
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+          key: ${{ runner.os }}-cargo-runtime-${{ hashFiles('runtime-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-cargo-runtime-
+
+      - name: Cache target directory
+        uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
+        with:
+          path: runtime-rs/target
+          key: ${{ runner.os }}-target-runtime-${{ hashFiles('runtime-rs/Cargo.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-target-runtime-
+
+      - name: Build
+        run: cargo build --workspace --locked
+
+      # Both platforms, because the crate encodes on-chain state as bytes and
+      # an endianness or alignment mistake would pass on one and fail on the
+      # other. That is not hypothetical for a crate whose whole job is
+      # producing bytes a chain will agree with.
+      - name: Test
+        run: cargo test --workspace --locked
+
+      # `--locked` above proves the committed lockfile resolves. This proves it
+      # is also the lockfile cargo would choose, so a stale commit is caught
+      # here rather than by a contributor whose unrelated PR regenerates it.
+      - name: Verify the lockfile is current
+        run: |
+          cargo metadata --format-version 1 > /dev/null
+          if ! git diff --quiet -- Cargo.lock; then
+            echo "::error::runtime-rs/Cargo.lock is out of date; run 'cargo metadata' in runtime-rs/ and commit the result."
+            git --no-pager diff -- Cargo.lock
+            exit 1
+          fi
