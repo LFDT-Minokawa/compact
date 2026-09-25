@@ -13,22 +13,17 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import CompactStandardLibrary;
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+export ledger stored: Secp256r1Base;
+
+// A Secp256r1Base survives a round trip through the ledger.
+//
+// The value does not fit in a native field element, so writing it splits it
+// across two field-aligned binary atoms -- 192 low-order bits then 64
+// high-order bits -- and reading it back applies the inverse decoding. The
+// assignment writes and the return reads, so both directions are exercised.
+export circuit secp256r1_base_roundtrip(value: Secp256r1Base): Secp256r1Base {
+    stored = disclose(value);
+    return stored;
+}

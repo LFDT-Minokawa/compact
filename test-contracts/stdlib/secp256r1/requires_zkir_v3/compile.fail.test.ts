@@ -13,22 +13,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import { defineCompileTest } from '@test/compact-test';
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+// No flag, so the secp256r1 library is missing and naming one of its types
+// fails.
+export default defineCompileTest(import.meta.url, {
+    expectedError: /unbound identifier Secp256r1Point/,
+});
