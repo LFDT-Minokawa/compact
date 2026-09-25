@@ -17,19 +17,23 @@ if exists("b:current_syntax")
   finish
 endif
 
+" '$' is a valid identifier character (see the lexer), so it must not split a
+" word for keyword matching -- otherwise 'private$secret_key' matches 'private'.
+syn iskeyword @,48-57,_,192-255,$
+
 syn keyword compactKeyword as assert circuit constructor contract default disclose emit enum export from implements import include ledger module new pad pragma prefix pure return sealed slice struct type witness
 syn keyword compactBoolean true false
 syn keyword compactType Boolean Bytes Field Opaque Uint Vector
 syn keyword compactType Kernel Counter Set Map List MerkleTree HistoricMerkleTree
 syn keyword compactConditional if else 
 syn keyword compactStorageClass const
-syn keyword compactFutureReservedWord this await break case catch class continue debugger delete do extends finally function in instanceof null super switch throw try typeof var void while with yield implements interface package private protected public let static
+syn keyword compactFutureReservedWord arguments await break case catch class continue debugger delete do eval event extends finally function in instanceof interface let null package private protected public static super switch this throw try typeof var void while with yield
 syn match compactOperator "="
 syn match compactOperator "+="
 syn match compactOperator "-="
 syn match compactOperator "!"
-syn match compactOperator "."
-syn match compactOperator ".."
+syn match compactOperator "\."
+syn match compactOperator "\.\.\."
 syn match compactOperator "#"
 syn match compactOperator "+"
 syn match compactOperator "*"
@@ -50,8 +54,14 @@ syn keyword compactTodo contained TODO FIXME XXX NOTE
 syn match compactComment "//.*$" contains=compactTodo
 syn region compactComment start="/\*" end="\*/" contains=compactTodo
 syn region compactString start="\"" skip="\\\\\|\\\"" end="\""
+" Catch-all so that no operator match can claim part of a word. Deliberately
+" left unlinked: identifiers are rendered as plain text.
 syn match compactIdentifier '[a-zA-Z_$][a-zA-Z0-9_$]*'
 syn match compactNumber '\d\+'
+
+" Without this, /* ... */ blocks lose their highlighting when the window is
+" scrolled into the middle of one.
+syn sync ccomment compactComment minlines=100
 
 let b:current_syntax = "compact"
 
@@ -59,6 +69,8 @@ hi def link compactKeyword Keyword
 hi def link compactBoolean Boolean
 hi def link compactType Type
 hi def link compactConditional Conditional
+" Reserved for future use: these are rejected by the compiler today.
+hi def link compactFutureReservedWord Error
 hi def link compactStorageClass StorageClass
 hi def link compactOperator Operator
 hi def link compactRepeat Repeat
