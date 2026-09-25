@@ -20,6 +20,27 @@ jobs:
       - name: Checkout compactc repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      # Fails only when a name some fixture used on the base branch is used by none now.
+      # The base has no report until this index first merges, so that case is skipped.
+      - name: Fail if a name lost fixture coverage
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: |
+          git fetch --depth=1 origin "$BASE_SHA"
+          if git cat-file -e "$BASE_SHA:test-contracts/coverage/usage.md"; then
+            git show "$BASE_SHA:test-contracts/coverage/usage.md" > "$RUNNER_TEMP/base-usage.md"
+            node ./test-contracts/coverage/usage-index.ts --check "$RUNNER_TEMP/base-usage.md"
+          else
+            echo 'The base has no usage index yet, so nothing can have lost coverage.'
+          fi
+
+      - name: Warn if the committed usage index is stale
+        run: |
+          node ./test-contracts/coverage/usage-index.ts
+          git diff --quiet test-contracts/coverage/usage.md \
+            || echo '::warning::test-contracts/coverage/usage.md is out of date. Merge main, run `yarn usage-index` in test-contracts/, and commit the result.'
+
       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
         with:
