@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.110, language 0.26.105, runtime 0.19.105]
+
+### Added
+
+- Add `secp256r1EcdsaRecover` to the Compact JavaScript runtime.  Given a
+  32-byte message hash, an ECDSA signature and a recovery id,
+  it returns the corresponding secp256r1 public key.
+
+  Recovery runs off-circuit, as it does for secp256k1.  The standard library
+  has no secp256r1 equivalent of `secp256k1EcdsaVerify` yet, so a recovered
+  secp256r1 key cannot be constrained in circuit.
+
+### Changed
+
+- Compiled contracts now reject invalid `Secp256k1Point`, `Secp256r1Point` and
+  `Curve25519Point` values passed in from JavaScript as circuit or constructor
+  arguments or as witness results.  A point is invalid if a coordinate is
+  outside the curve's base field, or if it is not on the curve. An
+  invalid point is now a type error instead of being computed with.
+
 ## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
 
 ### Added

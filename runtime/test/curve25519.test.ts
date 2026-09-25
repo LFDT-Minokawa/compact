@@ -13,13 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Ed25519 is exposed to Compact as Curve25519Base, Curve25519Scalar and
+// Curve25519 is exposed to Compact as Curve25519Base, Curve25519Scalar and
 // Curve25519Point, so the runtime functions tested here use those names.
 
 import { describe, expect, test } from 'vitest';
 import * as runtime from '../src/index.js';
 
-// The Ed25519 generator and the group identity. Unlike secp256k1 and
+// The Curve25519 generator and the group identity. Unlike secp256k1 and
 // secp256r1, the identity is an ordinary affine point, (0, 1).
 const G: runtime.Curve25519Point = {
   x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,
@@ -33,7 +33,7 @@ const negate = (p: runtime.Curve25519Point): runtime.Curve25519Point => ({
   y: p.y,
 });
 
-describe('ed25519 group operations', () => {
+describe('curve25519 group operations', () => {
   test('mulGenerator matches the generator and the identity', () => {
     expect(runtime.curve25519MulGenerator(1n)).toEqual(G);
     expect(runtime.curve25519MulGenerator(0n)).toEqual(IDENTITY);
@@ -96,61 +96,72 @@ describe('ed25519 group operations', () => {
   });
 });
 
-describe('ed25519 point validation', () => {
+describe('curve25519 point validation', () => {
   const P = runtime.CURVE25519_BASE_MODULUS;
 
+  test('accepts the generator and computed points', () => {
+    expect(runtime.isValidCurve25519Point(G)).toBe(true);
+    expect(runtime.isValidCurve25519Point(runtime.curve25519MulGenerator(7n))).toBe(true);
+    expect(runtime.isValidCurve25519Point(negate(G))).toBe(true);
+  });
+
   test('the identity is accepted, it lies on the curve', () => {
+    expect(runtime.isValidCurve25519Point(IDENTITY)).toBe(true);
     expect(runtime.curve25519Add(IDENTITY, IDENTITY)).toEqual(IDENTITY);
     expect(runtime.curve25519Mul(IDENTITY, 5n)).toEqual(IDENTITY);
   });
 
   test('rejects a point that is not on the curve', () => {
     // (1, 1) does not satisfy the curve equation.
-    const offCurve = { x: 1n, y: 1n };
-    expect(() => runtime.curve25519Add(offCurve, G)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Add(G, offCurve)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Mul(offCurve, 2n)).toThrow(runtime.CompactError);
+    expect(runtime.isValidCurve25519Point({ x: 1n, y: 1n })).toBe(false);
+    expect(runtime.isValidCurve25519Point({ x: G.x, y: G.y + 1n })).toBe(false);
   });
 
   test('rejects (0, 0), which is the identity only on the secp curves', () => {
-    const zero = { x: 0n, y: 0n };
-    expect(() => runtime.curve25519Add(zero, G)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Mul(zero, 2n)).toThrow(runtime.CompactError);
+    expect(runtime.isValidCurve25519Point({ x: 0n, y: 0n })).toBe(false);
   });
 
   test('rejects a point from another curve', () => {
     const alien = runtime.secp256k1MulGenerator(1n);
-    expect(() => runtime.curve25519Add({ x: alien.x % P, y: alien.y % P }, G)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Mul({ x: alien.x % P, y: alien.y % P }, 2n)).toThrow(runtime.CompactError);
+    expect(runtime.isValidCurve25519Point({ x: alien.x % P, y: alien.y % P })).toBe(false);
   });
 
   test('rejects a coordinate that is not reduced', () => {
-    expect(() => runtime.curve25519Add({ x: P, y: G.y }, G)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Add({ x: G.x, y: P + G.y }, G)).toThrow(runtime.CompactError);
+    expect(runtime.isValidCurve25519Point({ x: P, y: G.y })).toBe(false);
+    expect(runtime.isValidCurve25519Point({ x: G.x, y: P + G.y })).toBe(false);
     // (p, 1) reduces to the identity, but is still not a valid encoding of it.
-    expect(() => runtime.curve25519Add({ x: P, y: 1n }, G)).toThrow(runtime.CompactError);
+    expect(runtime.isValidCurve25519Point({ x: P, y: 1n })).toBe(false);
+  });
+
+  test('rejects a value that is not a point object', () => {
+    expect(runtime.isValidCurve25519Point(null)).toBe(false);
+    expect(runtime.isValidCurve25519Point(undefined)).toBe(false);
+    expect(runtime.isValidCurve25519Point(5n)).toBe(false);
+    expect(runtime.isValidCurve25519Point({ x: G.x })).toBe(false);
+  });
+
+  test('rejects coordinates that are not bigints', () => {
+    expect(runtime.isValidCurve25519Point({ x: 0, y: 1 })).toBe(false);
+    expect(runtime.isValidCurve25519Point({ x: G.x.toString(), y: G.y })).toBe(false);
   });
 
   test('rejects a negative coordinate', () => {
-    expect(() => runtime.curve25519Add({ x: -G.x, y: G.y }, G)).toThrow(runtime.CompactError);
-    expect(() => runtime.curve25519Add({ x: G.x, y: -1n }, G)).toThrow(runtime.CompactError);
-  });
-
-  test('a validity failure names the curve', () => {
-    expect(() => runtime.curve25519Add({ x: 1n, y: 1n }, G)).toThrow(/not a valid curve25519 point/);
+    expect(runtime.isValidCurve25519Point({ x: -G.x, y: G.y })).toBe(false);
+    expect(runtime.isValidCurve25519Point({ x: G.x, y: -1n })).toBe(false);
   });
 
   test('accepts a small-order point, only the curve equation is checked', () => {
     // (0, -1) lies on the curve and has order 2, so it is outside the
     // prime-order subgroup generated by G.
     const order2 = { x: 0n, y: P - 1n };
+    expect(runtime.isValidCurve25519Point(order2)).toBe(true);
     expect(runtime.curve25519Add(order2, order2)).toEqual(IDENTITY);
     expect(runtime.curve25519Mul(order2, 2n)).toEqual(IDENTITY);
     expect(runtime.curve25519Add(runtime.curve25519Add(G, order2), order2)).toEqual(G);
   });
 });
 
-describe('ed25519 point coordinates', () => {
+describe('curve25519 point coordinates', () => {
   test('pointX and pointY extract the affine coordinates', () => {
     expect(runtime.curve25519PointX(G)).toEqual(G.x);
     expect(runtime.curve25519PointY(G)).toEqual(G.y);
@@ -162,7 +173,7 @@ describe('ed25519 point coordinates', () => {
   });
 });
 
-describe('ed25519 scalar field operations', () => {
+describe('curve25519 scalar field operations', () => {
   const L = runtime.CURVE25519_SCALAR_MODULUS;
   const a = 123456789n;
   const b = L - 7n;
@@ -214,7 +225,7 @@ describe('ed25519 scalar field operations', () => {
   });
 });
 
-describe('ed25519 base field operations', () => {
+describe('curve25519 base field operations', () => {
   const P = runtime.CURVE25519_BASE_MODULUS;
   const a = 987654321n;
   const b = P - 11n;
@@ -260,7 +271,7 @@ describe('ed25519 base field operations', () => {
   });
 
   test('the generator satisfies the curve equation', () => {
-    // Ed25519 is -x^2 + y^2 = 1 + d*x^2*y^2 with d = -121665/121666.
+    // In twisted Edwards form, Curve25519 is -x^2 + y^2 = 1 + d*x^2*y^2 with d = -121665/121666.
     const d = runtime.curve25519BaseMul(runtime.curve25519BaseNeg(121665n), runtime.curve25519BaseInv(121666n));
     const x2 = runtime.curve25519BaseMul(G.x, G.x);
     const y2 = runtime.curve25519BaseMul(G.y, G.y);
@@ -270,7 +281,7 @@ describe('ed25519 base field operations', () => {
   });
 });
 
-describe('ed25519 serialization', () => {
+describe('curve25519 serialization', () => {
   const L = runtime.CURVE25519_SCALAR_MODULUS;
   const P = runtime.CURVE25519_BASE_MODULUS;
   const Scalar = runtime.CompactTypeCurve25519Scalar;

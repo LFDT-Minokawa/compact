@@ -46,6 +46,63 @@ describe('secp256k1 group operations', () => {
   });
 });
 
+describe('secp256k1 point validation', () => {
+  const P = runtime.SECP256K1_BASE_MODULUS;
+
+  test('accepts the generator and computed points', () => {
+    expect(runtime.isValidSecp256k1Point(G)).toBe(true);
+    expect(runtime.isValidSecp256k1Point(runtime.secp256k1MulGenerator(7n))).toBe(true);
+  });
+
+  test('the identity is accepted, it has no curve equation to satisfy', () => {
+    expect(runtime.isValidSecp256k1Point(IDENTITY)).toBe(true);
+    expect(runtime.secp256k1Add(IDENTITY, IDENTITY)).toEqual(IDENTITY);
+    expect(runtime.secp256k1Mul(IDENTITY, 5n)).toEqual(IDENTITY);
+  });
+
+  test('the identity flag wins over in-range coordinates', () => {
+    expect(runtime.isValidSecp256k1Point({ x: 3n, y: 4n, identity: true })).toBe(true);
+    expect(runtime.isValidSecp256k1Point({ ...G, identity: true })).toBe(true);
+  });
+
+  test('rejects (0, 0) when it is not flagged as the identity', () => {
+    expect(runtime.isValidSecp256k1Point({ x: 0n, y: 0n, identity: false })).toBe(false);
+  });
+
+  test('rejects a point that is not on the curve', () => {
+    // (1, 1) satisfies neither curve equation.
+    expect(runtime.isValidSecp256k1Point({ x: 1n, y: 1n, identity: false })).toBe(false);
+  });
+
+  test('rejects a point from the other curve', () => {
+    expect(runtime.isValidSecp256k1Point(runtime.secp256r1MulGenerator(1n))).toBe(false);
+  });
+
+  test('rejects a coordinate that is not reduced', () => {
+    expect(runtime.isValidSecp256k1Point({ x: P, y: G.y, identity: false })).toBe(false);
+    expect(runtime.isValidSecp256k1Point({ x: G.x, y: P, identity: false })).toBe(false);
+    // The identity's coordinates are range-checked too.
+    expect(runtime.isValidSecp256k1Point({ x: P, y: 0n, identity: true })).toBe(false);
+  });
+
+  test('rejects a negative coordinate', () => {
+    expect(runtime.isValidSecp256k1Point({ x: -G.x, y: G.y, identity: false })).toBe(false);
+    expect(runtime.isValidSecp256k1Point({ x: 0n, y: -1n, identity: true })).toBe(false);
+  });
+
+  test('rejects a value that is not a point object', () => {
+    expect(runtime.isValidSecp256k1Point(null)).toBe(false);
+    expect(runtime.isValidSecp256k1Point(undefined)).toBe(false);
+    expect(runtime.isValidSecp256k1Point(5n)).toBe(false);
+    expect(runtime.isValidSecp256k1Point({ x: G.x, y: G.y })).toBe(false);
+  });
+
+  test('rejects fields of the wrong type', () => {
+    expect(runtime.isValidSecp256k1Point({ x: 0, y: 0, identity: true })).toBe(false);
+    expect(runtime.isValidSecp256k1Point({ x: G.x, y: G.y, identity: 'false' })).toBe(false);
+  });
+});
+
 describe('secp256k1 scalar field operations', () => {
   const N = runtime.SECP256K1_SCALAR_MODULUS;
   const a = 123456789n;

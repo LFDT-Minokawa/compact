@@ -676,7 +676,9 @@ export function secp256k1PointY(pt: Secp256k1Point): bigint {
 /**
  * The Compact builtin `ecAdd` function for secp256k1 points.
  *
- * This function adds two elliptic curve points.
+ * This function adds two elliptic curve points. The points are assumed to be
+ * valid, points passed from compiler-generated code are always valid ones.
+ * @internal
  */
 export function secp256k1Add(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point {
   return secp256k1FromProjective(secp256k1ToProjective(a).add(secp256k1ToProjective(b)));
@@ -684,6 +686,10 @@ export function secp256k1Add(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Poi
 
 /**
  * The Compact builtin `ecMul` function for secp256k1 points.
+ *
+ * The point is assumed to be valid, points passed from compiler-generated code
+ * are always valid ones.
+ * @internal
  */
 export function secp256k1Mul(a: Secp256k1Point, b: bigint): Secp256k1Point {
   // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
@@ -730,7 +736,9 @@ export function secp256r1PointY(pt: Secp256r1Point): bigint {
 /**
  * The Compact builtin `ecAdd` function for secp256r1 points.
  *
- * This function adds two elliptic curve points.
+ * This function adds two elliptic curve points. The points are assumed to be
+ * valid, points passed from compiler-generated code are always valid ones.
+ * @internal
  */
 export function secp256r1Add(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point {
   return secp256r1FromProjective(secp256r1ToProjective(a).add(secp256r1ToProjective(b)));
@@ -738,6 +746,10 @@ export function secp256r1Add(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Poi
 
 /**
  * The Compact builtin `ecMul` function for secp256r1 points.
+ *
+ * The point is assumed to be valid, points passed from compiler-generated code
+ * are always valid ones.
+ * @internal
  */
 export function secp256r1Mul(a: Secp256r1Point, b: bigint): Secp256r1Point {
   // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
@@ -778,7 +790,9 @@ export function curve25519PointY(pt: Curve25519Point): bigint {
 /**
  * The Compact builtin `ecAdd` function for Curve25519 points.
  *
- * This function adds two elliptic curve points.
+ * This function adds two elliptic curve points. The points are assumed to be
+ * valid, points passed from compiler-generated code are always valid ones.
+ * @internal
  */
 export function curve25519Add(a: Curve25519Point, b: Curve25519Point): Curve25519Point {
   return curve25519FromProjective(curve25519ToProjective(a).add(curve25519ToProjective(b)));
@@ -786,6 +800,10 @@ export function curve25519Add(a: Curve25519Point, b: Curve25519Point): Curve2551
 
 /**
  * The Compact builtin `ecMul` function for Curve25519 points.
+ *
+ * The points are assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
  */
 export function curve25519Mul(a: Curve25519Point, b: bigint): Curve25519Point {
   // `multiplyUnsafe` is used, instead of `multiply`, because the latter rejects
