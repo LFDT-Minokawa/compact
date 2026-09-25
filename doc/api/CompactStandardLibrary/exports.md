@@ -109,6 +109,18 @@ struct Secp256r1EcdsaSignature {
 }
 ```
 
+### `Ed25519Signature`
+
+An Ed25519 signature, used with [`ed25519Verify`](#ed25519verify): the
+commitment point `r` and the response scalar `s`.
+
+```compact
+struct Ed25519Signature {
+  r: Curve25519Point;
+  s: Curve25519Scalar;
+}
+```
+
 ### `MerkleTreeDigest`
 
 The root hash of a Merkle tree, represented by a single `Field`.
@@ -868,6 +880,22 @@ To actually enforce that a signature is valid in a Compact circuit, use an
 
 ```compact
 circuit secp256r1EcdsaVerify(msgHash: Bytes<32>, sig: Secp256r1EcdsaSignature, pk: Secp256r1Point): Boolean;
+```
+
+### `ed25519Verify`
+
+Verifies an Ed25519 signature (RFC 8032) over a message of `n` bytes. Takes the
+message, an [`Ed25519Signature`](#ed25519signature), and a public key (a
+`Curve25519Point`). The message is hashed in-circuit with SHA-512, as the
+standard prescribes.
+Asserts that the verification key is not the identity Curve25519Point.
+Returns true if the signature is valid; false otherwise.
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit ed25519Verify<#n>(msg: Bytes<n>, sig: Ed25519Signature, pk: Curve25519Point): Boolean;
 ```
 
 ### `merkleTreePathRoot`

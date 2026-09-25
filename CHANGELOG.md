@@ -16,6 +16,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
   **This feature requires the flag `--feature-zkir-v3`.**
 
+- The standard library has a new circuit `ed25519Verify<#n>` that verifies an
+  Ed25519 signature (RFC 8032) over an `n`-byte message and returns a boolean
+  value telling whether the verification succeeded.  The challenge is hashed
+  in-circuit with `sha512`.  It asserts that the public key is not the
+  identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
 ## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
 
 ### Added
