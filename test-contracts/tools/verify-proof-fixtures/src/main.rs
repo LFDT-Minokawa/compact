@@ -36,11 +36,13 @@
 //! Beside it goes `<circuit>.verifier`, the same key as raw bytes, because
 //! `verifyProof` names its key by pathname and reads the file at compile time.
 //!
-//! `vkHash` is sha256 of the decoded `vk`. Note it is *not* the `vk_hash` ZKIR
-//! emits: that one is taken over the `verify_proof_vks` entry, which prefixes
-//! the key with a decider byte. This one identifies the bundle, so a test can
-//! check the `.verifier` the contract names is the key the proof was made
-//! against. `instance` is the statement's public inputs, as decimal field
+//! `vk` is the key as its `verify_proof_vks` entry, written by
+//! `midnight_zkir::decider::serialize_vk`: a decider tag byte (`0` for
+//! `DeciderKind::None`, `1` for `DeciderKind::Collapsed`) followed by the
+//! processed key. Each relation module declares its kind as `DECIDER`. `vkHash`
+//! is sha256 of that entry, so it equals the `vk_hash` ZKIR emits for it, and a
+//! test can check the `.verifier` the contract names is the key the proof was
+//! made against. `instance` is the statement's public inputs, as decimal field
 //! elements in the order the contract passes them to verifyProof.
 //!
 //! The relations live in `src/proofs/`, one module each, and every one is
@@ -61,6 +63,7 @@ use midnight_curves::{Bls12, Fq};
 use midnight_proofs::poly::kzg::params::ParamsKZG;
 use midnight_proofs::utils::SerdeFormat;
 use midnight_zk_stdlib::{optimal_k, prove, setup_pk, setup_vk, Relation};
+use midnight_zkir::decider::{serialize_vk, DeciderKind};
 use rand::SeedableRng;
 use rand_chacha::ChaCha20Rng;
 use sha2::Digest;
@@ -149,9 +152,8 @@ fn write_bundle(out_file: &Path, circuit: &str, vk_blob: &[u8], proof: &[u8], pi
 
     // The same key again, as bytes rather than base64: `verifyProof` names its
     // key by pathname and reads the file during macro expansion, so the
-    // compiler needs it on disk. Bare `SerdeFormat::Processed` with no tagged
-    // envelope -- a key from midnight-zk carries no version tag, which is the
-    // case `inner_vk_from_verifier_key` takes untagged.
+    // compiler needs it on disk. The compiler takes these bytes as the
+    // `verify_proof_vks` entry unchanged, decider tag included.
     let vk_file = out_file.with_extension("verifier");
     fs::write(&vk_file, vk_blob).expect("write inner verifying key");
 
@@ -165,6 +167,7 @@ fn write_bundle(out_file: &Path, circuit: &str, vk_blob: &[u8], proof: &[u8], pi
 
 pub(crate) fn generate<R: Relation + Default>(
     circuit: &str,
+    decider: DeciderKind,
     out_dir: &Path,
     instance: &R::Instance,
     witness: R::Witness,
@@ -179,9 +182,7 @@ pub(crate) fn generate<R: Relation + Default>(
     let vk = setup_vk(&srs, &relation);
     let pk = setup_pk(&relation, &vk);
 
-    let mut vk_blob = Vec::new();
-    vk.write(&mut vk_blob, SerdeFormat::Processed)
-        .expect("serialize inner vk");
+    let vk_blob = serialize_vk(&vk, decider).expect("serialize inner vk");
 
     let started = Instant::now();
     let proof = prove::<R, PoseidonState<Fq>>(

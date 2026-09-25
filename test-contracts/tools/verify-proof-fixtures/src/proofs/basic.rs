@@ -29,9 +29,14 @@ use midnight_curves::Fq;
 use midnight_proofs::circuit::{Layouter, Value};
 use midnight_proofs::plonk;
 use midnight_zk_stdlib::{Relation, ZkStdLib, ZkStdLibArch};
+use midnight_zkir::decider::DeciderKind;
 
 /// The relation the fixture's verifying key is generated from.
 pub type Circuit = SingleScalarRelation;
+
+/// Written as the key's decider tag. This relation verifies no proof of its
+/// own, so it carries no accumulator to collapse.
+pub const DECIDER: DeciderKind = DeciderKind::None;
 
 /// The statement proven. The harness's `scalar_inner_proof` uses 123.
 pub fn instance() -> Fq {

@@ -419,8 +419,9 @@
     (define-record-type verifying-key
       (nongenerative)
       ;; `pathname` is what the contract wrote, and is what diagnostics should
-      ;; name -- but `resolved-pathname` is the file actually found for it, which
-      ;; is what `zkir-v3 inner-vk` has to be handed.
+      ;; name; `resolved-pathname` is the file actually found for it. `content`
+      ;; is that file's bytes: a decider tag followed by the processed key,
+      ;; which is the `verify_proof_vks` entry as is.
       (fields pathname resolved-pathname content))
     (record-writer (record-type-descriptor verifying-key)
       (lambda (x p wr)

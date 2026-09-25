@@ -24,5 +24,5 @@ pub mod basic;
 
 /// Rebuilds every inner proof into `out_dir`, one bundle per circuit.
 pub fn generate_all(out_dir: &Path) {
-    crate::generate::<basic::Circuit>("basic", out_dir, &basic::instance(), basic::witness());
+    crate::generate::<basic::Circuit>("basic", basic::DECIDER, out_dir, &basic::instance(), basic::witness());
 }

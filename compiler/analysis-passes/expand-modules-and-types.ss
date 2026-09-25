@@ -704,12 +704,19 @@
                                                                                      (find-source-pathname "" pathname
                                                                                        (lambda (pathname)
                                                                                          (source-errorf src "failed to locate file ~s" pathname)))])
-                                                                                (make-verifying-key
-                                                                                  pathname
-                                                                                  resolved-pathname
-                                                                                  (guard (c [else (error-accessing-file c "reading verifying key file")])
-                                                                                    (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
-                                                                                      (if (eof-object? x) (bytevector) x)))))
+                                                                                (let ([content (guard (c [else (error-accessing-file c "reading verifying key file")])
+                                                                                                 (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
+                                                                                                   (if (eof-object? x) (bytevector) x)))])
+                                                                                  ;; The file is the `verify_proof_vks` entry: a decider
+                                                                                  ;; tag, 0 for DeciderKind::None or 1 for
+                                                                                  ;; DeciderKind::Collapsed, then the processed key. Only
+                                                                                  ;; the tag is checked here; zkir deserializes the rest.
+                                                                                  (when (fx= (bytevector-length content) 0)
+                                                                                    (source-errorf src "verifying key file ~s is empty" pathname))
+                                                                                  (unless (memv (bytevector-u8-ref content 0) '(0 1))
+                                                                                    (source-errorf src "verifying key file ~s does not start with a decider tag: its first byte is ~d, not 0 (DeciderKind::None) or 1 (DeciderKind::Collapsed); write the key with midnight_zkir::decider::serialize_vk"
+                                                                                      pathname (bytevector-u8-ref content 0)))
+                                                                                  (make-verifying-key pathname resolved-pathname content)))
                                                                              ,(Expression proof-expr p)
                                                                              ,(Expression pi-expr p))))))))))
                                                         (map (lambda (adt-defn)

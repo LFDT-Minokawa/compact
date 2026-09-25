@@ -63,13 +63,11 @@
   ;; not generated (e.g. a `--skip-zk` build).
   (define verifier-key-hashes (make-parameter '()))
 
-  ;; Re-encodes an inner verifying key: takes a `verifying-key` record and returns
-  ;; a pair of its `verify_proof_vks` blob and that blob's lowercase hex SHA-256.
-  ;; Populated in `passes.ss` and read by the ZKIR v3 pass, which cannot derive
-  ;; the blob itself -- a `.verifier` file is a tagged `VerifierKey` wrapped in a
-  ;; SCALE length, and only `zkir-v3` knows how to unwrap it. `#f` when the tool
-  ;; is unavailable, which `verifyProof` reports rather than emitting a key no
-  ;; verifier could match.
+  ;; Takes a `verifying-key` record and returns a pair of its `verify_proof_vks`
+  ;; entry and that entry's lowercase hex SHA-256. The entry is the key file's
+  ;; bytes, which carry their own decider tag. Populated in `passes.ss` and read
+  ;; by the ZKIR v3 and TypeScript passes, so both emit the same bytes. `#f`
+  ;; outside a compilation that installs one.
   (define inner-verifying-key-blob (make-parameter #f))
 
   (define-record-type passrec

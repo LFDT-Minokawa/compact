@@ -406,7 +406,7 @@ async function regenerateInnerProofs(): Promise<void> {
     } catch {
         fail(
             'verify-proof-fixtures is not built, so inner proofs cannot be rebuilt.\n' +
-                '  build it with: cargo build --release --manifest-path tools/verify-proof-fixtures/Cargo.toml\n' +
+                '  build it with: cargo +1.95.0 build --release --manifest-path tools/verify-proof-fixtures/Cargo.toml\n' +
                 '  or run ./test-contracts/test.sh, which builds it first.',
         );
     }

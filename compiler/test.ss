@@ -927,8 +927,9 @@ groups than for single tests.
 ;;; verifying key read at compile time.  The key lives outside `testdir`, which
 ;;; `recreate-testdir` wipes between runs, so `compact-path` reaches it instead.
 ;;; `compiler/testdata/testfile.verifier` is a placeholder rather than a real
-;;; key: expansion only slurps the file's bytes, but verifying a proof against
-;;; it would not, so these tests stop short of the staged JavaScript.
+;;; key: expansion only slurps the file's bytes and checks its decider tag, but
+;;; verifying a proof against it would not, so these tests stop short of the
+;;; staged JavaScript.
 
  (with-compact-path '("compiler/testdata")
   (test
@@ -1366,6 +1367,36 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 5 char 3" "failed to locate file ~s" ("no-such-key.verifier")))
     )
+
+ (with-compact-path '("compiler/testdata")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof('empty.verifier', p, [X, disclose(y)]);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "verifying key file ~s is empty" ("empty.verifier")))
+    ))
+
+ (with-compact-path '("compiler/testdata")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger X: Field;"
+      "export circuit foo(x: Field, y: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  X = disclose(x);"
+      "  verifyProof('bad-tag.verifier', p, [X, disclose(y)]);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 3" "verifying key file ~s does not start with a decider tag: its first byte is ~d, not 0 (DeciderKind::None) or 1 (DeciderKind::Collapsed); write the key with midnight_zkir::decider::serialize_vk" ("bad-tag.verifier" 2)))
+    ))
 )
 (run-javascript)
 )

@@ -17,6 +17,9 @@
 name = "verify-proof-fixtures"
 version = "0.0.0"
 edition = "2021"
+# midnight-zkir's ledger dependencies need 1.95, newer than the 1.88 the
+# repository pins, so test.sh builds this with `cargo +1.95.0`.
+rust-version = "1.95"
 license = "Apache-2.0"
 publish = false
 
@@ -25,10 +28,13 @@ publish = false
 [workspace]
 
 [dependencies]
-# Pinned to what midnight-ledger's zkir-v3 requires (^2.3.3), so the verifying
+# Pinned to what midnight-zkir requires (^2.3.5, ^7.2.4), so the verifying
 # keys and proofs this produces are the ones its verify_proof path expects.
-midnight-zk-stdlib = "2.3.4"
-midnight-circuits = "7.2.3"
+midnight-zk-stdlib = "2.3.5"
+midnight-circuits = "7.2.4"
+# For `decider::serialize_vk`, which writes a key as its `verify_proof_vks`
+# entry. The rev the flake pins for zkir-v3.
+midnight-zkir = { git = "https://github.com/midnightntwrk/midnight-zkir", rev = "e602b03136c13ace761aa54fed72205dff33c7be" }
 midnight-curves = "0.3.1"
 midnight-proofs = { version = "0.8.2", default-features = false, features = ["circuit-params", "committed-instances"] }
 base64 = "0.22"
@@ -36,6 +42,14 @@ ff = "0.13"
 rand = "0.8"
 rand_chacha = "0.3"
 sha2 = "0.10"
+
+# midnight-zkir's own patches: without them cargo cannot resolve the
+# midnight-base-crypto it depends on.
+[patch.crates-io]
+midnight-base-crypto = { git = "https://github.com/midnightntwrk/midnight-ledger", rev = "a6e736e79bb8b188aad3f7ce1b5744806f94a1bb" }
+midnight-serialize = { git = "https://github.com/midnightntwrk/midnight-ledger", rev = "a6e736e79bb8b188aad3f7ce1b5744806f94a1bb" }
+midnight-transient-crypto = { git = "https://github.com/midnightntwrk/midnight-ledger", rev = "a6e736e79bb8b188aad3f7ce1b5744806f94a1bb" }
+midnight-storage-core = { git = "https://github.com/midnightntwrk/midnight-ledger", rev = "a6e736e79bb8b188aad3f7ce1b5744806f94a1bb" }
 
 [profile.release]
 opt-level = 3
