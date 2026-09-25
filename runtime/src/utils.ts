@@ -28,7 +28,7 @@ import {
   Secp256r1Point,
 } from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
-import { CURVE25519_BASE_MODULUS } from './constants.js';
+import { CURVE25519_BASE_MODULUS, SECP256K1_BASE_MODULUS, SECP256R1_BASE_MODULUS } from './constants.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
 /**
@@ -61,24 +61,44 @@ export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
 
 /**
+ * Check whether a value is a valid `Secp256k1Point`: an object whose `x` and `y`
+ * are bigints in the base field and whose `identity` is a boolean. A point that
+ * is not the identity must also lie on the curve.
+ */
+export function isValidSecp256k1Point(p: unknown): p is Secp256k1Point {
+  if (typeof p !== 'object' || p === null) {
+    return false;
+  }
+  const { x, y, identity } = p as { x: unknown; y: unknown; identity: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint' || typeof identity !== 'boolean') {
+    return false;
+  }
+  // The identity's coordinates never reach `fromAffine`, so the field range is checked here.
+  if (x < 0n || x >= SECP256K1_BASE_MODULUS || y < 0n || y >= SECP256K1_BASE_MODULUS) {
+    return false;
+  }
+  if (!identity) {
+    try {
+      // `fromAffine` only range-checks the coordinates, so the curve equation is checked separately.
+      secp256k1.Point.fromAffine({ x, y }).assertValidity();
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is checked
- * to have in-range coordinates and to lie on the curve.
- *
- * `fromAffine` only range-checks the coordinates, so the curve equation needs the
- * separate `assertValidity` call.
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
  */
 export function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.Point.fromAffine> {
   if (p.identity) {
     return secp256k1.Point.ZERO;
   }
-  try {
-    const q = secp256k1.Point.fromAffine({ x: p.x, y: p.y });
-    q.assertValidity();
-    return q;
-  } catch (e) {
-    throw new CompactError(`not a valid secp256k1 point: ${e instanceof Error ? e.message : String(e)}`);
-  }
+  return secp256k1.Point.fromAffine({ x: p.x, y: p.y });
 }
 
 /**
@@ -96,24 +116,44 @@ export function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fro
 }
 
 /**
+ * Check whether a value is a valid `Secp256r1Point`: an object whose `x` and `y`
+ * are bigints in the base field and whose `identity` is a boolean. A point that
+ * is not the identity must also lie on the curve.
+ */
+export function isValidSecp256r1Point(p: unknown): p is Secp256r1Point {
+  if (typeof p !== 'object' || p === null) {
+    return false;
+  }
+  const { x, y, identity } = p as { x: unknown; y: unknown; identity: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint' || typeof identity !== 'boolean') {
+    return false;
+  }
+  // The identity's coordinates never reach `fromAffine`, so the field range is checked here.
+  if (x < 0n || x >= SECP256R1_BASE_MODULUS || y < 0n || y >= SECP256R1_BASE_MODULUS) {
+    return false;
+  }
+  if (!identity) {
+    try {
+      // `fromAffine` only range-checks the coordinates, so the curve equation is checked separately.
+      p256.Point.fromAffine({ x, y }).assertValidity();
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
  * Lift the simple affine `Secp256r1Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is checked
- * to have in-range coordinates and to lie on the curve.
- *
- * `fromAffine` only range-checks the coordinates, so the curve equation needs the
- * separate `assertValidity` call.
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
  */
 export function secp256r1ToProjective(p: Secp256r1Point): ReturnType<typeof p256.Point.fromAffine> {
   if (p.identity) {
     return p256.Point.ZERO;
   }
-  try {
-    const q = p256.Point.fromAffine({ x: p.x, y: p.y });
-    q.assertValidity();
-    return q;
-  } catch (e) {
-    throw new CompactError(`not a valid secp256r1 point: ${e instanceof Error ? e.message : String(e)}`);
-  }
+  return p256.Point.fromAffine({ x: p.x, y: p.y });
 }
 
 /**
@@ -131,20 +171,27 @@ export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffi
 }
 
 /**
- * Check whether a `Curve25519Point` has in-range coordinates and lies on the
- * curve. The identity is the ordinary affine point (0, 1).
- *
- * `fromAffine` only checks the coordinates fit in 256 bits, so the field range
- * is checked here. `assertValidity` checks the curve equation but rejects the
- * identity, so the identity is accepted before it.
+ * Check whether a value is a valid `Curve25519Point`: an object whose `x` and
+ * `y` are bigints in the base field and which lies on the curve. The identity
+ * is the ordinary affine point (0, 1).
  */
-export function curve25519IsValidPoint(p: Curve25519Point): boolean {
-  if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
+export function isValidCurve25519Point(p: unknown): p is Curve25519Point {
+  if (typeof p !== 'object' || p === null) {
     return false;
   }
-  if (p.x !== 0n && p.y !== 1n) {
+
+  const { x, y } = p as { x: unknown; y: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint') {
+    return false;
+  }
+  // `fromAffine` only checks the coordinates fit in 256 bits, so the field range is checked here.
+  if (x < 0n || x >= CURVE25519_BASE_MODULUS || y < 0n || y >= CURVE25519_BASE_MODULUS) {
+    return false;
+  }
+  // `assertValidity` rejects the identity, so it is only called for other points.
+  if (x !== 0n || y !== 1n) {
     try {
-      ed25519.Point.fromAffine({ x: p.x, y: p.y }).assertValidity();
+      ed25519.Point.fromAffine({ x, y }).assertValidity();
     } catch {
       return false;
     }
