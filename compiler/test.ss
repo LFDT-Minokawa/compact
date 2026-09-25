@@ -795,6 +795,7 @@ groups than for single tests.
                     '(
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
                       "import { secp256k1 } from '@noble/curves/secp256k1.js';\n"
+                      "import { p256 } from '@noble/curves/nist.js';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
                       "import { TestChain } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
@@ -95136,6 +95137,51 @@ groups than for single tests.
         "});"
         ))
   )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger B: Boolean;"
+      "// Prove knowledge of an ECDSA signature over secp256r1.  msg is hashed"
+      "// in-circuit before verification, binding the proof to the message."
+      "export circuit verify(msg: Bytes<32>,"
+      "                      sig: Secp256r1EcdsaSignature,"
+      "                      pk: Secp256r1Point): Boolean {"
+      "  B = disclose(secp256r1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk));"
+      "  return B;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('secp256r1 ECDSA verification', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const msg = new Uint8Array(32);"
+        "  for (let i = 0; i < 32; i++) msg[i] = i + 1;"
+        "  const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
+        "  const SK = 7n;"
+        "  // Signing is RFC 6979 deterministic, so the signature is the same on"
+        "  // every run."
+        "  const parsed = p256.Signature.fromBytes("
+        "    p256.sign(digest, p256.Point.Fn.toBytes(SK), { prehash: false }));"
+        "  const sig = { r: parsed.r, s: parsed.s };"
+        "  const pk = runtime.secp256r1MulGenerator(SK);"
+        "  expect((await contract.circuits.verify(context, msg, sig, pk)).result).toEqual(true);"
+        "  // The malleated twin verifies against the same key, as it does for"
+        "  // secp256k1: negating s negates the nonce point, and only its"
+        "  // x-coordinate is compared against r."
+        "  const n = p256.Point.Fn.ORDER;"
+        "  const twin = { r: sig.r, s: n - sig.s };"
+        "  expect((await contract.circuits.verify(context, msg, twin, pk)).result).toEqual(true);"
+        "  // A valid signature does not verify against somebody else's key."
+        "  const otherPk = runtime.secp256r1MulGenerator(SK + 1n);"
+        "  expect((await contract.circuits.verify(context, msg, sig, otherPk)).result).toEqual(false);"
+        "  // The identity public key is rejected outright."
+        "  const identity = runtime.secp256r1MulGenerator(0n);"
+        "  await expect(contract.circuits.verify(context, msg, sig, identity)).rejects.toThrow("
+        "    'failed assert: Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key');"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
