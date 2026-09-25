@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
+
+### Added
+
+- `kernel.caller()` ledger operation returns the caller of a circuit invocation
+  as `Maybe<PublicAddress>`:
+  - `left(addr)` when called by contract `addr`;
+  - `right(addr)` when this is a top-level call and every unshielded input of
+    the containing intent is owned by user `addr` (their unshielded address);
+  - `none` otherwise, and always in a constructor.
+
+  The ledger derives the top-level value from the intent's unshielded inputs,
+  which the wallet adds when it balances the transaction, after the transcript
+  that read `caller` was fixed by proving. Off-chain execution records `none`
+  for a top-level call, so such a call fails on chain with a read mismatch
+  whenever the balanced intent's unshielded inputs all belong to one user.
+  `left(addr)` is reliable: the runtime sets the calling contract for callees
+  and the ledger gives a claiming contract precedence over the inputs. Until
+  an intent can explicitly set the top-level caller, read `kernel.caller()` only where
+  the call is known to come from a contract.
+- `PublicAddress` standard library type alias for
+  `Either<ContractAddress, UserAddress>`.
+
 ## [Toolchain 0.34.108, language 0.26.104, runtime 0.19.104]
 
 ### Added
