@@ -142,21 +142,20 @@ export function curve25519IsValidPoint(p: Curve25519Point): boolean {
   if (p.x < 0n || p.x >= CURVE25519_BASE_MODULUS || p.y < 0n || p.y >= CURVE25519_BASE_MODULUS) {
     return false;
   }
-  if (p.x === 0n && p.y === 1n) {
-    return true;
+  if (p.x !== 0n && p.y !== 1n) {
+    try {
+      ed25519.Point.fromAffine({ x: p.x, y: p.y }).assertValidity();
+    } catch {
+      return false;
+    }
   }
-  try {
-    ed25519.Point.fromAffine({ x: p.x, y: p.y }).assertValidity();
-    return true;
-  } catch {
-    return false;
-  }
+  return true;
 }
 
 /**
  * Lift the simple affine `Curve25519Point` representation into a noble-curves
- * projective point. The point must already be valid; compiled contracts check
- * points when they come in as circuit arguments or witness results.
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
  * @internal
  */
 export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
