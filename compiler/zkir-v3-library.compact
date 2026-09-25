@@ -19,47 +19,18 @@ export struct Secp256k1EcdsaSignature {
   s: Secp256k1Scalar,
 }
 
-// Deserialize a 32-byte hash digest into a secp256k1 scalar.
+// Reverse the byte order of a 32-byte string.
 //
-// By ECDSA convention (https://www.rfc-editor.org/rfc/rfc6979#section-2.3.2) the 
-// digest is the big-endian encoding of an integer, which is then reduced modulo
-// the scalar field's order.
-circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
-  const v = digest as Vector<32, Uint<8>>;
-  const beReversed =
-          Bytes[v[31],
-                v[30],
-                v[29],
-                v[28],
-                v[27],
-                v[26],
-                v[25],
-                v[24],
-                v[23],
-                v[22],
-                v[21],
-                v[20],
-                v[19],
-                v[18],
-                v[17],
-                v[16],
-                v[15],
-                v[14],
-                v[13],
-                v[12],
-                v[11],
-                v[10],
-                v[9],
-                v[8],
-                v[7],
-                v[6],
-                v[5],
-                v[4],
-                v[3],
-                v[2],
-                v[1],
-                v[0]];
-  return beReversed as Secp256k1Scalar;
+// Casting a `Bytes<32>` to a field element reads it as a little-endian integer,
+// while by ECDSA convention (https://www.rfc-editor.org/rfc/rfc6979#section-2.3.2)
+// a hash digest is the big-endian encoding of an integer, which is then reduced
+// modulo the scalar field's order.
+circuit reverseBytes32(b: Bytes<32>): Bytes<32> {
+  const v = b as Vector<32, Uint<8>>;
+  return Bytes[v[31], v[30], v[29], v[28], v[27], v[26], v[25], v[24],
+               v[23], v[22], v[21], v[20], v[19], v[18], v[17], v[16],
+               v[15], v[14], v[13], v[12], v[11], v[10], v[9],  v[8],
+               v[7],  v[6],  v[5],  v[4],  v[3],  v[2],  v[1],  v[0]];
 }
 
 // Verify an ECDSA signature over Secp256k1.
@@ -67,6 +38,10 @@ circuit hashToSecp256k1Scalar(digest: Bytes<32>): Secp256k1Scalar {
 // This circuit takes `msgHash` as given and does not constrain it to any message.
 // The verifier is expected to additionally constrain that value so it is bound to
 // the message actually being verified by hashing the message in-circuit.
+//
+// A digest wider than the 32-byte group order (SHA-512, SHA3-512, ...) is used by
+// passing its leading 32 bytes, `slice<32>(digest, 0)`: FIPS 186-5 section 6.4.2
+// takes the leftmost min(N, 256) bits of the digest, so that is what signers use.
 //
 // Implements the standard ECDSA verification:
 //   w  = s^(-1) mod n
@@ -96,7 +71,7 @@ export circuit secp256k1EcdsaVerify(
                  pk: Secp256k1Point
                  ): Boolean {
   assert(pk != default<Secp256k1Point>, "Secp256k1Point identity is not a permitted secp256k1EcdsaVerify verification key");
-  const z: Secp256k1Scalar = hashToSecp256k1Scalar(msgHash);
+  const z: Secp256k1Scalar = reverseBytes32(msgHash) as Secp256k1Scalar;
   const {r, s} = sig;
   const w: Secp256k1Scalar = inv(s);
   const u1: Secp256k1Scalar = z * w;
@@ -152,4 +127,108 @@ export circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20> {
                   secp256k1BaseBigEndian(secp256k1PointY(pk))]
                  );
   return slice<20>(hash, 12);
+}
+
+// ECDSA signature over Secp256r1 (also known as NIST P-256).
+export struct Secp256r1EcdsaSignature {
+  r: Secp256r1Scalar,
+  s: Secp256r1Scalar,
+}
+
+// Verify an ECDSA signature over Secp256r1 (also known as NIST P-256).
+//
+// This circuit takes `msgHash` as given and does not constrain it to any message.
+// The verifier is expected to additionally constrain that value so it is bound to
+// the message actually being verified by hashing the message in-circuit.
+//
+// A digest wider than the 32-byte group order (SHA-512, SHA3-512, ...) is used by
+// passing its leading 32 bytes, `slice<32>(digest, 0)`: FIPS 186-5 section 6.4.2
+// takes the leftmost min(N, 256) bits of the digest, so that is what signers use.
+//
+// Implements the standard ECDSA verification:
+//   w  = s^(-1) mod n
+//   u1 = (msgHash * w) mod n
+//   u2 = (r * w) mod n
+//   P  = u1*G + u2*pk
+//   valid iff P.x == r as 32-byte big-endian integers
+//
+// As for secp256k1, both low-s and high-s signatures are accepted; a caller that
+// uses a signature as a unique identifier MUST constrain `s <= n / 2` itself.
+export circuit secp256r1EcdsaVerify(
+                 msgHash: Bytes<32>,
+                 sig: Secp256r1EcdsaSignature,
+                 pk: Secp256r1Point
+                 ): Boolean {
+  assert(pk != default<Secp256r1Point>, "Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key");
+  const z: Secp256r1Scalar = reverseBytes32(msgHash) as Secp256r1Scalar;
+  const {r, s} = sig;
+  const w: Secp256r1Scalar = inv(s);
+  const u1: Secp256r1Scalar = z * w;
+  const u2: Secp256r1Scalar = r * w;
+  const point: Secp256r1Point = ecAdd(ecMulGenerator(u1), ecMul(pk, u2));
+  return (secp256r1PointX(point) as Bytes<32>) as Secp256r1Scalar == r;
+}
+
+// Ed25519 signature: the commitment point R and the response s.  The type of `s`
+// guarantees that it lies in [0, L), for L the order of the prime-order subgroup,
+// as RFC 8032 section 5.1.7 requires.
+export struct Ed25519Signature {
+  r: Curve25519Point,
+  s: Curve25519Scalar,
+}
+
+// Whether a Curve25519 base field element is odd.
+//
+// Compact has no bitwise operations, so the low bit is reached by subtracting the
+// higher bits of the least significant byte away one at a time.  Only that byte
+// matters, because every byte above it contributes a multiple of 256.
+circuit curve25519BaseIsOdd(x: Curve25519Base): Boolean {
+  const b = (x as Bytes<32> as Vector<32, Uint<8>>)[0];
+  const b6 = b  >= 128 ? b  - 128 : b;
+  const b5 = b6 >= 64  ? b6 - 64  : b6;
+  const b4 = b5 >= 32  ? b5 - 32  : b5;
+  const b3 = b4 >= 16  ? b4 - 16  : b4;
+  const b2 = b3 >= 8   ? b3 - 8   : b3;
+  const b1 = b2 >= 4   ? b2 - 4   : b2;
+  return (b1 >= 2 ? b1 - 2 : b1) == 1;
+}
+
+// Encode a point as RFC 8032 section 5.1.2 does: the y-coordinate little-endian, with
+// the least significant bit of the x-coordinate in the most significant bit.
+//   https://www.rfc-editor.org/rfc/rfc8032#section-5.1.2
+// The y-coordinate is below p < 2^255 and therefore leaves that bit clear.
+//
+// TODO: replace with a built-in point-to-bytes conversion once the compiler has one.
+circuit ed25519Encode(p: Curve25519Point): Bytes<32> {
+  const y = curve25519PointY(p) as Bytes<32> as Vector<32, Uint<8>>;
+  const sign = curve25519BaseIsOdd(curve25519PointX(p)) ? 128 : 0;
+  return Bytes[y[0],  y[1],  y[2],  y[3],  y[4],  y[5],  y[6],  y[7],
+               y[8],  y[9],  y[10], y[11], y[12], y[13], y[14], y[15],
+               y[16], y[17], y[18], y[19], y[20], y[21], y[22], y[23],
+               y[24], y[25], y[26], y[27], y[28], y[29], y[30],
+               (y[31] + sign) as Uint<8>];
+}
+
+// Verify an Ed25519 signature over a message of `n` bytes, as RFC 8032 section 5.1.7
+// specifies:
+//   k = SHA-512(encode(R) || encode(A) || M) mod L
+//   valid iff [s]B == R + [k]A
+// where B is the Ed25519 base point, R and s are the signature's commitment and
+// response, A is the public key, and M is the message.
+//
+// The identity public key is rejected: it drops the challenge out of the equation,
+// so every (R, s) with [s]B == R would verify.  A circuit can only hold points of
+// the prime-order subgroup, in which the identity is the only point whose
+// x-coordinate is zero.
+export circuit ed25519Verify<#n>(
+                 msg: Bytes<n>,
+                 sig: Ed25519Signature,
+                 pk: Curve25519Point
+                 ): Boolean {
+  assert((curve25519PointX(pk) as Bytes<32>) != pad(32, ""), "Curve25519Point identity is not a permitted ed25519Verify verification key");
+  const {r, s} = sig;
+  const k = sha512<[Bytes<32>, Bytes<32>, Bytes<n>]>(
+              [ed25519Encode(r), ed25519Encode(pk), msg]
+              ) as Curve25519Scalar;
+  return ecMulGenerator(s) == ecAdd(r, ecMul(pk, k));
 }

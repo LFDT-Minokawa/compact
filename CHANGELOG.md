@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.110, language 0.26.106, runtime 0.19.104]
+
+### Added
+
+- The standard library has a new circuit `secp256r1EcdsaVerify` that verifies
+  an ECDSA signature over the secp256r1 (also known as P256) curve and
+  returns a boolean value telling whether the verification succeeded.  Like
+  `secp256k1EcdsaVerify`, it asserts that the public key is not the identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+- The standard library has a new circuit `ed25519Verify<#n>` that verifies an
+  Ed25519 signature (RFC 8032) over an `n`-byte message and returns a boolean
+  value telling whether the verification succeeded.  The challenge is hashed
+  in-circuit with `sha512`.  It asserts that the public key is not the
+  identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
 ## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
 
 ### Added
