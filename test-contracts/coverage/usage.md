@@ -1,8 +1,8 @@
 # Compact language usage index
 
-Scanned the **101 fixtures** in `test-contracts/`.
+Scanned the **120 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 144
+## Not covered by any fixture — 148
 
 | name | group |
 |---|---|
@@ -35,8 +35,6 @@ Scanned the **101 fixtures** in `test-contracts/`.
 | `unshieldedBalanceGt` | Standard library circuits |
 | `unshieldedBalanceLte` | Standard library circuits |
 | `jubjubSchnorrVerify` | Standard library circuits |
-| `secp256k1EcdsaVerify` | Standard library circuits |
-| `secp256k1EthereumAddress` | Standard library circuits |
 | `Maybe` | Standard library structs |
 | `Either` | Standard library structs |
 | `MerkleTreeDigest` | Standard library structs |
@@ -49,7 +47,6 @@ Scanned the **101 fixtures** in `test-contracts/`.
 | `ShieldedSendResult` | Standard library structs |
 | `UserAddress` | Standard library structs |
 | `JubjubSchnorrSignature` | Standard library structs |
-| `Secp256k1EcdsaSignature` | Standard library structs |
 | `Kernel.claimZswapNullifier` | Ledger ADT operations |
 | `Kernel.claimZswapCoinSpend` | Ledger ADT operations |
 | `Kernel.claimZswapCoinReceive` | Ledger ADT operations |
@@ -123,11 +120,9 @@ Scanned the **101 fixtures** in `test-contracts/`.
 | `Misc` | Event types |
 | `transientHash` | Native circuits and witnesses |
 | `transientCommit` | Native circuits and witnesses |
-| `persistentHash` | Native circuits and witnesses |
 | `persistentCommit` | Native circuits and witnesses |
 | `degradeToTransient` | Native circuits and witnesses |
 | `upgradeFromTransient` | Native circuits and witnesses |
-| `keccak256` | Native circuits and witnesses |
 | `jubjubPointX` | Native circuits and witnesses |
 | `jubjubPointY` | Native circuits and witnesses |
 | `ecAdd` | Native circuits and witnesses |
@@ -139,15 +134,24 @@ Scanned the **101 fixtures** in `test-contracts/`.
 | `ownPublicKey` | Native circuits and witnesses |
 | `createZswapInput` | Native circuits and witnesses |
 | `createZswapOutput` | Native circuits and witnesses |
+| `sha512` | Native circuits and witnesses |
 | `neg` | Native circuits and witnesses |
 | `inv` | Native circuits and witnesses |
 | `secp256k1PointX` | Native circuits and witnesses |
 | `secp256k1PointY` | Native circuits and witnesses |
+| `secp256r1PointX` | Native circuits and witnesses |
+| `secp256r1PointY` | Native circuits and witnesses |
+| `curve25519PointX` | Native circuits and witnesses |
+| `curve25519PointY` | Native circuits and witnesses |
 | `JubjubScalar` | Native types |
 | `JubjubPoint` | Native types |
-| `Secp256k1Base` | Native types |
+| `Curve25519Base` | Native types |
+| `Curve25519Scalar` | Native types |
+| `Curve25519Point` | Native types |
 | `Secp256k1Scalar` | Native types |
-| `Secp256k1Point` | Native types |
+| `Secp256r1Base` | Native types |
+| `Secp256r1Scalar` | Native types |
+| `Secp256r1Point` | Native types |
 | `serialize` | Inline entries |
 | `deserialize` | Inline entries |
 
@@ -157,14 +161,14 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:20`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L20) | 23 |
-| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 127 |
-| `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 174 |
+| `Boolean` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:20`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L20) | 37 |
+| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 354 |
+| `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 182 |
 | `Opaque` | [`test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact:18`](../../test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact#L18) | 3 |
-| `Uint` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:26`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L26) | 108 |
-| `Vector` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:20`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L20) | 95 |
+| `Uint` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:26`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L26) | 114 |
+| `Vector` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:20`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L20) | 99 |
 
-## Standard library circuits — 0/31 covered
+## Standard library circuits — 2/31 covered
 
 Declared in `shipped Compact libraries — export circuit`.
 
@@ -199,10 +203,10 @@ Declared in `shipped Compact libraries — export circuit`.
 | `unshieldedBalanceGt` | **no fixture** | 0 |
 | `unshieldedBalanceLte` | **no fixture** | 0 |
 | `jubjubSchnorrVerify` | **no fixture** | 0 |
-| `secp256k1EcdsaVerify` | **no fixture** | 0 |
-| `secp256k1EthereumAddress` | **no fixture** | 0 |
+| `secp256k1EcdsaVerify` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:43`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L43) | 16 |
+| `secp256k1EthereumAddress` | [`test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact:28`](../../test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact#L28) | 2 |
 
-## Standard library structs — 0/13 covered
+## Standard library structs — 1/13 covered
 
 Declared in `shipped Compact libraries — export struct`.
 
@@ -220,7 +224,7 @@ Declared in `shipped Compact libraries — export struct`.
 | `ShieldedSendResult` | **no fixture** | 0 |
 | `UserAddress` | **no fixture** | 0 |
 | `JubjubSchnorrSignature` | **no fixture** | 0 |
-| `Secp256k1EcdsaSignature` | **no fixture** | 0 |
+| `Secp256k1EcdsaSignature` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:40`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L40) | 12 |
 
 ## Ledger ADT operations — 1/61 covered
 
@@ -308,7 +312,7 @@ Declared in `compiler sources — declare-event-type`.
 | `Unpaused` | **no fixture** | 0 |
 | `Misc` | **no fixture** | 0 |
 
-## Native circuits and witnesses — 0/22 covered
+## Native circuits and witnesses — 2/27 covered
 
 Declared in `compiler sources — declare-native-entry`.
 
@@ -316,11 +320,11 @@ Declared in `compiler sources — declare-native-entry`.
 |---|---|---:|
 | `transientHash` | **no fixture** | 0 |
 | `transientCommit` | **no fixture** | 0 |
-| `persistentHash` | **no fixture** | 0 |
+| `persistentHash` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:43`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L43) | 48 |
 | `persistentCommit` | **no fixture** | 0 |
 | `degradeToTransient` | **no fixture** | 0 |
 | `upgradeFromTransient` | **no fixture** | 0 |
-| `keccak256` | **no fixture** | 0 |
+| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 65 |
 | `jubjubPointX` | **no fixture** | 0 |
 | `jubjubPointY` | **no fixture** | 0 |
 | `ecAdd` | **no fixture** | 0 |
@@ -332,12 +336,17 @@ Declared in `compiler sources — declare-native-entry`.
 | `ownPublicKey` | **no fixture** | 0 |
 | `createZswapInput` | **no fixture** | 0 |
 | `createZswapOutput` | **no fixture** | 0 |
+| `sha512` | **no fixture** | 0 |
 | `neg` | **no fixture** | 0 |
 | `inv` | **no fixture** | 0 |
 | `secp256k1PointX` | **no fixture** | 0 |
 | `secp256k1PointY` | **no fixture** | 0 |
+| `secp256r1PointX` | **no fixture** | 0 |
+| `secp256r1PointY` | **no fixture** | 0 |
+| `curve25519PointX` | **no fixture** | 0 |
+| `curve25519PointY` | **no fixture** | 0 |
 
-## Native types — 0/5 covered
+## Native types — 2/11 covered
 
 Declared in `compiler sources — declare-native-type`.
 
@@ -345,9 +354,15 @@ Declared in `compiler sources — declare-native-type`.
 |---|---|---:|
 | `JubjubScalar` | **no fixture** | 0 |
 | `JubjubPoint` | **no fixture** | 0 |
-| `Secp256k1Base` | **no fixture** | 0 |
+| `Curve25519Base` | **no fixture** | 0 |
+| `Curve25519Scalar` | **no fixture** | 0 |
+| `Curve25519Point` | **no fixture** | 0 |
+| `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact:18`](../../test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact#L18) | 2 |
 | `Secp256k1Scalar` | **no fixture** | 0 |
-| `Secp256k1Point` | **no fixture** | 0 |
+| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 15 |
+| `Secp256r1Base` | **no fixture** | 0 |
+| `Secp256r1Scalar` | **no fixture** | 0 |
+| `Secp256r1Point` | **no fixture** | 0 |
 
 ## Inline entries — 0/2 covered
 

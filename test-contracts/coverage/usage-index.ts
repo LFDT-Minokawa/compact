@@ -19,11 +19,17 @@
  * `./compiler/go` cannot answer this: `some` and `mergeCoin` compile through
  * identical code, so no line coverage separates a covered circuit from an
  * uncovered one. Names come from compiler sources, so the list cannot go stale.
+ *
+ * With no arguments it writes `usage.md`. With `--check <report>` it writes
+ * nothing and fails when a name that report shows as covered has no fixture
+ * here. CI passes the report from the PR's base branch, so only lost coverage
+ * blocks a merge.
  */
 
 import { readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseArgs } from 'node:util';
 
 import type {
     ContractFile,
@@ -214,7 +220,7 @@ const assertEveryDeclarationSiteIsClaimed = (
 /**
  * Every fixture in the package, not just `primitives`; the orchestrator
  * discovers from the package root too. Sorted so the report is byte-stable
- * for the CI staleness check.
+ * from one run to the next.
  */
 const collectFixtures = (): ContractFile[] =>
     [...walk(TEST_ROOT, '.compact')]
@@ -380,13 +386,74 @@ const renderReport = (
     return lines.join('\n');
 };
 
+/** Names whose report row links to a fixture, with the link text. */
+const coveredIn = (report: string): Map<string, string> =>
+    new Map(
+        [...report.matchAll(/^\| `([^`]+)` \| \[`([^`]+)`\]/gm)].map(
+            ([, name, site]) => [name, site],
+        ),
+    );
+
+/** Fails when a name the base report shows as covered has no fixture now. */
+const checkAgainst = (
+    baseReportPath: string,
+    groups: NameGroup[],
+    usage: UsageIndex,
+    fixtures: ContractFile[],
+): void => {
+    const offered = new Set(groups.flatMap((group) => group.names));
+    const covered = (name: string): boolean =>
+        (usage.get(name) ?? []).length > 0;
+
+    // The parser must still read what the renderer writes, or the check goes blind.
+    const rendered = coveredIn(renderReport(groups, usage, fixtures));
+    invariant(
+        [...offered].every((name) => rendered.has(name) === covered(name)),
+        'coveredIn cannot read what renderReport writes',
+    );
+
+    const before = coveredIn(readFileSync(baseReportPath, 'utf8'));
+    invariant(before.size > 0, `${baseReportPath} lists no covered name`);
+
+    // A name the compiler dropped has nothing left to cover.
+    const lost = [...before].filter(
+        ([name]) => offered.has(name) && !covered(name),
+    );
+
+    for (const [name, site] of lost) {
+        console.error(
+            `::error::\`${name}\` is no longer used by any fixture. At the base, ${site} used it.`,
+        );
+    }
+
+    if (lost.length === 0) {
+        console.log(
+            `usage index: no name lost fixture coverage (${before.size} covered at the base)`,
+        );
+        return;
+    }
+
+    console.error(
+        `usage index: ${lost.length} name(s) lost fixture coverage. ` +
+            'Add a fixture that uses each one, or restore the fixture that did.',
+    );
+    process.exitCode = 1;
+};
+
 const main = (): void => {
+    const { values } = parseArgs({ options: { check: { type: 'string' } } });
     const compilerSources = readCompilerSources();
     const groups = buildGroups(compilerSources);
     assertEveryDeclarationSiteIsClaimed(groups, compilerSources);
 
     const fixtures = collectFixtures();
     const usage = indexUsage(fixtures, groups);
+
+    if (values.check !== undefined) {
+        checkAgainst(values.check, groups, usage, fixtures);
+        return;
+    }
+
     writeFileSync(OUTPUT_PATH, renderReport(groups, usage, fixtures));
 
     const total = groups.reduce(
