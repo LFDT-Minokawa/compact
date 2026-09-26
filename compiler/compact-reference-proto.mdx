@@ -9,6 +9,8 @@ sidebar_position: 05
 <div className="lang-ref">
 # Compact reference
 
+Reviewed 25 September 2026 for compatibility with Compact language version 0.26.105.
+
 ## Overview
 
 Compact is a strongly typed, statically typed, bounded programming language
@@ -2900,17 +2902,6 @@ not compactible with the declaration of *id* in *T*.
 The static type of a cross-contract call is the declared return type
 of *id* in *T*.
 
-:::info[Current limitations on cross-contract calls]
-
-When computing the set of exported circuits for the purpose of
-determining whether a contract satisfies a contract type, the current
-compiler eliminates from consideration any circuits that call
-witnesses.  A called contract may define witness functions, and they
-may be called by other circuits, but they cannot be called directly or
-indirectly by the exported circuits that satisfy a contract type.
-This implies that every cross-contract call is to a circuit whose only
-access to private data is through the values given as its arguments.
-
 Cross-contract calls resolve the callee's implementation at run time via an
 application-supplied *contract module provider* whose `resolve(address)` returns
 the module deployed at that address, or nothing when the application has no
@@ -2929,6 +2920,17 @@ type is reported as such.
 Key agreement follows, checking the called circuit's verifier key and every other
 circuit the two sides have in common.
 
+:::info[Current limitations on cross-contract calls]
+
+When computing the set of exported circuits for the purpose of
+determining whether a contract satisfies a contract type, the current
+compiler eliminates from consideration any circuits that call
+witnesses.  A called contract may define witness functions, and they
+may be called by other circuits, but they cannot be called directly or
+indirectly by the exported circuits that satisfy a contract type.
+This implies that every cross-contract call is to a circuit whose only
+access to private data is through the values given as its arguments.
+
 If any cycles are present in the call graph of cross-contract calls,
 the call fails at run time: a re-entrancy guard in the runtime detects both direct
 re-entry (`A` calling `A`) and indirect re-entry (`A` calling `B` calling `A`)
@@ -2937,6 +2939,8 @@ Thus, contracts cannot implement either direct or indirect recursion using
 calls through references to contract values.
 This restriction reflects a limitation in the current Midnight ledger and might
 be lifted if the limitation is removed.
+
+:::
 
 ### Map and fold expressions
 
@@ -3501,7 +3505,7 @@ of their declared types.
 Wherever the type parameter `PS` appears, the TypeScript use site should
 supply the type of the contract's private state.
 
-References to `runtime` refer to the `@midnight/compact-runtime` library, which
+References to `runtime` refer to the `@midnight-ntwrk/compact-runtime` library, which
 all contracts depend upon and which implements key built-in behaviors.
 The `runtime` types mentioned here are described
 in [Compact runtime API](/api-reference/compact-runtime).
