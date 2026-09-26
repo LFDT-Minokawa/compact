@@ -39,7 +39,7 @@ Compact is similar to TypeScript: it has a syntax similar to that of JavaScript,
 and it layers a type system over the JavaScript syntax.
 Compact deviates intentionally from TypeScript, however, in several important ways:
 - Unlike TypeScript, Compact is strongly typed.
-  Programs cannot bypass the static type system via missing type declarations or
+  Programs cannot bypass the static type system via omitted type declarations or
   unsafe casts.
   Furthermore, the JavaScript code produced by the Compact compiler includes
   run-time checks enforcing the static types of values that come from outside
@@ -53,10 +53,12 @@ Compact deviates intentionally from TypeScript, however, in several important wa
   the language is *bounded*:
   all Compact types have sizes that are fixed at compile time, loops are bounded either
   by constant bounds or by the size of an object of constant size, and recursion
-  is disallowed.
+  is disallowed.  The compiler is required to unroll loops and inline circuits if
+  necessary to produce constant loop bounds whenever it can.
 - Compact numeric values are limited to unsigned integers either with a
-  program-declared range or with a range determined by the field size of the
-  target proving system.
+  program-declared range, with a range determined by the field size of the
+  target proving system, or with ranges determined by the field sizes of
+  various foreign field types.
 - Compact distinguishes certain values as potentially containing private data that
   should typically be protected, and it requires explicit declaration of the
   disclosure of any potential private data via `disclose()` wrappers.
@@ -84,7 +86,8 @@ produce proving keys for each such circuit.
 
 Finally, the compact compiler also produces a JSON-formatted contract info file that contains
 information about the program and its compiled representation, including version numbers and the types and
-characteristics of the contract's exported circuits.
+characteristics of the contract's exported circuits, along with a manifest file that gives
+the sizes and sha256 hashes of all of the other generated files.
 
 This document explains each syntactic category individually.  It starts by
 introducing the building blocks that are used in various contexts: identifiers,
@@ -92,7 +95,10 @@ constants, types, generic parameters, and patterns.  Then it describes
 the structure of Compact programs, each kind of program element, and the
 statements and expressions that can appear within circuit and constructor
 bodies.
-Finally, it discusses the TypeScript target.
+Finally, it discusses the TypeScript/JavaScript target.
+
+Grammar snippets appearing in this document are automatically generated as a side
+effect of compiling the actual Compact parser.
 
 [Writing a contract](writing) provides a small example of what a
 Compact program looks like.  It also introduces the basic building blocks of a

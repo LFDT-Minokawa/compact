@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.111, language 0.26.105, runtime 0.19.105]
+
+### Added
+
+- Compact reference and API documentation updates for the various new and modified
+  language features, including dynamic cross-contract calls and the new foreign
+  fields and points, plus various other documentation updates, corrections, and
+  clarifications.
+
+### Fixed
+
+- An issue in the type inferencer that could result in internal errors
+  rather than appropriately descriptive error messages for casts of foreign
+  field values to values of `Field` and `Uint` types.
+
 ## [Toolchain 0.34.110, language 0.26.105, runtime 0.19.105]
 
 ### Added
