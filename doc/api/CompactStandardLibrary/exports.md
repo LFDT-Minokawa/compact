@@ -36,38 +36,26 @@ other curve types besides Jubjub) but the exported version only works for
 
 ### `Maybe`
 
-Encapsulates an optionally present value. If `isSome` is `false`, `value`
+Encapsulates an optionally present value. If `is_some` is `false`, `value`
 should be `default<T>` by convention.
 
 ```compact
 struct Maybe<T> {
-  isSome: Boolean;
+  is_some: Boolean;
   value: T;
 }
 ```
 
 ### `Either`
 
-Disjoint union of `A` and `B`. Iff `isLeft` if `true`, `left` should be
+Disjoint union of `A` and `B`. Iff `is_left` is `true`, `left` should be
 populated, otherwise `right`. The other should be `default< >` by convention.
 
 ```compact
 struct Either<A, B> {
-  isLeft: Boolean;
+  is_left: Boolean;
   left: A;
   right: B;
-}
-```
-
-### `JubjubSchnorrSignature`
-
-A Schnorr signature over the JubJub embedded curve. Contains an announcement
-point and a scalar response, used with [`jubjubSchnorrVerify`](#jubjubschnorrverify).
-
-```compact
-struct JubjubSchnorrSignature {
-  announcement: JubjubPoint;
-  response: Field;
 }
 ```
 
@@ -112,7 +100,7 @@ the root of the sibling node. Primarily used in [`MerkleTreePath`](#merkletreepa
 ```compact
 struct MerkleTreePathEntry {
   sibling: MerkleTreeDigest;
-  goesLeft: Boolean;
+  goes_left: Boolean;
 }
 ```
 
@@ -169,7 +157,7 @@ The description of an existing shielded coin in the ledger, ready to be spent.
 
 Used in:
 - [`sendShielded`](#sendshielded)
-- [`mergeCoin`](#mergeCoin)
+- [`mergeCoin`](#mergecoin)
 - [`mergeCoinImmediate`](#mergecoinimmediate)
 - [`createZswapInput`](#createzswapinput)
 
@@ -178,7 +166,7 @@ struct QualifiedShieldedCoinInfo {
   nonce: Bytes<32>;
   color: Bytes<32>;
   value: Uint<128>;
-  mtIndex: Uint<64>;
+  mt_index: Uint<64>;
 }
 ```
 
@@ -213,6 +201,35 @@ and [`mintUnshieldedToken`](#mintunshieldedtoken).
 ```compact
 struct UserAddress { bytes: Bytes<32>; }
 ```
+
+## Type aliases
+
+### `PublicAddress`
+
+Either a contract's address or a user's address.  This is the recipient type
+used by the unshielded token operations.
+
+```compact
+type PublicAddress = Either<ContractAddress, UserAddress>;
+```
+
+## Ledger fields
+
+### `kernel`
+
+The standard library exports a single ledger field, `kernel`, of the built-in
+`Kernel` ledger ADT.  It provides the contract's view of the chain: its own
+address, its caller, its unshielded balances, the current block time, and the
+operations that claim Zswap and unshielded effects.  Its operations are
+documented in [Ledger data types](../../ledger-adt.mdx).
+
+```compact
+export ledger kernel: Kernel;
+```
+
+Several circuits below are defined in terms of it, for example
+`right<ZswapCoinPublicKey, ContractAddress>(kernel.self())` to name the current
+contract as a recipient.
 
 ## Events
 
@@ -368,7 +385,7 @@ struct Misc {
 }
 ```
 
-## Circuits
+## Circuits and native types
 
 ### `some`
 
@@ -505,6 +522,15 @@ This function hashes its input using the Keccak-256 algorithm.  It returns the
 circuit keccak256<T>(value: T): Bytes<32>;
 ```
 
+### `sha512`
+
+This function hashes its input using the SHA-512 algorithm.  It returns the
+64-byte digest.
+
+```compact
+circuit sha512<T>(value: T): Bytes<64>;
+```
+
 ### `JubjubPoint`
 
 This is a native type.
@@ -603,7 +629,7 @@ and (hexadecimal)
 
 ### `secp256k1PointX`
 
-This is a native type.
+This is a native circuit.
 
 This function extracts the affine x-coordinate from a
 [`Secp256k1Point`](#secp256k1point).
@@ -614,7 +640,7 @@ circuit secp256k1PointX(pt: Secp256k1Point): Secp256k1Base;
 
 ### `secp256k1PointY`
 
-This is a native type.
+This is a native circuit.
 
 This function extracts the affine y-coordinate from a
 [`Secp256k1Point`](#secp256k1point).
@@ -665,7 +691,7 @@ and (hexadecimal)
 
 ### `secp256r1PointX`
 
-This is a native type.
+This is a native circuit.
 
 This function extracts the affine x-coordinate from a
 [`Secp256r1Point`](#secp256r1point).
@@ -676,13 +702,67 @@ circuit secp256r1PointX(pt: Secp256r1Point): Secp256r1Base;
 
 ### `secp256r1PointY`
 
-This is a native type.
+This is a native circuit.
 
 This function extracts the affine y-coordinate from a
 [`Secp256r1Point`](#secp256r1point).
 
 ```compact
 circuit secp256r1PointY(pt: Secp256r1Point): Secp256r1Base;
+```
+
+### `Curve25519Point`
+
+This is a native type.
+
+The type of points on the Curve25519 elliptic curve.  It represents a pair of
+affine x- and y-coordinates.  The coordinates are `Curve25519Base` values.
+Curve25519 points cannot be created in Compact, but they can be passed as
+circuit arguments and returned from witness functions.  The behavior of
+operating on an invalid Curve25519 curve point is undefined.  You will not
+normally be able to construct proofs involving invalid Curve25519 curve points.
+
+Curve25519 is a twisted Edwards curve, so unlike the secp256k1 and secp256r1
+points its (additive) identity point does have a coordinate representation,
+`{ x: 0, y: 1 }`.  It is the value of `default<Curve25519Point>`.  The Compact
+runtime representation of a `Curve25519Point` carries no `identity` flag.
+
+### `Curve25519Base`
+
+This is a native type.
+
+The type of values between 0 (inclusive) and the order of the base field of the
+Curve25519 elliptic curve (exclusive).  It is the type of the affine coordinates
+of a point on that curve.
+
+### `Curve25519Scalar`
+
+This is a native type.
+
+The type of numeric values between 0 (inclusive) and the order of the Curve25519
+group (exclusive).  This is the type of the scalars used to multiply Curve25519
+curve points.
+
+### `curve25519PointX`
+
+This is a native circuit.
+
+This function extracts the affine x-coordinate from a
+[`Curve25519Point`](#curve25519point).
+
+```compact
+circuit curve25519PointX(pt: Curve25519Point): Curve25519Base;
+```
+
+### `curve25519PointY`
+
+This is a native circuit.
+
+This function extracts the affine y-coordinate from a
+[`Curve25519Point`](#curve25519point).
+
+```compact
+circuit curve25519PointY(pt: Curve25519Point): Curve25519Base;
 ```
 
 ### `ecAdd`
@@ -692,11 +772,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
 circuit ecAdd(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point;
 circuit ecAdd(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point;
+circuit ecAdd(a: Curve25519Point, b: Curve25519Point): Curve25519Point;
 ```
 
 ### `ecNeg`
@@ -715,11 +797,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint;
 circuit ecMul(a: Secp256k1Point, b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMul(a: Secp256r1Point, b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMul(a: Curve25519Point, b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `ecMulGenerator`
@@ -729,11 +813,13 @@ scalar. It is polymorphic for the following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecMulGenerator(b: JubjubScalar): JubjubPoint;
 circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMulGenerator(b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMulGenerator(b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `neg`
@@ -745,12 +831,16 @@ that works over types:
 * `Secp256k1Scalar`
 * `Secp256r1Base`
 * `Secp256r1Scalar`
+* `Curve25519Base`
+* `Curve25519Scalar`
 
 ```compact
-circuit neg(x: Secp256k1Base): Secp256k1Base;
-circuit neg(x: Secp256k1Scalar): Secp256k1Scalar;
-circuit neg(x: Secp256r1Base): Secp256r1Base;
-circuit neg(x: Secp256r1Scalar): Secp256r1Scalar;
+circuit neg(s: Secp256k1Base): Secp256k1Base;
+circuit neg(s: Secp256k1Scalar): Secp256k1Scalar;
+circuit neg(s: Secp256r1Base): Secp256r1Base;
+circuit neg(s: Secp256r1Scalar): Secp256r1Scalar;
+circuit neg(s: Curve25519Base): Curve25519Base;
+circuit neg(s: Curve25519Scalar): Curve25519Scalar;
 ```
 
 ### `inv`
@@ -762,17 +852,21 @@ that works over types:
 * `Secp256k1Scalar`
 * `Secp256r1Base`
 * `Secp256r1Scalar`
+* `Curve25519Base`
+* `Curve25519Scalar`
 
 ```compact
-circuit inv(x: Secp256k1Base): Secp256k1Base;
-circuit inv(x: Secp256k1Scalar): Secp256k1Scalar;
-circuit inv(x: Secp256r1Base): Secp256r1Base;
-circuit inv(x: Secp256r1Scalar): Secp256r1Scalar;
+circuit inv(s: Secp256k1Base): Secp256k1Base;
+circuit inv(s: Secp256k1Scalar): Secp256k1Scalar;
+circuit inv(s: Secp256r1Base): Secp256r1Base;
+circuit inv(s: Secp256r1Scalar): Secp256r1Scalar;
+circuit inv(s: Curve25519Base): Curve25519Base;
+circuit inv(s: Curve25519Scalar): Curve25519Scalar;
 ```
 
 ### `hashToCurve`
 
-This function maps arbitrary types to [`JubjubPoint`](#nativepoint)s.
+This function maps arbitrary types to [`JubjubPoint`](#jubjubpoint)s.
 
 Outputs are guaranteed to have unknown discrete logarithm with respect to
 the group base, and any other output, but are not guaranteed to be unique (a
@@ -789,7 +883,7 @@ circuit hashToCurve<T>(value: T): JubjubPoint;
 
 Verifies a Schnorr signature over the JubJub embedded curve. Takes a message
 as a vector of `N` field elements, a [`JubjubSchnorrSignature`](#jubjubschnorrsignature),
-and a verification key (a [`JubjubPoint`](#nativepoint) on the embedded curve).
+and a verification key (a [`JubjubPoint`](#jubjubpoint) on the embedded curve).
 Asserts that the verification key is not the identity (default) JubjubPoint, which is not permitted because it would make verification independent of the message.
 Returns true if the signature is valid; false otherwise.
 
@@ -871,7 +965,10 @@ for another contract's token type. This is used as the `color` field in
 [`sendUnshielded`](#sendunshielded) and [`receiveUnshielded`](#receiveunshielded).
 
 ```compact
-circuit tokenType(domainSep: Bytes<32>, contract: ContractAddress): Bytes<32>;
+circuit tokenType(
+  domain_sep: Bytes<32>,
+  contractAddress: ContractAddress
+): Bytes<32>;
 ```
 
 ### `mintShieldedToken`
@@ -884,7 +981,7 @@ produce this. To mint a shielded token to the current contract, pass
 
 ```compact
 circuit mintShieldedToken(
-  domainSep: Bytes<32>,
+  domain_sep: Bytes<32>,
   value: Uint<64>,
   nonce: Bytes<32>,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>
@@ -948,7 +1045,10 @@ circuit sendImmediateShielded(input: ShieldedCoinInfo, target: Either<ZswapCoinP
 Takes two coins stored on the ledger, and combines them into one
 
 ```compact
-circuit mergeCoin(a: QualifiedCoinInfo, b: QualifiedCoinInfo): CoinInfo;
+circuit mergeCoin(
+  a: QualifiedShieldedCoinInfo,
+  b: QualifiedShieldedCoinInfo
+): ShieldedCoinInfo;
 ```
 
 ### `mergeCoinImmediate`
@@ -957,7 +1057,10 @@ Takes one coin stored on the ledger, and one created within this transaction,
 and combines them into one
 
 ```compact
-circuit mergeCoinImmediate(a: QualifiedCoinInfo, b: CoinInfo): CoinInfo;
+circuit mergeCoinImmediate(
+  a: QualifiedShieldedCoinInfo,
+  b: ShieldedCoinInfo
+): ShieldedCoinInfo;
 ```
 
 ### `ownPublicKey`
@@ -966,7 +1069,7 @@ Returns the [`ZswapCoinPublicKey`](#zswapcoinpublickey) of the end-user
 creating this transaction.
 
 ```compact
-circuit ownPublicKey(): ZswapCoinPublicKey;
+witness ownPublicKey(): ZswapCoinPublicKey;
 ```
 
 ### `createZswapInput`
@@ -975,22 +1078,24 @@ Notifies the context to create a new Zswap input originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
 [`sendImmediateShielded`](#sendimmediateshielded) instead.
 
-The note about disclosing under `transientHash` also applies to this function.
+Like `transientCommit`, this function does not itself disclose its argument, so
+passing witness-derived data to it does not require a `disclose` wrapper.
 
 ```compact
-circuit createZswapInput(coin: QualifiedShieldedCoinInfo): [];
+witness createZswapInput(coin: QualifiedShieldedCoinInfo): [];
 ```
 
 ### `createZswapOutput`
 
 Notifies the context to create a new Zswap output originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
-[`sendImmediateShielded`](#sendimmediateShielded), and [`receiveShielded`](#receiveshielded) instead.
+[`sendImmediateShielded`](#sendimmediateshielded), and [`receiveShielded`](#receiveshielded) instead.
 
-The note about disclosing under `transientHash` also applies to this function.
+Like `transientCommit`, this function does not itself disclose its argument, so
+passing witness-derived data to it does not require a `disclose` wrapper.
 
 ```compact
-circuit createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
+witness createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
 ```
 
 ### `mintUnshieldedToken`
@@ -1000,9 +1105,9 @@ recipient. Returns the corresponding coin color. To mint an unshielded token to 
 `left<ContractAddress, UserAddress>(kernel.self())` as the `recipient`.
 
 ```compact
-export circuit mintUnshieldedToken(
+circuit mintUnshieldedToken(
   domainSep: Bytes<32>,
-  value: Uint<64>,
+  amount: Uint<64>,
   recipient: Either<ContractAddress, UserAddress>
 ): Bytes<32>;
 ```
@@ -1014,7 +1119,7 @@ returned from this function. To send an unshielded token to the current contract
 `left<ContractAddress, UserAddress>(kernel.self())` as the `recipient`.
 
 ```compact
-export circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [];
+circuit sendUnshielded(color: Bytes<32>, amount: Uint<128>, recipient: Either<ContractAddress, UserAddress>): [];
 ```
 
 ### `receiveUnshielded`
@@ -1060,7 +1165,7 @@ circuit unshieldedBalanceGte(color: Bytes<32>, amount: Uint<128>): Boolean;
 Returns true if the unshielded balance of the contract for the given token type is greater than the given value.
 
 ```compact
-circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean
+circuit unshieldedBalanceGt(color: Bytes<32>, amount: Uint<128>): Boolean;
 ```
 
 ### `unshieldedBalanceLte`

@@ -95673,6 +95673,86 @@ groups than for single tests.
         "});"
         ))
   )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Curve25519Base };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "cannot export standard-library type (~s) from the top level" (Curve25519Base)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Spam = Curve25519Base;"
+      "export { Spam };"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type Spam = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: Uint<32>): Secp256k1Scalar {"
+      "  return x as Secp256k1Scalar;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Uint<32>" "Secp256k1Scalar")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: Field): Secp256k1Scalar {"
+      "  return x as Secp256k1Scalar;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Field" "Secp256k1Scalar")))
+    )
 )
 
 (run-javascript)
