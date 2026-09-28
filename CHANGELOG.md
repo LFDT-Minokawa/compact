@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.107]
+
+### Fixed
+
+- Compact JavaScript runtime now encodes every `Secp256k1Point` and
+  `Secp256r1Point` identity point the same way, with both coordinates 0,
+  whatever coordinates the JavaScript value carries.
+
 ## [Toolchain 0.34.111, language 0.26.106, runtime 0.19.106]
 
 ### Added

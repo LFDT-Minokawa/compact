@@ -92839,6 +92839,51 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256k1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256k1Point>(aa) == persistentHash<Secp256k1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256k1Point): Secp256k1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256k1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256k1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "ledger address: Bytes<20>;"
       "ledger hash: Bytes<32>;"
       "// This was the reported issue."
@@ -94365,6 +94410,51 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
         "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256r1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256r1Point>(aa) == persistentHash<Secp256r1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256r1Point): Secp256r1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256r1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256r1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
         ))
     )
 

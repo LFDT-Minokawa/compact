@@ -58,7 +58,8 @@ export interface JubjubPoint {
 
 /**
  * A point on the foreign secp256k1 elliptic curve. TypeScript representation of the
- * Compact type of the same name.  When identity = true, x and y should be 0.
+ * Compact type of the same name.  When identity = true, x and y are ignored
+ * and encode as 0.
  */
 export interface Secp256k1Point {
   readonly x: bigint;
@@ -68,7 +69,8 @@ export interface Secp256k1Point {
 
 /**
  * A point on the foreign secp256r1 elliptic curve. TypeScript representation of the
- * Compact type of the same name.  When identity = true, x and y should be 0.
+ * Compact type of the same name.  When identity = true, x and y are ignored
+ * and encode as 0.
  */
 export interface Secp256r1Point {
   readonly x: bigint;
@@ -140,8 +142,11 @@ export const CompactTypeSecp256k1Point: CompactType<Secp256k1Point> = {
     return { x: x, y: y, identity: flag === 1n };
   },
   toValue(value: Secp256k1Point): ocrt.Value {
-    return CompactTypeSecp256k1Base.toValue(value.x)
-      .concat(CompactTypeSecp256k1Base.toValue(value.y))
+    // Every identity point encodes the same way, with both coordinates 0.
+    const x = value.identity ? 0n : value.x;
+    const y = value.identity ? 0n : value.y;
+    return CompactTypeSecp256k1Base.toValue(x)
+      .concat(CompactTypeSecp256k1Base.toValue(y))
       .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
   },
 };
@@ -176,8 +181,11 @@ export const CompactTypeSecp256r1Point: CompactType<Secp256r1Point> = {
     return { x: x, y: y, identity: flag === 1n };
   },
   toValue(value: Secp256r1Point): ocrt.Value {
-    return CompactTypeSecp256r1Base.toValue(value.x)
-      .concat(CompactTypeSecp256r1Base.toValue(value.y))
+    // Every identity point encodes the same way, with both coordinates 0.
+    const x = value.identity ? 0n : value.x;
+    const y = value.identity ? 0n : value.y;
+    return CompactTypeSecp256r1Base.toValue(x)
+      .concat(CompactTypeSecp256r1Base.toValue(y))
       .concat(ocrt.bigIntToValue(value.identity ? 1n : 0n));
   },
 };
