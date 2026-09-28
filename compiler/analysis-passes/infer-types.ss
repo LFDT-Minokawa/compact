@@ -1867,13 +1867,15 @@
                       (nanopass-case (Ltypes Field-Type) ftype2
                         [(field-native)
                          `(cast-to-field ,src ,ftype1 ,source-type ,expr)]
-                        [else #f])])]
+                        [else #f])]
+                     [else #f])]
                   [(tunsigned ,src2 ,nat)
                    (nanopass-case (Ltypes Field-Type) ftype1
                      [(field-native)
                       `(safe-cast ,src ,target-type ,source-type ,expr)]
                      [(field-scalar (curve-jubjub))
-                      `(cast-to-field ,src ,ftype1 ,source-type ,expr)])]
+                      `(cast-to-field ,src ,ftype1 ,source-type ,expr)]
+                     [else #f])]
                   [(tbytes ,src2 ,len2)
                    (guard (not (eqv? len2 0)))
                    (and (strict-nanopass-case (Ltypes Field-Type) ftype1

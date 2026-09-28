@@ -133,8 +133,10 @@ Bump each version that has actually changed, then regenerate the docs that embed
 | ---- | ----- |
 | `compiler/compiler-version.ss` | the compactc version |
 | `compiler/language-version.ss` | the language version |
+| `compiler/compact-reference-proto.mdx` | the language version the Compact reference was last reviewed against, on the line under its title |
 | `flake.nix` | the compactc version again — CI checks the two agree |
 | `runtime/package.json` | the runtime version |
+| `runtime/package-lock.json` | the runtime version again; `npm install` in `runtime/` updates it |
 | `CHANGELOG.md` | the entry for this release |
 
 Only bump what changed: a version ending `.0` — say a runtime at `0.15.0` — means that

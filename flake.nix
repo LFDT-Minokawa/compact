@@ -37,11 +37,11 @@
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/7646e1f012f6b4c361931a545f3c8669366c8ece"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1"; # zkir-v3
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/7646e1f012f6b4c361931a545f3c8669366c8ece";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
@@ -212,7 +212,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.34.111"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.0"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
