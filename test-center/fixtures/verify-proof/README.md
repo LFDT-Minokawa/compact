@@ -13,7 +13,7 @@ SRS at `$MIDNIGHT_PP`, under the fixed RNG seed `[7; 32]`. Regenerate with:
 
 ```sh
 cargo run --release --manifest-path test-contracts/tools/verify-proof-fixtures/Cargo.toml
-cp test-contracts/tools/verify-proof-fixtures/out/basic.verifier compiler/testdata/
+cp test-contracts/tools/verify-proof-fixtures/out/basic.verifier test-center/fixtures/verify-proof/testfile.verifier
 ```
 
 The seed is fixed, so a regenerated key is byte-identical unless the relation

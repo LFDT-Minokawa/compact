@@ -926,12 +926,12 @@ groups than for single tests.
 ;;; verifyProof takes a string-literal pathname, zero generic parameters, and a
 ;;; verifying key read at compile time.  The key lives outside `testdir`, which
 ;;; `recreate-testdir` wipes between runs, so `compact-path` reaches it instead.
-;;; `compiler/testdata/testfile.verifier` is a placeholder rather than a real
-;;; key: expansion only slurps the file's bytes and checks its decider tag, but
-;;; verifying a proof against it would not, so these tests stop short of the
-;;; staged JavaScript.
+;;; `test-center/fixtures/verify-proof/testfile.verifier` is a placeholder
+;;; rather than a real key: expansion only slurps the file's bytes and checks its
+;;; decider tag, but verifying a proof against it would not, so these tests stop
+;;; short of the staged JavaScript.
 
- (with-compact-path '("compiler/testdata")
+ (with-compact-path '("test-center/fixtures/verify-proof")
   (test
     '(
       "import CompactStandardLibrary;"
@@ -1254,7 +1254,7 @@ groups than for single tests.
         "}"))
     ))
 
- (with-compact-path '("compiler/testdata")
+ (with-compact-path '("test-center/fixtures/verify-proof")
   (test
     '(
       "import CompactStandardLibrary;"
@@ -1297,7 +1297,7 @@ groups than for single tests.
 
  ;; The public inputs reach the on-chain instance, so a witness value flowing
  ;; into them has to be disclosed.
- (with-compact-path '("compiler/testdata")
+ (with-compact-path '("test-center/fixtures/verify-proof")
   (test
     '(
       "import CompactStandardLibrary;"
@@ -1368,7 +1368,7 @@ groups than for single tests.
       irritants: '("testfile.compact line 5 char 3" "failed to locate file ~s" ("no-such-key.verifier")))
     )
 
- (with-compact-path '("compiler/testdata")
+ (with-compact-path '("test-center/fixtures/verify-proof")
   (test
     '(
       "import CompactStandardLibrary;"
@@ -1383,7 +1383,7 @@ groups than for single tests.
       irritants: '("testfile.compact line 5 char 3" "verifying key file ~s is empty" ("empty.verifier")))
     ))
 
- (with-compact-path '("compiler/testdata")
+ (with-compact-path '("test-center/fixtures/verify-proof")
   (test
     '(
       "import CompactStandardLibrary;"
