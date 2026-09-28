@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.34.111, language 0.26.105, runtime 0.19.105]
+## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.106]
 
 ### Added
 
@@ -19,6 +19,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - An issue in the type inferencer that could result in internal errors
   rather than appropriately descriptive error messages for casts of foreign
   field values to values of `Field` and `Uint` types.
+
+## [Toolchain 0.34.111, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- The standard library has a new circuit `secp256r1EcdsaVerify` that verifies
+  an ECDSA signature over the secp256r1 (also known as P256) curve and
+  returns a boolean value telling whether the verification succeeded.  Like
+  `secp256k1EcdsaVerify`, it asserts that the public key is not the identity.
+  A public key recovered off-circuit with the runtime's `secp256r1EcdsaRecover`
+  can now be verified in circuit.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+- The standard library has a new circuit `ed25519Verify<#n>` that verifies an
+  Ed25519 signature (RFC 8032) over an `n`-byte message and returns a boolean
+  value telling whether the verification succeeded.  The challenge is hashed
+  in-circuit with `sha512`.  It asserts that the public key is not the
+  identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+### Changed
+
+- Compiled contracts now also reject a `Curve25519Point` passed in from
+  JavaScript that is on the curve but outside the prime-order subgroup, that
+  is, one with a small-order component.  Circuits can only hold subgroup
+  points, so such a point used to be computed with off-circuit and then fail
+  at proving time; it is now a type error.  `isValidCurve25519Point` checks
+  subgroup membership as well.  secp256k1 and secp256r1 have cofactor 1, so
+  they need no such check.
 
 ## [Toolchain 0.34.110, language 0.26.105, runtime 0.19.105]
 

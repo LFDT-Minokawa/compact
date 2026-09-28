@@ -172,8 +172,8 @@ export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffi
 
 /**
  * Check whether a value is a valid `Curve25519Point`: an object whose `x` and
- * `y` are bigints in the base field and which lies on the curve. The identity
- * is the ordinary affine point (0, 1).
+ * `y` are bigints in the base field and which lies in the prime-order subgroup
+ * of the curve. The identity is the ordinary affine point (0, 1).
  */
 export function isValidCurve25519Point(p: unknown): p is Curve25519Point {
   if (typeof p !== 'object' || p === null) {
@@ -191,7 +191,11 @@ export function isValidCurve25519Point(p: unknown): p is Curve25519Point {
   // `assertValidity` rejects the identity, so it is only called for other points.
   if (x !== 0n || y !== 1n) {
     try {
-      ed25519.Point.fromAffine({ x, y }).assertValidity();
+      const pt = ed25519.Point.fromAffine({ x, y });
+      pt.assertValidity();
+      if (!pt.isTorsionFree()) {
+        return false;
+      }
     } catch {
       return false;
     }

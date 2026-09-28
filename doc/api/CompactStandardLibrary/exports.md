@@ -84,6 +84,37 @@ struct Secp256k1EcdsaSignature {
 }
 ```
 
+### `Secp256r1EcdsaSignature`
+
+An ECDSA signature over the secp256r1 (also known as P256) curve, used with
+[`secp256r1EcdsaVerify`](#secp256r1ecdsaverify). The `r` and `s` components are
+`Secp256r1Scalar`s.
+
+```compact
+struct Secp256r1EcdsaSignature {
+  r: Secp256r1Scalar;
+  s: Secp256r1Scalar;
+}
+```
+
+### `Ed25519Signature`
+
+An Ed25519 signature, used with [`ed25519Verify`](#ed25519verify): the
+commitment point `r` (a [`Curve25519Point`](#curve25519point)) and the response
+scalar `s` (a [`Curve25519Scalar`](#curve25519scalar)).
+
+A standard 64-byte Ed25519 signature is the 32-byte encoding of `r` followed by
+`s` as a 32-byte little-endian integer (RFC 8032 section 5.1.6).
+
+A public key is decoded the same way as `r`, from its 32 bytes.
+
+```compact
+struct Ed25519Signature {
+  r: Curve25519Point;
+  s: Curve25519Scalar;
+}
+```
+
 ### `MerkleTreeDigest`
 
 The root hash of a Merkle tree, represented by a single `Field`.
@@ -715,33 +746,41 @@ circuit secp256r1PointY(pt: Secp256r1Point): Secp256r1Base;
 
 This is a native type.
 
-The type of points on the Curve25519 elliptic curve.  It represents a pair of
-affine x- and y-coordinates.  The coordinates are `Curve25519Base` values.
-Curve25519 points cannot be created in Compact, but they can be passed as
-circuit arguments and returned from witness functions.  The behavior of
-operating on an invalid Curve25519 curve point is undefined.  You will not
-normally be able to construct proofs involving invalid Curve25519 curve points.
+The type of points on Curve25519 in its twisted Edwards form (the curve of
+Ed25519).  It represents a pair of affine x- and y-coordinates.  The coordinates
+are `Curve25519Base` values.  Curve25519 points cannot be created in Compact,
+but they can be passed as circuit arguments and returned from witness functions.
+The behavior of operating on an invalid Curve25519 point is undefined.  You will
+not normally be able to construct proofs involving invalid Curve25519 points,
+nor points outside the prime-order subgroup.
 
-Curve25519 is a twisted Edwards curve, so unlike the secp256k1 and secp256r1
-points its (additive) identity point does have a coordinate representation,
-`{ x: 0, y: 1 }`.  It is the value of `default<Curve25519Point>`.  The Compact
-runtime representation of a `Curve25519Point` carries no `identity` flag.
+The (additive) identity point is `(0, 1)`.
 
 ### `Curve25519Base`
 
 This is a native type.
 
-The type of values between 0 (inclusive) and the order of the base field of the
-Curve25519 elliptic curve (exclusive).  It is the type of the affine coordinates
+The type of values between 0 (inclusive) and the order of the base field of
+Curve25519, 2^255 - 19 (exclusive).  It is the type of the affine coordinates
 of a point on that curve.
+
+The maximum value (one less than the field order) is (decimal)
+57896044618658097711785492504343953926634992332820282019728792003956564819948
+and (hexadecimal)
+0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec.
 
 ### `Curve25519Scalar`
 
 This is a native type.
 
-The type of numeric values between 0 (inclusive) and the order of the Curve25519
-group (exclusive).  This is the type of the scalars used to multiply Curve25519
-curve points.
+The type of numeric values between 0 (inclusive) and the order of the
+prime-order subgroup of Curve25519 (exclusive).  This is the type of the scalars
+used to multiply Curve25519 points.
+
+The maximum value (one less than the subgroup order) is (decimal)
+7237005577332262213973186563042994240857116359379907606001950938285454250988
+and (hexadecimal)
+0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ec.
 
 ### `curve25519PointX`
 
@@ -911,6 +950,11 @@ The caller is expected to bind it to the actual message by hashing that message
 in-circuit (e.g. with [`keccak256`](#keccak256) for Ethereum-style signatures or
 [`persistentHash`](#persistenthash) for Bitcoin-style ones).
 
+A wider digest (SHA-512, SHA3-512, ...) is verified by passing its leading 32
+bytes, `slice<32>(digest, 0)`, which is the truncation FIPS 186-5 section 6.4.2
+prescribes for a digest wider than the group order and therefore what signers
+use.
+
 To actually enforce that a signature is valid in a Compact circuit, use an
 `assert` that the result is true.
 
@@ -925,6 +969,43 @@ low 20 bytes of the Keccak-256 hash of the [`Secp256k1Point`](#secp256k1point).
 
 ```compact
 circuit secp256k1EthereumAddress(pk: Secp256k1Point): Bytes<20>;
+```
+
+### `secp256r1EcdsaVerify`
+
+Verifies an ECDSA signature over the secp256r1 (also known as P256) curve. Takes
+a 32-byte message hash, a [`Secp256r1EcdsaSignature`](#secp256r1ecdsasignature),
+and a public key (a [`Secp256r1Point`](#secp256r1point)).
+Asserts that the verification key is not the identity (default) Secp256r1Point.
+Returns true if the signature is valid; false otherwise.
+
+As for [`secp256k1EcdsaVerify`](#secp256k1ecdsaverify), the circuit takes
+`msgHash` as given and does not constrain it to any message, and a wider digest
+is verified by passing its leading 32 bytes.
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit secp256r1EcdsaVerify(msgHash: Bytes<32>, sig: Secp256r1EcdsaSignature, pk: Secp256r1Point): Boolean;
+```
+
+### `ed25519Verify`
+
+Verifies an Ed25519 signature (RFC 8032) over a message of `n` bytes. Takes the
+message, an [`Ed25519Signature`](#ed25519signature), and a public key (a
+[`Curve25519Point`](#curve25519point)). The message is hashed in-circuit with
+SHA-512, as the standard prescribes.
+This is plain Ed25519 only: signatures made with the Ed25519ctx or Ed25519ph
+(pre-hashed) variants of RFC 8032 do not verify.
+Asserts that the verification key is not the identity Curve25519Point.
+Returns true if the signature is valid; false otherwise.
+
+To actually enforce that a signature is valid in a Compact circuit, use an
+`assert` that the result is true.
+
+```compact
+circuit ed25519Verify<#n>(msg: Bytes<n>, sig: Ed25519Signature, pk: Curve25519Point): Boolean;
 ```
 
 ### `merkleTreePathRoot`
