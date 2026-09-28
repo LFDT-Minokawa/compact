@@ -112,7 +112,13 @@ struct Secp256r1EcdsaSignature {
 ### `Ed25519Signature`
 
 An Ed25519 signature, used with [`ed25519Verify`](#ed25519verify): the
-commitment point `r` and the response scalar `s`.
+commitment point `r` (a [`Curve25519Point`](#curve25519point)) and the response
+scalar `s` (a [`Curve25519Scalar`](#curve25519scalar)).
+
+A standard 64-byte Ed25519 signature is the 32-byte encoding of `r` followed by
+`s` as a 32-byte little-endian integer (RFC 8032 section 5.1.6).
+
+A public key is decoded the same way as `r`, from its 32 bytes.
 
 ```compact
 struct Ed25519Signature {
@@ -710,6 +716,64 @@ This function extracts the affine y-coordinate from a
 circuit secp256r1PointY(pt: Secp256r1Point): Secp256r1Base;
 ```
 
+### `Curve25519Point`
+
+This is a native type.
+
+The type of points on Curve25519 in its twisted Edwards form (the curve of
+Ed25519).  It represents a pair of affine x- and y-coordinates.  The coordinates
+are `Curve25519Base` values.  Curve25519 points cannot be created in Compact,
+but they can be passed as circuit arguments and returned from witness functions.
+The behavior of operating on an invalid Curve25519 point is undefined.  You will
+not normally be able to construct proofs involving invalid Curve25519 points,
+nor points outside the prime-order subgroup.
+
+The (additive) identity point is `(0, 1)`.
+
+### `Curve25519Base`
+
+This is a native type.
+
+The type of values between 0 (inclusive) and the order of the base field of
+Curve25519, 2^255 - 19 (exclusive).  It is the type of the affine coordinates
+of a point on that curve.
+
+The maximum value (one less than the field order) is (decimal)
+57896044618658097711785492504343953926634992332820282019728792003956564819948
+and (hexadecimal)
+0x7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffec.
+
+### `Curve25519Scalar`
+
+This is a native type.
+
+The type of numeric values between 0 (inclusive) and the order of the
+prime-order subgroup of Curve25519 (exclusive).  This is the type of the scalars
+used to multiply Curve25519 points.
+
+The maximum value (one less than the subgroup order) is (decimal)
+7237005577332262213973186563042994240857116359379907606001950938285454250988
+and (hexadecimal)
+0x1000000000000000000000000000000014def9dea2f79cd65812631a5cf5d3ec.
+
+### `curve25519PointX`
+
+This function extracts the affine x-coordinate from a
+[`Curve25519Point`](#curve25519point).
+
+```compact
+circuit curve25519PointX(pt: Curve25519Point): Curve25519Base;
+```
+
+### `curve25519PointY`
+
+This function extracts the affine y-coordinate from a
+[`Curve25519Point`](#curve25519point).
+
+```compact
+circuit curve25519PointY(pt: Curve25519Point): Curve25519Base;
+```
+
 ### `ecAdd`
 
 This function adds two elliptic curve points. It is polymorphic for the
@@ -717,11 +781,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecAdd(a: JubjubPoint, b: JubjubPoint): JubjubPoint;
 circuit ecAdd(a: Secp256k1Point, b: Secp256k1Point): Secp256k1Point;
 circuit ecAdd(a: Secp256r1Point, b: Secp256r1Point): Secp256r1Point;
+circuit ecAdd(a: Curve25519Point, b: Curve25519Point): Curve25519Point;
 ```
 
 ### `ecNeg`
@@ -740,11 +806,13 @@ following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecMul(a: JubjubPoint, b: JubjubScalar): JubjubPoint;
 circuit ecMul(a: Secp256k1Point, b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMul(a: Secp256r1Point, b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMul(a: Curve25519Point, b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `ecMulGenerator`
@@ -754,11 +822,13 @@ scalar. It is polymorphic for the following types:
 * [`JubjubPoint`](#jubjubpoint)s
 * [`Secp256k1Point`](#secp256k1point)s.
 * [`Secp256r1Point`](#secp256r1point)s.
+* [`Curve25519Point`](#curve25519point)s.
 
 ```compact
 circuit ecMulGenerator(b: JubjubScalar): JubjubPoint;
 circuit ecMulGenerator(b: Secp256k1Scalar): Secp256k1Point;
 circuit ecMulGenerator(b: Secp256r1Scalar): Secp256r1Point;
+circuit ecMulGenerator(b: Curve25519Scalar): Curve25519Point;
 ```
 
 ### `neg`
@@ -886,8 +956,10 @@ circuit secp256r1EcdsaVerify(msgHash: Bytes<32>, sig: Secp256r1EcdsaSignature, p
 
 Verifies an Ed25519 signature (RFC 8032) over a message of `n` bytes. Takes the
 message, an [`Ed25519Signature`](#ed25519signature), and a public key (a
-`Curve25519Point`). The message is hashed in-circuit with SHA-512, as the
-standard prescribes.
+[`Curve25519Point`](#curve25519point)). The message is hashed in-circuit with
+SHA-512, as the standard prescribes.
+This is plain Ed25519 only: signatures made with the Ed25519ctx or Ed25519ph
+(pre-hashed) variants of RFC 8032 do not verify.
 Asserts that the verification key is not the identity Curve25519Point.
 Returns true if the signature is valid; false otherwise.
 
