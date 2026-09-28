@@ -1107,35 +1107,26 @@
                   [(tunsigned ,src ,nat)
                    (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
                   [(tpoint ,src ,ctype)
-                   ;; The tfield case above bounds a bare field element, but an
+                   ;; The tfield case above bounds a bare field element and an
                    ;; unbounded check here would let the same bigint through as
-                   ;; a coordinate, so bound these too - otherwise the
-                   ;; failure surfaces inside CompactTypeSecp256k1Base.toValue,
-                   ;; far from the call site. Curve membership and canonical
-                   ;; identity points are still unchecked.
+                   ;; a coordinate. Points on the other curves - expect JubjubPoint
+                   ;; are checked in full, including curve membership, by one runtime call.
+                   ;; Jubjub coordinates are bounded.
                    (let ([coordinate
                            (lambda (field bound)
                              (format "typeof(~a.~a) === 'bigint' && ~a.~a >= 0n && ~a.~a <= __compactRuntime.~a"
                                var field var field var field bound))])
                      (strict-nanopass-case (Ltypescript Curve-Type) ctype
                        [(curve-curve25519)
-                        (format "~a && ~a"
-                          (coordinate "x" "MAX_CURVE25519_BASE")
-                          (coordinate "y" "MAX_CURVE25519_BASE"))]
+                        (format "__compactRuntime.isValidCurve25519Point(~a)" var)]
                        [(curve-jubjub)
                         (format "~a && ~a"
                           (coordinate "x" "MAX_FIELD")
                           (coordinate "y" "MAX_FIELD"))]
                        [(curve-secp256k1)
-                        (format "~a && ~a && typeof(~a.identity) === 'boolean'"
-                          (coordinate "x" "MAX_SECP256K1_BASE")
-                          (coordinate "y" "MAX_SECP256K1_BASE")
-                          var)]
+                        (format "__compactRuntime.isValidSecp256k1Point(~a)" var)]
                        [(curve-secp256r1)
-                        (format "~a && ~a && typeof(~a.identity) === 'boolean'"
-                          (coordinate "x" "MAX_SECP256R1_BASE")
-                          (coordinate "y" "MAX_SECP256R1_BASE")
-                          var)]))]
+                        (format "__compactRuntime.isValidSecp256r1Point(~a)" var)]))]
                   [(tbytes ,src ,len)
                    (format "~a.buffer instanceof ArrayBuffer && ~:*~a.BYTES_PER_ELEMENT === 1 && ~:*~a.length === ~s" var len)]
                   [(topaque ,src ,opaque-type)

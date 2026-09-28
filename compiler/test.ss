@@ -62497,6 +62497,43 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 33" "unbound identifier ~s" (Secp256k1Base)))
     )
 
+  (test
+    '(
+      "ledger wantProof: Boolean;"
+      "export circuit test0(b: Secp256r1Base): Secp256r1Base {"
+      "  wantProof = true;"
+      "  return b;"
+      "}"
+      "export circuit test1(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  wantProof = true;"
+      "  return s;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256r1Scalar)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(b: Secp256r1Base): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256r1Base)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(pt: Secp256r1Point): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "unbound identifier ~s" (Secp256r1Point)))
+    )
+
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
     '(
@@ -71239,6 +71276,57 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256r1Base } from CompactStandardLibrary;"
+      "circuit test(b: Secp256r1Base): [] { return; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "circuit test(): Secp256r1Scalar { return default<Secp256r1Scalar>; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "ledger s: Secp256r1Scalar;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger m: Map<Uint<64>, Map<Uint<64>, Secp256r1Base>>;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "witness w(): Secp256r1Scalar;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "new type Nt = Secp256r1Scalar;"
+      "export circuit test(n: Nt): [] { return; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Base } from CompactStandardLibrary;"
+      "circuit foo<T>(x: T): [] { return; }"
+      "export circuit test(): [] { foo<Secp256r1Base>(default<Secp256r1Base>); }"
+      )
+    (succeeds))
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test(s: Secp256r1Scalar): [Secp256r1Scalar, Secp256r1Scalar] {"
@@ -71257,6 +71345,134 @@ groups than for single tests.
         "  \"outputs\": ["
         "    \"Scalar<Secp256r1>\","
         "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256k1Base): [Secp256k1Base, Secp256k1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256k1>\","
+        "    \"Base<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256r1Base): [Secp256r1Base, Secp256r1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256r1>\","
+        "    \"Base<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Base): [Curve25519Base, Curve25519Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Curve25519>\","
+        "    \"Base<Curve25519>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Scalar): [Curve25519Scalar, Curve25519Scalar] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Curve25519>\","
+        "    \"Scalar<Curve25519>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
@@ -92437,6 +92653,104 @@ groups than for single tests.
         ))
     )
 
+  ; A secp256k1 value cast to bytes inside an if compiles.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256k1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256k1Base);"
+      "    scalar = disclose(s as Secp256k1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256k1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256k1Base, s: Secp256k1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256k1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256K1_BASE, runtime.MAX_SECP256K1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
+        "});"
+        ))
+    )
+
   (test
     '(
       "module ecdsa_tests {"
@@ -93916,6 +94230,104 @@ groups than for single tests.
         ))
     )
 
+  ; A secp256r1 value cast to bytes inside an if used to crash the compiler.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256r1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256r1Base);"
+      "    scalar = disclose(s as Secp256r1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256r1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256r1Base, s: Secp256r1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256r1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256R1_BASE, runtime.MAX_SECP256R1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
+        "});"
+        ))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -94286,6 +94698,131 @@ groups than for single tests.
         "  const checked = await contract.circuits.storeXChecked(stored.context);"
         "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger jubjubScalars: Set<JubjubScalar>;"
+      "export ledger jubjubPoints: Map<Uint<8>, JubjubPoint>;"
+      "ledger secp256r1Scalars: List<Secp256r1Scalar>;"
+      "ledger secp256r1Points: MerkleTree<8, Secp256r1Point>;"
+      "export ledger secp256r1Tuple: [Secp256r1Point, Secp256r1Point, Secp256r1Point];"
+      "struct Nested {"
+      "  jp: JubjubPoint;"
+      "  color: Vector<3, Uint<8>>;"
+      "  sp: Secp256r1Point;"
+      "}"
+      "export ledger pointStruct: Nested;"
+      "export ledger jubjubTuples: Map<Uint<32>, [JubjubPoint, JubjubPoint, JubjubPoint]>;"
+      "ledger pointStructs: Map<Uint<32>, Maybe<Either<JubjubPoint, Secp256r1Point>>>;"
+      "export ledger jubjubMap: Map<Uint<32>, Map<Uint<8>, JubjubPoint>>;"
+      ""
+      "export circuit test(j: JubjubScalar, s: Secp256r1Scalar): [] {"
+      "  const j0 = disclose(j);"
+      "  jubjubScalars.insert(j0);"
+      "  jubjubPoints.insert(1, ecMulGenerator(j0));"
+      "  const jp = jubjubPoints.lookup(1);"
+      "  const s0 = disclose(s);"
+      "  secp256r1Scalars.pushFront(s0);"
+      "  secp256r1Points.insert(ecMulGenerator(s0));"
+      "  const stIn = [default<Secp256r1Point>, ecMulGenerator(s0), ecMulGenerator(s0 + s0)];"
+      "  secp256r1Tuple = stIn;"
+      "  const stOut = secp256r1Tuple;"
+      "  assert(stIn == stOut, 'ledger round tripping did not work');"
+      "  const psIn = "
+      "    Nested { jp: ecMulGenerator(j0), color: [204, 85, 0], sp: ecMulGenerator(s0 + s0 + s0) };"
+      "  pointStruct = psIn;"
+      "  const psOut = pointStruct;"
+      "  assert(psIn == psOut, 'ledger round tripping did not work');"
+      "  const jtIn = [default<JubjubPoint>, ecMulGenerator(j0), ecMulGenerator(j0)];"
+      "  jubjubTuples.insert(0, jtIn);"
+      "  const jtOut = jubjubTuples.lookup(0);"
+      "  assert(jtIn == jtOut, 'ledger round tripping did not work');"
+      "  pointStructs.insert("
+      "    0,"
+      "    some<Either<JubjubPoint, Secp256r1Point>>("
+      "      left<JubjubPoint, Secp256r1Point>(ecMulGenerator(j0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert("
+      "    1,"
+      "    some<Either<JubjubPoint, Secp256r1Point>>("
+      "      right<JubjubPoint, Secp256r1Point>(ecMulGenerator(s0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert(2, none<Either<JubjubPoint, Secp256r1Point>>());"
+      "  const ps0 = pointStructs.lookup(0);"
+      "  const ps1 = pointStructs.lookup(1);"
+      "  const ps2 = pointStructs.lookup(2);"
+      "  jubjubMap.insert(0, default<Map<Uint<8>, JubjubPoint>>);"
+      "  jubjubMap.lookup(0).insert(1, ecMulGenerator(j0));"
+      "  const jp1 = jubjubMap.lookup(0).lookup(1);"
+      "}"
+      )
+    (stage-javascript
+      '("test('Nested secp256r1 ZKIR native types in various contexts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const result = await contract.circuits.test(context, 3n, 4n);"
+        "  expect(result.result).toEqual([]);"
+        "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
+        "  expect(ledger.jubjubPoints.lookup(1n)).toEqual(runtime.ecMulGenerator(3n));"
+        "  expect(ledger.secp256r1Tuple).toEqual(["
+        "      { x: 0n, y: 0n, identity: true },"
+        "      runtime.secp256r1MulGenerator(4n),"
+        "      runtime.secp256r1MulGenerator(8n),"
+        "  ]);"
+        "  expect(ledger.pointStruct).toEqual({"
+        "    jp: runtime.ecMulGenerator(3n),"
+        "    color: [204n, 85n, 0n],"
+        "    sp: runtime.secp256r1MulGenerator(12n),"
+        "  });"
+        "  expect(ledger.jubjubTuples.lookup(0n)).toEqual(["
+        "    runtime.ecMulGenerator(0n),"
+        "    runtime.ecMulGenerator(3n),"
+        "    runtime.ecMulGenerator(3n),"
+        "  ]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit curves(a: Secp256r1Base,"
+      "                           b: Secp256r1Scalar,"
+      "                           c: Secp256r1Point): [] { }"
+      )
+    (stage-javascript curveCode
+      '(
+        "test('secp256r1 curve leaf tags', () => {"
+        "  expect(curveCode.circuitSignatures.curves.argumentTypes).toEqual(["
+        "    {tag: 'Secp256r1Base'},"
+        "    {tag: 'Secp256r1Scalar'},"
+        "    {tag: 'Secp256r1Point'}]);"
+        "});"
+        ))
+    )
+
+  ;; The nested-point hashing from LFDT-Minokawa/compact issue #608.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit test(pt0: Secp256r1Point, pt1: Secp256r1Point): [] {"
+      "  hash = disclose(keccak256<[Secp256r1Point, Secp256r1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Issue 608 for secp256r1', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256r1MulGenerator(5n);"
+        "  const p1 = runtime.secp256r1MulGenerator(7n);"
+        "  await contract.circuits.test(context, p0, p1);"
         "});"
         ))
     )

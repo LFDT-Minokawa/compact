@@ -34,29 +34,43 @@
              [pat (nanopass-case (Lflattened NT) ir^ [pat^ e] [else #f])]
              ...
              [else #f])]))
-      (define (field-type-equal? ftype ftype^)
-        (nanopass-case (Lflattened Field-Type) ftype
+      (define (same-curve-type? ctype1 ctype2)
+        (strict-nanopass-case (Lflattened Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
+          [(curve-jubjub)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256r1) #t]
+             [else #f])]))
+      (define (same-field-type? ftype1 ftype2)
+        (strict-nanopass-case (Lflattened Field-Type) ftype1
           [(field-native)
-           (nanopass-case (Lflattened Field-Type) ftype^
+           (nanopass-case (Lflattened Field-Type) ftype2
              [(field-native) #t]
              [else #f])]
-          [(field-scalar (curve-jubjub))
-           (nanopass-case (Lflattened Field-Type) ftype^
-             [(field-scalar (curve-jubjub)) #t]
+          [(field-base ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
              [else #f])]
-          [(field-base (curve-secp256k1))
-           (nanopass-case (Lflattened Field-Type) ftype^
-             [(field-base (curve-secp256k1)) #t]
-             [else #f])]
-          [(field-scalar (curve-secp256k1))
-           (nanopass-case (Lflattened Field-Type) ftype^
-             [(field-scalar (curve-secp256k1)) #t]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
              [else #f])]))
       (define (primitive-type-equal? primitive-type primitive-type^)
         (nanopass-case (Lflattened Primitive-Type) primitive-type
           [(tfield ,ftype)
            (nanopass-case (Lflattened Primitive-Type) primitive-type^
-             [(tfield ,ftype^) (field-type-equal? ftype ftype^)]
+             [(tfield ,ftype^) (same-field-type? ftype ftype^)]
              [else #f])]
           [(tunsigned ,nat)
            (nanopass-case (Lflattened Primitive-Type) primitive-type^
@@ -108,17 +122,17 @@
                         (triv-equal? triv triv^))]
                   [(bytes->field ,src ,ftype ,len ,triv1 ,triv2)
                    (bytes->field ,src^ ,ftype^ ,len^ ,triv1^ ,triv2^)
-                   (and (field-type-equal? ftype ftype^)
+                   (and (same-field-type? ftype ftype^)
                         (eqv? len len^)
                         (trivs-equal? triv1 triv1^ triv2 triv2^))]
                   [(cast-to-field ,ftype ,primitive-type ,triv) (cast-to-field ,ftype^ ,primitive-type^ ,triv^)
-                   (and (field-type-equal? ftype ftype^)
+                   (and (same-field-type? ftype ftype^)
                         (primitive-type-equal? primitive-type primitive-type^)
                         (triv-equal? triv triv^))]
                   [(cast-from-field ,src ,safe ,nat ,ftype ,triv) (cast-from-field ,src^ ,safe^ ,nat^ ,ftype^ ,triv^)
                    (and (eqv? safe safe^)
                         (eqv? nat nat^)
-                        (field-type-equal? ftype ftype^)
+                        (same-field-type? ftype ftype^)
                         (triv-equal? triv triv^))]
                   [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) (downcast-unsigned ,src^ ,safe^ ,nat2^ ,nat1^ ,triv^)
                    (and (eqv? safe safe^)
