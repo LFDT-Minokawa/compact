@@ -191,7 +191,8 @@
                        (with-output-language (Lnoserialize Expression)
                          `(field->bytes ,src ,len ,ftype ,expr))))
                    rta*)))]
-            [(tpoint ,src^ ,ctype) (assert not-implemented)]
+            [(tpoint ,src^ ,ctype)
+             (source-errorf src "serialization is not yet supported for curve type ~a" (format-type type))]
             [(tunsigned ,src^ ,nat)
              (do-unsigned nat expr)]
             [(tbytes ,src^ ,len)
@@ -313,7 +314,8 @@
                          (+ i len)
                          `(cast-from-bytes ,src (tfield ,src ,ftype) ,len
                             (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len))))]
-                    [(tpoint ,src^ ,ctype) (assert not-implemented)]
+                    [(tpoint ,src^ ,ctype)
+                     (source-errorf src "deserialization is not yet supported for curve type ~a" (format-type type))]
                     [(tunsigned ,src^ ,nat)
                      (do-unsigned nat values)]
                     [(tbytes ,src^ ,len)
