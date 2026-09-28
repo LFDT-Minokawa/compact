@@ -5,13 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.107]
+## [Toolchain 0.34.114, language 0.26.106, runtime 0.19.107]
 
 ### Fixed
 
 - Compact JavaScript runtime now encodes every `Secp256k1Point` and
   `Secp256r1Point` identity point the same way, with both coordinates 0,
   whatever coordinates the JavaScript value carries.
+
+## [Toolchain 0.34.113, language 0.26.106, runtime 0.19.106]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.1.0-rc.1`, whose binary encoding
+  puts every ZKIR 3.0 instruction and type where compactc 0.34.0 did and
+  appends the ZKIR 3.1 additions after them. The `zkir-v3` shipped since
+  0.34.103 put those additions in the middle, so a ZKIR 3.0 reader could not
+  decode the IR in its prover keys correctly. The release candidate also
+  restores the ZKIR 3.0 circuit for `encode` on `Bytes<32>`. Instruction
+  names and fields in `.zkir` files are unchanged.
+
+  **This change applies only with the flag `--feature-zkir-v3`.**
+
+### Fixed
+
+- `compactc --feature-zkir-v3 --ledger-version` prints the version of the
+  `zkir-v3` dependency, `zkir-3.1.0-rc.1`. Since 0.34.103 it printed the whole
+  `flake.nix` line declaring that dependency, because the version was read
+  from a `midnight-ledger/` URL and the dependency had moved to midnight-zkir.
+
+### Internal notes
+
+- `zkir-v3` and test-center's `zkir-v3-wasm` track the tag `zkir-3.1.0-rc.1`
+  rather than a revision.
+
+- The end-to-end smoke test also checks `--ledger-version` with
+  `--feature-zkir-v3`, and `LEDGER_VERSION_REGEX` is anchored, so output that
+  merely contains a version no longer passes.
+
+## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- Compact reference and API documentation updates for the various new and modified
+  language features, including dynamic cross-contract calls and the new foreign
+  fields and points, plus various other documentation updates, corrections, and
+  clarifications.
+
+### Fixed
+
+- An issue in the type inferencer that could result in internal errors
+  rather than appropriately descriptive error messages for casts of foreign
+  field values to values of `Field` and `Uint` types.
 
 ## [Toolchain 0.34.111, language 0.26.106, runtime 0.19.106]
 

@@ -48,7 +48,7 @@ be matched to its coordinate without trusting the filename.
 Runtime (downstream `package.json`), pin the exact dev version:
 
 ```jsonc
-"@midnight-ntwrk/compact-runtime": "0.16.101-dev.<full-commit-sha>"
+"@midnight-ntwrk/compact-runtime": "0.19.105-dev.<full-commit-sha>"
 ```
 
 with an `.npmrc` mapping the scope to GitHub Packages:
