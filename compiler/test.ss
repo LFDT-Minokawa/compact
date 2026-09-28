@@ -910,6 +910,76 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Curve25519Point;"
+      "export circuit foo(x: Curve25519Point): Bytes<64> {"
+      "  F = disclose(x);"
+      "  return serialize<Curve25519Point, 64>(F);"
+      "}"
+      )
+    (returns what)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Curve25519Point;"
+      "export circuit foo(bv: Bytes<64>): Curve25519Point {"
+      "  F = deserialize<Curve25519Point, 64>(disclose(bv));"
+      "  return F;"
+      "}"
+      )
+    (returns what)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(x: Map<Boolean, Set<Boolean>>): Bytes<64> {"
+      "  F = x;"
+      "  return serialize<Map<Boolean, Set<Boolean>>, 64>(F);"
+      "}"
+      )
+    (returns what)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(bv: Bytes<64>): Map<Boolean, Set<Boolean>> {"
+      "  F = deserialize<Map<Boolean, Set<Boolean>>, 64>(bv);"
+      "  return F;"
+      "}"
+      )
+    (returns what)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type frob = [Uint<32>, Boolean];"
+      "new type blob = Bytes<64>;"
+      "ledger F: [frob, blob];"
+      "export circuit foo(x: frob, y: blob): Bytes<100> {"
+      "  F = disclose([x, y]);"
+      "  return serialize<[frob, blob], 100>(F);"
+      "}"
+      "export circuit unfoo(bv: Bytes<100>): [frob, blob] {"
+      "  F = deserialize<[frob, blob], 100>(disclose(bv));"
+      "  return F;"
+      "}"
+      )
+    (succeeds)
+    )
+))
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(
