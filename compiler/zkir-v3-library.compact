@@ -182,6 +182,8 @@ export struct Ed25519Signature {
 // Compact has no bitwise operations, so the low bit is reached by subtracting the
 // higher bits of the least significant byte away one at a time.  Only that byte
 // matters, because every byte above it contributes a multiple of 256.
+// This relies on `x as Bytes<32>` being the canonical little-endian encoding of x,
+// that is, of its representative in [0, p).
 circuit curve25519BaseIsOdd(x: Curve25519Base): Boolean {
   const b = (x as Bytes<32> as Vector<32, Uint<8>>)[0];
   const b6 = b  >= 128 ? b  - 128 : b;
