@@ -433,8 +433,7 @@ The answer to such questions supersedes the design proposed above.
 - Should the split be proactive — treating every file that *could* become
   on-chain-runtime or ZKIR dependent as target-specific from the start — or
   reactive, splitting each file when it actually diverges? This CoIP is taking
-  a mainly proactive approach except for `compiler/midnight-inlines.ss`,
-  `compiler/midnight-events.ss`, `compiler/field.ss`, `compiler/natives.ss`,
+  a mainly proactive approach except for `compiler/field.ss`, `compiler/natives.ss`,
   `compiler/ledger.ss`, `compiler/midnight-inlines.ss`, `compiler/midnight-events.ss`,
   `compiler/inlines.ss`, and `compiler/events.ss`. The target could also be
   encoded in the macros used in `midnight-*.ss` instead of splitting the files
