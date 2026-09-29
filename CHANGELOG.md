@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.101, language 0.27.0, runtime 0.20.101]
+## [Toolchain 0.35.102, language 0.27.0, runtime 0.20.101]
 
 ### Fixed
 
@@ -17,6 +17,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The compiler no longer fails with an internal error on a conditional
   expression with an `assert` in one branch and a `[]` literal in the
   other, such as `b ? assert(...) : []`.
+
+## [Toolchain 0.35.101, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- `serialize` and `deserialize` now work for values whose types are or contain
+  structural and nominal type aliases.
+
+- `serialize` and `deserialize` now raise an appropriate not-yet-implemented
+  exception when asked to operate on values whose types are or contain
+  `Secp256k1Point`, `Secp256r1Point`, or `Curve25519Point`.
 
 ## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.100]
 
