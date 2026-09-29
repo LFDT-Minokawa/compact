@@ -90,8 +90,7 @@ network relies on target `x`, once the period is passed target `x` will be
 deprecated from Compact.
 
 A release ships one `compactc` build per target rather than one binary that
-selects a target at run time; the developer tool picks the build. See
-[Implementation](#implementation).
+selects a target at run time; the developer tool picks the build.
 
 ## Rationale
 
@@ -215,22 +214,19 @@ as well.
 machinery — while `midnight-ledger.ss` and `midnight-natives.ss`, the data they
 include, are. So the include of `midnight-ledger` and `midnight-natives` in
 `ledger.ss` and `natives.ss` respectively resolves according to the selected
-target; see
-[Implementation](#implementation). This is a
-deliberate choice over duplicating those two files, which would copy roughly 450
-lines of machinery that is not target-dependent. If the evolution of these
-macro machineries diverge significantly from one target to another, a potential
-design is to include the target version in the macro machinery. However,
-that is not the case as of writing this proposal.
+target. This is a deliberate choice over duplicating those two files, which
+would copy roughly 450 lines of machinery that is not target-dependent. If the
+evolution of these macro machineries diverge significantly from one target to
+another, a potential design is to include the target version in the macro
+machinery. However, that is not the case as of writing this proposal.
 
-The standard library is **target-dependent**.
-Adding a native to the standard library requires a
-JavaScript implementation of that native in the Compact runtime, which may
-require on-chain runtime support, and a ZKIR implementation, which may require
-new ZKIR gates; `verifyProof` and the `secp256k1` circuits are the worked
-examples. The existing `compiler/zkir-v3-library.compact` is the visible
-consequence of this today — it holds standard library circuits and types that
-are not available under ZKIR v2.
+The standard library is **target-dependent**. Adding a native to the standard
+library requires a JavaScript implementation of that native in the Compact
+runtime, which may require on-chain runtime support, and a ZKIR implementation,
+which may require new ZKIR gates; `verifyProof` and the `secp256k1` circuits are
+the worked examples. The existing `compiler/zkir-v3-library.compact` is the
+visible consequence of this today — it holds standard library circuits and types
+that are not available under ZKIR v2.
 
 ### Runtime
 
@@ -404,8 +400,7 @@ rather than avoided, and the artifact is given up in exchange.
 
 The problem it was meant to solve — a release carrying N times as many binaries
 — is better addressed by the fetch model already in the developer tool, which
-downloads one build rather than the release; see
-[Implementation](#implementation), phase 3.
+downloads one build rather than the release.
 
 ## Open questions
 
