@@ -55,6 +55,14 @@
       (unless (member name compact-stdlib-entries)
         (internal-errorf 'print-typescript "~s is not listed in compact-stdlib-entries" name))
       (format "__compactRuntime.~a" name))
+    (define (assert-call expr mesg)
+      (make-Qconcat
+        (compact-stdlib "assert")
+        "("
+        ((make-Qsep ",")
+          expr
+          (format-javascript-string mesg))
+        ")"))
     (module (with-local-unique-names demand-unique-local-name! unique-global-name unique-local-name
              format-internal-binding format-id-reference)
       (define unique-id-names (make-eq-hashtable))
@@ -2415,6 +2423,12 @@
     [(statement-expression (tuple ,src))
      (guard (not return?))
      ""]
+    ; an assert whose value is discarded needs no [] after it
+    [(statement-expression (assert ,src ,expr ,mesg))
+     (guard (not return?))
+     (make-Qconcat
+       (assert-call (Expr expr (precedence add1 comma) outer-pure?) mesg)
+       ";")]
     [(statement-expression ,[Expr : expr (precedence add1 none) outer-pure? -> * expr])
      (if return?
          (make-Qconcat "return " expr ";")
@@ -2949,14 +2963,9 @@
          " = "
          expr))]
     [(assert ,src ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,mesg)
-     (parenthesize level (precedence call)
-       (make-Qconcat
-         (compact-stdlib "assert")
-         "("
-         ((make-Qsep ",")
-           expr
-           (format-javascript-string mesg))
-         ")"))]
+     ; the value of an assert is [], but the runtime's assert returns nothing
+     (parenthesize level (precedence comma)
+       ((make-Qsep ",") (assert-call expr mesg) "[]"))]
     [(field->bytes ,src ,len ,ftype ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
      (parenthesize level (precedence call)
        (make-Qconcat

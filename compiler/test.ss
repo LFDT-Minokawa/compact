@@ -71657,6 +71657,39 @@ groups than for single tests.
     (succeeds)
     )
 
+  ; the value of an assert is []
+  (test
+    '(
+      "export circuit bound(): [] {"
+      "  const r: [] = assert(true, 'a');"
+      "  return r;"
+      "}"
+      "export circuit direct(): [] {"
+      "  return assert(true, 'a');"
+      "}"
+      "export circuit in_tuple(): [[], Field] {"
+      "  return [assert(true, 'a'), 1 as Field];"
+      "}"
+      "export circuit in_conditional(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'a') : [];"
+      "}"
+      "export circuit fails(b: Boolean): [] {"
+      "  assert(disclose(b), 'boom');"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, true)).result).toEqual([]);"
+        "  await expect(C.circuits.fails(Ctxt, false)).rejects.toThrow('failed assert: boom');"
+        "});"
+        ))
+    )
+
   (test
     '(
       "module M<T, #N> {"
