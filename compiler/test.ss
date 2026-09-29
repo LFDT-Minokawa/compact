@@ -33978,6 +33978,25 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (call %deserialize.1 %x.4))))
     )
+
+  ; the value of an assert is [], so it combines with a [] literal in a conditional
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'x') : [];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? [] : assert(true, 'x');"
+      "}"
+      )
+    (succeeds)
+    )
 )
 
 ; examples of where disclose can be placed
