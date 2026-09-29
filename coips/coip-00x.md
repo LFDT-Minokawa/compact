@@ -438,14 +438,15 @@ The answer to such questions supersedes the design proposed above.
   `compiler/inlines.ss`, and `compiler/events.ss`. The target could also be
   encoded in the macros used in `midnight-*.ss` instead of splitting the files
   in target subdirectories. 
-- What are the implications on upstream components like compact.js, midnight.js? 
-  From initial discussions, one would expect the upstream components to adopt the same design
+- What are the implications on downstream components like compact.js, midnight.js? 
+  From initial discussions, one would expect the downstream components to adopt the same design
   of supporting multiple ledgers, otherwise, the benefit added is only when a user
   is compiling a contract.
 - How should the documentation (ledger ADT and standard library) handle versions?
   Should they reveal both the network and target?
 - Let's make a decision on supporting a single zkir version for a target or 
-  multiple.
+  multiple. This could potentially result in supporting multiple targets per
+  network. Override `--network=...` with `--targt=...` in devtool?
 - Will `onchain-runtime` always be released with a suffix of its major version?
 - Does the ledger team perceive a change in `max-field` allowed in the future?
   If so, `compiler/field.ss` also becomes target-dependent. 
