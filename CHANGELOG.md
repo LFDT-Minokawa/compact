@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.0]
+## [Toolchain 0.35.101, language 0.27.0, runtime 0.20.0]
 
 ### Fixed
 
@@ -15,6 +15,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `serialize` and `deserialize` now raise an appropriate not-yet-implemented
   exception when asked to operate on values whose types are or contain
   `Secp256k1Point`, `Secp256r1Point`, or `Curve25519Point`.
+
+## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- Compact JavaScript runtime now encodes every `Secp256k1Point` and
+  `Secp256r1Point` identity point the same way, with both coordinates 0,
+  whatever coordinates the JavaScript value carries.
 
 ## [Toolchain 0.35.0, language 0.27.0, runtime 0.20.0]
 

@@ -11,7 +11,7 @@
     "test:formatter": "vitest run --config vitest.config.ts formatter",
     "test:fixup": "vitest run --config vitest.config.ts fixup",
     "test:fuzzer": "vitest run --config vitest.config.ts fuzzer",
-    "test:release": "RELEASE=true vitest run --config vitest.config.ts --max-workers 1 --min-workers 1 --exclude **/fuzzer.e2e.test.ts --exclude **/extracted.e2e.test.ts --exclude **/runtime.compatibility.e2e.test.ts --exclude **/zkir.proofdata.e2e.test.ts",
+    "test:release": "RELEASE=true vitest run --config vitest.config.ts --max-workers 1 --exclude **/fuzzer.e2e.test.ts --exclude **/extracted.e2e.test.ts --exclude **/runtime.compatibility.e2e.test.ts --exclude **/zkir.proofdata.e2e.test.ts",
     "lint": "eslint ./**/*.ts --no-warn-ignored",
     "lint:fix": "eslint --fix ./**/*.ts",
     "build": "tsc"
