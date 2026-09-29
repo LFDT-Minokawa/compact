@@ -13,10 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.15.0;
-
-import CompactStandardLibrary;
-
-constructor(b: Boolean) {
-  assert 1 > 2 "bob";
+// An assert whose condition holds completes without effect.
+export circuit assertions_true_condition_passes(): [] {
+  assert([1] == [1], "greg 2");
 }
