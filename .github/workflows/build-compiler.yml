@@ -21,10 +21,10 @@ jobs:
       contents: read
     steps:
       - name: Checkout compactc repo
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Python
-        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: 3.13
 
@@ -45,7 +45,7 @@ jobs:
     timeout-minutes: 120
     steps:
       - name: Checkout compactc repository
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
@@ -56,7 +56,7 @@ jobs:
         run: |
           FLAKE_VERSION=$(grep -oP 'version = "\K[0-9]+\.[0-9]+\.[0-9]+(?=";.*# NB: also update compiler-version)' flake.nix)
 
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
 
           echo "flake.nix version:                    $FLAKE_VERSION"
           echo "compiler/compiler-version.ss version: $COMPILER_VERSION"
@@ -77,13 +77,9 @@ jobs:
         run: |
           FAILED=0
 
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
           DOCS_COMPILER=$(grep -m1 -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
-          if [ -z "$COMPILER_VERSION" ]; then
-            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$DOCS_COMPILER" ]; then
             echo "::error::Could not extract compiler version from doc/ledger-adt.mdx. Check that it contains a 'compiler version X.Y.Z' string."
             exit 1
@@ -99,13 +95,9 @@ jobs:
             echo "Compiler versions match: $COMPILER_VERSION"
           fi
 
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          LANGUAGE_VERSION=$(./scripts/read-version.sh language)
           DOCS_LANGUAGE=$(grep -m1 -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
-          if [ -z "$LANGUAGE_VERSION" ]; then
-            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$DOCS_LANGUAGE" ]; then
             echo "::error::Could not extract language version from doc/ledger-adt.mdx. Check that it contains a 'language version X.Y.Z' string."
             exit 1
@@ -130,18 +122,10 @@ jobs:
           FAILED=0
 
           # Extract versions from source files
-          COMPILER_VERSION=$(grep -oP "\(make-version 'compiler \K[0-9 ]+" compiler/compiler-version.ss | tr ' ' '.')
-          LANGUAGE_VERSION=$(grep -oP "\(make-version 'language \K[0-9 ]+" compiler/language-version.ss | tr ' ' '.')
+          COMPILER_VERSION=$(./scripts/read-version.sh compiler)
+          LANGUAGE_VERSION=$(./scripts/read-version.sh language)
           RUNTIME_VERSION=$(grep -oP '"version":\s*"\K[0-9]+\.[0-9]+\.[0-9]+' runtime/package.json | head -1)
 
-          if [ -z "$COMPILER_VERSION" ]; then
-            echo "::error::Could not extract compiler version from compiler/compiler-version.ss. Check the make-version format."
-            exit 1
-          fi
-          if [ -z "$LANGUAGE_VERSION" ]; then
-            echo "::error::Could not extract language version from compiler/language-version.ss. Check the make-version format."
-            exit 1
-          fi
           if [ -z "$RUNTIME_VERSION" ]; then
             echo "::error::Could not extract runtime version from runtime/package.json. Check the version field."
             exit 1

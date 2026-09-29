@@ -23,6 +23,7 @@
           (datatype)
           (config-params)
           (nanopass)
+          (only (nanopass-extension) strict-nanopass-case) 
           (langs)
           (pass-helpers))
 

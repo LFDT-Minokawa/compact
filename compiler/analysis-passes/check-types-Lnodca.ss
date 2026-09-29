@@ -53,11 +53,29 @@
       (nanopass-case (Lnodca Argument) arg
         [(,var-name ,type) type]))
     (define (format-field-type ftype)
-      (nanopass-case (Lnodca Field-Type) ftype
+      (strict-nanopass-case (Lnodca Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub)
+            ;; The base field of Jubjub is the native field type.
+            (assertf cannot-happen
+              "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
+    (define (format-point-type ctype)
+      (strict-nanopass-case (Lnodca Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-type type)
       (define (format-adt-arg adt-arg)
         (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg
@@ -67,6 +85,7 @@
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -102,18 +121,26 @@
         [(talias ,src ,nominal? ,type-name ,type)
          (de-alias type)]
         [else type]))
-      (define (same-curve-type? ctype1 ctype2)
-        (nanopass-case (Lnodca Curve-Type) ctype1
-          [(curve-jubjub)
-           (nanopass-case (Lnodca Curve-Type) ctype2
-             [(curve-jubjub) #t]
-             [else #f])]
-          [(curve-secp256k1)
-           (nanopass-case (Lnodca Curve-Type) ctype2
-             [(curve-secp256k1) #t]
-             [else #f])]))
+    (define (same-curve-type? ctype1 ctype2)
+      (strict-nanopass-case (Lnodca Curve-Type) ctype1
+        [(curve-curve25519)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-curve25519) #t]
+           [else #f])]
+        [(curve-jubjub)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-jubjub) #t]
+           [else #f])]
+        [(curve-secp256k1)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-secp256k1) #t]
+           [else #f])]
+        [(curve-secp256r1)
+         (nanopass-case (Lnodca Curve-Type) ctype2
+           [(curve-secp256r1) #t]
+           [else #f])]))
     (define (same-field-type? ftype1 ftype2)
-      (nanopass-case (Lnodca Field-Type) ftype1
+      (strict-nanopass-case (Lnodca Field-Type) ftype1
         [(field-native)
          (nanopass-case (Lnodca Field-Type) ftype2
            [(field-native) #t]
@@ -138,71 +165,76 @@
              [,type2 (same-type? type1 type2)]
              [else #f])]))
       (let ([type1 (de-alias type1)] [type2 (de-alias type2)])
-        (T type1
-           [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
-           [(tfield ,src1 ,ftype1)
-            (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
-           [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
-           [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
-           [(topaque ,src1 ,opaque-type1)
-            (T type2
-               [(topaque ,src2 ,opaque-type2)
-                (string=? opaque-type1 opaque-type2)])]
-           [(tvector ,src1 ,len1 ,type1)
-            (T type2
-               [(tvector ,src2 ,len2 ,type2)
-                (and (= len1 len2)
-                     (same-type? type1 type2))]
-               [(ttuple ,src2 ,type2* ...)
-                (and (= len1 (length type2*))
-                     (andmap (lambda (type2) (same-type? type1 type2)) type2*))])]
-           [(ttuple ,src1 ,type1* ...)
-            (T type2
-               [(tvector ,src2 ,len2 ,type2)
-                (and (= (length type1*) len2)
-                     (andmap (lambda (type1) (same-type? type1 type2)) type1*))]
-               [(ttuple ,src2 ,type2* ...)
-                (and (= (length type1*) (length type2*))
-                     (andmap same-type? type1* type2*))])]
-           [(tunknown) (T type2 [(tunknown) #t])]
-           [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-            (T type2
-               [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-                (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                  (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                            (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                     (and (eq? elt-name1 elt-name2)
-                                          (eq? pure-dcl1 pure-dcl2)
-                                          (fx= (length type1*) (length type2*))
-                                          (andmap same-type? type1* type2*)
-                                          (same-type? type1 type2)))
-                                   elt-name1* pure-dcl1* type1** type1*))
-                          elt-name2* pure-dcl2* type2** type2*))
-                (and (eq? contract-name1 contract-name2)
-                     (fx= (length elt-name1*) (length elt-name2*))
-                     (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-           [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
-            (T type2
-               [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
-                ; include struct-name and elt-name tests for nominal typing; remove
-                ; for structural typing.
-                (and (eq? struct-name1 struct-name2)
-                     (= (length elt-name1*) (length elt-name2*))
-                     (andmap eq? elt-name1* elt-name2*)
-                     (andmap same-type? type1* type2*))])]
-           [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
-            (T type2
-               [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
-                (and (eq? enum-name1 enum-name2)
-                     (eq? elt-name1 elt-name2)
-                     (= (length elt-name1*) (length elt-name2*))
-                     (andmap eq? elt-name1* elt-name2*))])]
-           [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
-            (T type2
-               [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
-                (and (eq? adt-name1 adt-name2)
-                     (fx= (length adt-arg1*) (length adt-arg2*))
-                     (andmap same-adt-arg? adt-arg1* adt-arg2*))])])))
+        (strict-nanopass-case (Lnodca Type) type1
+          [,tvar-name (assertf cannot-happen "same-type? should not be applied to external type declarations")]
+          [(tboolean ,src1) (T type2 [(tboolean ,src2) #t])]
+          [(tfield ,src1 ,ftype1)
+           (T type2 [(tfield ,src2 ,ftype2) (same-field-type? ftype1 ftype2)])]
+          [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
+          [(tpoint ,src1 ,ctype1)
+           (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+          [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
+          [(topaque ,src1 ,opaque-type1)
+           (T type2
+              [(topaque ,src2 ,opaque-type2)
+               (string=? opaque-type1 opaque-type2)])]
+          [(tvector ,src1 ,len1 ,type1)
+           (T type2
+              [(tvector ,src2 ,len2 ,type2)
+               (and (= len1 len2)
+                    (same-type? type1 type2))]
+              [(ttuple ,src2 ,type2* ...)
+               (and (= len1 (length type2*))
+                    (andmap (lambda (type2) (same-type? type1 type2)) type2*))])]
+          [(ttuple ,src1 ,type1* ...)
+           (T type2
+              [(tvector ,src2 ,len2 ,type2)
+               (and (= (length type1*) len2)
+                    (andmap (lambda (type1) (same-type? type1 type2)) type1*))]
+              [(ttuple ,src2 ,type2* ...)
+               (and (= (length type1*) (length type2*))
+                    (andmap same-type? type1* type2*))])]
+          [(tunknown) (T type2 [(tunknown) #t])]
+          [(tcontract ,src1 ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+           (T type2
+              [(tcontract ,src2 ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+               (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
+                 (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
+                           (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
+                                    (and (eq? elt-name1 elt-name2)
+                                         (eq? pure-dcl1 pure-dcl2)
+                                         (fx= (length type1*) (length type2*))
+                                         (andmap same-type? type1* type2*)
+                                         (same-type? type1 type2)))
+                                  elt-name1* pure-dcl1* type1** type1*))
+                         elt-name2* pure-dcl2* type2** type2*))
+               (and (eq? contract-name1 contract-name2)
+                    (fx= (length elt-name1*) (length elt-name2*))
+                    (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+          [(tstruct ,src1 ,struct-name1 (,elt-name1* ,type1*) ...)
+           (T type2
+              [(tstruct ,src2 ,struct-name2 (,elt-name2* ,type2*) ...)
+               ; include struct-name and elt-name tests for nominal typing; remove
+               ; for structural typing.
+               (and (eq? struct-name1 struct-name2)
+                    (= (length elt-name1*) (length elt-name2*))
+                    (andmap eq? elt-name1* elt-name2*)
+                    (andmap same-type? type1* type2*))])]
+          [(tenum ,src1 ,enum-name1 ,elt-name1 ,elt-name1* ...)
+           (T type2
+              [(tenum ,src2 ,enum-name2 ,elt-name2 ,elt-name2* ...)
+               (and (eq? enum-name1 enum-name2)
+                    (eq? elt-name1 elt-name2)
+                    (= (length elt-name1*) (length elt-name2*))
+                    (andmap eq? elt-name1* elt-name2*))])]
+          [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr (,adt-op1* ...) (,adt-rt-op1* ...))
+           (T type2
+              [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr (,adt-op2* ...) (,adt-rt-op2* ...))
+               (and (eq? adt-name1 adt-name2)
+                    (fx= (length adt-arg1*) (length adt-arg2*))
+                    (andmap same-adt-arg? adt-arg1* adt-arg2*))])]
+          [(talias ,src ,nominal? ,type-name ,type)
+           (assertf cannot-happen "eliminated by de-alias")])))
     (define (do-circuit-body src what arg* return-type expr)
       (let ([id* (map arg->name arg*)] [type* (map arg->type arg*)])
         (for-each (lambda (id type) (set-idtype! id (Idtype-Base type))) id* type*)
@@ -258,6 +290,12 @@
          type]
         [else (assert cannot-happen)]))
      (define (arithmetic-binop src op result-type expr1 expr2)
+       (define (supports-arithmetic? ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) #t]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) #t]
+           [(curve-secp256r1) #t]))
        (let ([type1 (Care expr1)] [type2 (Care expr2)])
          (let ([unaliased-type1 (de-alias type1)] [unaliased-type2 (de-alias type2)])
            (unless (and (same-type? result-type unaliased-type1)
@@ -266,8 +304,8 @@
                (format-type type1) op (format-type type2) (format-type result-type)))
            (unless (T result-type
                      [(tfield ,src (field-native)) #t]
-                     [(tfield ,src (field-base (curve-secp256k1))) #t]
-                     [(tfield ,src (field-scalar (curve-secp256k1))) #t]
+                     [(tfield ,src (field-base ,ctype)) (supports-arithmetic? ctype)]
+                     [(tfield ,src (field-scalar ,ctype)) (supports-arithmetic? ctype)]
                      [(tunsigned ,src ,nat) #t])
              (source-errorf src "invalid operation type ~a for ~s" (format-type result-type) op)))
          result-type))
@@ -740,20 +778,26 @@
                             (format-type type^))])
      type]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
-     (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
-     (unless (nanopass-case (Lnodca Type) (de-alias type)
-               [(tfield ,src^ ,ftype^)
-                (and (same-field-type? ftype ftype^)
-                     (nanopass-case (Lnodca Field-Type) ftype
-                       [(field-native) #t]
-                       [(field-base (curve-secp256k1)) (eqv? len 32)]
-                       [(field-scalar (curve-secp256k1)) (eqv? len 32)]
-                       [else #f]))]
-               [else #f])
-       (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
-         (format-type type)
-         (format-field-type ftype)))
-     (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+     (let ()
+       (define (valid-length? ctype)
+         (strict-nanopass-case (Lnodca Curve-Type) ctype
+           [(curve-curve25519) (eqv? len 32)]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) (eqv? len 32)]
+           [(curve-secp256r1) (eqv? len 32)]))
+       (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
+       (unless (nanopass-case (Lnodca Type) (de-alias type)
+                 [(tfield ,src^ ,ftype^)
+                  (and (same-field-type? ftype ftype^)
+                       (strict-nanopass-case (Lnodca Field-Type) ftype
+                         [(field-native) #t]
+                         [(field-base ,ctype) (valid-length? ctype)]
+                         [(field-scalar ,ctype) (valid-length? ctype)]))]
+                 [else #f])
+         (source-errorf src "actual type ~a is an invalid argument to field->bytes for field ~a"
+           (format-type type)
+           (format-field-type ftype)))
+       (with-output-language (Lnodca Type) `(tbytes ,src ,len)))]
     [(bytes->vector ,src ,len ,[Care : expr -> * type])
      (unless (nanopass-case (Lnodca Type) (de-alias type)
                [(tbytes ,src ,len^) (= len^ len)]

@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
 import {
     buildPathTo,
@@ -104,10 +103,10 @@ describe('[Bugs] [Issue #187] comparison operators preserve operand evaluation o
         const filePath = CONTRACTS_ROOT + 'comparisons.compact';
 
         const outputDir = createTempFolder();
-        const result: Result = await compile([filePath, outputDir]);
+        const result = await compile([filePath, outputDir]);
 
         expectCompilerResult(result).toBeSuccess(/Compiling 4 circuits:/, compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         expectComparisonToUsePrivateInputsInOrder(outputDir, 'less_than');
         expectComparisonToUsePrivateInputsInOrder(outputDir, 'less_than_or_equal');

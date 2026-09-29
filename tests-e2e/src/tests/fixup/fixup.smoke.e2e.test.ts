@@ -72,7 +72,7 @@ describe('[Smoke] Fixup', () => {
             'Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: (Uint<0..1>, Field); declared argument types for function at line 19 char 1: (Boolean, Field)',
             '',
         );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
+        expectFiles({ outputDir }).thatNoFilesAreGenerated();
     });
 
     test('should throw multi line error without --vscode', async () => {
@@ -89,7 +89,7 @@ describe('[Smoke] Fixup', () => {
                 '        (Boolean, Field)',
             '',
         );
-        expectFiles(outputDir).thatNoFilesAreGenerated();
+        expectFiles({ outputDir }).thatNoFilesAreGenerated();
     });
 
     test('should throw an error when output is directory', async () => {

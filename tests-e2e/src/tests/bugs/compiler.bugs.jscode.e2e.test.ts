@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { Arguments, buildPathTo, compile, compilerDefaultOutput, createTempFolder, expectCompilerResult, expectFiles } from '@';
 
 describe('[Bugs][JS code] Compiler', () => {
@@ -22,16 +21,16 @@ describe('[Bugs][JS code] Compiler', () => {
     test(`[PM-16064] should generate correct index.js file, which can be compiled`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-16064.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-16064.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        await expectFiles(outputDir).thatGeneratedJSCodeIsValid().thatGeneratedJSCodeIsLinted();
+        await expectFiles(result).thatGeneratedJSCodeIsValid().thatGeneratedJSCodeIsLinted();
     });
 
     test(`[PM-16075] should generate correct index.js file, which can be compiled`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-16075.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'pm-16075.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        await expectFiles(outputDir).thatGeneratedJSCodeIsValid().thatGeneratedJSCodeIsLinted();
+        await expectFiles(result).thatGeneratedJSCodeIsValid().thatGeneratedJSCodeIsLinted();
     });
 });

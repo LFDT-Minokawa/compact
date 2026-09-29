@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
 import {
     Arguments,
@@ -33,9 +32,9 @@ describe('[Runtime] Compiler', () => {
     test(`generated contract should use latest version of runtime`, async () => {
         const outputDir = createTempFolder();
 
-        const result: Result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'counter.compact', outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACTS_ROOT + 'counter.compact', outputDir]);
         expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-        expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+        expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const getRuntimePackage = getFileContent(RUNTIME_ROOT + '/package.json');
         const packageVersion = getRuntimePackage.match(/"version"\s*:\s*"([^"]+)"/);

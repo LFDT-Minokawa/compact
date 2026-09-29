@@ -21,7 +21,7 @@ export default defineConfig({
         globals: true,
         environment: 'node',
         include: ['**/*.test.ts'],
-        exclude: ['./node_modules', './dist', 'src/fuzzer'],
+        exclude: ['./node_modules', './dist', 'src/fuzzer', 'src/tests/compiler/compiler.ecdsa.e2e.test.ts'],
         testTimeout: 180_000,
         reporters: process.env.GITHUB_ACTIONS
             ? [

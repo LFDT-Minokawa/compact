@@ -4,7 +4,6 @@ Usage: compact list [OPTIONS]
 
 Options:
   -i, --installed              Show installed versions
-      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=]
-                               [default: [USER_DIR]/.compact]
+      --directory <DIRECTORY>  Set the compact artifact directory [env: COMPACT_DIRECTORY=] [default: [USER_DIR]/.compact]
   -h, --help                   Print help (see more with '--help')
   -V, --version                Print version

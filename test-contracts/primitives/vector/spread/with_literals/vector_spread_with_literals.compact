@@ -1,0 +1,29 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Spread expressions can be interleaved with literal elements anywhere in a
+// vector literal; each spread is expanded in place.
+export circuit vector_spread_with_literals(): Vector<5, Field> {
+    const middle: Vector<2, Field> = [2 as Field, 3 as Field];
+
+    const result: Vector<5, Field> = [1 as Field, ...middle, ...[4 as Field, 5 as Field]];
+    assert(result[0] == 1 as Field, "Leading literal should be 1");
+    assert(result[2] == 3 as Field, "Spread element should be 3");
+    assert(result[4] == 5 as Field, "Trailing spread literal should be 5");
+
+    return result;
+}

@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import CompactStandardLibrary;
+
 export ledger base: Secp256k1Base;
 export ledger scalar: Secp256k1Scalar;
 

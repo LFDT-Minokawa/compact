@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
@@ -39,14 +38,14 @@ describe.skipIf(isRelease())('[E2E] Extracted unit tests for compiler', () => {
         test(`should be able to compile extracted contract: '${contractsDir}${fileName}'`, async () => {
             const outputDir = createTempFolder();
 
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir], contractsDir);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir], contractsDir);
             expectCompilerResult(result).stdErrToNotContain(['Internal']);
 
             if (result.exitCode == ExitCodes.Success) {
                 if (contractContent.includes('if (b()) S { w(), w() }') || contractContent.includes('if (b) S { w(), w() };')) {
-                    expectFiles(outputDir).thatGeneratedJSCodeIsValid(false);
+                    expectFiles(result).thatGeneratedJSCodeIsValid(false);
                 } else {
-                    expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+                    expectFiles(result).thatGeneratedJSCodeIsValid();
                 }
             }
         });

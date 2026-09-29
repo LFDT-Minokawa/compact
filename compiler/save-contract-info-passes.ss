@@ -21,6 +21,7 @@
           (utils)
           (datatype)
           (nanopass)
+          (only (nanopass-extension) strict-nanopass-case)
           (json)
           (langs)
           (compiler-version)

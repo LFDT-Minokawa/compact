@@ -16,7 +16,7 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext } from './circuit-context.js';
 import { toHex } from './utils.js';
-import { CompactError } from './error.js';
+import { assertDefined, CompactError } from './error.js';
 import { CompactTypeBoolean, CompactTypeBytes, CompactTypeUnsignedInteger } from './compact-types.js';
 
 /**
@@ -224,6 +224,41 @@ const assertHasCurrentZswapLocalState = (circuitContext: CircuitContext): void =
 };
 
 /**
+ * Records a mutated Zswap local state on both the live call context and the per-address map
+ * threaded across the whole call tree, so a cross-contract callee's coin operations survive its
+ * return. Mirrors the write-back {@link queryLedgerState} performs for `queryContexts`.
+ *
+ * Unlike that one, this needs no "real context" guard: the generated ledger read-accessors build
+ * a minimal synthetic context with no address and no maps, but they never reach this function —
+ * only circuit bodies create Zswap inputs and outputs. A missing address or map here means the
+ * context was not built by {@link createCircuitContext}, which is a caller error worth surfacing.
+ *
+ * @internal
+ */
+const setCurrentZswapLocalState = (circuitContext: CircuitContext<unknown>, next: EncodedZswapLocalState): void => {
+  const address = circuitContext.callContext.contractAddress;
+  assertDefined(address, 'contract address on the executing call context');
+  assertDefined(circuitContext.zswapLocalStates, 'per-contract Zswap local states on the circuit context');
+  circuitContext.callContext.currentZswapLocalState = next;
+  circuitContext.zswapLocalStates[address] = next;
+};
+
+/**
+ * The query-context counterpart. A coin commitment lands in the query context rather than the
+ * Zswap local state, so writing only the live cell leaves the per-address one behind — and that is
+ * the one a later turn of this contract resumes from.
+ *
+ * @internal
+ */
+const setCurrentQueryContext = (circuitContext: CircuitContext<unknown>, next: ocrt.QueryContext): void => {
+  const address = circuitContext.callContext.contractAddress;
+  assertDefined(address, 'contract address on the executing call context');
+  assertDefined(circuitContext.queryContexts, 'per-contract query contexts on the circuit context');
+  circuitContext.callContext.currentQueryContext = next;
+  circuitContext.queryContexts[address] = next;
+};
+
+/**
  * Adds a coin to the list of inputs consumed by the circuit.
  *
  * @param circuitContext The current circuit context.
@@ -234,10 +269,10 @@ export function createZswapInput(
   qualifiedShieldedCoinInfo: EncodedQualifiedShieldedCoinInfo,
 ): [] {
   assertHasCurrentZswapLocalState(circuitContext);
-  circuitContext.callContext.currentZswapLocalState = {
+  setCurrentZswapLocalState(circuitContext, {
     ...circuitContext.callContext.currentZswapLocalState,
     inputs: circuitContext.callContext.currentZswapLocalState!.inputs.concat(qualifiedShieldedCoinInfo),
-  } as EncodedZswapLocalState;
+  } as EncodedZswapLocalState);
   return [];
 }
 
@@ -351,18 +386,21 @@ export function createZswapOutput(
   recipient: EncodedRecipient,
 ): [] {
   assertHasCurrentZswapLocalState(circuitContext);
-  circuitContext.callContext.currentQueryContext = circuitContext.callContext.currentQueryContext.insertCommitment(
-    Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
-    circuitContext.callContext.currentZswapLocalState!.currentIndex,
+  setCurrentQueryContext(
+    circuitContext,
+    circuitContext.callContext.currentQueryContext.insertCommitment(
+      Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
+      circuitContext.callContext.currentZswapLocalState!.currentIndex,
+    ),
   );
-  circuitContext.callContext.currentZswapLocalState = {
+  setCurrentZswapLocalState(circuitContext, {
     ...circuitContext.callContext.currentZswapLocalState,
     currentIndex: circuitContext.callContext.currentZswapLocalState!.currentIndex + 1n,
     outputs: circuitContext.callContext.currentZswapLocalState!.outputs.concat({
       coinInfo,
       recipient,
     }),
-  } as EncodedZswapLocalState;
+  } as EncodedZswapLocalState);
   return [];
 }
 

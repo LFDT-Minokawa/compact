@@ -46,11 +46,29 @@
       (nanopass-case (Lflattened Argument) arg
         [(argument (,var-name* ...) ,type) (type->primitive-types type)]))
     (define (format-field-type ftype)
-      (nanopass-case (Lflattened Field-Type) ftype
+      (strict-nanopass-case (Lflattened Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub)
+            ;; The base field of Jubjub is the native field type.
+            (assertf cannot-happen
+              "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
+    (define (format-point-type ctype)
+      (strict-nanopass-case (Lflattened Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-primitive-type primitive-type)
       (define (format-type type)
         (format "(~{~a~^, ~})" (map format-primitive-type (type->primitive-types type))))
@@ -61,6 +79,7 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (format-field-type ftype)]
         [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
+        [(tpoint ,ctype) (format-point-type ctype)]
         [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
          (format "contract ~a<~{~a~^, ~}>" contract-name
@@ -74,62 +93,115 @@
         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
          (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
         [else (internal-errorf 'format-primitive-type "unexpected primitive type ~s" primitive-type)]))
+      (define (same-curve-type? ctype1 ctype2)
+        (strict-nanopass-case (Lflattened Curve-Type) ctype1
+          [(curve-curve25519)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-curve25519) #t]
+             [else #f])]
+          [(curve-jubjub)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-jubjub) #t]
+             [else #f])]
+          [(curve-secp256k1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256k1) #t]
+             [else #f])]
+          [(curve-secp256r1)
+           (nanopass-case (Lflattened Curve-Type) ctype2
+             [(curve-secp256r1) #t]
+             [else #f])]))
+      (define (same-field-type? ftype1 ftype2)
+        (strict-nanopass-case (Lflattened Field-Type) ftype1
+          [(field-native)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-native) #t]
+             [else #f])]
+          [(field-base ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-base ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]
+          [(field-scalar ,ctype1)
+           (nanopass-case (Lflattened Field-Type) ftype2
+             [(field-scalar ,ctype2) (same-curve-type? ctype1 ctype2)]
+             [else #f])]))
     (define (subtype? type1 type2)
       (let ([primitive-type1* (type->primitive-types type1)]
             [primitive-type2* (type->primitive-types type2)])
         (and (fx= (length primitive-type1*) (length primitive-type2*))
              (andmap sub-primitive-type? primitive-type1* primitive-type2*))))
     (define (sub-primitive-type? primitive-type1 primitive-type2)
-      (T primitive-type1
-         [(tfield (field-native))
-          (T primitive-type2
-            [(tfield (field-native)) #t]
-            [(tunsigned ,nat) (<= (max-field) nat)])]
-         [(tfield (field-scalar (curve-jubjub)))
-          (T primitive-type2
-            [(tfield (field-native)) #t]
-            [(tfield (field-scalar (curve-jubjub))) #t]
-            [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
-         [(tfield (field-base (curve-secp256k1)))
-          (T primitive-type2 [(tfield (field-base (curve-secp256k1))) #t])]
-         [(tfield (field-scalar (curve-secp256k1)))
-          (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])]
-         [(tunsigned ,nat1)
-          (T primitive-type2
-            [(tfield (field-native)) (<= nat1 (max-field))]
-            [(tfield (field-scalar (curve-jubjub))) (<= nat1 (max-jubjub-scalar))]
-            [(tunsigned ,nat2) (<= nat1 nat2)]
-            [(topaque ,opaque-type)
-             ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
-             (eqv? nat1 0)]
-            ;; default<public-adt> is the only value of type public-adt and is represented by 0
-            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
-             (eqv? nat1 0)])]
-         [(topaque ,opaque-type1)
-          (T primitive-type2
-             [(topaque ,opaque-type2)
-              (string=? opaque-type1 opaque-type2)])]
-         [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
-          (T primitive-type2
-             [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
-              (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
-                (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
-                          (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
-                                   (and (eq? elt-name1 elt-name2)
-                                        (eq? pure-dcl1 pure-dcl2)
-                                        (fx= (length type1*) (length type2*))
-                                        (andmap subtype? type1* type2*)
-                                        (subtype? type1 type2)))
-                                 elt-name1* pure-dcl1* type1** type1*))
-                        elt-name2* pure-dcl2* type2** type2*))
-              (and (eq? contract-name1 contract-name2)
-                   (fx= (length elt-name1*) (length elt-name2*))
-                   (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
-         ; this should never presently happen, since no Triv has type public-adt
-         [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
-          (T primitive-type2
-             [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
-              #f])]))
+      (strict-nanopass-case (Lflattened Primitive-Type) primitive-type1
+        [(tfield ,ftype)
+         (strict-nanopass-case (Lflattened Field-Type) ftype
+           [(field-native)
+            (T primitive-type2
+               [(tfield (field-native)) #t]
+               [(tunsigned ,nat) (<= (max-field) nat)])]
+           [(field-scalar ,ctype)
+            (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-curve25519)
+               (T primitive-type2 [(tfield (field-scalar (curve-curve25519))) #t])]
+              [(curve-jubjub)
+               (T primitive-type2
+                  [(tfield (field-native)) #t]
+                  [(tfield (field-scalar (curve-jubjub))) #t]
+                  [(tunsigned ,nat) (<= (max-jubjub-scalar) nat)])]
+              [(curve-secp256k1)
+               (T primitive-type2 [(tfield (field-scalar (curve-secp256k1))) #t])]
+              [(curve-secp256r1)
+               (T primitive-type2 [(tfield (field-scalar (curve-secp256r1))) #t])])]
+           [(field-base ,ctype)
+            (strict-nanopass-case (Lflattened Curve-Type) ctype
+              [(curve-curve25519)
+               (T primitive-type2 [(tfield (field-base (curve-curve25519))) #t])]
+              [(curve-jubjub) (assert cannot-happen)]
+              [(curve-secp256k1)
+               (T primitive-type2 [(tfield (field-base (curve-secp256k1))) #t])]
+              [(curve-secp256r1)
+               (T primitive-type2 [(tfield (field-base (curve-secp256r1))) #t])])])]
+        [(tunsigned ,nat1)
+         (T primitive-type2
+           [(tfield (field-native)) (<= nat1 (max-field))]
+           [(tfield (field-scalar (curve-jubjub))) (<= nat1 (max-jubjub-scalar))]
+           [(tunsigned ,nat2) (<= nat1 nat2)]
+           [(topaque ,opaque-type)
+            ;; tfield value 0 of type (tfield 0) is produced by default<Opaque<"type">>
+            (eqv? nat1 0)]
+           ;; default<public-adt> is the only value of type public-adt and is represented by 0
+           [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
+            (eqv? nat1 0)])]
+        [(tpoint ,ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) (T primitive-type2 [(tpoint (curve-curve25519)) #t])]
+           [(curve-jubjub) (T primitive-type2 [(tpoint (curve-jubjub)) #t])]
+           [(curve-secp256k1) (T primitive-type2 [(tpoint (curve-secp256k1)) #t])]
+           [(curve-secp256r1) (T primitive-type2 [(tpoint (curve-secp256r1)) #t])])]
+        [(topaque ,opaque-type1)
+         (T primitive-type2
+            [(topaque ,opaque-type2)
+             (string=? opaque-type1 opaque-type2)])]
+        [(tcontract ,contract-name1 (,elt-name1* ,pure-dcl1* (,type1** ...) ,type1*) ...)
+         (T primitive-type2
+            [(tcontract ,contract-name2 (,elt-name2* ,pure-dcl2* (,type2** ...) ,type2*) ...)
+             (define (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*)
+               (andmap (lambda (elt-name2 pure-dcl2 type2* type2)
+                         (ormap (lambda (elt-name1 pure-dcl1 type1* type1)
+                                  (and (eq? elt-name1 elt-name2)
+                                       (eq? pure-dcl1 pure-dcl2)
+                                       (fx= (length type1*) (length type2*))
+                                       (andmap subtype? type1* type2*)
+                                       (subtype? type1 type2)))
+                                elt-name1* pure-dcl1* type1** type1*))
+                       elt-name2* pure-dcl2* type2** type2*))
+             (and (eq? contract-name1 contract-name2)
+                  (fx= (length elt-name1*) (length elt-name2*))
+                  (circuit-superset? elt-name1* pure-dcl1* type1** type1* elt-name2* pure-dcl2* type2** type2*))])]
+        ; this should never presently happen, since no Triv has type public-adt
+        [(tadt ,src1 ,adt-name1 ([,adt-formal1* ,adt-arg1*] ...) ,vm-expr1 (,adt-op1* ...))
+         (T primitive-type2
+            [(tadt ,src2 ,adt-name2 ([,adt-formal2* ,adt-arg2*] ...) ,vm-expr2 (,adt-op2* ...))
+             #f])]))
     (define (type-error what declared-type type)
       (source-errorf program-src "mismatch between actual type ~a and expected type ~a for ~a"
         (format-primitive-type type)
@@ -150,16 +222,12 @@
                       (T primitive-type2
                         [(tfield (field-native)) #t]
                         [(tunsigned ,nat) #t])])]
-                  [(tfield (field-base (curve-secp256k1)))
+                  [(tfield (field-scalar (curve-jubjub))) #f]
+                  [(tfield ,ftype)
                    (T primitive-type1
-                     [(tfield (field-base (curve-secp256k1)))
+                     [(tfield ,ftype1) (guard (same-field-type? ftype ftype1))
                       (T primitive-type2
-                        [(tfield (field-base (curve-secp256k1))) #t])])]
-                  [(tfield (field-scalar (curve-secp256k1)))
-                   (T primitive-type1
-                     [(tfield (field-scalar (curve-secp256k1)))
-                      (T primitive-type2
-                        [(tfield (field-scalar (curve-secp256k1))) #t])])]
+                        [(tfield ,ftype2) (same-field-type? ftype ftype2)])])]
                   [(tunsigned ,nat)
                    (T primitive-type1
                      [(tunsigned ,nat1)
@@ -291,39 +359,64 @@
          [else (source-errorf src "expected primitive type tcontract for contract call, received ~a"
                               (format-primitive-type primitive-type))]))]
     [(= ,test (,var-name* ...) (default ,opaque-type))
-     (verify-test program-src test)
      (with-output-language (Lflattened Primitive-Type)
+       (define-syntax make-zkir-type
+         (syntax-rules ()
+           [(make-zkir-type primitive-type)
+            (begin
+              (assert (feature-zkir-v3))
+              (assert (= (length var-name*) 1))
+              (set-idtype! (car var-name*) (Idtype-Base primitive-type)))]))
+       (verify-test program-src test)
        (case opaque-type
          [("JubjubPoint")
           (if (feature-zkir-v3)
               (begin
                 (assert (= (length var-name*) 1))
-                (set-idtype! (car var-name*) (Idtype-Base `(topaque "JubjubPoint"))))
+                (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub)))))
               (begin
                 (assert (= (length var-name*) 2))
                 (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
                 (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native))))))]
-         [("Secp256k1Point")
-          (assert (feature-zkir-v3))
-          (assert (= (length var-name*) 1))
-          (set-idtype! (car var-name*) (Idtype-Base `(topaque "Secp256k1Point")))]
+         [("Curve25519Base") (make-zkir-type `(tfield (field-base (curve-curve25519))))]
+         [("Curve25519Scalar") (make-zkir-type `(tfield (field-scalar (curve-curve25519))))]
+         [("Curve25519Point") (make-zkir-type `(tpoint (curve-curve25519)))]
+
+         [("Secp256k1Base") (make-zkir-type `(tfield (field-base (curve-secp256k1))))]
+         [("Secp256k1Scalar") (make-zkir-type `(tfield (field-scalar (curve-secp256k1))))]
+         [("Secp256k1Point") (make-zkir-type `(tpoint (curve-secp256k1)))]
+
+         [("Secp256r1Base") (make-zkir-type `(tfield (field-base (curve-secp256r1))))]
+         [("Secp256r1Scalar") (make-zkir-type `(tfield (field-scalar (curve-secp256r1))))]
+         [("Secp256r1Point") (make-zkir-type `(tpoint (curve-secp256r1)))]
          [else (assert cannot-happen)]))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,[* primitive-type]))
-     (verify-test src test)
-     (unless (nanopass-case (Lflattened Field-Type) ftype
-               [(field-native)
-                [T primitive-type [(tfield (field-native)) #t] [(tunsigned ,nat) #t]]]
-               [(field-base (curve-secp256k1))
-                (T primitive-type [(tfield (field-base (curve-secp256k1))) #t])]
-               [(field-scalar (curve-secp256k1))
-                (T primitive-type [(tfield (field-scalar (curve-secp256k1))) #t])])
-       (type-error (format "argument to field->bytes at ~a" (format-source-object src))
-         (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
-         primitive-type))
-     (assert (not (= len 0)))
-     (with-output-language (Lflattened Primitive-Type)
-       (set-idtype! var-name1 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
-       (set-idtype! var-name2 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1))))))]
+     (let ()
+       (define (valid-length? ctype)
+         (strict-nanopass-case (Lflattened Curve-Type) ctype
+           [(curve-curve25519) (eqv? len 32)]
+           [(curve-jubjub) #f]
+           [(curve-secp256k1) (eqv? len 32)]
+           [(curve-secp256r1) (eqv? len 32)]))
+       (verify-test src test)
+       (unless (nanopass-case (Lflattened Field-Type) ftype
+                 [(field-native)
+                  [T primitive-type [(tfield (field-native)) #t] [(tunsigned ,nat) #t]]]
+                 [(field-base ,ctype1)
+                  (T primitive-type
+                    [(tfield (field-base ,ctype2)) (and (same-curve-type? ctype1 ctype2)
+                                                        (valid-length? ctype1))])]
+                 [(field-scalar ,ctype1)
+                  (T primitive-type
+                    [(tfield (field-scalar ,ctype2)) (and (same-curve-type? ctype1 ctype2)
+                                                          (valid-length? ctype1))])])
+         (type-error (format "argument to field->bytes at ~a" (format-source-object src))
+           (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))
+           primitive-type))
+       (assert (not (= len 0)))
+       (with-output-language (Lflattened Primitive-Type)
+         (set-idtype! var-name1 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin (fxmax 0 (fx- len (field-bytes))) (field-bytes)) 8)) 1)))))
+         (set-idtype! var-name2 (Idtype-Base `(tunsigned ,(max 0 (- (expt 2 (* (fxmin len (field-bytes)) 8)) 1)))))))]
     [(= ,test (,var-name1 ,var-name2) (div-mod-power-of-two ,[* primitive-type] ,bits))
      (verify-test program-src test)
      (unless (T primitive-type
@@ -427,15 +520,13 @@
        (source-errorf program-src "expected Field or Uint for bytes-ref, recieved ~a"
          (format-primitive-type primitive-type)))
      (with-output-language (Lflattened Primitive-Type) `(tunsigned 255))]
-    [(bytes->field ,src ,ftype ,len ,[* type1] ,[* type2])
-     (nanopass-case (Lflattened Primitive-Type) type1
-       [(tunsigned ,nat) #t]
-       [else (source-errorf src "unexpected ~a of first argument to bytes->field"
-                            (format-primitive-type type1))])
-     (nanopass-case (Lflattened Primitive-Type) type2
-       [(tunsigned ,nat) #t]
-       [else (source-errorf src "unexpected ~a of second argument to bytes->field"
-                            (format-primitive-type type2))])
+    [(bytes->field ,src ,ftype ,len ,[* type*] ...)
+     (for-each (lambda (type)
+                 (nanopass-case (Lflattened Primitive-Type) type
+                   [(tunsigned ,nat) #t]
+                   [else (source-errorf src "unexpected ~a argument to bytes->field"
+                           (format-primitive-type type))]))
+       type*)
      (with-output-language (Lflattened Primitive-Type) `(tfield ,ftype))]
     [(vector->bytes ,triv ,triv* ...)
      (let ([primitive-type* (map Triv (cons triv triv*))])

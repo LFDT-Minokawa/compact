@@ -74,7 +74,7 @@ fn test_sc10_update_two_versions_compile_contract_with_previous() {
 
     let temp_output = tempfile::tempdir().unwrap();
     let temp_output_path = temp_output.path();
-    let compiler = &format!("+{}", PREVIOUS_COMPACTC_VERSION);
+    let compiler = &format!("+{PREVIOUS_COMPACTC_VERSION}");
 
     run_command(
         &[

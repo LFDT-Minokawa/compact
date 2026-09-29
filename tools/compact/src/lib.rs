@@ -34,6 +34,7 @@ pub use self::{
     },
     compact_directory::CompactDirectory,
     compiler::Compiler,
+    compiler_legacy::{CompilerAsset, is_corrupt_archive},
 };
 use semver::Version;
 use std::sync::LazyLock;

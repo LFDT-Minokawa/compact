@@ -1,0 +1,181 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// persistentHash over the same input widths as the keccak256 sweep.
+//
+// persistentHash runs in the Rust runtime rather than in JavaScript, so the
+// expected digests really are from a second implementation.
+//
+// All the circuits are pure, and persistentHash needs no feature flag.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+// 1 = the minimal width: a single byte.
+export circuit hashBytes1(value: Bytes<1>): Bytes<32> {
+  return disclose(persistentHash<Bytes<1>>(value));
+}
+
+// 32..63 — EVERY width from the digest width (32) through one byte past the
+// 2x31 = 62 field-element packing boundary (63); 33 is also the compressed
+// secp256k1 public-key length.
+export circuit hashBytes32(value: Bytes<32>): Bytes<32> {
+  return disclose(persistentHash<Bytes<32>>(value));
+}
+
+export circuit hashBytes33(value: Bytes<33>): Bytes<32> {
+  return disclose(persistentHash<Bytes<33>>(value));
+}
+
+export circuit hashBytes34(value: Bytes<34>): Bytes<32> {
+  return disclose(persistentHash<Bytes<34>>(value));
+}
+
+export circuit hashBytes35(value: Bytes<35>): Bytes<32> {
+  return disclose(persistentHash<Bytes<35>>(value));
+}
+
+export circuit hashBytes36(value: Bytes<36>): Bytes<32> {
+  return disclose(persistentHash<Bytes<36>>(value));
+}
+
+export circuit hashBytes37(value: Bytes<37>): Bytes<32> {
+  return disclose(persistentHash<Bytes<37>>(value));
+}
+
+export circuit hashBytes38(value: Bytes<38>): Bytes<32> {
+  return disclose(persistentHash<Bytes<38>>(value));
+}
+
+export circuit hashBytes39(value: Bytes<39>): Bytes<32> {
+  return disclose(persistentHash<Bytes<39>>(value));
+}
+
+export circuit hashBytes40(value: Bytes<40>): Bytes<32> {
+  return disclose(persistentHash<Bytes<40>>(value));
+}
+
+export circuit hashBytes41(value: Bytes<41>): Bytes<32> {
+  return disclose(persistentHash<Bytes<41>>(value));
+}
+
+export circuit hashBytes42(value: Bytes<42>): Bytes<32> {
+  return disclose(persistentHash<Bytes<42>>(value));
+}
+
+export circuit hashBytes43(value: Bytes<43>): Bytes<32> {
+  return disclose(persistentHash<Bytes<43>>(value));
+}
+
+export circuit hashBytes44(value: Bytes<44>): Bytes<32> {
+  return disclose(persistentHash<Bytes<44>>(value));
+}
+
+export circuit hashBytes45(value: Bytes<45>): Bytes<32> {
+  return disclose(persistentHash<Bytes<45>>(value));
+}
+
+export circuit hashBytes46(value: Bytes<46>): Bytes<32> {
+  return disclose(persistentHash<Bytes<46>>(value));
+}
+
+export circuit hashBytes47(value: Bytes<47>): Bytes<32> {
+  return disclose(persistentHash<Bytes<47>>(value));
+}
+
+export circuit hashBytes48(value: Bytes<48>): Bytes<32> {
+  return disclose(persistentHash<Bytes<48>>(value));
+}
+
+export circuit hashBytes49(value: Bytes<49>): Bytes<32> {
+  return disclose(persistentHash<Bytes<49>>(value));
+}
+
+export circuit hashBytes50(value: Bytes<50>): Bytes<32> {
+  return disclose(persistentHash<Bytes<50>>(value));
+}
+
+export circuit hashBytes51(value: Bytes<51>): Bytes<32> {
+  return disclose(persistentHash<Bytes<51>>(value));
+}
+
+export circuit hashBytes52(value: Bytes<52>): Bytes<32> {
+  return disclose(persistentHash<Bytes<52>>(value));
+}
+
+export circuit hashBytes53(value: Bytes<53>): Bytes<32> {
+  return disclose(persistentHash<Bytes<53>>(value));
+}
+
+export circuit hashBytes54(value: Bytes<54>): Bytes<32> {
+  return disclose(persistentHash<Bytes<54>>(value));
+}
+
+export circuit hashBytes55(value: Bytes<55>): Bytes<32> {
+  return disclose(persistentHash<Bytes<55>>(value));
+}
+
+export circuit hashBytes56(value: Bytes<56>): Bytes<32> {
+  return disclose(persistentHash<Bytes<56>>(value));
+}
+
+export circuit hashBytes57(value: Bytes<57>): Bytes<32> {
+  return disclose(persistentHash<Bytes<57>>(value));
+}
+
+export circuit hashBytes58(value: Bytes<58>): Bytes<32> {
+  return disclose(persistentHash<Bytes<58>>(value));
+}
+
+export circuit hashBytes59(value: Bytes<59>): Bytes<32> {
+  return disclose(persistentHash<Bytes<59>>(value));
+}
+
+export circuit hashBytes60(value: Bytes<60>): Bytes<32> {
+  return disclose(persistentHash<Bytes<60>>(value));
+}
+
+export circuit hashBytes61(value: Bytes<61>): Bytes<32> {
+  return disclose(persistentHash<Bytes<61>>(value));
+}
+
+export circuit hashBytes62(value: Bytes<62>): Bytes<32> {
+  return disclose(persistentHash<Bytes<62>>(value));
+}
+
+export circuit hashBytes63(value: Bytes<63>): Bytes<32> {
+  return disclose(persistentHash<Bytes<63>>(value));
+}
+
+// 93 = 3x31: exactly three 31-byte field-element packing units.
+export circuit hashBytes93(value: Bytes<93>): Bytes<32> {
+  return disclose(persistentHash<Bytes<93>>(value));
+}
+
+// 94 = 3x31 + 1: one byte past the three-unit packing boundary.
+export circuit hashBytes94(value: Bytes<94>): Bytes<32> {
+  return disclose(persistentHash<Bytes<94>>(value));
+}
+
+// 376 = the CCTP V2 burn-message length (see dapps/usdcx).
+export circuit hashBytes376(value: Bytes<376>): Bytes<32> {
+  return disclose(persistentHash<Bytes<376>>(value));
+}
+
+// A deliberately large, multi-block input.
+export circuit hashBytes1024(value: Bytes<1024>): Bytes<32> {
+  return disclose(persistentHash<Bytes<1024>>(value));
+}

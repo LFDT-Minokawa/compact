@@ -267,9 +267,10 @@
                    (values
                      (+ i 1)
                      `(== ,src
-                          (tunsigned ,src 255)
-                          (bytes-ref ,src ,bytes-type ,expr (quote ,src ,i))
-                          (safe-cast ,src (tunsigned ,src 255) (tunsigned ,src 1) (quote ,src 1))))]
+                          (tunsigned ,src 1)
+                          (downcast-unsigned ,src 8 1 
+                            (bytes-ref ,src ,bytes-type ,expr (quote ,src ,i)))
+                          (quote ,src 1)))]
                   [(tfield ,src^ ,ftype)
                    (let ([len (field-length-in-bytes ftype)])
                      (values

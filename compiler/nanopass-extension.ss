@@ -15,8 +15,55 @@
 ;;; limitations under the License.
 
 (library (nanopass-extension)
-  (export define-language/pretty)
+  (export strict-nanopass-case define-language/pretty)
   (import (chezscheme) (nanopass))
+
+  ;;; strict-nanopass-case is based on the implementation of nanopass-case
+  ;;; in the Nanopass Compiler Library, which has the following copyright:
+
+  ;;; Copyright (c) 2000-2015 Dipanwita Sarkar, Andrew W. Keep, R. Kent Dybvig, Oscar Waddell
+  ;;; 
+  ;;; Permission is hereby granted, free of charge, to any person obtaining a
+  ;;; copy of this software and associated documentation files (the "Software"),
+  ;;; to deal in the Software without restriction, including without limitation
+  ;;; the rights to use, copy, modify, merge, publish, distribute, sublicense,
+  ;;; and/or sell copies of the Software, and to permit persons to whom the
+  ;;; Software is furnished to do so, subject to the following conditions:
+  ;;; 
+  ;;; The above copyright notice and this permission notice shall be included in
+  ;;; all copies or substantial portions of the Software.
+  ;;; 
+  ;;; THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+  ;;; IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+  ;;; FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.  IN NO EVENT SHALL
+  ;;; THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+  ;;; LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+  ;;; FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  ;;; DEALINGS IN THE SOFTWARE.
+
+  (define-syntax strict-nanopass-case
+    ; complains unless all cases are handled and no else clause is present
+    (lambda (q)
+      (define (transfer-source q id)
+        (define (maybe-annotation q)
+          (let ([a (syntax->annotation q)])
+            (and a (make-annotation id (annotation-source a) id))))
+        (or (maybe-annotation q)
+            (syntax-case q () [(qa . qb) (maybe-annotation #'qa)] [else #f])
+            id))
+      (syntax-case q ()
+        [(_ (lang type) e cl ...)
+         (let ([go (lambda (x) 
+                     (with-syntax ([x x]
+                                   [proc (datum->syntax #'* (transfer-source q 'internal-processor))])
+                       #'(let ()
+                           (define-pass strict-nanopass-case : (lang type) (x) -> * (val)
+                             (proc : type (x) -> * (val) cl ...)
+                             (proc x))
+                           (strict-nanopass-case x))))])
+           (if (identifier? #'e)
+               (go #'e)
+               #`(let ([x e]) #,(go #'x))))])))
 
   (define-syntax define-language/pretty
     ; NB: cannot have a grammar symbol named bracket, since bracket is

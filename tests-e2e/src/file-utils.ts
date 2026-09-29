@@ -23,14 +23,21 @@ import { fileURLToPath } from 'node:url';
 
 export const createdFolders: string[] = [];
 
+export const repoRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..');
+
 /*
  * Build path to examples (by default). As this folder is in src, the path should be easier to get.
  */
 export function buildPathTo(fileOrFolder: string, baseFolder: string = 'examples'): string {
-    const currentDir = path.dirname(fileURLToPath(import.meta.url));
-    const examplesDir = path.resolve(currentDir, '..', '..');
+    return path.join(repoRoot, baseFolder, fileOrFolder);
+}
 
-    return path.join(examplesDir, baseFolder, fileOrFolder);
+export function displayPath(target: string): string {
+    if (target !== repoRoot && !target.startsWith(repoRoot + path.sep)) {
+        return target;
+    }
+
+    return path.relative(repoRoot, target) || '.';
 }
 
 /*

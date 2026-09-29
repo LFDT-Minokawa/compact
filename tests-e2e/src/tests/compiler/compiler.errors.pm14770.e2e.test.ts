@@ -13,7 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, test } from 'vitest';
 import {
     Arguments,
@@ -25,6 +24,7 @@ import {
     expectFiles,
     buildPathTo,
     tsFiles,
+    escapeRegExp,
 } from '@';
 
 describe('[Errors] PM-14770', () => {
@@ -36,20 +36,20 @@ describe('[Errors] PM-14770', () => {
             const filePath = CONTRACTS_ROOT + 'existing\ file\ with\ \ spaces\ \ \ in\ \ \ \ name.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatGeneratedJSCodeIsValid();
+            expectFiles(result).thatGeneratedJSCodeIsValid();
         });
 
         test('include spaces and passed with no quotes - is compiled', async () => {
             const filePath = CONTRACTS_ROOT + 'existing file with  spaces   in    name.compact';
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, filePath, outputDir]);
+            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
 
             expectCompilerResult(result).toBeSuccess('', compilerDefaultOutput());
-            expectFiles(outputDir).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
+            expectFiles(result).thatFilesAreGenerated(tsFiles, [], [], contractInfoFiles);
         });
 
         /*
@@ -58,29 +58,33 @@ describe('[Errors] PM-14770', () => {
          * throws the exception to no such file or directory.
          */
         test('include spaces and passed with double quotes - is not compiled', async () => {
-            const filePath = '../examples/errors/existing file with  spaces in    name.compact';
+            const filePath = buildPathTo('/errors/existing file with  spaces in    name.compact');
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, `"${filePath}"`, outputDir]);
+            const result = await compile([Arguments.VSCODE, `"${filePath}"`, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                /Exception: error opening source file: failed for "..\/examples\/errors\/existing file with  spaces in    name.compact": no such file or directory/,
+                new RegExp(
+                    `Exception: error opening source file: failed for "${escapeRegExp(filePath)}": no such file or directory`,
+                ),
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
 
         test('include spaces and passed with single quotes - is not compiled', async () => {
-            const filePath = '../examples/errors/existing file with  spaces in    name.compact';
+            const filePath = buildPathTo('/errors/existing file with  spaces in    name.compact');
 
             const outputDir = createTempFolder();
-            const result: Result = await compile([Arguments.VSCODE, `'${filePath}'`, outputDir]);
+            const result = await compile([Arguments.VSCODE, `'${filePath}'`, outputDir]);
 
             expectCompilerResult(result).toBeFailure(
-                /Exception: error opening source file: failed for '..\/examples\/errors\/existing file with  spaces in    name.compact': no such file or directory/,
+                new RegExp(
+                    `Exception: error opening source file: failed for '${escapeRegExp(filePath)}': no such file or directory`,
+                ),
                 compilerDefaultOutput(),
             );
-            expectFiles(outputDir).thatNoFilesAreGenerated();
+            expectFiles(result).thatNoFilesAreGenerated();
         });
     });
 });

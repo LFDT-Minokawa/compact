@@ -13,16 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { Result } from 'execa';
 import { describe, expect, test } from 'vitest';
-import {
-    Arguments,
-    buildPathTo,
-    compile,
-    createTempFolder,
-    expectCompilerResult,
-    getFileContent,
-} from '@';
+import { Arguments, buildPathTo, compile, createTempFolder, expectCompilerResult, getFileContent } from '@';
 
 type ZkirCircuit = {
     version: {
@@ -53,7 +45,7 @@ const cases = [
 describe('[Bugs] [Issue #656] communications commitment compiler flag', () => {
     test.each(cases)('$name emits $expected', async ({ args, version, expected }) => {
         const outputDir = createTempFolder();
-        const result: Result = await compile([...args, Arguments.SKIP_ZK, CONTRACT, outputDir]);
+        const result = await compile([...args, Arguments.SKIP_ZK, CONTRACT, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
 
