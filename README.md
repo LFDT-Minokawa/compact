@@ -41,7 +41,7 @@ circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
 }
 
 export circuit set(v: Uint<64>): [] {
-  assert(state == State.UNSET);        // ensure we don't overwrite an existing lock
+  assert(state == State.UNSET, "Attempted to set initialized value");
   const sk = secretKey();              // fetch the secret key locally
   const pk = publicKey(round, sk);     // derive a public key (inside the ZK proof)
   authority = disclose(pk);            // explicitly publish the public key
@@ -50,10 +50,10 @@ export circuit set(v: Uint<64>): [] {
 }
 
 export circuit clear(): [] {
-  assert(state == State.SET);          // ensure there's a lock to clear
+  assert(state == State.SET, "Attempted to clear uninitialized value");
   const sk = secretKey();              // fetch the secret key again
   const pk = publicKey(round, sk);     // re-derive the public key
-  assert(authority == pk);             // prove we hold the key, without revealing it
+  assert(authority == pk, "Attempted to clear without authorization");
   state = State.UNSET;                 // clear the lock
   round.increment(1);                  // rotate round so the next public key differs
 }
@@ -63,7 +63,7 @@ The `set` circuit takes private data, derives a public key, and explicitly discl
 
 The Compact compiler produces JavaScript/TypeScript for transaction construction (with type definitions and source maps), zero-knowledge circuits (`.zkir`) compiled into proving and verifier keys, and a JSON contract info file describing the contract's interface.
 
-For a full walkthrough, see [Writing a contract](./doc/writing.mdx). For the complete language specification, see the [language reference](./doc/lang-ref.mdx).
+For a full walkthrough, see [Writing a contract](./doc/writing.mdx). For the complete language specification, see the [language reference](./doc/compact-reference.mdx).
 
 ## Installation
 
@@ -129,7 +129,7 @@ compact list                       # list available versions
 ## Documentation
 
 - [Writing a contract](./doc/writing.mdx) -- introductory walkthrough
-- [Language reference](./doc/lang-ref.mdx) -- complete language specification
+- [Language reference](./doc/compact-reference.mdx) -- complete language specification
 - [API documentation](./doc/api/)
 - [Examples](./examples/)
 - [Midnight developer docs](https://docs.midnight.network/)

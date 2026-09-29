@@ -80,8 +80,8 @@
 ;; -- Curve25519Base
 (declare-native-entry circuit neg
   "__compactRuntime.curve25519BaseNeg"
-  ([s (TypeRef Curve25519Scalar) (discloses "the negation of")])
-  (TypeRef Curve25519Scalar))
+  ([s (TypeRef Curve25519Base) (discloses "the negation of")])
+  (TypeRef Curve25519Base))
 
 (declare-native-entry circuit inv
   "__compactRuntime.curve25519BaseInv"

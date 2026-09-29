@@ -5,6 +5,117 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- Compact JavaScript runtime now encodes every `Secp256k1Point` and
+  `Secp256r1Point` identity point the same way, with both coordinates 0,
+  whatever coordinates the JavaScript value carries.
+
+## [Toolchain 0.35.0, language 0.27.0, runtime 0.20.0]
+
+This release includes all changes for compiler versions in the range between
+0.34.100 and 0.35.0; language versions in the range between 0.26.100 and 0.27.0;
+and Compact runtime versions in the range between 0.19.100 and 0.20.0.
+
+## [Toolchain 0.34.113, language 0.26.106, runtime 0.19.106]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.1.0-rc.1`, whose binary encoding
+  puts every ZKIR 3.0 instruction and type where compactc 0.34.0 did and
+  appends the ZKIR 3.1 additions after them. The `zkir-v3` shipped since
+  0.34.103 put those additions in the middle, so a ZKIR 3.0 reader could not
+  decode the IR in its prover keys correctly. The release candidate also
+  restores the ZKIR 3.0 circuit for `encode` on `Bytes<32>`. Instruction
+  names and fields in `.zkir` files are unchanged.
+
+  **This change applies only with the flag `--feature-zkir-v3`.**
+
+### Fixed
+
+- `compactc --feature-zkir-v3 --ledger-version` prints the version of the
+  `zkir-v3` dependency, `zkir-3.1.0-rc.1`. Since 0.34.103 it printed the whole
+  `flake.nix` line declaring that dependency, because the version was read
+  from a `midnight-ledger/` URL and the dependency had moved to midnight-zkir.
+
+### Internal notes
+
+- `zkir-v3` and test-center's `zkir-v3-wasm` track the tag `zkir-3.1.0-rc.1`
+  rather than a revision.
+
+- The end-to-end smoke test also checks `--ledger-version` with
+  `--feature-zkir-v3`, and `LEDGER_VERSION_REGEX` is anchored, so output that
+  merely contains a version no longer passes.
+
+## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- Compact reference and API documentation updates for the various new and modified
+  language features, including dynamic cross-contract calls and the new foreign
+  fields and points, plus various other documentation updates, corrections, and
+  clarifications.
+
+### Fixed
+
+- An issue in the type inferencer that could result in internal errors
+  rather than appropriately descriptive error messages for casts of foreign
+  field values to values of `Field` and `Uint` types.
+
+## [Toolchain 0.34.111, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- The standard library has a new circuit `secp256r1EcdsaVerify` that verifies
+  an ECDSA signature over the secp256r1 (also known as P256) curve and
+  returns a boolean value telling whether the verification succeeded.  Like
+  `secp256k1EcdsaVerify`, it asserts that the public key is not the identity.
+  A public key recovered off-circuit with the runtime's `secp256r1EcdsaRecover`
+  can now be verified in circuit.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+- The standard library has a new circuit `ed25519Verify<#n>` that verifies an
+  Ed25519 signature (RFC 8032) over an `n`-byte message and returns a boolean
+  value telling whether the verification succeeded.  The challenge is hashed
+  in-circuit with `sha512`.  It asserts that the public key is not the
+  identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+### Changed
+
+- Compiled contracts now also reject a `Curve25519Point` passed in from
+  JavaScript that is on the curve but outside the prime-order subgroup, that
+  is, one with a small-order component.  Circuits can only hold subgroup
+  points, so such a point used to be computed with off-circuit and then fail
+  at proving time; it is now a type error.  `isValidCurve25519Point` checks
+  subgroup membership as well.  secp256k1 and secp256r1 have cofactor 1, so
+  they need no such check.
+
+## [Toolchain 0.34.110, language 0.26.105, runtime 0.19.105]
+
+### Added
+
+- Add `secp256r1EcdsaRecover` to the Compact JavaScript runtime.  Given a
+  32-byte message hash, an ECDSA signature and a recovery id,
+  it returns the corresponding secp256r1 public key.
+
+  Recovery runs off-circuit, as it does for secp256k1.  The standard library
+  has no secp256r1 equivalent of `secp256k1EcdsaVerify` yet, so a recovered
+  secp256r1 key cannot be constrained in circuit.
+
+### Changed
+
+- Compiled contracts now reject invalid `Secp256k1Point`, `Secp256r1Point` and
+  `Curve25519Point` values passed in from JavaScript as circuit or constructor
+  arguments or as witness results.  A point is invalid if a coordinate is
+  outside the curve's base field, or if it is not on the curve. An
+  invalid point is now a type error instead of being computed with.
+
 ## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
 
 ### Added
