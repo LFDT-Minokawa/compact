@@ -2368,15 +2368,6 @@
     [(,var-name ,[Type : type -> * type])
      (make-Qconcat (format-internal-binding unique-local-name var-name) ": " type)])
   (Stmt : Statement (ir return? outer-pure?) -> * (Q)
-    [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt])
-     (make-Qconcat
-       (make-Qconcat
-         "if ("
-         expr
-         ")"
-         0 "{")
-       2 stmt
-       0 "}")]
     [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt1] ,[* stmt2])
      (apply make-Qconcat
        (make-Qconcat
