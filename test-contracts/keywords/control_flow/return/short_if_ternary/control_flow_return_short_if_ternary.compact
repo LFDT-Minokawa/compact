@@ -13,32 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
-
-circuit bob(): Field {
-  return 1 as Field;
-}
-
-// Test: if with standard circuits
-export circuit test(a: Field): Either<Field, Boolean> {
-  if (a as Uint<8> > 1) {
-    return left<Field, Boolean>(1 as Field);
-  } else {
-    return right<Field, Boolean>(true);
-  }
-}
-
-// Test1: if with value and circuit
-export circuit test1(a: Uint<8>): Uint<8> {
-  if (a as Uint<8> > 1) {
-    return 1;
-  } else {
-    return bob() as Uint<8>;
-  }
-}
-
-// Test2: if with default branch
-export circuit test2(a: Uint<8>): Field {
-  if ( true ) { (() => { return default<Field>; })() as Field; }
-  return (() => { return default<Field>; })() as Field;
+// return is a statement, so it cannot be a branch of a ternary expression.
+export circuit control_flow_return_short_if_ternary(): [Field, Field] {
+  true ? return default<Vector<2, Field>> : return [1 as Field, 1 as Field];
 }
