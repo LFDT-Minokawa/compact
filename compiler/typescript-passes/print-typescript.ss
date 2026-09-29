@@ -2378,16 +2378,15 @@
        2 stmt
        0 "}")]
     [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt1] ,[* stmt2])
-     (make-Qconcat
+     (apply make-Qconcat
        (make-Qconcat
          "if ("
          expr
          ")"
          0 "{")
        2 stmt1
-       0 "} else {"
-       2 stmt2
-       0 "}")]
+       ; an else that prints as nothing, such as [] outside return position, is left out
+       (if (equal? stmt2 "") (list 0 "}") (list 0 "} else {" 2 stmt2 0 "}")))]
     [(seq ,src ,stmt* ... ,stmt)
      (let* ([stmt* (maplr (lambda (stmt) (Stmt stmt #f outer-pure?)) stmt*)]
             [stmt (Stmt stmt return? outer-pure?)]
