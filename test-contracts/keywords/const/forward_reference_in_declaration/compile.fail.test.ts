@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.15.0;
+import { defineCompileTest } from '@test/compact-test';
 
-import CompactStandardLibrary;
-
-// The old assert statement syntax without parentheses is rejected.
-constructor(b: Boolean) {
-  assert 1 > 2 "bob";
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 18 char 13:\s+identifier y might be referenced before it is assigned/,
+});

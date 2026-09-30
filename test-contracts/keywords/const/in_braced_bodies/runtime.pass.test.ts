@@ -13,11 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.15.0;
+import { expect } from 'vitest';
 
-import CompactStandardLibrary;
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-// The old assert statement syntax without parentheses is rejected.
-constructor(b: Boolean) {
-  assert 1 > 2 "bob";
-}
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (
+            await contract.circuits.const_in_braced_bodies(ctx, true)
+        ).result;
+
+        expect(result).toEqual(3n);
+        expect(
+            (await contract.circuits.const_in_braced_bodies(ctx, false)).result,
+        ).toEqual(12n);
+    },
+);

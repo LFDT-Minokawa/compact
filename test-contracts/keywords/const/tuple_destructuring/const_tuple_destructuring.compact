@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//  	http://www.apache.org/licenses/LICENSE-2.0
+// 	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.15.0;
-
-import CompactStandardLibrary;
-
-// The old assert statement syntax without parentheses is rejected.
-constructor(b: Boolean) {
-  assert 1 > 2 "bob";
+// A tuple pattern binds elements by position, ignores extra elements, and its bindings are visible to later initializers.
+export circuit const_tuple_destructuring(): [Field, Field, Field, Field] {
+  const [a, b] = [1 as Field, 2 as Field], [c, d] = [a * 10, b * 10, a + b];
+  return [a, b, c, d];
 }

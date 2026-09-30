@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//  	http://www.apache.org/licenses/LICENSE-2.0
+// 	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.15.0;
-
-import CompactStandardLibrary;
-
-// The old assert statement syntax without parentheses is rejected.
-constructor(b: Boolean) {
-  assert 1 > 2 "bob";
+// A const is allowed as a statement in braced for, if, else and lambda bodies.
+export circuit const_in_braced_bodies(g: Boolean): Field {
+  for (const i of 0..2) {
+    const x = i;
+  }
+  const f = () => {
+    const y = 2 as Field;
+    return y;
+  }();
+  if (disclose(g)) {
+    const a = 1 as Field;
+    return a + f;
+  } else {
+    const b = 10 as Field;
+    return b + f;
+  }
 }
