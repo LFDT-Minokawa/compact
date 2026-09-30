@@ -13,12 +13,5 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export ledger dummy: Field;
-
-export circuit foo(x: Field): [] {
-dummy = 1 as Field;
-if (false) {
-assert(x != 0 as Field, 'oops1');
-}
-assert(x != 0 as Field, 'oops2');
-}
+// ! in a version condition must be followed by a version, not a comparison operator.
+pragma language_version >= 0.14.0 && !>= 0.14.0;

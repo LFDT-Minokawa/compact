@@ -33,15 +33,6 @@ describe('[Bugs] Compiler', () => {
 
     test.each([
         {
-            testcase: '[MFG-413] should compile and not throw internal error - failed assertion',
-            file: 'mfg-413.compact',
-            output: {
-                stderr: 'Compiling 1 circuits:',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Success,
-            },
-        },
-        {
             testcase:
                 '[PM-12371] should compile and not throw internal error on indirect call to a circuit that consists of an indirect chain of access to a ledger field triggers',
             file: 'pm-12371.compact',
@@ -254,35 +245,6 @@ describe('[Bugs] Compiler', () => {
             },
         ])(`$testcase`, async ({ file, output }) => {
             const dirPath = CONTRACTS_ROOT + 'pm-16181/';
-            const outputDir = createTempFolder();
-
-            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
-            expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
-        });
-    });
-
-    describe('[PM-16349]', () => {
-        test.each([
-            {
-                testcase: 'should return proper error when using ! in pragma',
-                file: 'example_one.compact',
-                output: {
-                    stderr: 'Exception: example_one.compact line 16 char 29:\n  parse error: found "<" looking for a version atom',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-            {
-                testcase: 'should return proper error when using !>= in pragma',
-                file: 'example_two.compact',
-                output: {
-                    stderr: 'Exception: example_two.compact line 16 char 39:\n  parse error: found ">=" looking for a version atom',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-        ])(`$testcase`, async ({ file, output }) => {
-            const dirPath = CONTRACTS_ROOT + 'pm-16349/';
             const outputDir = createTempFolder();
 
             const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);

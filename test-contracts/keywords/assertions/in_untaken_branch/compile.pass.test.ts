@@ -13,4 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-pragma language_version >= 0.14.0 && !>= 0.14.0;
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);
