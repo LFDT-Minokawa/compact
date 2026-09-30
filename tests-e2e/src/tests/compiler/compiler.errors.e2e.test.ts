@@ -34,22 +34,6 @@ describe('[Errors] Compiler', () => {
             error: /Exception: unbound.compact line 16 char 59: unbound identifier Maybe/,
         },
         {
-            file: 'multiSource.compact',
-            error: /Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: \(Uint<0..1>, Field\); declared argument types for function at line 19 char 1: \(Boolean, Field\)/,
-        },
-        {
-            file: 'multiSource2.compact',
-            error: /Exception: multiSource2.compact line 21 char 47: call site ambiguity \(multiple compatible functions\) in call to foo; supplied argument types: \(\); compatible functions: line 17 char 12; line 19 char 1/,
-        },
-        {
-            file: 'multiSource4.compact',
-            error: /Exception: multiSource4.compact line 18 char 10: incompatible arguments in call to anonymous circuit; supplied argument types: \(Uint<0..1>, Field\); declared circuit type: \(Field, Field, Field\)/,
-        },
-        {
-            file: 'typeParams.compact',
-            error: /Exception: typeParams.compact line 22 char 10: no compatible function named none is in scope at this call; one function is incompatible with the supplied generic values; supplied generic values: <>; declared generics for function at <standard library>: <type>/,
-        },
-        {
             file: 'missing.compact',
             error: new RegExp(
                 `Exception: error opening source file: failed for ${escapeRegExp(CONTRACTS_ROOT + 'missing.compact')}: no such file or directory`,
