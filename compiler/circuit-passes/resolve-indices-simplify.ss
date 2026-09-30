@@ -588,6 +588,10 @@
        [else (values
                `(bytes->vector ,src ,len ,expr)
                (CTV-unknown no-var-name))])]
+    [(point->bytes ,src ,len ,[ctype] ,[expr ctv])
+     (values `(point->bytes ,src ,len ,ctype ,expr) (CTV-unknown no-var-name))]
+    [(bytes->point ,src ,[ctype] ,len ,[expr ctv])
+     (values `(bytes->point ,src ,ctype ,len ,expr) (CTV-unknown no-var-name))]
     [(cast-to-field ,src ,[ftype] ,[type] ,[expr ctv])
      ;; TODO(kmillikin): optimize this.
      (values

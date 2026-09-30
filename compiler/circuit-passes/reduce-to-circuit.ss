@@ -252,16 +252,26 @@
        (lambda (triv)
          (k (with-output-language (Lcircuit Rhs)
               `(field->bytes ,src ,len ,ftype ,triv)))))]
-    [(bytes->vector ,src ,len ,expr)
-     (Triv expr test
-       (lambda (triv)
-         (k (with-output-language (Lcircuit Rhs)
-           `(bytes->vector ,len ,triv)))))]
     [(vector->bytes ,src ,len ,expr)
      (Triv expr test
        (lambda (triv)
          (k (with-output-language (Lcircuit Rhs)
             `(vector->bytes ,len ,triv)))))]
+    [(bytes->vector ,src ,len ,expr)
+     (Triv expr test
+       (lambda (triv)
+         (k (with-output-language (Lcircuit Rhs)
+           `(bytes->vector ,len ,triv)))))]
+    [(point->bytes ,src ,len ,[ctype] ,expr)
+     (Triv expr test
+       (lambda (triv)
+         (k (with-output-language (Lcircuit Rhs)
+              `(point->bytes ,len ,ctype ,triv)))))]
+    [(bytes->point ,src ,[ctype] ,len ,expr)
+     (Triv expr test
+       (lambda (triv)
+         (k (with-output-language (Lcircuit Rhs)
+              `(bytes->point ,src ,ctype ,len ,triv)))))]
     [(cast-to-field ,src ,[ftype] ,[type] ,expr)
      (Triv expr test
        (lambda (triv)

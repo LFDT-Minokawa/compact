@@ -1917,7 +1917,15 @@
                    `(vector->bytes ,src ,len1 ,expr)]
                   [(tvector ,src2 ,len2 ,type2)
                    (guard (= len2 len1) (u8-subtype? type2))
-                   `(vector->bytes ,src ,len1 ,expr)])]
+                   `(vector->bytes ,src ,len1 ,expr)]
+                  [(tpoint ,src2 ,ctype2)
+                   (and (eqv? len1
+                          (strict-nanopass-case (Ltypes Curve-Type) ctype2
+                            [(curve-curve25519) 32]
+                            [(curve-jubjub) 32]
+                            [(curve-secp256k1) 33]
+                            [(curve-secp256r1) 33]))
+                        `(point->bytes ,src ,len1 ,ctype2 ,expr))])]
               [(ttuple ,src1 ,type* ...)
                (T source-type
                   [(tbytes ,src2 ,len2)
@@ -1974,7 +1982,17 @@
                             (quote ,src #t)))])]
               [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
                (guard (T source-type [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
-               `(cast-to-enum ,src ,target-type ,source-type ,expr)])
+               `(cast-to-enum ,src ,target-type ,source-type ,expr)]
+              [(tpoint ,src1 ,ctype1)
+               (T source-type
+                 [(tbytes ,src2 ,len2)
+                  (and (eqv? len2
+                         (strict-nanopass-case (Ltypes Curve-Type) ctype1
+                           [(curve-curve25519) 32]
+                           [(curve-jubjub) 32]
+                           [(curve-secp256k1) 33]
+                           [(curve-secp256r1) 33]))
+                       `(bytes->point ,src ,ctype1 ,len2 ,expr))])])
            (source-errorf src "cannot cast from type ~a to type ~a"
                           (format-type source-type)
                           (format-type target-type))))

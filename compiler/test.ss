@@ -910,6 +910,47 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
+(parameterize ([feature-zkir-v3 #t])
+(run-tests save-manifest
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger jubjubPoint: JubjubPoint;"
+      "export ledger jubjubBytes: Bytes<32>;"
+      "export circuit jubjubTest(point: JubjubPoint, bytes: Bytes<32>): [] {"
+      "  jubjubPoint = disclose(bytes as JubjubPoint);"
+      "  jubjubBytes = disclose(point as Bytes<32>);"
+      "}"
+      "export ledger secp256k1Point: Secp256k1Point;"
+      "export ledger secp256k1Bytes: Bytes<33>;"
+      "export circuit secp256k1Test(point: Secp256k1Point, bytes: Bytes<33>): [] {"
+      "  secp256k1Point = disclose(bytes as Secp256k1Point);"
+      "  secp256k1Bytes = disclose(point as Bytes<33>);"
+      "}"
+      "export ledger secp256r1Point: Secp256r1Point;"
+      "export ledger secp256r1Bytes: Bytes<33>;"
+      "export circuit secp256r1Test(point: Secp256r1Point, bytes: Bytes<33>): [] {"
+      "  secp256r1Point = disclose(bytes as Secp256r1Point);"
+      "  secp256r1Bytes = disclose(point as Bytes<33>);"
+      "}"
+      "export ledger curve25519Point: Curve25519Point;"
+      "export ledger curve25519Bytes: Bytes<32>;"
+      "export circuit curve25519Test(point: Curve25519Point, bytes: Bytes<32>): [] {"
+      "  curve25519Point = disclose(bytes as Curve25519Point);"
+      "  curve25519Bytes = disclose(point as Bytes<32>);"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      ())
+    )
+)
+
+(run-javascript)
+)
+
+
+#!eof
+
 (run-tests parse-file/format/reparse
   (test
     '(

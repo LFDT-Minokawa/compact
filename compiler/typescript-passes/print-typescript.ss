@@ -3006,6 +3006,10 @@
          "Array.from("
          ((make-Qsep ",") expr "BigInt")
          ")"))]
+    [(point->bytes ,src ,len ,ctype ,expr)
+     (assert not-implemented)]
+    [(bytes->point ,src ,ctype ,len ,expr)
+     (assert not-implemented)]
     [(cast-from-enum ,src ,type ,type^ ,[Expr : expr (precedence add1 comma) outer-pure? -> * expr])
      (parenthesize level (precedence call)
        (let-values ([(enum-name maxval)

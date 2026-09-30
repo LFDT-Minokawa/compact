@@ -471,20 +471,6 @@
                  (f (- len (fx* 2 (field-bytes))) (list var-name1 var-name2))))))
        (with-output-language (Lflattened Statement)
          (list `(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv)))))]
-    [(bytes->vector ,len ,[* wump])
-     (let loop ([len len] [triv* (reverse (wump->elts wump))] [rvar-name** '()] [stmt* '()])
-       (if (fx= len 0)
-           (let ([var-name* (apply append (reverse rvar-name**))])
-             (hashtable-set! var-ht var-name (Wump-vector (map Wump-single var-name*)))
-             stmt*)
-           (let* ([n (fxmin len (field-bytes))]
-                  [this-var-name* (make-new-ids var-name n)])
-             (loop (fx- len n)
-               (cdr triv*)
-               (cons this-var-name* rvar-name**)
-               (with-output-language (Lflattened Statement)
-                 (cons `(= ,test (,this-var-name* ...) (bytes->vector ,(car triv*)))
-                   stmt*))))))]
     [(vector->bytes ,len ,[* wump])
      (let loop ([len len] [triv* (wump->elts wump)] [var-name* '()] [stmt* '()])
        (if (fx= len 0)
@@ -500,6 +486,31 @@
                    (cons
                      `(= ,test ,this-var-name (vector->bytes ,(car this-triv*) ,(cdr this-triv*) ...))
                      stmt*)))))))]
+    [(bytes->vector ,len ,[* wump])
+     (let loop ([len len] [triv* (reverse (wump->elts wump))] [rvar-name** '()] [stmt* '()])
+       (if (fx= len 0)
+           (let ([var-name* (apply append (reverse rvar-name**))])
+             (hashtable-set! var-ht var-name (Wump-vector (map Wump-single var-name*)))
+             stmt*)
+           (let* ([n (fxmin len (field-bytes))]
+                  [this-var-name* (make-new-ids var-name n)])
+             (loop (fx- len n)
+               (cdr triv*)
+               (cons this-var-name* rvar-name**)
+               (with-output-language (Lflattened Statement)
+                 (cons `(= ,test (,this-var-name* ...) (bytes->vector ,(car triv*)))
+                   stmt*))))))]
+    [(point->bytes ,len ,[ctype] ,[Single-Triv : triv])
+     ;; len is either 32 (casting from JubjubPoint and Curve25519Point) or 33 (casting from
+     ;; Secp256k1Point or Secp256r1Point).
+     (let* ([var-name1 (make-new-id var-name)] [var-name2 (make-new-id var-name)])
+       (hashtable-set! var-ht var-name (Wump-bytes (list var-name1 var-name2)))
+       (with-output-language (Lflattened Statement)
+         (list `(= ,test (,var-name1 ,var-name2) (point->bytes ,len ,ctype ,triv)))))]
+    [(bytes->point ,src ,[ctype] ,len ,[* wump])
+     ;; len is either 32 (casting to JubjubPoint and Curve25519Point) or 33 (casting to
+     ;; Secp256k1Point or Secp256r1Point).
+     ]
     [(cast-to-field ,src ,[ftype] ,[Single-Type : primitive-type] ,[Single-Triv : triv])
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)

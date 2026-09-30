@@ -798,14 +798,6 @@
            (format-type type)
            (format-field-type ftype)))
        (with-output-language (Lnodca Type) `(tbytes ,src ,len)))]
-    [(bytes->vector ,src ,len ,[Care : expr -> * type])
-     (unless (nanopass-case (Lnodca Type) (de-alias type)
-               [(tbytes ,src ,len^) (= len^ len)]
-               [else #f])
-       (source-errorf src "expected Bytes<~d> for bytes->vector call, received ~a"
-                      len
-                      (format-type type)))
-     (with-output-language (Lnodca Type) `(tvector ,src ,len (tunsigned ,src 255)))]
     [(vector->bytes ,src ,len ,[Care : expr -> * type])
      (define (u8-subtype? type)
        (nanopass-case (Lnodca Type) (de-alias type)
@@ -820,6 +812,28 @@
                       len
                       (format-type type)))
      (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+    [(bytes->vector ,src ,len ,[Care : expr -> * type])
+     (unless (nanopass-case (Lnodca Type) (de-alias type)
+               [(tbytes ,src ,len^) (= len^ len)]
+               [else #f])
+       (source-errorf src "expected Bytes<~d> for bytes->vector call, received ~a"
+                      len
+                      (format-type type)))
+     (with-output-language (Lnodca Type) `(tvector ,src ,len (tunsigned ,src 255)))]
+    [(point->bytes ,src ,len ,ctype ,[Care : expr -> * type])
+     (unless (nanopass-case (Lnodca Type) (de-alias type)
+               [(tpoint ,src^ ,ctype^) (same-curve-type? ctype ctype^)]
+               [else #f])
+       (source-errorf src "expected ~a for point->bytes call, received ~a"
+         (format-point-type ctype) (format-type type)))
+     (with-output-language (Lnodca Type) `(tbytes ,src ,len))]
+    [(bytes->point ,src ,ctype ,len ,[Care : expr -> * type])
+     (unless (nanopass-case (Lnodca Type) (de-alias type)
+               [(tbytes ,src^ ,len^) (eqv? len len^)]
+               [else #f])
+       (source-errorf src "expected Bytes<~d> for bytes->point call, received ~a"
+         len (format-type type)))
+     (with-output-language (Lnodca Type) `(tpoint ,src ,ctype))]
     [(cast-to-field ,src1 ,ftype1 ,type1 ,[Care : expr -> * type2])
      (let ([unaliased-type (de-alias type2)])
        (unless (same-type? type1 unaliased-type)
