@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-new type t6_u32_a = t6_u32_b;
-new type t6_u32_b = t6_u32_a;
+import { defineCompileTest } from '@test/compact-test';
 
-export circuit test6(vara: t6_u32_a, varb: t6_u32_b): [] {
-    return [];
-}
+export default defineCompileTest(import.meta.url);

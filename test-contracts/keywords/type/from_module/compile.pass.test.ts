@@ -13,6 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export circuit test14(vara: t14_u32): t14_u32 {
-    return default<t14_u32>;
-}
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);

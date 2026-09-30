@@ -13,8 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-new type t_boolean = t_boolean;
+import { defineCompileTest } from '@test/compact-test';
 
-export circuit test(): t_boolean {
-  return default<t_boolean>;
-}
+export default defineCompileTest(import.meta.url);

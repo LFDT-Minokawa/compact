@@ -13,5 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-type CompactStandardLibrary = Field;
-import CompactStandardLibrary;
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);
