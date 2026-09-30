@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//  	http://www.apache.org/licenses/LICENSE-2.0
+// 	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,20 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Test7: generic module
-module Test6a<T> {
-  export circuit test6a(var6: Bytes<1>): T {
-    return var6[0] as T;
+module G<T> {
+  export circuit first(v: Bytes<1>): T {
+    return v[0] as T;
   }
 }
 
-module Test6b {
-  import { test6a as t6a } from Test6a<Field>;
-  import { test6a as t6a } from Test6a<Uint<32>>;
+module M {
+  import { first as f } from G<Field>;
+  import { first as f } from G<Uint<32>>;
 
-  export circuit test6b(): Field {
-    return t6a(Bytes[1]);
+  export circuit g(): Field {
+    return f(Bytes[1]);
   }
 }
 
-import { test6b as t6b } from Test6b;
+// Importing two instantiations of a generic module under one alias makes calls ambiguous.
+import { g } from M;

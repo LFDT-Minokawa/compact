@@ -13,18 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module Test4 {
-  export circuit test4(): Field {
-    return 1;
-  }
-}
+import { defineCompileTest } from '@test/compact-test';
 
-import { test4 as CompactStandardLibrary } from Test4;
-export { CompactStandardLibrary };
-
-import CompactStandardLibrary;
-
-// usage
-export circuit test(): [] {
-  const a = CompactStandardLibrary();
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 27 char 1:\s+invalid context for reference to function name CompactStandardLibrary/,
+});

@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//  	http://www.apache.org/licenses/LICENSE-2.0
+// 	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,27 +13,22 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+module A {
+  export circuit f(x: Field): Field {
+    return x;
+  }
 
-module Test1a {
-  export circuit test1a(var1: Field): Field {
-    return var1;
+  export circuit k(x: Field): Field {
+    return x;
   }
 }
 
-module Test1b {
-  export circuit test1b(var1: Field): Field {
-    return var1;
-  }
+module B {
+  import { f as g, k } from A;
+  export { k };
 }
 
-// wrap and try to export
-module M { 
-    import {test1a as t1a} from Test1a;
-}
+import { k } from B;
 
-import M;
-
-circuit foo () : [] {
-  const x = t1a(1); // this should throw an error
-}
+// A module re-exports only the imported names it lists, so importing g from B is an error.
+import { g } from B;

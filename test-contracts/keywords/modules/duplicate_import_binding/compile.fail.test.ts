@@ -13,19 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+import { defineCompileTest } from '@test/compact-test';
 
-module Test1a {
-  export circuit test1a(var1: Field): Field {
-    return var1;
-  }
-}
-
-module Test1b {
-  export circuit test1b(var1: Field): Field {
-    return var1;
-  }
-}
-
-// export non-existing method
-import { test2a as t1a } from Test1a;
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 27 char 10:\s+another binding found for v in the same scope at line 24 char 10/,
+});

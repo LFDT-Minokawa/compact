@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-//  	http://www.apache.org/licenses/LICENSE-2.0
+// 	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,22 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module Test2a {
-  export ledger var_test2a: Boolean;
-
-  export circuit test2a(var2: Boolean): Boolean {
-    var_test2a = disclose(var2);
-    return var2;
+module A {
+  export circuit f(x: Field): Field {
+    return x;
   }
 }
 
-module Test2b {
-  export ledger var_test2b: Boolean;
-
-  export circuit test2b(var2: Boolean): Boolean {
-    var_test2b = disclose(var2);
-    return var2;
-  }
+module M {
+  import { f as g } from A;
 }
 
-import { v as sth } from NonExistingModule;
+import M;
+
+// Names a module imports are not visible to code that imports the module.
+circuit modules_module_imports_not_visible(): [] {
+  const x = g(1 as Field);
+}

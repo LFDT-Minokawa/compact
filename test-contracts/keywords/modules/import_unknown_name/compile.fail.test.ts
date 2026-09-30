@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module M { }
+import { defineCompileTest } from '@test/compact-test';
 
-export circuit foo() : [] {
-  import M;
-  return [];
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError: /line 23 char 10:\s+no export named g in module M/,
+});

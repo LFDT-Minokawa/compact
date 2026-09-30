@@ -13,27 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-module Test2a {
-  export ledger var_test2a: Boolean;
+import { defineCompileTest } from '@test/compact-test';
 
-  export circuit test2a(var2: Boolean): Boolean {
-    var_test2a = disclose(var2);
-    return var2;
-  }
-}
-
-module Test2b {
-  export ledger var_test2b: Boolean;
-
-  export circuit test2b(var2: Boolean): Boolean {
-    var_test2b = disclose(var2);
-    return var2;
-  }
-}
-
-import { var_test2a as vt2a, test2a as t2a } from Test2a;
-export { vt2a, t2a };
-
-// import as already existing import
-import { var_test2b as vt2a, test2b as t2a } from Test2b;
-export { vt2a, t2a };
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 21 char 3:\s+parse error: found keyword "import" looking for a statement or "\}"/,
+});
