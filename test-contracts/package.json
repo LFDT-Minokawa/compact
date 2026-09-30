@@ -8,6 +8,7 @@
         "format:check": "prettier --check \"**/*.{ts,json,md}\"",
         "lint": "node ./compact-test-runner.ts --prepare-artifacts && tsc --noEmit -p tsconfig.json",
         "typecheck": "yarn lint",
+        "usage-index": "node ./coverage/usage-index.ts",
         "test": "node ./compact-test-runner.ts"
     },
     "license": "Apache-2.0",
