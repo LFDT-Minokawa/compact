@@ -5,6 +5,75 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.102, language 0.27.0, runtime 0.20.101]
+
+### Fixed
+
+- Compact JavaScript runtime's `assert` now returns `[]`, so a successful
+  `assert` produces the value `[]` in generated JavaScript, as the language
+  reference specifies. Wherever an assert's value was used, such as
+  `return assert(...)` or `[assert(...), x]`, it previously produced
+  `undefined`.
+- The compiler no longer fails with an internal error on a conditional
+  expression with an `assert` in one branch and a `[]` literal in the
+  other, such as `b ? assert(...) : []`.
+
+## [Toolchain 0.35.101, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- `serialize` and `deserialize` now work for values whose types are or contain
+  structural and nominal type aliases.
+
+- `serialize` and `deserialize` now raise an appropriate not-yet-implemented
+  exception when asked to operate on values whose types are or contain
+  `Secp256k1Point`, `Secp256r1Point`, or `Curve25519Point`.
+
+## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- Compact JavaScript runtime now encodes every `Secp256k1Point` and
+  `Secp256r1Point` identity point the same way, with both coordinates 0,
+  whatever coordinates the JavaScript value carries.
+
+## [Toolchain 0.35.0, language 0.27.0, runtime 0.20.0]
+
+This release includes all changes for compiler versions in the range between
+0.34.100 and 0.35.0; language versions in the range between 0.26.100 and 0.27.0;
+and Compact runtime versions in the range between 0.19.100 and 0.20.0.
+
+## [Toolchain 0.34.113, language 0.26.106, runtime 0.19.106]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.1.0-rc.1`, whose binary encoding
+  puts every ZKIR 3.0 instruction and type where compactc 0.34.0 did and
+  appends the ZKIR 3.1 additions after them. The `zkir-v3` shipped since
+  0.34.103 put those additions in the middle, so a ZKIR 3.0 reader could not
+  decode the IR in its prover keys correctly. The release candidate also
+  restores the ZKIR 3.0 circuit for `encode` on `Bytes<32>`. Instruction
+  names and fields in `.zkir` files are unchanged.
+
+  **This change applies only with the flag `--feature-zkir-v3`.**
+
+### Fixed
+
+- `compactc --feature-zkir-v3 --ledger-version` prints the version of the
+  `zkir-v3` dependency, `zkir-3.1.0-rc.1`. Since 0.34.103 it printed the whole
+  `flake.nix` line declaring that dependency, because the version was read
+  from a `midnight-ledger/` URL and the dependency had moved to midnight-zkir.
+
+### Internal notes
+
+- `zkir-v3` and test-center's `zkir-v3-wasm` track the tag `zkir-3.1.0-rc.1`
+  rather than a revision.
+
+- The end-to-end smoke test also checks `--ledger-version` with
+  `--feature-zkir-v3`, and `LEDGER_VERSION_REGEX` is anchored, so output that
+  merely contains a version no longer passes.
+
 ## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.106]
 
 ### Added

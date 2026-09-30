@@ -92,6 +92,12 @@ describe('[Smoke] Compiler', () => {
         expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
     });
 
+    test('should get ledger version with --feature-zkir-v3', async () => {
+        const result = await compile([Arguments.FEATURE_V3, Arguments.LEDGER_VERSION]);
+
+        expectCompilerResult(result).toBeSuccess('', LEDGER_VERSION_REGEX);
+    });
+
     // The first version flag on the command line is the one that acts, so adding
     // a later one must not change the output.  Compared against the single-flag
     // output rather than a version regex, because LEDGER_VERSION_REGEX also
