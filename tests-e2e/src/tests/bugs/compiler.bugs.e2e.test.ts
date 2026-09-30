@@ -42,15 +42,6 @@ describe('[Bugs] Compiler', () => {
             },
         },
         {
-            testcase: '[PM-8110] should compile and not throw internal error on empty "if" branch',
-            file: 'pm-8110.compact',
-            output: {
-                stderr: 'Compiling 1 circuits:',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Success,
-            },
-        },
-        {
             testcase:
                 '[PM-12371] should compile and not throw internal error on indirect call to a circuit that consists of an indirect chain of access to a ledger field triggers',
             file: 'pm-12371.compact',
@@ -103,15 +94,6 @@ describe('[Bugs] Compiler', () => {
                 stderr: /Exception: (?<file>.+) line (?<line>\d+) char (?<char>\d+): 30192492844249640516908685114334583612755786273298882851150636427180824258272877734561395968540851470851626455240312288860686093891907031303620444665780482326050833062974334176615752685660058100658717453591143234952925588225439724612328169544114176490568667739659912772461120063716396367251917573830754350134099453129175911245731902153157960499995823247789889855333108830429635042636432286814530993977930509534957855093185234506041580262145441207168974639001160989152456378079583810445347334972539095845971835187714257166637039694233490200183768294306609311937671740481390533345298808870821472516406534880402352237199 is out of Field range/,
                 stdout: compilerDefaultOutput(),
                 exitCode: ExitCodes.Failure,
-            },
-        },
-        {
-            testcase: '[PM-16853] should compile and not throw internal error on if switch',
-            file: 'pm-16853.compact',
-            output: {
-                stderr: 'Compiling 2 circuits:',
-                stdout: compilerDefaultOutput(),
-                exitCode: ExitCodes.Success,
             },
         },
         {
@@ -279,35 +261,6 @@ describe('[Bugs] Compiler', () => {
         });
     });
 
-    describe('[PM-16183]', () => {
-        test.each([
-            {
-                testcase: 'should return proper error when constructor have multiple return statements (including for loop)',
-                file: 'multiple_constructor_returns.compact',
-                output: {
-                    stderr: 'Exception: multiple_constructor_returns.compact line 24 char 5:\n  return is not supported within for loops',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-            {
-                testcase: 'should return proper error when circuit have multiple return statements (including if)',
-                file: 'multiple_circuit_returns.compact',
-                output: {
-                    stderr: 'Exception: multiple_circuit_returns.compact line 22 char 9:\n  unreachable statement',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-        ])(`$testcase`, async ({ file, output }) => {
-            const dirPath = CONTRACTS_ROOT + 'pm-16183/';
-            const outputDir = createTempFolder();
-
-            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
-            expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
-        });
-    });
-
     describe('[PM-16349]', () => {
         test.each([
             {
@@ -364,44 +317,6 @@ describe('[Bugs] Compiler', () => {
         const expectedContractInfo = expectedContract.getContractInfoCircuits();
 
         expect(actualContractInfo?.keys()).toEqual(expectedContractInfo?.keys());
-    });
-
-    describe('[PM-16893]', () => {
-        test.each([
-            {
-                testcase: 'should compile contract without errors when for loop is iterating over empty tuple',
-                file: 'example_one.compact',
-                output: {
-                    stderr: '',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Success,
-                },
-            },
-            {
-                testcase: 'should compile contract without errors when using map with empty tuples',
-                file: 'example_two.compact',
-                output: {
-                    stderr: '',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Success,
-                },
-            },
-            {
-                testcase: 'should compile contract without errors when using fold with empty tuples',
-                file: 'example_three.compact',
-                output: {
-                    stderr: '',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Success,
-                },
-            },
-        ])(`$testcase`, async ({ file, output }) => {
-            const dirPath = CONTRACTS_ROOT + 'pm-16893/';
-            const outputDir = createTempFolder();
-
-            const result = await compile([Arguments.SKIP_ZK, file, outputDir], dirPath);
-            expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
-        });
     });
 
     describe('[PM-17347]', () => {

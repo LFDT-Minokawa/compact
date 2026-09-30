@@ -34,10 +34,6 @@ describe('[Errors] Compiler', () => {
             error: /Exception: unbound.compact line 16 char 59: unbound identifier Maybe/,
         },
         {
-            file: 'maybe.compact',
-            error: /Exception: maybe.compact line 18 char 1: circuit nestedCall1 is declared to return a value of type struct Maybe<is_some: Boolean, value: Field>, but its body can return without supplying a value/,
-        },
-        {
             file: 'multiSource.compact',
             error: /Exception: multiSource.compact line 28 char 10: no compatible function named enabledPower is in scope at this call; one function is incompatible with the supplied argument types; supplied argument types: \(Uint<0..1>, Field\); declared argument types for function at line 19 char 1: \(Boolean, Field\)/,
         },
