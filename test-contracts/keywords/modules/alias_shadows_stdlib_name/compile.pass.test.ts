@@ -13,18 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+import { defineCompileTest } from '@test/compact-test';
 
-module Test4 {
-  export circuit test4(): Field {
-    return 1 as Field;
-  }
-}
-
-import { test4 as CompactStandardLibrary } from Test4;
-export { CompactStandardLibrary };
-
-// usage
-export circuit test(): [] {
-  const a = CompactStandardLibrary();
-}
+export default defineCompileTest(import.meta.url);
