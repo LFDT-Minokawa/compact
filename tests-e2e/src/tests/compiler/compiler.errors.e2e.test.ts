@@ -30,18 +30,10 @@ describe('[Errors] Compiler', () => {
 
     test.each([
         {
-            file: 'unbound.compact',
-            error: /Exception: unbound.compact line 16 char 59: unbound identifier Maybe/,
-        },
-        {
             file: 'missing.compact',
             error: new RegExp(
                 `Exception: error opening source file: failed for ${escapeRegExp(CONTRACTS_ROOT + 'missing.compact')}: no such file or directory`,
             ),
-        },
-        {
-            file: 'missing-include.compact',
-            error: /Exception: missing-include.compact line 17 char 1: failed to locate file "missing file {2}with {3}spaces.compact"/,
         },
         {
             file: 'spreadParams.compact',

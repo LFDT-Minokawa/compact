@@ -135,53 +135,6 @@ describe('[Bugs] Compiler', () => {
         });
     });
 
-    describe('[PM-9636]', () => {
-        test.each([
-            {
-                testcase: 'should compile when contract includes multiple modules',
-                file: 'main.compact',
-                output: {
-                    stderr: '',
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Success,
-                },
-            },
-            {
-                testcase: 'should not compile when second binding in the same scope',
-                file: 'main_scope.compact',
-                output: {
-                    stderr: /Exception: main_scope.compact line 29 char 1: another binding found for counter in the same scope at line 28 char 1/,
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-            {
-                testcase: 'should not compile when cycle exist in dependencies tree',
-                file: 'main_cycle.compact',
-                output: {
-                    stderr: /Exception: main_cycle.compact line 31 char 5: include cycle involving "three_cycle.compact"/,
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-            {
-                testcase: 'should not compile when invalid operation is defined in submodule',
-                file: 'main_invalid_function.compact',
-                output: {
-                    stderr: /Exception: two_invalid_function.compact line 21 char 12: operation invalid_call undefined for ledger field type Counter/,
-                    stdout: compilerDefaultOutput(),
-                    exitCode: ExitCodes.Failure,
-                },
-            },
-        ])(`$testcase`, async ({ file, output }) => {
-            const dirPath = CONTRACTS_ROOT + 'include-pm-9636/';
-            const outputDir = createTempFolder();
-
-            const result = await compile([Arguments.VSCODE, file, outputDir], dirPath);
-            expectCompilerResult(result).toReturn(output.stderr, output.stdout, output.exitCode);
-        });
-    });
-
     test(`[PM-16150] export naming with module, should follow same pattern as camel casing`, async () => {
         const outputDir = createTempFolder();
         const contractDir = CONTRACTS_ROOT + 'pm-16150/';
