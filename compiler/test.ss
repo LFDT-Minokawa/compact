@@ -71657,7 +71657,7 @@ groups than for single tests.
     (succeeds)
     )
 
-  ; a returned conditional keeps its [] else branch
+  ; a returned conditional with a [] else branch returns []
   (test
     '(
       "circuit helper(): [] {"

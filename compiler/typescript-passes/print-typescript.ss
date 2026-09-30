@@ -2368,16 +2368,29 @@
     [(,var-name ,[Type : type -> * type])
      (make-Qconcat (format-internal-binding unique-local-name var-name) ": " type)])
   (Stmt : Statement (ir return? outer-pure?) -> * (Q)
-    [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt1] ,[* stmt2])
+    [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt])
      (apply make-Qconcat
        (make-Qconcat
          "if ("
          expr
          ")"
          0 "{")
+       2 stmt
+       ; in return position the missing else must still return the empty tuple
+       (if return?
+           (list 0 "} else {" 2 "return [];" 0 "}")
+           (list 0 "}")))]
+    [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt1] ,[* stmt2])
+     (make-Qconcat
+       (make-Qconcat
+         "if ("
+         expr
+         ")"
+         0 "{")
        2 stmt1
-       ; an else that prints as nothing, such as [] outside return position, is left out
-       (if (equal? stmt2 "") (list 0 "}") (list 0 "} else {" 2 stmt2 0 "}")))]
+       0 "} else {"
+       2 stmt2
+       0 "}")]
     [(seq ,src ,stmt* ... ,stmt)
      (let* ([stmt* (maplr (lambda (stmt) (Stmt stmt #f outer-pure?)) stmt*)]
             [stmt (Stmt stmt return? outer-pure?)]

@@ -297,6 +297,8 @@
     [(if ,src ,expr0 (quote ,src1 ,datum1) ,expr2)
      (guard (eq? datum1 #t))
      (handle-expr ir statement-expression)]
+    [(if ,src ,expr0 ,[stmt1] (tuple ,src^))
+     (handle-expr expr0 (lambda (expr0) `(if ,src ,expr0 ,stmt1)))]
     [(if ,src ,expr0 ,[stmt1] ,[stmt2])
      (handle-expr expr0 (lambda (expr0) `(if ,src ,expr0 ,stmt1 ,stmt2)))]
     [(seq ,src ,[stmt*] ... ,[stmt])
