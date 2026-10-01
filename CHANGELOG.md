@@ -5,6 +5,219 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.102, language 0.27.0, runtime 0.20.101]
+
+### Fixed
+
+- Compact JavaScript runtime's `assert` now returns `[]`, so a successful
+  `assert` produces the value `[]` in generated JavaScript, as the language
+  reference specifies. Wherever an assert's value was used, such as
+  `return assert(...)` or `[assert(...), x]`, it previously produced
+  `undefined`.
+- The compiler no longer fails with an internal error on a conditional
+  expression with an `assert` in one branch and a `[]` literal in the
+  other, such as `b ? assert(...) : []`.
+
+## [Toolchain 0.35.101, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- `serialize` and `deserialize` now work for values whose types are or contain
+  structural and nominal type aliases.
+
+- `serialize` and `deserialize` now raise an appropriate not-yet-implemented
+  exception when asked to operate on values whose types are or contain
+  `Secp256k1Point`, `Secp256r1Point`, or `Curve25519Point`.
+
+## [Toolchain 0.35.100, language 0.27.0, runtime 0.20.100]
+
+### Fixed
+
+- Compact JavaScript runtime now encodes every `Secp256k1Point` and
+  `Secp256r1Point` identity point the same way, with both coordinates 0,
+  whatever coordinates the JavaScript value carries.
+
+## [Toolchain 0.35.0, language 0.27.0, runtime 0.20.0]
+
+This release includes all changes for compiler versions in the range between
+0.34.100 and 0.35.0; language versions in the range between 0.26.100 and 0.27.0;
+and Compact runtime versions in the range between 0.19.100 and 0.20.0.
+
+## [Toolchain 0.34.113, language 0.26.106, runtime 0.19.106]
+
+### Changed
+
+- The `zkir-v3` binary shipped with the compiler now comes from the
+  midnight-zkir release candidate `zkir-3.1.0-rc.1`, whose binary encoding
+  puts every ZKIR 3.0 instruction and type where compactc 0.34.0 did and
+  appends the ZKIR 3.1 additions after them. The `zkir-v3` shipped since
+  0.34.103 put those additions in the middle, so a ZKIR 3.0 reader could not
+  decode the IR in its prover keys correctly. The release candidate also
+  restores the ZKIR 3.0 circuit for `encode` on `Bytes<32>`. Instruction
+  names and fields in `.zkir` files are unchanged.
+
+  **This change applies only with the flag `--feature-zkir-v3`.**
+
+### Fixed
+
+- `compactc --feature-zkir-v3 --ledger-version` prints the version of the
+  `zkir-v3` dependency, `zkir-3.1.0-rc.1`. Since 0.34.103 it printed the whole
+  `flake.nix` line declaring that dependency, because the version was read
+  from a `midnight-ledger/` URL and the dependency had moved to midnight-zkir.
+
+### Internal notes
+
+- `zkir-v3` and test-center's `zkir-v3-wasm` track the tag `zkir-3.1.0-rc.1`
+  rather than a revision.
+
+- The end-to-end smoke test also checks `--ledger-version` with
+  `--feature-zkir-v3`, and `LEDGER_VERSION_REGEX` is anchored, so output that
+  merely contains a version no longer passes.
+
+## [Toolchain 0.34.112, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- Compact reference and API documentation updates for the various new and modified
+  language features, including dynamic cross-contract calls and the new foreign
+  fields and points, plus various other documentation updates, corrections, and
+  clarifications.
+
+### Fixed
+
+- An issue in the type inferencer that could result in internal errors
+  rather than appropriately descriptive error messages for casts of foreign
+  field values to values of `Field` and `Uint` types.
+
+## [Toolchain 0.34.111, language 0.26.106, runtime 0.19.106]
+
+### Added
+
+- The standard library has a new circuit `secp256r1EcdsaVerify` that verifies
+  an ECDSA signature over the secp256r1 (also known as P256) curve and
+  returns a boolean value telling whether the verification succeeded.  Like
+  `secp256k1EcdsaVerify`, it asserts that the public key is not the identity.
+  A public key recovered off-circuit with the runtime's `secp256r1EcdsaRecover`
+  can now be verified in circuit.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+- The standard library has a new circuit `ed25519Verify<#n>` that verifies an
+  Ed25519 signature (RFC 8032) over an `n`-byte message and returns a boolean
+  value telling whether the verification succeeded.  The challenge is hashed
+  in-circuit with `sha512`.  It asserts that the public key is not the
+  identity.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+### Changed
+
+- Compiled contracts now also reject a `Curve25519Point` passed in from
+  JavaScript that is on the curve but outside the prime-order subgroup, that
+  is, one with a small-order component.  Circuits can only hold subgroup
+  points, so such a point used to be computed with off-circuit and then fail
+  at proving time; it is now a type error.  `isValidCurve25519Point` checks
+  subgroup membership as well.  secp256k1 and secp256r1 have cofactor 1, so
+  they need no such check.
+
+## [Toolchain 0.34.110, language 0.26.105, runtime 0.19.105]
+
+### Added
+
+- Add `secp256r1EcdsaRecover` to the Compact JavaScript runtime.  Given a
+  32-byte message hash, an ECDSA signature and a recovery id,
+  it returns the corresponding secp256r1 public key.
+
+  Recovery runs off-circuit, as it does for secp256k1.  The standard library
+  has no secp256r1 equivalent of `secp256k1EcdsaVerify` yet, so a recovered
+  secp256r1 key cannot be constrained in circuit.
+
+### Changed
+
+- Compiled contracts now reject invalid `Secp256k1Point`, `Secp256r1Point` and
+  `Curve25519Point` values passed in from JavaScript as circuit or constructor
+  arguments or as witness results.  A point is invalid if a coordinate is
+  outside the curve's base field, or if it is not on the curve. An
+  invalid point is now a type error instead of being computed with.
+
+## [Toolchain 0.34.109, language 0.26.105, runtime 0.19.104]
+
+### Added
+
+- `kernel.caller()` ledger operation returns the caller of a circuit invocation
+  as `Maybe<PublicAddress>`:
+  - `left(addr)` when called by contract `addr`;
+  - `right(addr)` when this is a top-level call and every unshielded input of
+    the containing intent is owned by user `addr` (their unshielded address);
+  - `none` otherwise, and always in a constructor.
+
+  The ledger derives the top-level value from the intent's unshielded inputs,
+  which the wallet adds when it balances the transaction, after the transcript
+  that read `caller` was fixed by proving. Off-chain execution records `none`
+  for a top-level call, so such a call fails on chain with a read mismatch
+  whenever the balanced intent's unshielded inputs all belong to one user.
+  `left(addr)` is reliable: the runtime sets the calling contract for callees
+  and the ledger gives a claiming contract precedence over the inputs. Until
+  an intent can explicitly set the top-level caller, read `kernel.caller()` only where
+  the call is known to come from a contract.
+- `PublicAddress` standard library type alias for
+  `Either<ContractAddress, UserAddress>`.
+
+## [Toolchain 0.34.108, language 0.26.104, runtime 0.19.104]
+
+### Added
+
+- There is one new cast available, from `Bytes<64>` to `Curve25519Scalar`.  The
+  semantics is the same as the other from-bytes casts for foreign fields---it
+  performs modular reduction by the field modulus of the value represented by
+  the byte vector.
+
+  **This feature requires the flag `--feature-zkir-v3`.**
+
+## [Toolchain 0.34.107, language 0.26.103, runtime 0.19.104]
+
+### Fixed
+
+- `compactc --version` now reports the release it was built from, including any
+  prerelease identifier and the commit. It previously reported only the
+  major.minor.bugfix triple, so every candidate for a release reported that release.
+
+  The version a build reports is now a fact about the build.
+  Builds that are not releases report `-dev`: the scheduled build
+  and the on-demand dev publish have no release to name, and a dev publish is
+  installable, so one reporting the same shape as a finished release could pass
+  for it. `-dev` sorts below every release of the same triple, so a version
+  check that wanted a release fails instead of passing. That is also the value
+  committed in `compiler/version-config.ss`, so a build nothing stamped cannot
+  pass for a release either.
+
+  The commit is reported beside the version rather than inside it --
+  `0.34.102-rc.2 (a1b2c3d4e 2026-09-10)` -- and is recorded in full in `contract-info.json` and
+  `contract-manifest.json` as a new `compiler-commit` field, leaving
+  `compiler-version` a valid semver string. That string is what gets pinned in
+  CI and compared by tooling, and semver build metadata is not reliably ignored
+  in comparison, so a version carrying it reads as a different version.
+
+  `compactc --version --verbose` reports `release`, `commit-hash`,
+  `commit-date`, `language-version` and `runtime-version` as separate fields,
+  so a script need not parse one out of the other and a bug report needs one
+  command rather than three. Fields the build did not record read `unknown`
+  rather than being dropped, so the set of fields does not depend on how the
+  compiler was built.
+
+  Release candidates still satisfy the same `pragma compiler_version`
+  constraints as the release they are candidates for.
+
+- The first of `--help`, `--version`, `--language-version`, `--ledger-version`
+  and `--runtime-version` on the command line is the one that acts. Flag
+  actions used to run mid-parse, so `--ledger-version --feature-zkir-v3`
+  reported the zkir-v2 ledger version -- the feature flag had not been seen
+  yet -- while the reverse order reported v3. Both orders now report v3.
+
+- `format-compact --version` and `fixup-compact --version` report the commit
+  and its date the same way as `compactc --version`: the three tools share one
+  version printer.
+
 ## [Toolchain 0.34.106, language 0.26.103, runtime 0.19.104]
 
 ### Added

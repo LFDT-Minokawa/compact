@@ -5,7 +5,7 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Toolchain version (e.g. v1.2.3-rc.1, v1.2.3-alpha.0)'
+        description: 'Toolchain version: v1.2.3-rc.1 for a candidate, v1.2.3 for the final build to be promoted'
         required: true
         type: string
       branch:
@@ -47,8 +47,11 @@ on:
 
 permissions: {}
 
+# A scheduled run and a dispatch from the default branch both resolve `github.ref` to
+# refs/heads/main, so without the version in the key the twelve-hourly cron could cancel
+# a release mid-build. Two dispatches of the same version still cancel each other.
 concurrency:
-  group: release-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: release-${{ github.workflow }}-${{ inputs.version || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -57,6 +60,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       branch: ${{ steps.set_branch.outputs.branch }}
+      sha: ${{ steps.resolve.outputs.sha }}
       clean_tag: ${{ steps.clean.outputs.tag }}
       linux_arm: ${{ steps.linux_arm.outputs.name }}
       linux_x86: ${{ steps.linux_x86.outputs.name }}
@@ -75,6 +79,24 @@ jobs:
           fi
           echo "Using branch: $BRANCH"
           echo "branch=$BRANCH" >> $GITHUB_OUTPUT
+
+      # Resolved once, so everything downstream builds, tests and tags the same
+      # commit. The build jobs stamp `git rev-parse HEAD` and `make-release` tags
+      # hours later, so a push mid-run could otherwise tag a commit nobody built.
+      - name: Resolve the branch to a commit
+        id: resolve
+        env:
+          BRANCH: ${{ steps.set_branch.outputs.branch }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          SHA="$(git ls-remote "https://github.com/${REPO}" "refs/heads/${BRANCH}" | cut -f1)"
+          if [ -z "$SHA" ]; then
+            echo "::error::could not resolve branch '$BRANCH' to a commit"
+            exit 1
+          fi
+          echo "Building $BRANCH at $SHA"
+          echo "sha=$SHA" >> "$GITHUB_OUTPUT"
 
       - name: Sanitize tag
         id: clean
@@ -132,8 +154,12 @@ jobs:
         env:
           INTERNAL: ${{ inputs.version }}
         run: |
-          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-.+$ ]]; then
-            echo "::error::version must match v*.*.*-* format (e.g. v1.2.3-rc.1), got: $INTERNAL"
+          # A final release is built here too and promoted by public-release.yml, so
+          # what ships is built as the release rather than renamed.
+          # The prerelease part is restricted to semver's characters because the build
+          # writes it into the compiler's source; `.+` would accept quotes and parens.
+          if [[ ! "$INTERNAL" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
+            echo "::error::version must be v*.*.* or v*.*.*-<prerelease> (e.g. v1.2.3, v1.2.3-rc.1), got: $INTERNAL"
             exit 1
           fi
           echo "Internal version format is valid: $INTERNAL"
@@ -149,7 +175,7 @@ jobs:
         if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.branch }}
+          ref: ${{ needs.setup.outputs.sha }}
 
       - name: Verify release notes file exists
         if: ${{ inputs.include_release_notes && github.event_name == 'workflow_dispatch' }}
@@ -172,7 +198,7 @@ jobs:
     uses: ./.github/workflows/check-docs.yml
     secrets: inherit
     with:
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
 
   build-release-arm-linux:
     name: Build compactc binary for Linux aarch64 (Arm)
@@ -183,7 +209,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: linux-release-aarch64
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
@@ -201,7 +227,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: linux-release-x86_64
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
@@ -219,7 +245,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: macos-release-aarch64
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
@@ -238,7 +264,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: macos-release-x86_64
       platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
@@ -256,7 +282,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: linux-release-aarch64
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
@@ -270,7 +296,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: linux-release-x86_64
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
@@ -284,7 +310,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: macos-release-aarch64
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
@@ -298,7 +324,7 @@ jobs:
     secrets: inherit
     with:
       tag: ${{ needs.setup.outputs.clean_tag }}
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       artifact: macos-release-x86_64
       platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
@@ -334,14 +360,27 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ needs.setup.outputs.branch }}
+          ref: ${{ needs.setup.outputs.sha }}
 
+      # A failure after this push leaves the tag behind, so a re-run of this job
+      # finds its own tag and skips it; the same tag on any other commit is a
+      # collision, not a re-run, so it fails.
       - name: Create and push tag
         env:
           VERSION: ${{ inputs.version }}
         run: |
-          git tag "$VERSION"
-          git push origin "$VERSION"
+          set -euo pipefail
+          EXISTING="$(git ls-remote --tags origin "refs/tags/${VERSION}" | cut -f1)"
+          HERE="$(git rev-parse HEAD)"
+          if [ -z "$EXISTING" ]; then
+            git tag "$VERSION"
+            git push origin "$VERSION"
+          elif [ "$EXISTING" = "$HERE" ]; then
+            echo "::notice::tag ${VERSION} already points at ${HERE}; nothing to do."
+          else
+            echo "::error::tag ${VERSION} already exists at ${EXISTING}, but this build is ${HERE}"
+            exit 1
+          fi
 
       - name: Fetch release assets - Linux aarch64 (Arm)
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
@@ -435,13 +474,17 @@ jobs:
           body_path: ${{ needs.setup.outputs.release_notes_flag == 'true' && needs.setup.outputs.release_notes_file || '' }}
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
+      # A draft for a final version would claim the same release name that
+      # public-release.yml creates when it promotes this build, so leave the
+      # public repository to that workflow. Candidates still get their draft.
       - name: Create Release on LFDT/Minokawa
         id: create_release_lfdt
+        if: ${{ contains(inputs.version || github.ref_name, '-') }}
         uses: softprops/action-gh-release@3d0d9888cb7fd7b750713d6e236d1fcb99157228 # v3.0.2
         with:
           repository: LFDT-Minokawa/compact
           tag_name: compactc-${{ inputs.version || github.ref_name }}
-          target_commitish: ${{ needs.setup.outputs.branch }}
+          target_commitish: ${{ needs.setup.outputs.sha }}
           name: Compact toolchain ${{ inputs.version || github.ref_name }}
           draft: true
           prerelease: true
@@ -451,6 +494,7 @@ jobs:
           body: ${{ needs.setup.outputs.release_notes_flag != 'true' && format('Compactc {0}', inputs.version || github.ref_name) || '' }}
 
       - name: Publish release on LFDT-Minokawa/compact
+        if: ${{ contains(inputs.version || github.ref_name, '-') }}
         env:
           GH_TOKEN: ${{ secrets.MIDNIGHTCI_REPO }}
           RELEASE_ID: ${{ steps.create_release_lfdt.outputs.id }}
@@ -469,7 +513,7 @@ jobs:
     uses: ./.github/workflows/generate-docs.yml
     secrets: inherit
     with:
-      branch: ${{ needs.setup.outputs.branch }}
+      branch: ${{ needs.setup.outputs.sha }}
       docs_branch: ${{ inputs.docs_branch }}
       pr_description: ${{ inputs.pr_description }}
       draft_pr: true

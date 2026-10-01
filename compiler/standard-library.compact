@@ -293,6 +293,8 @@ export circuit blockTimeLte(time: Uint<64>): Boolean {
 
 export struct UserAddress { bytes: Bytes<32>; }
 
+export type PublicAddress = Either<ContractAddress, UserAddress>;
+
 export circuit mintUnshieldedToken(
   domainSep: Bytes<32>,
   amount: Uint<64>,

@@ -795,6 +795,8 @@ groups than for single tests.
                     '(
                       "import * as runtime from '@midnight-ntwrk/compact-runtime';\n"
                       "import { secp256k1 } from '@noble/curves/secp256k1.js';\n"
+                      "import { p256 } from '@noble/curves/nist.js';\n"
+                      "import { ed25519 } from '@noble/curves/ed25519.js';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
                       "import { TestChain } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
@@ -33976,6 +33978,25 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (call %deserialize.1 %x.4))))
     )
+
+  ; the value of an assert is [], so it combines with a [] literal in a conditional
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'x') : [];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? [] : assert(true, 'x');"
+      "}"
+      )
+    (succeeds)
+    )
 )
 
 ; examples of where disclose can be placed
@@ -37387,6 +37408,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37454,6 +37476,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37497,6 +37520,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37643,6 +37667,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37727,6 +37752,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -37786,6 +37812,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -39192,6 +39219,7 @@ groups than for single tests.
       `(
         "{"
         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+        ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
         ,(format "  \"language-version\": \"~a\"," language-version-string)
         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
         "  \"circuits\": ["
@@ -39753,6 +39781,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -62487,6 +62516,43 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 33" "unbound identifier ~s" (Secp256k1Base)))
     )
 
+  (test
+    '(
+      "ledger wantProof: Boolean;"
+      "export circuit test0(b: Secp256r1Base): Secp256r1Base {"
+      "  wantProof = true;"
+      "  return b;"
+      "}"
+      "export circuit test1(s: Secp256r1Scalar): Secp256r1Scalar {"
+      "  wantProof = true;"
+      "  return s;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256r1Scalar)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(b: Secp256r1Base): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256r1Base)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit test(pt: Secp256r1Point): [] { return; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "unbound identifier ~s" (Secp256r1Point)))
+    )
+
   ;; ecNeg: negate a JubjubPoint (ZKIR v2)
   (test
     '(
@@ -66423,7 +66489,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.38\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x33\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.40\", \"%hash.39\"] },"
@@ -66443,7 +66509,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.44\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.42\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.45\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.43\", \"%data.44\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x34\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.47\", \"%hash.46\"] },"
@@ -66465,7 +66531,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.50\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.48\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.51\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.49\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.52\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.50\", \"%data.51\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x35\"] },"
@@ -66487,7 +66553,7 @@ groups than for single tests.
         "    { \"op\": \"cond_select\", \"output\": \"%data.57\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.55\" },"
         "    { \"op\": \"cond_select\", \"output\": \"%data.58\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.56\" },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.59\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.57\", \"%data.58\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
@@ -67222,7 +67288,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [\"0x32\", \"0x31323334353637383930313233343536373839303132333435363738393031\", \"%x.0\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%t.2\", \"%t.3\"], \"bytes\": \"%bytes.1\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%t.2\", \"%t.3\"], \"bytes\": \"%bytes.1\" },"
         "    { \"op\": \"output\", \"vals\": [\"%t.3\", \"%t.2\"] }"
         "  ]"
         "}"))
@@ -67296,7 +67362,7 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.0\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"0x47\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"bytes\": \"%bytes.0\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.1\", \"%hash.2\"], \"bytes\": \"%bytes.0\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
@@ -67453,7 +67519,7 @@ groups than for single tests.
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.1\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"0x6d646e3a6c68\", \"%x.0\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%hash.2\", \"%hash.3\"], \"bytes\": \"%bytes.1\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.2\", \"%hash.3\"], \"bytes\": \"%bytes.1\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
@@ -70827,8 +70893,8 @@ groups than for single tests.
           (private_input "Scalar<Secp256k1>" %sig.42)
           (private_input "Scalar<Secp256k1>" %sig.64)
           (private_input "Point<Secp256k1>" %pk.1)
-          (into_bytes32 %tmp.65 0)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.66 %tmp.65)
+          (to_bytes %tmp.65 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.66 %tmp.65)
           (ec_mul_generator %t.0 %tmp.66)
           (test_eq %t.2 %pk.1 %t.0)
           (cond_select %t.3 %t.2 0 1)
@@ -70865,7 +70931,7 @@ groups than for single tests.
           (div_mod_power_of_two %quo.95 %v.10 %quo.94 8)
           (div_mod_power_of_two %quo.96 %v.9 %quo.95 8)
           (copy %v.8 %quo.96)
-          (copy %beReversed.39 %v.6)
+          (copy %beReversed.38 %v.6)
           (reconstitute_field %div.97 %v.37 %v.36 8)
           (reconstitute_field %div.98 %div.97 %v.35 8)
           (reconstitute_field %div.99 %div.98 %v.34 8)
@@ -70895,12 +70961,13 @@ groups than for single tests.
           (reconstitute_field %div.123 %div.122 %v.10 8)
           (reconstitute_field %div.124 %div.123 %v.9 8)
           (reconstitute_field %div.125 %div.124 %v.8 8)
-          (reconstitute_field %beReversed.38 %div.125 %v.7 8)
-          (bytes32_from_low_high
+          (reconstitute_field %beReversed.39 %div.125 %v.7 8)
+          (bytes_from_natives
             %tmp.126
-            %beReversed.38
-            %beReversed.39)
-          (from_bytes32 "Scalar<Secp256k1>" %z.41 %tmp.126)
+            32
+            %beReversed.39
+            %beReversed.38)
+          (from_bytes "Scalar<Secp256k1>" %z.41 %tmp.126)
           (inv %w.40 %sig.64)
           (mul %u1.127 %z.41 %w.40)
           (mul %u2.128 %sig.42 %w.40)
@@ -70908,22 +70975,22 @@ groups than for single tests.
           (ec_mul %t.130 %pk.1 %u2.128)
           (add %point.131 %t.129 %t.130)
           (into_coordinates %t.43 %ignore.132 %point.131)
-          (into_bytes32 %tmp.133 %t.43)
-          (bytes32_into_low_high %t.44 %t.45 %tmp.133)
-          (bytes32_from_low_high %tmp.134 %t.44 %t.45)
-          (from_bytes32 "Scalar<Secp256k1>" %t.46 %tmp.134)
+          (to_bytes %tmp.133 %t.43)
+          (bytes_into_natives (%t.45 %t.44) %tmp.133)
+          (bytes_from_natives %tmp.134 32 %t.45 %t.44)
+          (from_bytes "Scalar<Secp256k1>" %t.46 %tmp.134)
           (test_eq %t.47 %t.46 %sig.42)
           (assert %t.47)
           (private_input "Scalar<Secp256k1>" %sig.56)
           (private_input "Scalar<Secp256k1>" %sig.135)
           (private_input "Point<Secp256k1>" %pk.49)
-          (into_bytes32 %tmp.136 0)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.137 %tmp.136)
+          (to_bytes %tmp.136 0)
+          (from_bytes "Scalar<Secp256k1>" %tmp.137 %tmp.136)
           (ec_mul_generator %t.48 %tmp.137)
           (test_eq %t.50 %pk.49 %t.48)
           (cond_select %t.51 %t.50 0 1)
           (assert %t.51)
-          (copy %beReversed.53 %v.6)
+          (copy %beReversed.52 %v.6)
           (reconstitute_field %div.138 %v.37 %v.36 8)
           (reconstitute_field %div.139 %div.138 %v.35 8)
           (reconstitute_field %div.140 %div.139 %v.34 8)
@@ -70953,12 +71020,13 @@ groups than for single tests.
           (reconstitute_field %div.164 %div.163 %v.10 8)
           (reconstitute_field %div.165 %div.164 %v.9 8)
           (reconstitute_field %div.166 %div.165 %v.8 8)
-          (reconstitute_field %beReversed.52 %div.166 %v.7 8)
-          (bytes32_from_low_high
+          (reconstitute_field %beReversed.53 %div.166 %v.7 8)
+          (bytes_from_natives
             %tmp.167
-            %beReversed.52
-            %beReversed.53)
-          (from_bytes32 "Scalar<Secp256k1>" %z.55 %tmp.167)
+            32
+            %beReversed.53
+            %beReversed.52)
+          (from_bytes "Scalar<Secp256k1>" %z.55 %tmp.167)
           (inv %w.54 %sig.135)
           (mul %u1.168 %z.55 %w.54)
           (mul %u2.169 %sig.56 %w.54)
@@ -70966,10 +71034,10 @@ groups than for single tests.
           (ec_mul %t.171 %pk.49 %u2.169)
           (add %point.172 %t.170 %t.171)
           (into_coordinates %t.57 %ignore.173 %point.172)
-          (into_bytes32 %tmp.174 %t.57)
-          (bytes32_into_low_high %t.58 %t.59 %tmp.174)
-          (bytes32_from_low_high %tmp.175 %t.58 %t.59)
-          (from_bytes32 "Scalar<Secp256k1>" %t.60 %tmp.175)
+          (to_bytes %tmp.174 %t.57)
+          (bytes_into_natives (%t.59 %t.58) %tmp.174)
+          (bytes_from_natives %tmp.175 32 %t.59 %t.58)
+          (from_bytes "Scalar<Secp256k1>" %t.60 %tmp.175)
           (test_eq %t.61 %t.60 %sig.56)
           (assert %t.61)
           (public_input "Scalar<BLS12-381>" %t.62)
@@ -71047,7 +71115,7 @@ groups than for single tests.
         "    { \"op\": \"constrain_eq\", \"a\": \"%e.10\", \"b\": \"0x00\" },"
         "    { \"op\": \"constrain_bits\", \"val\": \"%e.11\", \"bits\": 64 },"
         "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [\"%e.0\", \"%e.1\", \"%e.2\", \"%e.3\", \"%e.4\", \"%e.5\", \"%e.6\", \"%e.7\", \"%e.8\", \"%e.9\", \"%e.10\", \"%e.11\"] },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x20\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
@@ -71227,6 +71295,57 @@ groups than for single tests.
 
   (test
     '(
+      "import { Secp256r1Base } from CompactStandardLibrary;"
+      "circuit test(b: Secp256r1Base): [] { return; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "circuit test(): Secp256r1Scalar { return default<Secp256r1Scalar>; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "ledger s: Secp256r1Scalar;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger m: Map<Uint<64>, Map<Uint<64>, Secp256r1Base>>;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "witness w(): Secp256r1Scalar;"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Scalar } from CompactStandardLibrary;"
+      "new type Nt = Secp256r1Scalar;"
+      "export circuit test(n: Nt): [] { return; }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import { Secp256r1Base } from CompactStandardLibrary;"
+      "circuit foo<T>(x: T): [] { return; }"
+      "export circuit test(): [] { foo<Secp256r1Base>(default<Secp256r1Base>); }"
+      )
+    (succeeds))
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "ledger wantProof: Boolean;"
       "export circuit test(s: Secp256r1Scalar): [Secp256r1Scalar, Secp256r1Scalar] {"
@@ -71245,6 +71364,134 @@ groups than for single tests.
         "  \"outputs\": ["
         "    \"Scalar<Secp256r1>\","
         "    \"Scalar<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256k1Base): [Secp256k1Base, Secp256k1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256k1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256k1>\","
+        "    \"Base<Secp256k1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Secp256r1Base): [Secp256r1Base, Secp256r1Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Secp256r1>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Secp256r1>\","
+        "    \"Base<Secp256r1>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Base): [Curve25519Base, Curve25519Base] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Base<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Base<Curve25519>\","
+        "    \"Base<Curve25519>\""
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x01\", \"0x01\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"neg\", \"output\": \"%t.1\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"inv\", \"output\": \"%t.2\", \"a\": \"%s.0\" },"
+        "    { \"op\": \"output\", \"vals\": [\"%t.1\", \"%t.2\"] }"
+        "  ]"
+        "}"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger wantProof: Boolean;"
+      "export circuit test(s: Curve25519Scalar): [Curve25519Scalar, Curve25519Scalar] {"
+      "  wantProof = true;"
+      "  return [neg(s), inv(s)];"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/test.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%s.0\", \"type\": \"Scalar<Curve25519>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "    \"Scalar<Curve25519>\","
+        "    \"Scalar<Curve25519>\""
         "  ],"
         "  \"instructions\": ["
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
@@ -71355,17 +71602,9 @@ groups than for single tests.
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\"], \"input\": \"%pt0.0\" },"
         "    { \"op\": \"encode\", \"outputs\": [\"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"], \"input\": \"%pt1.1\" },"
         "    { \"op\": \"sha512\", \"output\": \"%bytes.12\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 24, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [\"%fld.2\", \"%fld.3\", \"%fld.4\", \"%fld.5\", \"%fld.6\", \"%fld.7\", \"%fld.8\", \"%fld.9\", \"%fld.10\", \"%fld.11\"] },"
-        "    { \"op\": \"slice\", \"output\": \"%low32.13\", \"bytes\": \"%bytes.12\", \"start\": 0, \"len\": 32 },"
-        "    { \"op\": \"slice\", \"output\": \"%high32.14\", \"bytes\": \"%bytes.12\", \"start\": 32, \"len\": 32 },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%tmp.15\", \"%byte31.16\"], \"bytes\": \"%low32.13\" },"
-        "    { \"op\": \"bytes32_into_low_high\", \"outputs\": [\"%bytes32to62.17\", \"%byte63.18\"], \"bytes\": \"%high32.14\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"outputs\": [\"%byte62.19\", \"%bytes32to61.20\"], \"val\": \"%bytes32to62.17\", \"bits\": 240 },"
-        "    { \"op\": \"mul\", \"output\": \"%temp0.21\", \"a\": \"%bytes32to61.20\", \"b\": \"0x0001\" },"
-        "    { \"op\": \"add\", \"output\": \"%tmp.22\", \"a\": \"%byte31.16\", \"b\": \"%temp0.21\" },"
-        "    { \"op\": \"mul\", \"output\": \"%temp1.23\", \"a\": \"%byte63.18\", \"b\": \"0x0001\" },"
-        "    { \"op\": \"add\", \"output\": \"%tmp.24\", \"a\": \"%byte62.19\", \"b\": \"%temp1.23\" },"
+        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%tmp.13\", \"%tmp.14\", \"%tmp.15\"], \"bytes\": \"%bytes.12\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.24\", \"%tmp.22\", \"%tmp.15\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"0x40\", \"%tmp.15\", \"%tmp.14\", \"%tmp.13\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] }"
         "  ]"
         "}"))
@@ -71416,6 +71655,39 @@ groups than for single tests.
       "}"
       )
     (succeeds)
+    )
+
+  ; the value of an assert is []
+  (test
+    '(
+      "export circuit bound(): [] {"
+      "  const r: [] = assert(true, 'a');"
+      "  return r;"
+      "}"
+      "export circuit direct(): [] {"
+      "  return assert(true, 'a');"
+      "}"
+      "export circuit in_tuple(): [[], Field] {"
+      "  return [assert(true, 'a'), 1 as Field];"
+      "}"
+      "export circuit in_conditional(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'a') : [];"
+      "}"
+      "export circuit fails(b: Boolean): [] {"
+      "  assert(disclose(b), 'boom');"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, true)).result).toEqual([]);"
+        "  await expect(C.circuits.fails(Ctxt, false)).rejects.toThrow('failed assert: boom');"
+        "});"
+        ))
     )
 
   (test
@@ -72614,6 +72886,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -72672,6 +72945,7 @@ groups than for single tests.
        `(
          "{"
          ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
@@ -72890,19 +73164,32 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255))
-           (%descriptor.7 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.8 () (Kernel)))
+           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.7 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.8 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+           (%descriptor.9 (tunsigned 255))
+           (%descriptor.10 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.11 () (Kernel)))
          (public-ledger-declaration
-           ((%calc.9
+           ((%calc.12
               (0)
               (__compact_Cell
                 (tcontract Calculator
                   (get_square #f ((tunsigned 100)) (tunsigned 10000))))))
-           (constructor ([%c.9 (tcontract Calculator
-                                 (get_square #f ((tunsigned 100))
-                                   (tunsigned 10000)))])
-             (seq (public-ledger %calc.9 (0) write %c.9) (tuple))))))
+           (constructor ([%c.13 (tcontract Calculator
+                                  (get_square #f ((tunsigned 100))
+                                    (tunsigned 10000)))])
+             (seq (public-ledger %calc.12 (0) write %c.13) (tuple))))))
       ))
 
   (test
@@ -74834,17 +75121,30 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255))
-          (%descriptor.8 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 255))
+          (%descriptor.11 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.10 (0) (Counter)))
+          ((%field1.13 (0) (Counter)))
           (constructor () (tuple)))
-        (circuit %foo.10 ()
+        (circuit %foo.14 ()
              (tfield (field-native))
           (safe-cast (tfield (field-native))
                      (tunsigned 18446744073709551615)
-            (public-ledger %field1.10 (0) read)))))
+            (public-ledger %field1.13 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74954,23 +75254,36 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 65535))
-          (%descriptor.8 (tunsigned 255))
-          (%descriptor.9 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.10 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 65535))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration
-          ((%field1.11 (0) (Counter)))
-          (constructor ([%state.12 (tunsigned 65535)])
+          ((%field1.14 (0) (Counter)))
+          (constructor ([%state.15 (tunsigned 65535)])
             (seq
-              (public-ledger %field1.11 (0) increment %state.12)
+              (public-ledger %field1.14 (0) increment %state.15)
               (tuple))))
-        (circuit %foo.12 ([%x.13 (tbytes 32)])
+        (circuit %foo.16 ([%x.17 (tbytes 32)])
              (tfield (field-native))
           (seq
-            (public-ledger %kernel.10 () claimZswapNullifier %x.13)
+            (public-ledger %kernel.13 () claimZswapNullifier %x.17)
             (safe-cast (tfield (field-native))
                        (tunsigned 18446744073709551615)
-              (public-ledger %field1.11 (0) read))))))
+              (public-ledger %field1.14 (0) read))))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -75632,6 +75945,63 @@ groups than for single tests.
     (stage-javascript "test-center/ts/schnorr.ts"))
 
   (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export circuit testCaller(): Maybe<PublicAddress> {"
+      "  return kernel.caller();"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('caller defaults to None when no caller is set', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: false,"
+        "    value: {"
+        "      is_left: false,"
+        "      left: { bytes: new Uint8Array(32) },"
+        "      right: { bytes: new Uint8Array(32) },"
+        "    },"
+        "  });"
+        "});"
+        ""
+        "test('caller returns Some(left(contract)) when called from a contract', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const rawCallerAddress = runtime.sampleContractAddress();"
+        "  context.callContext.currentQueryContext.block = {"
+        "    ...context.callContext.currentQueryContext.block,"
+        "    caller: { tag: 'contract', address: rawCallerAddress },"
+        "  };"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: true,"
+        "    value: {"
+        "      is_left: true,"
+        "      left: { bytes: runtime.encodeContractAddress(rawCallerAddress) },"
+        "      right: { bytes: new Uint8Array(32) },"
+        "    },"
+        "  });"
+        "});"
+        ""
+        "test('caller returns Some(right(user)) when called from a user', async () => {"
+        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const rawCallerAddress = runtime.sampleUserAddress();"
+        "  context.callContext.currentQueryContext.block = {"
+        "    ...context.callContext.currentQueryContext.block,"
+        "    caller: { tag: 'user', address: rawCallerAddress },"
+        "  };"
+        "  expect((await c.circuits.testCaller(context)).result).toEqual({"
+        "    is_some: true,"
+        "    value: {"
+        "      is_left: false,"
+        "      left: { bytes: new Uint8Array(32) },"
+        "      right: { bytes: runtime.encodeUserAddress(rawCallerAddress) },"
+        "    },"
+        "  });"
+        "});"
+        )))
+
+  (test
     "test-center/compact/unshielded-tokens.compact"
     (stage-javascript "test-center/ts/unshielded-tokens.ts"))
 
@@ -75694,6 +76064,14 @@ groups than for single tests.
      (stage-javascript innerCode '()))
     ((source-file "test-center/composable/Events/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/events.ts")))
+
+  (test-group
+    ((source-file "test-center/composable/Caller/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Caller/Middle.compact")
+     (stage-javascript middleCode '()))
+    ((source-file "test-center/composable/Caller/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/caller.ts")))
 
   (test
     "examples/tiny.compact"
@@ -75820,9 +76198,60 @@ groups than for single tests.
         ""
         "const _descriptor_9 = new _ContractAddress_0();"
         ""
-        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "class _UserAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_1.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_1.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_1.toValue(value_0.bytes);"
+        "  }"
+        "}"
         ""
-        "const _descriptor_11 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_10 = new _UserAddress_0();"
+        ""
+        "class _Either_1 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_9.alignment().concat(_descriptor_10.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_3.fromValue(value_0),"
+        "      left: _descriptor_9.fromValue(value_0),"
+        "      right: _descriptor_10.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_left).concat(_descriptor_9.toValue(value_0.left).concat(_descriptor_10.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_11 = new _Either_1();"
+        ""
+        "class _Maybe_1 {"
+        "  alignment() {"
+        "    return _descriptor_3.alignment().concat(_descriptor_11.alignment());"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_some: _descriptor_3.fromValue(value_0),"
+        "      value: _descriptor_11.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_3.toValue(value_0.is_some).concat(_descriptor_11.toValue(value_0.value));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_12 = new _Maybe_1();"
+        ""
+        "const _descriptor_13 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -75982,8 +76411,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(new Uint8Array(32)),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -75992,8 +76421,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -76002,8 +76431,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -76014,8 +76443,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -76024,8 +76453,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -76034,8 +76463,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -76079,8 +76508,8 @@ groups than for single tests.
         "                                                                               pushPath: false,"
         "                                                                               path: ["
         "                                                                                      { tag: 'value',"
-        "                                                                                        value: { value: _descriptor_10.toValue(2n),"
-        "                                                                                                 alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                        value: { value: _descriptor_13.toValue(2n),"
+        "                                                                                                 alignment: _descriptor_13.alignment() } }] } },"
         "                                                                      { popeq: { cached: false,"
         "                                                                                 result: undefined } }]).value)"
         "           ==="
@@ -76095,8 +76524,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(apk_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -76105,8 +76534,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(v_0),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -76115,8 +76544,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(1),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -76133,8 +76562,8 @@ groups than for single tests.
         "                                                                                              pushPath: false,"
         "                                                                                              path: ["
         "                                                                                                     { tag: 'value',"
-        "                                                                                                       value: { value: _descriptor_10.toValue(1n),"
-        "                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                                       value: { value: _descriptor_13.toValue(1n),"
+        "                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
         "                                                                                     { popeq: { cached: false,"
         "                                                                                                result: undefined } }]).value));"
         "    } else {"
@@ -76155,8 +76584,8 @@ groups than for single tests.
         "                                                                                                              pushPath: false,"
         "                                                                                                              path: ["
         "                                                                                                                     { tag: 'value',"
-        "                                                                                                                       value: { value: _descriptor_10.toValue(0n),"
-        "                                                                                                                                alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                                                       value: { value: _descriptor_13.toValue(0n),"
+        "                                                                                                                                alignment: _descriptor_13.alignment() } }] } },"
         "                                                                                                     { popeq: { cached: false,"
         "                                                                                                                result: undefined } }]).value)),"
         "                            'clear: attempted clear without proper authorization');"
@@ -76165,8 +76594,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(0n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(0n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_1.toValue(tmp_0),"
         "                                                                                              alignment: _descriptor_1.alignment() }).encode() } },"
@@ -76175,8 +76604,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(1n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue(0n),"
         "                                                                                              alignment: _descriptor_0.alignment() }).encode() } },"
@@ -76185,8 +76614,8 @@ groups than for single tests.
         "                                      partialProofData,"
         "                                      ["
         "                                       { push: { storage: false,"
-        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(2n),"
-        "                                                                                              alignment: _descriptor_10.alignment() }).encode() } },"
+        "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_13.toValue(2n),"
+        "                                                                                              alignment: _descriptor_13.alignment() }).encode() } },"
         "                                       { push: { storage: true,"
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
@@ -76225,8 +76654,8 @@ groups than for single tests.
         "                                                                                 pushPath: false,"
         "                                                                                 path: ["
         "                                                                                        { tag: 'value',"
-        "                                                                                          value: { value: _descriptor_10.toValue(1n),"
-        "                                                                                                   alignment: _descriptor_10.alignment() } }] } },"
+        "                                                                                          value: { value: _descriptor_13.toValue(1n),"
+        "                                                                                                   alignment: _descriptor_13.alignment() } }] } },"
         "                                                                        { popeq: { cached: false,"
         "                                                                                   result: undefined } }]).value);"
         "    }"
@@ -76274,8 +76703,8 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""        "}"
-        ))
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
@@ -78475,16 +78904,33 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.6 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.7 (tunsigned 255))
-          (%descriptor.8 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.9 () (Kernel)))
+          (%descriptor.7 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.8 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.9 (tstruct Maybe
+                           (is_some (tboolean))
+                           (value (tstruct Either
+                                    (is_left (tboolean))
+                                    (left (tstruct ContractAddress
+                                            (bytes (tbytes 32))))
+                                    (right (tstruct UserAddress
+                                             (bytes (tbytes 32))))))))
+          (%descriptor.10 (tunsigned 255))
+          (%descriptor.11 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.12 () (Kernel)))
         (public-ledger-declaration
-          ((%fld.8 (0) (Map (tboolean) (Map (tfield (field-native)) (Counter)))))
+          ((%fld.13
+             (0)
+             (Map (tboolean) (Map (tfield (field-native)) (Counter)))))
           (constructor () (tuple)))
-        (circuit %bogus.9 ([%v.0 (tfield (field-native))])
+        (circuit %bogus.14 ([%v.15 (tfield (field-native))])
              (ttuple)
           (seq
-            (public-ledger %fld.8 (0 ((tboolean) #t) ((tfield (field-native)) %v.0)) read)
+            (public-ledger %fld.13 (0 ((tboolean) #t) ((tfield
+                                                         (field-native))
+                                                        %v.15)) read)
             (tuple)))))
     )
 
@@ -80663,32 +81109,45 @@ groups than for single tests.
                            340282366920938463463374607431768211455))
           (%descriptor.7 (tstruct ContractAddress
                            (bytes (tbytes 32))))
-          (%descriptor.8 (tunsigned 255))
-          (%descriptor.9 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.10 () (Kernel)))
+          (%descriptor.8 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.9 (tstruct Either
+                           (is_left (tboolean))
+                           (left (tstruct ContractAddress (bytes (tbytes 32))))
+                           (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.10 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.11 (tunsigned 255))
+          (%descriptor.12 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.13 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (circuit %bar.11 ([%x.12 (tboolean)]
-                          [%y.13 (tfield (field-native))])
+        (circuit %bar.14 ([%x.15 (tboolean)]
+                          [%y.16 (tfield (field-native))])
              (tstruct S (a (tfield (field-native))) (b (tboolean)))
           (new (tstruct S (a (tfield (field-native))) (b (tboolean)))
-            %y.13
-            %x.12))
-        (circuit %foo.14 ([%x.15 (tboolean)]
-                          [%y.16 (tfield (field-native))])
+            %y.16
+            %x.15))
+        (circuit %foo.17 ([%x.18 (tboolean)]
+                          [%y.19 (tfield (field-native))])
              (tfield (field-native))
           (seq
-            (const [%__compact_pattern_tmp1.17 (tstruct S
+            (const [%__compact_pattern_tmp1.20 (tstruct S
                                                  (a (tfield (field-native)))
                                                  (b (tboolean)))]
-              (call %bar.11 %x.15 %y.16))
+              (call %bar.14 %x.18 %y.19))
             (seq
-              (const [%b.18 (tboolean)]
-                (elt-ref %__compact_pattern_tmp1.17 b 1))
-              (if %b.18
-                  %y.16
+              (const [%b.21 (tboolean)]
+                (elt-ref %__compact_pattern_tmp1.20 b 1))
+              (if %b.21
+                  %y.19
                   (* (tfield (field-native))
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)
-                     %y.16)))))))
+                     %y.19)))))))
     )
 
   (test
@@ -82778,21 +83237,34 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.39 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.40 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.41 () (Kernel)))
+          (%descriptor.40 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.41 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.42 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.43 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.44 () (Kernel)))
         (public-ledger-declaration
-          ((%F.42 (0) (__compact_Cell (tbytes 32))))
+          ((%F.45 (0) (__compact_Cell (tbytes 32))))
           (constructor () (tuple)))
-        (circuit %foo.43 ([%v.44 (tvector 62 (tunsigned 255))])
+        (circuit %foo.46 ([%v.47 (tvector 62 (tunsigned 255))])
              (tbytes 32)
           (seq
             (seq
-              (const [%tmp.45 (tbytes 32)]
-                (vector->bytes
-                  32
-                  (vector (spread 32 (tuple-slice %v.44 7 32)))))
-              (public-ledger %F.42 (0) write %tmp.45))
-            (public-ledger %F.42 (0) read)))))
+              (const [%tmp.48 (tbytes 32)]
+                (vector->bytes 32
+                  (vector (spread 32 (tuple-slice %v.47 7 32)))))
+              (public-ledger %F.45 (0) write %tmp.48))
+            (public-ledger %F.45 (0) read)))))
     (stage-javascript
       `(
         "test('check 1', async () => {"
@@ -83038,27 +83510,39 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.78 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.79 (tunsigned 255))
-          (%descriptor.80 (tunsigned 4294967295)))
-        (kernel-declaration (%kernel.81 () (Kernel)))
+          (%descriptor.79 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.80 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.81 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.82 (tunsigned 255))
+          (%descriptor.83 (tunsigned 4294967295)))
+        (kernel-declaration (%kernel.84 () (Kernel)))
         (public-ledger-declaration
-          ((%F.82 (0) (__compact_Cell (tbytes 70))))
+          ((%F.85 (0) (__compact_Cell (tbytes 70))))
           (constructor () (tuple)))
-        (circuit %foo.83 ([%v.84 (tvector 1000 (tunsigned 63))])
+        (circuit %foo.86 ([%v.87 (tvector 1000 (tunsigned 63))])
              (tbytes 70)
           (seq
             (seq
-              (const [%tmp.85 (tbytes 70)]
-                (vector->bytes
-                  70
+              (const [%tmp.88 (tbytes 70)]
+                (vector->bytes 70
                   (vector
-                    (spread
-                      70
+                    (spread 70
                       (safe-cast (tvector 70 (tunsigned 255))
                                  (tvector 70 (tunsigned 63))
-                        (tuple-slice %v.84 0 70))))))
-              (public-ledger %F.82 (0) write %tmp.85))
-            (public-ledger %F.82 (0) read)))))
+                        (tuple-slice %v.87 0 70))))))
+              (public-ledger %F.85 (0) write %tmp.88))
+            (public-ledger %F.85 (0) read)))))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -85449,30 +85933,43 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
            (%descriptor.5 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-           (%descriptor.6 (tunsigned 255))
-           (%descriptor.16 (tunsigned 4294967295)))
-         (kernel-declaration (%kernel.7 () (Kernel)))
+           (%descriptor.6 (tstruct UserAddress (bytes (tbytes 32))))
+           (%descriptor.7 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+           (%descriptor.8 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+           (%descriptor.9 (tunsigned 255))
+           (%descriptor.10 (tunsigned 4294967295)))
+         (kernel-declaration (%kernel.11 () (Kernel)))
          (public-ledger-declaration
-           ((%F.8
+           ((%F.12
               (0)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tfield (field-native)))
                   (bar #f () (ttuple)))))
-            (%F.9
+            (%F.13
               (1)
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native)))
                     (tfield (field-native)))))))
-           (constructor ([%c1.10 (tcontract C
+           (constructor ([%c1.14 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native)))
                                    (bar #f () (ttuple)))])
              (seq
-               (public-ledger %F.8 (0) write %c1.10)
+               (public-ledger %F.12 (0) write %c1.14)
                (seq
-                 (const [%tmp.11 (tcontract C
+                 (const [%tmp.15 (tcontract C
                                    (foo #f ((tfield (field-native)))
                                      (tfield (field-native))))]
                    (safe-cast (tcontract C
@@ -85482,8 +85979,8 @@ groups than for single tests.
                                 (foo #f ((tfield (field-native)))
                                   (tfield (field-native)))
                                 (bar #f () (ttuple)))
-                     %c1.10))
-                 (public-ledger %F.9 (1) write %tmp.11))
+                     %c1.14))
+                 (public-ledger %F.13 (1) write %tmp.15))
                (tuple))))))))
 
   ; downcast failure for Contract types
@@ -89469,9 +89966,60 @@ groups than for single tests.
         ""
         "const _descriptor_5 = new _ContractAddress_0();"
         ""
-        "const _descriptor_6 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        "class _UserAddress_0 {"
+        "  alignment() {"
+        "    return _descriptor_0.alignment();"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      bytes: _descriptor_0.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_0.toValue(value_0.bytes);"
+        "  }"
+        "}"
         ""
-        "const _descriptor_7 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "const _descriptor_6 = new _UserAddress_0();"
+        ""
+        "class _Either_1 {"
+        "  alignment() {"
+        "    return _descriptor_2.alignment().concat(_descriptor_5.alignment().concat(_descriptor_6.alignment()));"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_left: _descriptor_2.fromValue(value_0),"
+        "      left: _descriptor_5.fromValue(value_0),"
+        "      right: _descriptor_6.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_2.toValue(value_0.is_left).concat(_descriptor_5.toValue(value_0.left).concat(_descriptor_6.toValue(value_0.right)));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_7 = new _Either_1();"
+        ""
+        "class _Maybe_0 {"
+        "  alignment() {"
+        "    return _descriptor_2.alignment().concat(_descriptor_7.alignment());"
+        "  }"
+        "  fromValue(value_0) {"
+        "    return {"
+        "      is_some: _descriptor_2.fromValue(value_0),"
+        "      value: _descriptor_7.fromValue(value_0)"
+        "    }"
+        "  }"
+        "  toValue(value_0) {"
+        "    return _descriptor_2.toValue(value_0.is_some).concat(_descriptor_7.toValue(value_0.value));"
+        "  }"
+        "}"
+        ""
+        "const _descriptor_8 = new _Maybe_0();"
+        ""
+        "const _descriptor_9 = new __compactRuntime.CompactTypeUnsignedInteger(255n, 1);"
+        ""
+        "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
         "  witnesses;"
@@ -89574,12 +90122,12 @@ groups than for single tests.
         "                                             ["
         "                                              { push: { storage: false,"
         "                                                        value: __compactRuntime.StateValue.newArray()"
-        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_7.toValue(1n),"
-        "                                                                                                                  alignment: _descriptor_7.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_6.toValue(0n),"
-        "                                                                                                                                                                                                           alignment: _descriptor_6.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                     this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                 partialProofData) }.nullifier),"
-        "                                                                                                                                                                                                                                                                                                    alignment: _descriptor_0.alignment() }))"
+        "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
+        "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
+        "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
+        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
         "  }"
@@ -91180,6 +91728,33 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type frob = [Uint<32>, Boolean];"
+      "new type blob = Bytes<8>;"
+      "ledger F: [frob, blob];"
+      "export circuit foo(x: frob, y: blob): Bytes<16> {"
+      "  F = disclose([x, y]);"
+      "  return serialize<[frob, blob], 16>(F);"
+      "}"
+      "export circuit unfoo(bv: Bytes<16>): [frob, blob] {"
+      "  F = deserialize<[frob, blob], 16>(disclose(bv));"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
+        "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
+        "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
+        "    .toEqual([[0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f])]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
@@ -91311,8 +91886,22 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.11 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tunsigned 255))
-          (%descriptor.13 (tunsigned 4294967295)))
+          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.13 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.14 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.15 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -91404,8 +91993,22 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.11 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tunsigned 255))
-          (%descriptor.13 (tunsigned 4294967295)))
+          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.13 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.14 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.15 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -91497,8 +92100,22 @@ groups than for single tests.
                             340282366920938463463374607431768211455))
           (%descriptor.11 (tstruct ContractAddress
                             (bytes (tbytes 32))))
-          (%descriptor.12 (tunsigned 255))
-          (%descriptor.13 (tunsigned 4294967295)))
+          (%descriptor.12 (tstruct UserAddress (bytes (tbytes 32))))
+          (%descriptor.13 (tstruct Either
+                            (is_left (tboolean))
+                            (left (tstruct ContractAddress
+                                    (bytes (tbytes 32))))
+                            (right (tstruct UserAddress (bytes (tbytes 32))))))
+          (%descriptor.14 (tstruct Maybe
+                            (is_some (tboolean))
+                            (value (tstruct Either
+                                     (is_left (tboolean))
+                                     (left (tstruct ContractAddress
+                                             (bytes (tbytes 32))))
+                                     (right (tstruct UserAddress
+                                              (bytes (tbytes 32))))))))
+          (%descriptor.15 (tunsigned 255))
+          (%descriptor.16 (tunsigned 4294967295)))
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
         (circuit %test.1 ([%b0.2 (talias #t Base
@@ -91937,23 +92554,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Secp256k1>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Secp256k1>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Secp256k1>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Secp256k1>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
@@ -92056,13 +92673,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Secp256k1>")
                          (%s.1 "Scalar<Secp256k1>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -92111,6 +92728,104 @@ groups than for single tests.
         "  r = await contract.circuits.test(context, base, scalar);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "});"
+        ))
+    )
+
+  ; A secp256k1 value cast to bytes inside an if compiles.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256k1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256k1Base;"
+      "export ledger scalar: Secp256k1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256k1Base);"
+      "    scalar = disclose(s as Secp256k1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256k1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256k1Base, s: Secp256k1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256k1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
+        "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
+        "  var baseBytes = new Uint8Array(["
+        "    0xf7, 0xbf, 0x46, 0x5f, 0x7a, 0xcb, 0x42, 0x16,"
+        "    0x54, 0xaa, 0x4d, 0x9f, 0x05, 0xb0, 0xac, 0x3f,"
+        "    0x69, 0x94, 0x4c, 0x13, 0x6a, 0x9a, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x6e,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x61, 0xab, 0xc4, 0x2a, 0xf2, 0xd7, 0x35, 0x44,"
+        "    0x0c, 0xcb, 0xc0, 0xe5, 0xf2, 0x82, 0x7b, 0xad,"
+        "    0x6d, 0x3f, 0x27, 0x81, 0x03, 0x8e, 0x93, 0xbe,"
+        "    0xa3, 0xcc, 0x86, 0x0c, 0x3f, 0x1c, 0x23, 0x67,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256K1_BASE, runtime.MAX_SECP256K1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
         "});"
         ))
     )
@@ -92197,6 +92912,51 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
         "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256k1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256k1Point>(aa) == persistentHash<Secp256k1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256k1Point): Secp256k1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256k1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256k1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
         ))
     )
 
@@ -93416,23 +94176,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Secp256r1>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Secp256r1>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Secp256r1>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Secp256r1>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 24 8 %fld.10 %fld.11)
@@ -93535,13 +94295,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Secp256r1>")
                          (%s.1 "Scalar<Secp256r1>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -93594,6 +94354,104 @@ groups than for single tests.
         ))
     )
 
+  ; A secp256r1 value cast to bytes inside an if used to crash the compiler.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger out: Bytes<32>;"
+      "export circuit save(c: Boolean, x: Secp256r1Base): [] {"
+      "  if (disclose(c)) {"
+      "    out = disclose(x as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Secp256r1Base;"
+      "export ledger scalar: Secp256r1Scalar;"
+      "export circuit test(c: Boolean, b: Bytes<32>, s: Bytes<32>): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Secp256r1Base);"
+      "    scalar = disclose(s as Secp256r1Scalar);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('Bytes to secp256r1 field casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the field values."
+        "  var r = await contract.circuits.test(context, true, baseBytes, scalarBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(base);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, new Uint8Array(32).fill(0xff), new Uint8Array(32).fill(0xff));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger base: Bytes<32>;"
+      "export ledger scalar: Bytes<32>;"
+      "export circuit test(c: Boolean, b: Secp256r1Base, s: Secp256r1Scalar): [] {"
+      "  if (disclose(c)) {"
+      "    base = disclose(b as Bytes<32>);"
+      "    scalar = disclose(s as Bytes<32>);"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '("test('secp256r1 field to bytes casts inside an if', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random values in range."
+        "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
+        "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
+        "  var baseBytes = new Uint8Array(["
+        "    0x97, 0x9a, 0xdf, 0x72, 0x10, 0xea, 0x90, 0x31,"
+        "    0x5c, 0x6a, 0x8e, 0x18, 0x9e, 0x2e, 0xab, 0xc5,"
+        "    0x7d, 0x45, 0x1d, 0x1a, 0xaf, 0x7a, 0x93, 0xbe,"
+        "    0x6d, 0x4d, 0x1f, 0x07, 0x3f, 0x8c, 0x8a, 0x6c,"
+        "  ]);"
+        "  var scalarBytes = new Uint8Array(["
+        "    0x3d, 0xe4, 0xc6, 0x14, 0xd8, 0xdf, 0x28, 0x24,"
+        "    0x9a, 0x73, 0xd2, 0x9e, 0x7a, 0xa6, 0x39, 0x3b,"
+        "    0x28, 0x84, 0x13, 0xb1, 0xd5, 0x9c, 0x34, 0x6d,"
+        "    0x90, 0xbc, 0xf2, 0x5f, 0xdf, 0x8c, 0xdb, 0x78,"
+        "  ]);"
+        "  // c is true, so the casts run and the ledger gets the bytes."
+        "  var r = await contract.circuits.test(context, true, base, scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(baseBytes);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalarBytes);"
+        "  // c is false, so the casts are skipped and the ledger keeps its default value."
+        "  r = await contract.circuits.test(context, false, runtime.MAX_SECP256R1_BASE, runtime.MAX_SECP256R1_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(new Uint8Array(32));"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(new Uint8Array(32));"
+        "});"
+        ))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -93631,6 +94489,51 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
         "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256r1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256r1Point>(aa) == persistentHash<Secp256r1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256r1Point): Secp256r1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256r1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256r1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
         ))
     )
 
@@ -93964,6 +94867,131 @@ groups than for single tests.
         "  const checked = await contract.circuits.storeXChecked(stored.context);"
         "  const L = contractCode.ledger(checked.context.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(G.x);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "ledger jubjubScalars: Set<JubjubScalar>;"
+      "export ledger jubjubPoints: Map<Uint<8>, JubjubPoint>;"
+      "ledger secp256r1Scalars: List<Secp256r1Scalar>;"
+      "ledger secp256r1Points: MerkleTree<8, Secp256r1Point>;"
+      "export ledger secp256r1Tuple: [Secp256r1Point, Secp256r1Point, Secp256r1Point];"
+      "struct Nested {"
+      "  jp: JubjubPoint;"
+      "  color: Vector<3, Uint<8>>;"
+      "  sp: Secp256r1Point;"
+      "}"
+      "export ledger pointStruct: Nested;"
+      "export ledger jubjubTuples: Map<Uint<32>, [JubjubPoint, JubjubPoint, JubjubPoint]>;"
+      "ledger pointStructs: Map<Uint<32>, Maybe<Either<JubjubPoint, Secp256r1Point>>>;"
+      "export ledger jubjubMap: Map<Uint<32>, Map<Uint<8>, JubjubPoint>>;"
+      ""
+      "export circuit test(j: JubjubScalar, s: Secp256r1Scalar): [] {"
+      "  const j0 = disclose(j);"
+      "  jubjubScalars.insert(j0);"
+      "  jubjubPoints.insert(1, ecMulGenerator(j0));"
+      "  const jp = jubjubPoints.lookup(1);"
+      "  const s0 = disclose(s);"
+      "  secp256r1Scalars.pushFront(s0);"
+      "  secp256r1Points.insert(ecMulGenerator(s0));"
+      "  const stIn = [default<Secp256r1Point>, ecMulGenerator(s0), ecMulGenerator(s0 + s0)];"
+      "  secp256r1Tuple = stIn;"
+      "  const stOut = secp256r1Tuple;"
+      "  assert(stIn == stOut, 'ledger round tripping did not work');"
+      "  const psIn = "
+      "    Nested { jp: ecMulGenerator(j0), color: [204, 85, 0], sp: ecMulGenerator(s0 + s0 + s0) };"
+      "  pointStruct = psIn;"
+      "  const psOut = pointStruct;"
+      "  assert(psIn == psOut, 'ledger round tripping did not work');"
+      "  const jtIn = [default<JubjubPoint>, ecMulGenerator(j0), ecMulGenerator(j0)];"
+      "  jubjubTuples.insert(0, jtIn);"
+      "  const jtOut = jubjubTuples.lookup(0);"
+      "  assert(jtIn == jtOut, 'ledger round tripping did not work');"
+      "  pointStructs.insert("
+      "    0,"
+      "    some<Either<JubjubPoint, Secp256r1Point>>("
+      "      left<JubjubPoint, Secp256r1Point>(ecMulGenerator(j0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert("
+      "    1,"
+      "    some<Either<JubjubPoint, Secp256r1Point>>("
+      "      right<JubjubPoint, Secp256r1Point>(ecMulGenerator(s0))"
+      "      )"
+      "    );"
+      "  pointStructs.insert(2, none<Either<JubjubPoint, Secp256r1Point>>());"
+      "  const ps0 = pointStructs.lookup(0);"
+      "  const ps1 = pointStructs.lookup(1);"
+      "  const ps2 = pointStructs.lookup(2);"
+      "  jubjubMap.insert(0, default<Map<Uint<8>, JubjubPoint>>);"
+      "  jubjubMap.lookup(0).insert(1, ecMulGenerator(j0));"
+      "  const jp1 = jubjubMap.lookup(0).lookup(1);"
+      "}"
+      )
+    (stage-javascript
+      '("test('Nested secp256r1 ZKIR native types in various contexts', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const result = await contract.circuits.test(context, 3n, 4n);"
+        "  expect(result.result).toEqual([]);"
+        "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
+        "  expect(ledger.jubjubPoints.lookup(1n)).toEqual(runtime.ecMulGenerator(3n));"
+        "  expect(ledger.secp256r1Tuple).toEqual(["
+        "      { x: 0n, y: 0n, identity: true },"
+        "      runtime.secp256r1MulGenerator(4n),"
+        "      runtime.secp256r1MulGenerator(8n),"
+        "  ]);"
+        "  expect(ledger.pointStruct).toEqual({"
+        "    jp: runtime.ecMulGenerator(3n),"
+        "    color: [204n, 85n, 0n],"
+        "    sp: runtime.secp256r1MulGenerator(12n),"
+        "  });"
+        "  expect(ledger.jubjubTuples.lookup(0n)).toEqual(["
+        "    runtime.ecMulGenerator(0n),"
+        "    runtime.ecMulGenerator(3n),"
+        "    runtime.ecMulGenerator(3n),"
+        "  ]);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export pure circuit curves(a: Secp256r1Base,"
+      "                           b: Secp256r1Scalar,"
+      "                           c: Secp256r1Point): [] { }"
+      )
+    (stage-javascript curveCode
+      '(
+        "test('secp256r1 curve leaf tags', () => {"
+        "  expect(curveCode.circuitSignatures.curves.argumentTypes).toEqual(["
+        "    {tag: 'Secp256r1Base'},"
+        "    {tag: 'Secp256r1Scalar'},"
+        "    {tag: 'Secp256r1Point'}]);"
+        "});"
+        ))
+    )
+
+  ;; The nested-point hashing from LFDT-Minokawa/compact issue #608.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger hash: Bytes<32>;"
+      "export circuit test(pt0: Secp256r1Point, pt1: Secp256r1Point): [] {"
+      "  hash = disclose(keccak256<[Secp256r1Point, Secp256r1Point]>([pt0, pt1]));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Issue 608 for secp256r1', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const p0 = runtime.secp256r1MulGenerator(5n);"
+        "  const p1 = runtime.secp256r1MulGenerator(7n);"
+        "  await contract.circuits.test(context, p0, p1);"
         "});"
         ))
     )
@@ -94344,23 +95372,23 @@ groups than for single tests.
       )
     (pass-returns reduce-to-zkir
       (program
-        (circuit (test) ((%b.1 "Scalar<BLS12-381>")
-                         (%b.0 "Scalar<BLS12-381>")
-                         (%s.3 "Scalar<BLS12-381>")
-                         (%s.2 "Scalar<BLS12-381>"))
+        (circuit (test) ((%b.0 "Scalar<BLS12-381>")
+                         (%b.1 "Scalar<BLS12-381>")
+                         (%s.2 "Scalar<BLS12-381>")
+                         (%s.3 "Scalar<BLS12-381>"))
           ()
-          (constrain_bits %b.1 8)
-          (constrain_bits %b.0 248)
-          (constrain_bits %s.3 8)
-          (constrain_bits %s.2 248)
-          (bytes32_from_low_high %tmp.4 %b.0 %b.1)
-          (from_bytes32 "Base<Curve25519>" %tmp.5 %tmp.4)
+          (constrain_bits %b.0 8)
+          (constrain_bits %b.1 248)
+          (constrain_bits %s.2 8)
+          (constrain_bits %s.3 248)
+          (bytes_from_natives %tmp.4 32 %b.1 %b.0)
+          (from_bytes "Base<Curve25519>" %tmp.5 %tmp.4)
           (encode (%fld.6 %fld.7) %tmp.5)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 2 24 8 %fld.6 %fld.7)
           (impact 1 145)
-          (bytes32_from_low_high %tmp.8 %s.2 %s.3)
-          (from_bytes32 "Scalar<Curve25519>" %tmp.9 %tmp.8)
+          (bytes_from_natives %tmp.8 32 %s.3 %s.2)
+          (from_bytes "Scalar<Curve25519>" %tmp.9 %tmp.8)
           (encode (%fld.10 %fld.11) %tmp.9)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 2 26 7 %fld.10 %fld.11)
@@ -94463,13 +95491,13 @@ groups than for single tests.
         (circuit (test) ((%b.0 "Base<Curve25519>")
                          (%s.1 "Scalar<Curve25519>"))
           ()
-          (into_bytes32 %tmp.10 %b.0)
-          (bytes32_into_low_high %tmp.7 %tmp.6 %tmp.10)
+          (to_bytes %tmp.10 %b.0)
+          (bytes_into_natives (%tmp.7 %tmp.6) %tmp.10)
           (impact 1 16 1 1 1 0)
           (impact 1 17 1 1 32 %tmp.6 %tmp.7)
           (impact 1 145)
-          (into_bytes32 %tmp.11 %s.1)
-          (bytes32_into_low_high %tmp.9 %tmp.8 %tmp.11)
+          (to_bytes %tmp.11 %s.1)
+          (bytes_into_natives (%tmp.9 %tmp.8) %tmp.11)
           (impact 1 16 1 1 1 1)
           (impact 1 17 1 1 32 %tmp.8 %tmp.9)
           (impact 1 145))))
@@ -94734,6 +95762,366 @@ groups than for single tests.
           ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-curve25519-scalar))))
         "});"
         )))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger scalar: Curve25519Scalar;"
+      "export circuit test(bytes: Bytes<64>): Curve25519Scalar {"
+      "  const s = bytes as Curve25519Scalar;"
+      "  scalar = disclose(s);"
+      "  return s;"
+      "}"
+      )
+    (pass-returns reduce-to-zkir
+      (program
+        (circuit (test) ((%bytes.0 "Scalar<BLS12-381>")
+                         (%bytes.1 "Scalar<BLS12-381>")
+                         (%bytes.2 "Scalar<BLS12-381>"))
+          ("Scalar<Curve25519>")
+          (constrain_bits %bytes.0 16)
+          (constrain_bits %bytes.1 248)
+          (constrain_bits %bytes.2 248)
+          (bytes_from_natives %tmp.3 64 %bytes.2 %bytes.1 %bytes.0)
+          (from_bytes "Scalar<Curve25519>" %s.4 %tmp.3)
+          (encode (%fld.5 %fld.6) %s.4)
+          (impact 1 16 1 1 1 0)
+          (impact 1 17 1 2 26 7 %fld.5 %fld.6)
+          (impact 1 145)
+          (output %s.4))))
+    (stage-javascript
+      '("test('Bytes<64> cast to Curve25519Scalar', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // Random value in range."
+        "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
+        "  var bytes = new Uint8Array(64);"
+        "  bytes.set(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x23, 0xbc, 0x40,"
+        "    0xee, 0x53, 0x89, 0x05, 0x36, 0x07, 0xd3, 0x08,"
+        "    0x08, 0x8f, 0x05, 0x55, 0x5e, 0x8e, 0x34, 0x6d,"
+        "    0x3b, 0x0d, 0x59, 0x6a, 0x70, 0x45, 0x75, 0x0e,"
+        "  ], 0);"
+        "  var r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "  // Zero."
+        "  bytes = new Uint8Array(64);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  // Maximum value."
+        "  bytes = new Uint8Array(64);"
+        "  bytes.set(["
+        "    0xec, 0xd3, 0xf5, 0x5c, 0x1a, 0x63, 0x12, 0x58,"
+        "    0xd6, 0x9c, 0xf7, 0xa2, 0xde, 0xf9, 0xde, 0x14,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,"
+        "  ], 0);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(runtime.MAX_CURVE25519_SCALAR);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual("
+        "      runtime.MAX_CURVE25519_SCALAR);"
+        "  // Maximum value plus one."
+        "  bytes[0] += 1;"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(0n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
+        "  // This is scalar * 10^42 in the field."
+        "  bytes = new Uint8Array(["
+        "    0x9a, 0x3d, 0x73, 0x94, 0x86, 0x37, 0x60, 0xbc,"
+        "    0x8d, 0x22, 0x78, 0x88, 0x98, 0xaf, 0x00, 0x71,"
+        "    0x07, 0xd2, 0x99, 0xf6, 0xc2, 0xd6, 0x37, 0x66,"
+        "    0x6e, 0xef, 0xef, 0xf5, 0x8d, 0xb0, 0xd0, 0xa4,"
+        "    0xef, 0x00, 0x00, 0x00, 0x40, 0x9e, 0x3d, 0x4a,"
+        "    0xf1, 0xad, 0x05, 0x03, 0x05, 0x27, 0xc6, 0xab,"
+        "    0xb7, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,"
+        "  ]);"
+        "  r = await contract.circuits.test(context, bytes);"
+        "  expect(r.result).toEqual(scalar);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(scalar);"
+        "});"
+        ))
+  )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export { Curve25519Base };"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "cannot export standard-library type (~s) from the top level" (Curve25519Base)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type Spam = Curve25519Base;"
+      "export { Spam };"
+      )
+    (output-file "compiler/testdir/contract/index.d.ts"
+      '(
+        "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
+        ""
+        "export type Spam = bigint;"
+        ""
+        "export type Witnesses<PS> = {"
+        "}"
+        ""
+        "export type ImpureCircuits<PS> = {"
+        "}"
+        ""
+        "export type ProvableCircuits<PS> = {"
+        "}"
+        ""
+        "export type PureCircuits = {"
+        "}"
+        ""
+        "export type Circuits<PS> = {"
+        "}"
+        ""
+        "export type Ledger = {"
+        "}"
+        ""
+        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
+        "  witnesses: W;"
+        "  circuits: Circuits<PS>;"
+        "  impureCircuits: ImpureCircuits<PS>;"
+        "  provableCircuits: ProvableCircuits<PS>;"
+        "  constructor(witnesses: W);"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "}"
+        ""
+        "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
+        "export declare const pureCircuits: PureCircuits;"
+        "export declare const expectedVk: Record<string, string>;"
+        "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger B: Boolean;"
+      "// Prove knowledge of an ECDSA signature over secp256r1.  msg is hashed"
+      "// in-circuit before verification, binding the proof to the message."
+      "export circuit verify(msg: Bytes<32>,"
+      "                      sig: Secp256r1EcdsaSignature,"
+      "                      pk: Secp256r1Point): Boolean {"
+      "  B = disclose(secp256r1EcdsaVerify(keccak256<Bytes<32>>(msg), sig, pk));"
+      "  return B;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('secp256r1 ECDSA verification', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const msg = new Uint8Array(32);"
+        "  for (let i = 0; i < 32; i++) msg[i] = i + 1;"
+        "  const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
+        "  const SK = 7n;"
+        "  // Signing is RFC 6979 deterministic, so the signature is the same on"
+        "  // every run."
+        "  const parsed = p256.Signature.fromBytes("
+        "    p256.sign(digest, p256.Point.Fn.toBytes(SK), { prehash: false }));"
+        "  const sig = { r: parsed.r, s: parsed.s };"
+        "  const pk = runtime.secp256r1MulGenerator(SK);"
+        "  expect((await contract.circuits.verify(context, msg, sig, pk)).result).toEqual(true);"
+        "  // The malleated twin verifies against the same key, as it does for"
+        "  // secp256k1: negating s negates the nonce point, and only its"
+        "  // x-coordinate is compared against r."
+        "  const n = p256.Point.Fn.ORDER;"
+        "  const twin = { r: sig.r, s: n - sig.s };"
+        "  expect((await contract.circuits.verify(context, msg, twin, pk)).result).toEqual(true);"
+        "  // A valid signature does not verify against somebody else's key."
+        "  const otherPk = runtime.secp256r1MulGenerator(SK + 1n);"
+        "  expect((await contract.circuits.verify(context, msg, sig, otherPk)).result).toEqual(false);"
+        "  // The identity public key is rejected outright."
+        "  const identity = runtime.secp256r1MulGenerator(0n);"
+        "  await expect(contract.circuits.verify(context, msg, sig, identity)).rejects.toThrow("
+        "    'failed assert: Secp256r1Point identity is not a permitted secp256r1EcdsaVerify verification key');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: Uint<32>): Secp256k1Scalar {"
+      "  return x as Secp256k1Scalar;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Uint<32>" "Secp256k1Scalar")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(x: Field): Secp256k1Scalar {"
+      "  return x as Secp256k1Scalar;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Field" "Secp256k1Scalar")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger B: Boolean;"
+      "export circuit verify(msg: Bytes<32>,"
+      "                      sig: Ed25519Signature,"
+      "                      pk: Curve25519Point): Boolean {"
+      "  B = disclose(ed25519Verify<32>(msg, sig, pk));"
+      "  return B;"
+      "}"
+      "export circuit verify1(msg: Bytes<1>,"
+      "                       sig: Ed25519Signature,"
+      "                       pk: Curve25519Point): Boolean {"
+      "  B = disclose(ed25519Verify<1>(msg, sig, pk));"
+      "  return B;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Ed25519 verification', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const L = ed25519.Point.Fn.ORDER;"
+        "  const hex = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'));"
+        "  const point = (b: Uint8Array) => runtime.curve25519FromProjective(ed25519.Point.fromBytes(b));"
+        "  const fromLE = (b: Uint8Array) =>"
+        "    b.reduceRight((acc, byte) => (acc << 8n) + BigInt(byte), 0n);"
+        "  // An Ed25519 signature is the encoded R followed by s little-endian."
+        "  const parse = (sig: Uint8Array) =>"
+        "    ({ r: point(sig.subarray(0, 32)), s: fromLE(sig.subarray(32)) });"
+        "  // RFC 8032 section 7.1, TEST 2."
+        "  const rfcPk = point(hex('3d4017c3e843895a92b70aa74d1b7ebc9c982ccf2ec4968cc0cd55f12af4660c'));"
+        "  const rfcSig = parse(hex('92a009a9f0d4cab8720e820b5f642540a2b27b5416503f8fb3762223ebdb69da'"
+        "                           + '085ac1e43e15996e458f3613d0f11d8c387b2eaeb4302aeeb00d291612bb0c00'));"
+        "  expect((await contract.circuits.verify1(context, hex('72'), rfcSig, rfcPk)).result).toEqual(true);"
+        "  expect((await contract.circuits.verify1(context, hex('73'), rfcSig, rfcPk)).result).toEqual(false);"
+        "  // Signatures by @noble/curves.  The circuit recovers the encoding's sign bit"
+        "  // from the x-coordinate without bitwise operations, so exercise keys and"
+        "  // commitments of both parities."
+        "  const msg = new Uint8Array(32);"
+        "  for (let i = 0; i < 32; i++) msg[i] = i + 1;"
+        "  const parities = new Set<bigint>();"
+        "  for (let i = 1; i <= 6; i++) {"
+        "    const sk = new Uint8Array(32).fill(i);"
+        "    const pk = point(ed25519.getPublicKey(sk));"
+        "    const sig = parse(ed25519.sign(msg, sk));"
+        "    parities.add(pk.x & 1n).add(sig.r.x & 1n);"
+        "    expect((await contract.circuits.verify(context, msg, sig, pk)).result).toEqual(true);"
+        "  }"
+        "  expect([...parities].sort()).toEqual([0n, 1n]);"
+        "  const sk = new Uint8Array(32).fill(7);"
+        "  const pk = point(ed25519.getPublicKey(sk));"
+        "  const sig = parse(ed25519.sign(msg, sk));"
+        "  // Unlike ECDSA the scheme is not malleable: the challenge commits to the"
+        "  // commitment point, so no other response verifies."
+        "  const twin = { r: sig.r, s: L - sig.s };"
+        "  expect((await contract.circuits.verify(context, msg, twin, pk)).result).toEqual(false);"
+        "  // A valid signature does not verify against another message or key."
+        "  const otherMsg = Uint8Array.from(msg);"
+        "  otherMsg[0] ^= 1;"
+        "  expect((await contract.circuits.verify(context, otherMsg, sig, pk)).result).toEqual(false);"
+        "  const otherPk = point(ed25519.getPublicKey(new Uint8Array(32).fill(8)));"
+        "  expect((await contract.circuits.verify(context, msg, sig, otherPk)).result).toEqual(false);"
+        "  // A key with a small-order component lies on the curve but not in the"
+        "  // prime-order subgroup, so it is rejected before the circuit runs."
+        "  const order2 = ed25519.Point.fromAffine({ x: 0n, y: runtime.CURVE25519_BASE_MODULUS - 1n });"
+        "  const mixedPk = runtime.curve25519FromProjective(ed25519.Point.fromAffine(pk).add(order2));"
+        "  await expect(contract.circuits.verify(context, msg, sig, mixedPk)).rejects.toThrow("
+        "    /expected value of type Curve25519Point/);"
+        "  // The identity public key is rejected outright; otherwise every (R, s) with"
+        "  // [s]B == R would verify."
+        "  const identity = { x: 0n, y: 1n };"
+        "  const forged = { r: runtime.curve25519MulGenerator(3n), s: 3n };"
+        "  await expect(contract.circuits.verify(context, msg, forged, identity)).rejects.toThrow("
+        "    'failed assert: Curve25519Point identity is not a permitted ed25519Verify verification key');"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Curve25519Point;"
+      "export circuit foo1(x: Curve25519Point): Bytes<64> {"
+      "  F1 = disclose(x);"
+      "  return serialize<Curve25519Point, 64>(F1);"
+      "}"
+    ; "export circuit foo2(x: Secp256k1Point): Bytes<64> {"
+    ; "  F2 = disclose(x);"
+    ; "  return serialize<Secp256k1Point, 64>(F2);"
+    ; "}"
+    ; "export circuit foo3(x: Secp256r1Point): Bytes<64> {"
+    ; "  F3 = disclose(x);"
+    ; "  return serialize<Secp256r1Point, 64>(F3);"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "serialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Secp256r1Point;"
+      "export circuit foo1(bv: Bytes<64>): Curve25519Point {"
+      "  F1 = deserialize<Curve25519Point, 64>(disclose(bv));"
+      "  return F1;"
+      "}"
+    ; "export circuit foo2(bv: Bytes<64>): Secp256k1Point {"
+    ; "  F2 = deserialize<Secp256k1Point, 64>(disclose(bv));"
+    ; "  return F2;"
+    ; "}"
+    ; "export circuit foo3(bv: Bytes<64>): Secp256r1Point {"
+    ; "  F3 = deserialize<Secp256r1Point, 64>(disclose(bv));"
+    ; "  return F3;"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(x: Map<Boolean, Set<Boolean>>): Bytes<64> {"
+      "  F = x;"
+      "  return serialize<Map<Boolean, Set<Boolean>>, 64>(F);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Map<Boolean, Set<Boolean>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(bv: Bytes<64>): Map<Boolean, Set<Boolean>> {"
+      "  F = deserialize<Map<Boolean, Set<Boolean>>, 64>(bv);"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
     )
 )
 

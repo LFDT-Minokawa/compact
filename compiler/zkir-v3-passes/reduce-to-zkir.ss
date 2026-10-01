@@ -149,8 +149,10 @@
           ;; Generally assume that the arity is correct here.
           (case name
             [(constructJubjubPoint)
+             (assert (= (length var-name*) 1))
              (cons `(from_coordinates ,(car var-name*) ,(car triv*) ,(cadr triv*)) instr*)]
             [(degradeToTransient)
+             (assert (= (length var-name*) 1))
              (cons `(copy ,(car var-name*) ,(cadr triv*)) instr*)]
             [(ecAdd)
              (assert (= (length var-name*) 1))
@@ -192,7 +194,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(mul)
@@ -213,7 +215,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
                    instr*)))]
             [(persistentHash)
@@ -223,7 +225,7 @@
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   `(bytes32_into_low_high ,(cadr var-name*) ,(car var-name*) ,bytes)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(secp256k1PointX secp256r1PointX curve25519PointX)
@@ -236,32 +238,12 @@
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]
             [(sha512)
              (assert (= (length var-name*) 3))
-             (let* ([alignment* (arg->alignment arg* 0)]
-                    [bytes (make-temp-id src 'bytes)]
-                    [low32 (make-temp-id src 'low32)]
-                    [high32 (make-temp-id src 'high32)]
-                    [byte31 (make-temp-id src 'byte31)]
-                    [bytes32to62 (make-temp-id src 'bytes32to62)]
-                    [byte63 (make-temp-id src 'byte63)]
-                    [bytes32to61 (make-temp-id src 'bytes32to61)]
-                    [byte62 (make-temp-id src 'byte62)]
-                    [temp0 (make-temp-id src 'temp0)]
-                    [temp1 (make-temp-id src 'temp1)])
+             (let ([alignment* (arg->alignment arg* 0)]
+                   [bytes (make-temp-id src 'bytes)])
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
-                   ;; The high 2 bytes.
-                   `(add ,(car var-name*) ,byte62 ,temp1)
-                   `(mul ,temp1 ,byte63 256)
-                   ;; The middle 31 bytes.
-                   `(add ,(cadr var-name*) ,byte31 ,temp0)
-                   `(mul ,temp0 ,bytes32to61 256)
-                   `(div_mod_power_of_two ,byte62 ,bytes32to61 ,bytes32to62 240)
-                   `(bytes32_into_low_high ,bytes32to62 ,byte63 ,high32)
-                   ;; The low 31 bytes.
-                   `(bytes32_into_low_high ,(caddr var-name*) ,byte31 ,low32)
-                   `(slice ,high32 ,bytes 32 32)
-                   `(slice ,low32 ,bytes 0 32)
+                   `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(sha512 ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(transientCommit)
@@ -340,7 +322,7 @@
                           (circuit-alignment-for default-src alignment* var* (zkir-instr*))])
               (zkir-instr*
                 (cons*
-                  `(bytes32_into_low_high ,hash1 ,hash0 ,bytes)
+                  `(bytes_into_natives (,hash1 ,hash0) ,bytes)
                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                   instr*)))
             ;; Note that the operand encoding (1 32 hash0 hash1) is reversed.
@@ -673,7 +655,11 @@
 
     (define (assemble test-val primitive-type* alignment* var-name* src path env vm-code instr*)
       (parameterize ([zkir-instr* instr*])
-        (let* ([code (expand-vm-code src path #f env (vm-code-code vm-code))]
+        (let* ([result-type (with-output-language (Lflattened Type)
+                              `(ty (,alignment* ...) (,primitive-type* ...)))]
+               [code (expand-vm-code src path #f
+                       (cons (cons 'result_type result-type) env)
+                       (vm-code-code vm-code))]
                [op** (map (lambda (c)
                             (assemble1 c test-val primitive-type* alignment* var-name*))
                        code)])
@@ -873,8 +859,8 @@
        (define (emit-field-default zkir-type var instr*)
          (let* ([tmp (make-temp-id default-src 'tmp)])
            (cons*
-               `(from_bytes32 ,zkir-type ,var ,tmp)
-               `(into_bytes32 ,tmp 0)
+               `(from_bytes ,zkir-type ,var ,tmp)
+               `(to_bytes ,tmp 0)
                instr*)))
        (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
@@ -902,8 +888,8 @@
        (define (handle-bytes32-field)
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
-             `(bytes32_into_low_high ,var-name1 ,var-name0 ,tmp)
-             `(into_bytes32 ,tmp ,triv)
+             `(bytes_into_natives (,var-name1 ,var-name0) ,tmp)
+             `(to_bytes ,tmp ,triv)
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
@@ -1021,14 +1007,15 @@
            `(div_mod_power_of_two ,ig1 ,var-name ,quo ,8)
            `(div_mod_power_of_two ,quo ,ig0 ,triv ,(* nat 8))
            instr*)))]
-    [(bytes->field ,src ,ftype ,len ,triv0 ,triv1)
+    [(bytes->field ,src ,ftype ,len ,triv* ...)
      (with-output-language (Lzkir Instruction)
        ;; Handle a Bytes<32> field.
        (define (handle-bytes32-field)
+         (assert (= (length triv*) 2))
          (let ([tmp (make-temp-id src 'tmp)])
            (cons*
-             `(from_bytes32 ,(field-type->string ftype) ,var-name ,tmp)
-             `(bytes32_from_low_high ,tmp ,triv1 ,triv0)
+             `(from_bytes ,(field-type->string ftype) ,var-name ,tmp)
+             `(bytes_from_natives ,tmp 32 ,(cadr triv*) ,(car triv*))
              instr*)))
        (strict-nanopass-case (Lflattened Field-Type) ftype
          [(field-native)
@@ -1039,7 +1026,9 @@
 
           ;; flatten-datatype takes care of this case.
           (assert (> len (field-bytes)))
-          (cons `(reconstitute_field ,var-name ,triv0 ,triv1 ,(* 8 (field-bytes))) instr*)]
+          (cons
+            `(reconstitute_field ,var-name ,(car triv*) ,(cadr triv*) ,(* 8 (field-bytes)))
+            instr*)]
          [(field-base ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
             [(curve-curve25519) (handle-bytes32-field)]
@@ -1048,7 +1037,17 @@
             [(curve-secp256r1) (handle-bytes32-field)])]
          [(field-scalar ,ctype)
           (strict-nanopass-case (Lflattened Curve-Type) ctype
-            [(curve-curve25519) (handle-bytes32-field)]
+            [(curve-curve25519)
+             (cond
+               [(eqv? len 32) (handle-bytes32-field)]
+               [(eqv? len 64)
+                (assert (= (length triv*) 3))
+                (let ([tmp (make-temp-id src 'tmp)])
+                  (cons*
+                    `(from_bytes ,(field-type->string ftype) ,var-name ,tmp)
+                    `(bytes_from_natives ,tmp 64 ,(reverse triv*) ...)
+                    instr*))]
+               [else (assert cannot-happen)])]
             [(curve-jubjub) (assert cannot-happen)]
             [(curve-secp256k1) (handle-bytes32-field)]
             [(curve-secp256r1) (handle-bytes32-field)])]))]

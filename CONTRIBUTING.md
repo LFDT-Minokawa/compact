@@ -144,6 +144,10 @@ cargo clippy --all-targets --all-features -- -D warnings
 
 The CLI uses [cargo-dist](https://axodotdev.github.io/cargo-dist/) for releases. To cut a release, update the version in the workspace `Cargo.toml` and push a tag matching `compact-v<VERSION>`.
 
+## Releasing
+
+[`RELEASING.md`](RELEASING.md) covers releasing the toolchain, the runtime and the CLI: what each workflow does, what to enter in it, and the order to run them in.
+
 ## VS Code Extension
 
 The VS Code extension is in `editor-support/vsc/compact/`.

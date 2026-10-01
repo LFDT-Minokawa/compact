@@ -618,7 +618,15 @@
      (unless (strict-nanopass-case (Linlined Field-Type) ftype
                [(field-native) #t]
                [(field-base ,ctype) (valid-byte-length? ctype len)]
-               [(field-scalar ,ctype) (valid-byte-length? ctype len)])
+               [(field-scalar ,ctype)
+                ;;  TODO(kmillikin): we allow casts from `Bytes<64>` to `Curve25519Scalar` so we
+                ;; have this special case.  Make casting more systematic so we can remove the
+                ;; special case.
+                (or (valid-byte-length? ctype len)
+                    (and (nanopass-case (Linlined Curve-Type) ctype
+                           [(curve-curve25519) #t]
+                           [else #f])
+                         (eqv? len 64)))])
        (source-errorf src "cannot cast from Bytes<~d> to ~a" len (format-field-type ftype)))
      (with-output-language (Linlined Type) `(tfield ,src ,ftype))]
     [(field->bytes ,src ,len ,ftype ,[Care : expr -> * type])
