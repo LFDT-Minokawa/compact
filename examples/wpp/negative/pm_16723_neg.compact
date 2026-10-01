@@ -15,14 +15,8 @@
 
 import CompactStandardLibrary;
 
-export ledger tobias: Field;
 export ledger counter: Counter;
 export ledger brad: Map<Field, Field>;
-
-export circuit adolf(a: Field): Field {
-  tobias = a;
-  return 1 as Field;
-}
 
 export circuit damian(b: Uint<16>): [] {
   counter += b;
