@@ -1,0 +1,28 @@
+// This file is part of Compact.
+// Copyright (C) 2025 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+// Casts chain in a single expression: a Bytes round-trips through Vector and
+// back to Vector, preserving every byte.
+export circuit bytes_casts_round_trip(): Vector<4, Uint<8>> {
+    const source = [5, 6, 7, 8] as Bytes<4>;
+
+    const round = source as Vector<4, Uint<8>> as Bytes<4> as Vector<4, Uint<8>>;
+    assert(round[0] == 5, "First element should survive the round-trip");
+    assert(round[3] == 8, "Last element should survive the round-trip");
+
+    return round;
+}

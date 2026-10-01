@@ -263,7 +263,11 @@
      (define (ifdefault-value type k)
        (nanopass-case (Lnovectorref Type) type
          [(tboolean ,src) (k #f)]
-         [(tfield ,src ,ftype) (k 0)]
+         [(tfield ,src ,ftype)
+          (nanopass-case (Lnovectorref Field-Type) ftype
+            [(field-native) (k 0)]
+            [(field-scalar (curve-jubjub)) (k 0)]
+            [else #f])]
          [(tunsigned ,src ,nat) (k 0)]
          [(tbytes ,src ,len) (and (<= len (field-bytes)) (k (make-bytevector len 0)))]
          [else #f]))

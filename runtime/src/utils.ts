@@ -15,11 +15,20 @@
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { secp256k1 } from '@noble/curves/secp256k1.js';
+import { p256 } from '@noble/curves/nist.js';
+import { ed25519 } from '@noble/curves/ed25519.js';
 import { ContractAddress } from '@midnightntwrk/onchain-runtime-v4';
-import { EncodedContractAddress } from './zswap.js';
 import { CompactError } from './error.js';
-import { CompactType, CompactTypeJubjubPoint, JubjubPoint, Secp256k1Point } from './compact-types.js';
+import {
+  CompactType,
+  CompactTypeJubjubPoint,
+  Curve25519Point,
+  JubjubPoint,
+  Secp256k1Point,
+  Secp256r1Point,
+} from './compact-types.js';
 import { convertNumericToJubjubScalar } from './casts.js';
+import { CURVE25519_BASE_MODULUS, SECP256K1_BASE_MODULUS, SECP256R1_BASE_MODULUS } from './constants.js';
 import { ecAdd, ecMul, ecMulGenerator } from './built-ins.js';
 
 /**
@@ -47,26 +56,43 @@ export function assertIsContractAddress(x: unknown): asserts x is ContractAddres
   }
 }
 
-export function isEncodedContractAddress(x: unknown): x is EncodedContractAddress {
-  return (
-    typeof x === 'object' &&
-    x !== null &&
-    x !== undefined &&
-    'bytes' in x &&
-    x.bytes instanceof Uint8Array &&
-    x.bytes.length == CONTRACT_ADDRESS_BYTE_LENGTH
-  );
-}
-
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
 
+/**
+ * Check whether a value is a valid `Secp256k1Point`: an object whose `x` and `y`
+ * are bigints in the base field and whose `identity` is a boolean. A point that
+ * is not the identity must also lie on the curve.
+ */
+export function isValidSecp256k1Point(p: unknown): p is Secp256k1Point {
+  if (typeof p !== 'object' || p === null) {
+    return false;
+  }
+  const { x, y, identity } = p as { x: unknown; y: unknown; identity: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint' || typeof identity !== 'boolean') {
+    return false;
+  }
+  // The identity's coordinates never reach `fromAffine`, so the field range is checked here.
+  if (x < 0n || x >= SECP256K1_BASE_MODULUS || y < 0n || y >= SECP256K1_BASE_MODULUS) {
+    return false;
+  }
+  if (!identity) {
+    try {
+      // `fromAffine` only range-checks the coordinates, so the curve equation is checked separately.
+      secp256k1.Point.fromAffine({ x, y }).assertValidity();
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
 
 /**
  * Lift the simple affine `Secp256k1Point` representation into a noble-curves
- * projective point. Identity maps to `Point.ZERO`; every other input is validated
- * to lie on the curve by `fromAffine`.
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
  */
 export function secp256k1ToProjective(p: Secp256k1Point): ReturnType<typeof secp256k1.Point.fromAffine> {
   if (p.identity) {
@@ -87,6 +113,116 @@ export function secp256k1FromProjective(p: ReturnType<typeof secp256k1.Point.fro
     const { x, y } = k;
     return { x: x, y: y, identity: false };
   }
+}
+
+/**
+ * Check whether a value is a valid `Secp256r1Point`: an object whose `x` and `y`
+ * are bigints in the base field and whose `identity` is a boolean. A point that
+ * is not the identity must also lie on the curve.
+ */
+export function isValidSecp256r1Point(p: unknown): p is Secp256r1Point {
+  if (typeof p !== 'object' || p === null) {
+    return false;
+  }
+  const { x, y, identity } = p as { x: unknown; y: unknown; identity: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint' || typeof identity !== 'boolean') {
+    return false;
+  }
+  // The identity's coordinates never reach `fromAffine`, so the field range is checked here.
+  if (x < 0n || x >= SECP256R1_BASE_MODULUS || y < 0n || y >= SECP256R1_BASE_MODULUS) {
+    return false;
+  }
+  if (!identity) {
+    try {
+      // `fromAffine` only range-checks the coordinates, so the curve equation is checked separately.
+      p256.Point.fromAffine({ x, y }).assertValidity();
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Lift the simple affine `Secp256r1Point` representation into a noble-curves
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
+ */
+export function secp256r1ToProjective(p: Secp256r1Point): ReturnType<typeof p256.Point.fromAffine> {
+  if (p.identity) {
+    return p256.Point.ZERO;
+  }
+  return p256.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Secp256r1Point` representation.
+ */
+export function secp256r1FromProjective(p: ReturnType<typeof p256.Point.fromAffine>): Secp256r1Point {
+  const k = p.toAffine();
+  if (/* k == p256.Point.ZERO */ k.x == 0n && k.y == 0n) {
+    return { x: 0n, y: 0n, identity: true };
+  } else {
+    const { x, y } = k;
+    return { x: x, y: y, identity: false };
+  }
+}
+
+/**
+ * Check whether a value is a valid `Curve25519Point`: an object whose `x` and
+ * `y` are bigints in the base field and which lies in the prime-order subgroup
+ * of the curve. The identity is the ordinary affine point (0, 1).
+ */
+export function isValidCurve25519Point(p: unknown): p is Curve25519Point {
+  if (typeof p !== 'object' || p === null) {
+    return false;
+  }
+
+  const { x, y } = p as { x: unknown; y: unknown };
+  if (typeof x !== 'bigint' || typeof y !== 'bigint') {
+    return false;
+  }
+  // `fromAffine` only checks the coordinates fit in 256 bits, so the field range is checked here.
+  if (x < 0n || x >= CURVE25519_BASE_MODULUS || y < 0n || y >= CURVE25519_BASE_MODULUS) {
+    return false;
+  }
+  // `assertValidity` rejects the identity, so it is only called for other points.
+  if (x !== 0n || y !== 1n) {
+    try {
+      const pt = ed25519.Point.fromAffine({ x, y });
+      pt.assertValidity();
+      if (!pt.isTorsionFree()) {
+        return false;
+      }
+    } catch {
+      return false;
+    }
+  }
+  return true;
+}
+
+/**
+ * Lift the simple affine `Curve25519Point` representation into a noble-curves
+ * projective point. The point is assumed to be valid, points passed from
+ * compiler-generated code are always valid ones.
+ * @internal
+ */
+export function curve25519ToProjective(p: Curve25519Point): ReturnType<typeof ed25519.Point.fromAffine> {
+  if (p.x === 0n && p.y === 1n) {
+    return ed25519.Point.ZERO;
+  }
+  return ed25519.Point.fromAffine({ x: p.x, y: p.y });
+}
+
+/**
+ * Project a noble-curves point back down to the simple affine
+ * `Curve25519Point` representation.
+ */
+export function curve25519FromProjective(p: ReturnType<typeof ed25519.Point.fromAffine>): Curve25519Point {
+  const { x, y } = p.toAffine();
+  return { x: x, y: y };
 }
 
 /**
@@ -117,6 +253,25 @@ export function secp256k1EcdsaRecover(
   return secp256k1FromProjective(nobleSig.recoverPublicKey(msgHash));
 }
 
+/**
+ * Recover the secp256r1 public key from an ECDSA signature and a message hash.
+ *
+ * The recovery id means the same thing as it does for {@link secp256k1EcdsaRecover}.
+ */
+export function secp256r1EcdsaRecover(
+  msgHash: Uint8Array,
+  sig: { readonly r: bigint; readonly s: bigint },
+  recoveryId: number,
+): Secp256r1Point {
+  if (msgHash.length !== 32) {
+    throw new CompactError('expected a 32-byte message hash');
+  }
+  if (!Number.isInteger(recoveryId) || recoveryId < 0 || recoveryId > 3) {
+    throw new CompactError('expected a recovery id in the range [0, 3]');
+  }
+  const nobleSig = new p256.Signature(sig.r, sig.s, recoveryId);
+  return secp256r1FromProjective(nobleSig.recoverPublicKey(msgHash));
+}
 
 /**
  * Samples a random JubJub scalar.

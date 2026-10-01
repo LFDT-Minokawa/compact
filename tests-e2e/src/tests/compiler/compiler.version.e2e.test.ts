@@ -23,6 +23,7 @@ import {
     createTempFolder,
     expectCompilerResult,
     expectFiles,
+    getCompilerCommit,
     getCompilerVersion,
     getLanguageVersion,
 } from '@';
@@ -38,8 +39,13 @@ describe('[PM-21414] Compiler and language versions added to contract-info.json'
         expectFiles(result).thatGeneratedJSCodeIsValid();
 
         const compilerVersion = await getCompilerVersion();
+        const compilerCommit = await getCompilerCommit();
         const languageVersion = await getLanguageVersion();
 
-        new AssertContract().expect(outputDir).thatCompilerVersionIs(compilerVersion).thatLanguageVersionIs(languageVersion);
+        new AssertContract()
+            .expect(outputDir)
+            .thatCompilerVersionIs(compilerVersion)
+            .thatCompilerCommitIs(compilerCommit)
+            .thatLanguageVersionIs(languageVersion);
     });
 });
