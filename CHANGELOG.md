@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.103, language 0.27.0, runtime 0.20.101]
+
+### Fixed
+
+- A circuit that returns a conditional expression whose else branch is `[]`,
+  such as `return b ? f() : [];`, now returns `[]` from the generated
+  JavaScript when the condition is false. It previously returned `undefined`.
+
 ## [Toolchain 0.35.102, language 0.27.0, runtime 0.20.101]
 
 ### Fixed
