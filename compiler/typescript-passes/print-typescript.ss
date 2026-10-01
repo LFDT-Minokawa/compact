@@ -211,6 +211,9 @@
              (eq-hashtable-set! field-layout-ht ledger-field-name (cons path-index* type))]))
         (pl-array->public-bindings pl-array)))
     (define in-local-body? #f)
+    ;; the generated name of the join constructor's prologue method, #f when the program has
+    ;; no local constructor
+    (define local-constructor-uname #f)
 
     (module (descriptor-table type->maybe-descriptor-name type->descriptor-name)
       (define descriptor-table #f)
@@ -1153,13 +1156,14 @@
                 2 (format "~a.data = new __compactRuntime.ChargedState(~a);" state stateValue)
                 q*))))
 
+        (define (find-adt-op ledger-op adt-op*)
+          (assert (find (lambda (adt-op)
+                          (nanopass-case (Ltypescript ADT-Op) adt-op
+                            [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
+                             (eq? ledger-op^ ledger-op)]))
+                        adt-op*)))
+
         (define (ledger-reset-to-default src pl-array local? q*)
-          (define (find-adt-op ledger-op adt-op*)
-            (assert (find (lambda (adt-op)
-                            (nanopass-case (Ltypescript ADT-Op) adt-op
-                              [(,ledger-op^ ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
-                               (eq? ledger-op^ ledger-op)]))
-                          adt-op*)))
           (fold-right
             (lambda (public-binding q*)
               (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
@@ -1425,7 +1429,7 @@
                                     (bind-args-with-context contextOrig args q-formal*
                                       (context-type-check src external-name contextOrig
                                         (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
-                                          (list
+                                          (cons*
                                             2 (format "const context = __compactRuntime.copyCircuitContext(~a);" contextOrig)
                                             2 "const partialProofData = {"
                                             4 (make-Qconcat
@@ -1475,26 +1479,34 @@
                                             4 "publicTranscript: [],"
                                             4 "privateTranscriptOutputs: []"
                                             2 "};"
-                                            2 (format "const ~a = await this." result)
-                                              uname "("
-                                              (apply (make-Qsep ",") "context" "partialProofData" q-formal*)
-                                              ");"
-                                            2 "partialProofData.output = { "
-                                              "value: " (if descriptor-name?
-                                                            (format "~a.toValue(~a)" descriptor-name? result)
-                                                            "[]")
-                                              ", "
-                                              "alignment: " (if descriptor-name?
-                                                                (format "~a.alignment()" descriptor-name?)
+                                            (append
+                                              ;; the join constructor is the prologue of every exported circuit:
+                                              ;; it runs before any public operation, so its ops record at
+                                              ;; offset 0 of this call's local transcript
+                                              (if local-constructor-uname
+                                                  (list 2 (format "this.~a(context, partialProofData);" local-constructor-uname))
+                                                  '())
+                                              (list
+                                                2 (format "const ~a = await this." result)
+                                                  uname "("
+                                                  (apply (make-Qsep ",") "context" "partialProofData" q-formal*)
+                                                  ");"
+                                                2 "partialProofData.output = { "
+                                                  "value: " (if descriptor-name?
+                                                                (format "~a.toValue(~a)" descriptor-name? result)
                                                                 "[]")
-                                              " };"
-                                            2 "__compactRuntime.finalizeCallProofData(context, partialProofData);"
-                                            2 "return { "
-                                              "result: " result ", "
-                                              "context: " "context" ", "
-                                              "gasCost: " "context.callContext.currentGasCost"
-                                              " };"
-                                            0 "}"))))))
+                                                  ", "
+                                                  "alignment: " (if descriptor-name?
+                                                                    (format "~a.alignment()" descriptor-name?)
+                                                                    "[]")
+                                                  " };"
+                                                2 "__compactRuntime.finalizeCallProofData(context, partialProofData);"
+                                                2 "return { "
+                                                  "result: " result ", "
+                                                  "context: " "context" ", "
+                                                  "gasCost: " "context.callContext.currentGasCost"
+                                                  " };"
+                                                0 "}"))))))))
                                 external-name*)
                            q*)))
                      (with-local-unique-names
@@ -1859,9 +1871,69 @@
                   (newline)])]
               [else (loop (cdr xpelt*))])))
 
-        ;; the join constructor: deterministic and participant-independent, so it runs as a
-        ;; plain synchronous method against a throwaway context and returns the local StateValue
+        ;; genesis local state is the declaration defaults, therefore initialLocalState() resets
+        ;; every local field against a throwaway context and runs no local code
         (define (print-local-initializer xpelt0*)
+          (let loop ([xpelt* xpelt0*])
+            (unless (null? xpelt*)
+              (XPelt-case (car xpelt*)
+                [(XPelt-local-ledger pl-array lconstructor external-names)
+                 (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
+                   [(local-constructor ,src ,stmt)
+                    (with-local-unique-names
+                      (print-Q 2
+                        (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))])
+                          (apply make-Qconcat/src src
+                                 "initialLocalState() {"
+                                 (initialize-state-value src stateValue pl-array
+                                   (cons*
+                                     2 "const context = {"
+                                     4 (format "callContext: { currentLocalQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ChargedState(~a), __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }," stateValue)
+                                     4 "costModel: __compactRuntime.CostModel.initialCostModel()"
+                                     2 "};"
+                                     2 "const partialProofData = {"
+                                     4 "input: { value: [], alignment: [] },"
+                                     4 "output: undefined,"
+                                     4 "publicTranscript: [],"
+                                     4 "privateTranscriptOutputs: []"
+                                     2 "};"
+                                     (ledger-reset-to-default src pl-array #t
+                                       (list
+                                         2 "return context.callContext.currentLocalQueryContext.state.state;"
+                                         0 "}"))))))))
+                    (newline)])]
+                [else (loop (cdr xpelt*))]))))
+
+        ;; the compiler-owned guard cell is the local store's one temp binding
+        (define (local-constructor-guard xpelt*)
+          (ormap (lambda (xpelt)
+                   (XPelt-case xpelt
+                     [(XPelt-local-ledger pl-array lconstructor external-names)
+                      (find (lambda (public-binding)
+                              (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+                                [(,src ,ledger-field-name (,path-index* ...) ,type)
+                                 (id-temp? ledger-field-name)]))
+                            (pl-array->public-bindings pl-array))]
+                     [else #f]))
+                 xpelt*))
+
+        ;; the join constructor: the prologue of every exported circuit, run once per capsule
+        ;; behind the guard cell.  The guard read is a recorded local op, therefore a transcript
+        ;; rehearsed as a capsule's first call fails the fold on a capsule that another first
+        ;; call already initialised, and a re-execution of a later call skips the body.
+        (define (print-local-constructor xpelt0* guard)
+          (define (guard-op-Q src ledger-op expr*)
+            (nanopass-case (Ltypescript Public-Ledger-Binding) guard
+              [(,src^ ,ledger-field-name (,path-index* ...) ,type)
+               (nanopass-case (Ltypescript Type) (de-alias type)
+                 [(tadt ,src^^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                  (let ([adt-op (find-adt-op ledger-op adt-op*)])
+                    (values
+                      (construct-query src path-index* adt-formal* adt-arg* adt-op expr* #t)
+                      (nanopass-case (Ltypescript ADT-Op) adt-op
+                        [(,ledger-op^ ,op-class (,adt-name^ (,adt-formal^* ,adt-arg^*) ...) ((,var-name* ,type*) ...) ,type^ ,vm-code)
+                         type^])))]
+                 [else (assert cannot-happen)])]))
           (let loop ([xpelt* xpelt0*])
             (unless (null? xpelt*)
               (XPelt-case (car xpelt*)
@@ -1870,26 +1942,22 @@
                    [(local-constructor ,src ,stmt)
                     (fluid-let ([in-local-body? #t])
                       (with-local-unique-names
-                        (print-Q 2
-                          (let ([stateValue (format-internal-binding unique-local-name (make-temp-id src 'stateValue))]
-                                [state (format-internal-binding unique-local-name (make-temp-id src 'state))])
-                            (apply make-Qconcat/src src
-                                   "initialLocalState() {"
-                                   (initialize-state-value src stateValue pl-array
-                                     (cons*
-                                       2 (format "const ~a = new __compactRuntime.ContractState();" state)
-                                       2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'initialLocalState', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: '0'.repeat(64), contractState: ~a.data, privateState: undefined, localState: ~a});" state stateValue)
-                                       2 "const partialProofData = {"
-                                       4 "input: { value: [], alignment: [] },"
-                                       4 "output: undefined,"
-                                       4 "publicTranscript: [],"
-                                       4 "privateTranscriptOutputs: []"
-                                       2 "};"
-                                       (ledger-reset-to-default src pl-array #t
-                                         (list
-                                           2 (Stmt stmt #f #f)
-                                           2 "return context.callContext.currentLocalQueryContext.state.state;"
-                                           0 "}")))))))))
+                        (let-values ([(read-q read-type) (guard-op-Q src 'read '())]
+                                     [(write-q write-type) (guard-op-Q src 'write (list "true"))])
+                          (print-Q 2
+                            (make-Qconcat/src src
+                              (format "~a(context, partialProofData) {" local-constructor-uname)
+                              2 (make-Qconcat
+                                  "if ("
+                                  (type->descriptor-name read-type)
+                                  ".fromValue("
+                                  read-q
+                                  ".value)) {")
+                              4 "return;"
+                              2 "}"
+                              2 (Stmt stmt #f #f)
+                              2 (make-Qconcat write-q ";")
+                              0 "}")))))
                     (newline)])]
                 [else (loop (cdr xpelt*))]))))
 
@@ -2045,12 +2113,15 @@
               (let ([provable-name* (get-provable-circuit-names xpelt*)])
                 (display-string "export class Contract {\n")
                 (display-string "  witnesses;\n")
-                (fluid-let ([helper* '()])
-                  (print-contract-constructor xpelt* uname* impure-name* provable-name*)
-                  (print-contract-initializer xpelt* uname*)
-                  (print-local-initializer xpelt*)
-                  (for-each print-unexported-circuit xpelt* uname*)
-                  (for-each display-string (reverse helper*)))
+                (let ([guard (local-constructor-guard xpelt*)])
+                  (fluid-let ([helper* '()]
+                              [local-constructor-uname (and guard (unique-global-name "localConstructor"))])
+                    (print-contract-constructor xpelt* uname* impure-name* provable-name*)
+                    (print-contract-initializer xpelt* uname*)
+                    (print-local-initializer xpelt*)
+                    (when guard (print-local-constructor xpelt* guard))
+                    (for-each print-unexported-circuit xpelt* uname*)
+                    (for-each display-string (reverse helper*))))
                 (display-string "}\n")
                 (print-contract-ledger src xpelt* uname*)
                 (display-string "const _emptyContext = {\n")
@@ -2066,7 +2137,7 @@
                     0 "});"))
                 (newline)
                 (when (has-local-ledger? xpelt*)
-                  ;; the join constructor calls nothing party-dependent, so the dummy contract runs it
+                  ;; genesis local state depends on no witness, therefore the dummy contract serves it
                   (display-string "export function initialLocalState() {\n")
                   (display-string "  return _dummyContract.initialLocalState();\n")
                   (display-string "}\n")

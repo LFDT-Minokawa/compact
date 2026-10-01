@@ -1042,6 +1042,24 @@
                          (set! Cell-ADT-env p)
                          p))])
             (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))
+    ;; the local constructor runs as a guarded prologue of every exported circuit, therefore a
+    ;; program that declares one gets a compiler-owned Cell<Boolean> guard as the local store's
+    ;; first binding; the guard is a temp id, which is what keeps it out of contract-info and the
+    ;; accessors
+    (define (add-local-constructor-guard pelt*)
+      (let ([src (ormap (lambda (pelt)
+                          (nanopass-case (Lexpanded Program-Element) pelt
+                            [(local-constructor ,src ,expr) src]
+                            [else #f]))
+                        pelt*)])
+        (if src
+            (let ([id (make-temp-id src 'initialised)])
+              (id-local?-set! id #t)
+              (cons (with-output-language (Lexpanded Program-Element)
+                      `(local-ledger-declaration ,src ,id
+                         ,(ensure-adt-type src (with-output-language (Lexpanded Type) `(tboolean ,src)))))
+                    pelt*))
+            pelt*)))
     )
   (Program : Program (ir) -> Program ()
     (definitions
@@ -1143,7 +1161,7 @@
                         (set! exported-other* (cons (cons export-name ledger-field-name) exported-other*)))]
                      [else (export-oops src export-name info)])))
                (reverse export*))))
-         (let ([reachable* (process-frob-worklist seqno.pelt*)])
+         (let ([reachable* (add-local-constructor-guard (process-frob-worklist seqno.pelt*))])
            ; process uninstantiated modules to catch any errors therein, skipping those
            ; with generic parameters since we have no generic values to supply
            (let loop ()

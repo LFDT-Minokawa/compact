@@ -31360,8 +31360,9 @@ groups than for single tests.
       irritants: '("testfile.compact line 4 char 3" "for-of iteration over a container is only available in local functions" ()))
     )
 
-  ; join-safety is transitive: the constructor cannot reach the ledger through the local
-  ; call graph, and the diagnostic names the function that touches it
+  ; the local constructor is the prologue of the first landed call, run against that call's
+  ; basis, therefore it reads the ledger as any local function does, directly or through
+  ; the local call graph
   (test
     '(
       "ledger x: Field;"
@@ -31373,25 +31374,21 @@ groups than for single tests.
       "}"
       "local credits: Field;"
       "local constructor {"
-      "  credits = f();"
+      "  credits = f() + x;"
       "}"
       "export circuit h(): Field {"
       "  return disclose(credits);"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 13" "the local constructor cannot access ledger state: it calls (directly or indirectly) local function ~a, which ~a at ~a" (g "reads ledger field x" "line 3 char 10")))
+    (succeeds)
     )
 
-  ; the local constructor is stricter: joins must be derivable from the contract alone,
-  ; therefore ledger reads are out too
   (test
     '(
       "ledger x: Field;"
       "local credits: Field;"
       "local constructor {"
-      "  credits = x;"
+      "  x = 3 as Field;"
       "}"
       "export circuit g(): Field {"
       "  return disclose(credits);"
@@ -31399,7 +31396,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 13" "the local constructor cannot access ledger field ~a" (x)))
+      irritants: '("testfile.compact line 4 char 3" "~a cannot update ledger field ~a" ("the local constructor" x)))
     )
 
   (test
@@ -37993,6 +37990,65 @@ groups than for single tests.
          "      \"exported\": false,"
          "      \"storage\": \"HistoricMerkleTree\","
          "      \"depth\": 10,"
+         "      \"type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  ; the local store has its own section; the local constructor's guard cell holds index 0 of
+  ; the store but is compiler-owned, therefore the declared fields start at 1 and the guard
+  ; is not listed
+  (test-group
+    ((create-file "local-fields.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger c: Counter;"
+         "export local credits: Counter;"
+         "local seen: Set<Bytes<32>>;"
+         "local constructor {"
+         "  credits.increment(1);"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/local-fields/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"c\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ],"
+         "  \"local\": ["
+         "    {"
+         "      \"name\": \"credits\","
+         "      \"index\": 1,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    },"
+         "    {"
+         "      \"name\": \"seen\","
+         "      \"index\": 2,"
+         "      \"exported\": false,"
+         "      \"storage\": \"Set\","
          "      \"type\": {"
          "        \"type-name\": \"Bytes\","
          "        \"length\": 32"
@@ -96479,7 +96535,8 @@ groups than for single tests.
         "  const pd = r.context.callProofDataTrace.at(-1)!;"
         "  const c = pd.publicTranscript.findIndex((op) => (op as unknown) === 'ckpt' || (typeof op === 'object' && op !== null && 'ckpt' in (op as object)));"
         "  expect(c).toBeGreaterThanOrEqual(0);"
-        "  const dec = (sv: runtime.StateValue) => { let v = 0n; const b = sv.asArray()![0].asCell().value[0]; for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) | BigInt(b[i]); return v; };"
+        "  // the local constructor's guard cell holds index 0 of the local root, so credits is index 1"
+        "  const dec = (sv: runtime.StateValue) => { let v = 0n; const b = sv.asArray()![1].asCell().value[0]; for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) | BigInt(b[i]); return v; };"
         "  const partial = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: c });"
         "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
         "  expect(dec(partial)).toEqual(8n);"
@@ -97055,6 +97112,90 @@ groups than for single tests.
         "  const r5 = await contract.circuits.register(r4.context, a);"
         "  const r6 = await contract.circuits.prove(r5.context, a);"
         "  expect(r6.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; the join constructor is the guarded prologue of the account's first landed circuit call:
+  ; it reads the ledger at that call's basis, records at offset 0, runs once per capsule, and
+  ; a second first call rehearsed against the same empty capsule diverges on the guard
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger members: Set<Uint<8>>;"
+      "export ledger round: Counter;"
+      "export local snapshot: Set<Uint<8>>;"
+      "export local joinedAt: Uint<64>;"
+      "local constructor {"
+      "  for (const m of members) {"
+      "    snapshot.insert(m);"
+      "  }"
+      "  joinedAt = round.read();"
+      "}"
+      "export circuit enroll(m: Uint<8>): [] {"
+      "  members.insert(disclose(m));"
+      "  round.increment(1);"
+      "}"
+      "export circuit sizeAtJoin(): Uint<64> {"
+      "  return disclose(snapshot.size());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const joinerContext = (ledgerContext: runtime.CircuitContext<any>, localState?: runtime.StateValue) =>"
+        "  runtime.createCircuitContext({"
+        "    circuitId: 'join',"
+        "    contractAddress: ledgerContext.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: ledgerContext.callContext.currentQueryContext.state,"
+        "    privateState: ledgerContext.callContext.currentPrivateState,"
+        "    localState: localState ?? contractCode.initialLocalState(),"
+        "  });"
+        "test('the join constructor runs at the first call against its basis', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // the deployer joins at their first call, when the membership set is still empty"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const d2 = await contract.circuits.enroll(d1.context, 2n);"
+        "  const d3 = await contract.circuits.sizeAtJoin(d2.context);"
+        "  expect(d3.result).toEqual(0n);"
+        "  const D = contractCode.localState(d3.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(D.joinedAt).toEqual(0n);"
+        "  // a joiner's first call sees the ledger as of that call"
+        "  const j1 = await contract.circuits.enroll(joinerContext(d3.context), 7n);"
+        "  const pd = j1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript.length).toBeGreaterThan(0);"
+        "  const prologue = pd.localTranscript!.filter((e) => e.offset === 0);"
+        "  expect(prologue.length).toBeGreaterThan(1);"
+        "  expect(pd.localTranscript!.indexOf(prologue.at(-1)!)).toEqual(prologue.length - 1);"
+        "  const J = contractCode.localState(j1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect([...J.snapshot].sort()).toEqual([1n, 2n]);"
+        "  expect(J.joinedAt).toEqual(2n);"
+        "  // a later call records the guard read and nothing else of the prologue"
+        "  const j2 = await contract.circuits.enroll(j1.context, 8n);"
+        "  expect(j2.context.callProofDataTrace.at(-1)!.localTranscript!.length).toEqual(1);"
+        "  // the snapshot is as of the join, not the latest call"
+        "  const j3 = await contract.circuits.sizeAtJoin(j2.context);"
+        "  expect(j3.result).toEqual(2n);"
+        "  // the fold reproduces the joiner's state from the defaults, and the prologue survives"
+        "  // a split at the very start of the call"
+        "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
+        "  expect(whole.toString()).toEqual(j1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const guaranteed = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: 0 });"
+        "  expect(contractCode.localState(guaranteed).joinedAt).toEqual(2n);"
+        "});"
+        "test('two first calls in flight: the second diverges on the guard and re-executes', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const a = await contract.circuits.enroll(joinerContext(d1.context), 5n);"
+        "  const b = await contract.circuits.enroll(joinerContext(d1.context), 6n);"
+        "  const afterA = runtime.foldLocalTranscript(contractCode.initialLocalState(), a.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' });"
+        "  expect(() => runtime.foldLocalTranscript(afterA, b.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' }))"
+        "    .toThrow(/re-executed/);"
+        "  const b2 = await contract.circuits.enroll(joinerContext(d1.context, afterA), 6n);"
+        "  const pd = b2.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.localTranscript!.filter((e) => e.offset === 0).length).toEqual(1);"
+        "  const afterB = runtime.foldLocalTranscript(afterA, pd.localTranscript!, { tag: 'success' });"
+        "  expect(afterB.toString()).toEqual(afterA.toString());"
         "});"
         ))
     )

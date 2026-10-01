@@ -148,24 +148,31 @@
   ;; one walker for both stores: local? selects which package contributes
   (LedgerField : Program-Element (ir field* local?) -> * (json)
     (definitions
+      ;; a compiler-owned binding (the local constructor's guard cell) is a temp id, and the
+      ;; source declared no such field, therefore it is left out
       (define (package-fields pl-array field*)
         (append
-          (map
-            (lambda (pb)
+          (fold-right
+            (lambda (pb field*)
               (nanopass-case (Lloweredemit Public-Ledger-Binding) pb
                 [(,src ,ledger-field-name (,path-index* ...) ,type)
-                 (let ([name (symbol->string (id-sym ledger-field-name))]
-                       [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
-                       [exported (id-exported? ledger-field-name)]
-                       [unwrapped (unwrap-to-adt type)])
-                   (nanopass-case (Lloweredemit Type) unwrapped
-                     [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                      (cons*
-                        (cons "name" name)
-                        (cons "index" index)
-                        (cons "exported" exported)
-                        (serialize-adt "storage" adt-name adt-arg*))]
-                     [else (assert cannot-happen)]))]))
+                 (if (id-temp? ledger-field-name)
+                     field*
+                     (let ([name (symbol->string (id-sym ledger-field-name))]
+                           [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
+                           [exported (id-exported? ledger-field-name)]
+                           [unwrapped (unwrap-to-adt type)])
+                       (nanopass-case (Lloweredemit Type) unwrapped
+                         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                          (cons
+                            (cons*
+                              (cons "name" name)
+                              (cons "index" index)
+                              (cons "exported" exported)
+                              (serialize-adt "storage" adt-name adt-arg*))
+                            field*)]
+                         [else (assert cannot-happen)])))]))
+            '()
             (flatten-pl-array pl-array))
           field*)))
     [(public-ledger-declaration ,pl-array ,lconstructor)

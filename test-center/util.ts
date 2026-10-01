@@ -128,7 +128,7 @@ export const startContract = async <
     coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
     contractState: constructorResult.currentContractState,
     privateState: constructorResult.currentPrivateState,
-    // a local-state contract initializes its capsule state through the join constructor
+    // a fresh capsule holds the declaration defaults; the join constructor runs at the first call
     localState: (module as any).initialLocalState?.(),
   });
 

@@ -22,11 +22,8 @@
   ; the proof, therefore no witnesses, no impure circuits, no cross-contract calls, no
   ; events, and no ledger writes; ledger reads (read and local-read classes, and for-of
   ; iteration) are snapshot quotes, so a local function may perform them.  The local
-  ; constructor is stricter (join-safety): its result must be derivable from the contract
-  ; alone, therefore ledger access of any class is out, and because local functions may
-  ; read the ledger, the constructor's check is transitive over the local call graph:
-  ; touches are recorded per function during the walk and the constructor's call sites are
-  ; checked against their closure afterward.
+  ; constructor is a local function with no arguments, run as the prologue of the account's
+  ; first landed circuit call against that call's basis, therefore the same rules apply to it.
   (definitions
     ; function names to 'witness, 'native-witness, 'circuit, 'callable (pure natives), or
     ; 'local-circuit
@@ -75,49 +72,11 @@
              [else #f])))
     (define (final-op-name accessor*)
       (nanopass-case (Lnodca Ledger-Accessor) (car (last-pair accessor*))
-        [(,src ,ledger-op ,expr* ...) ledger-op]))
-    ;; join-safety bookkeeping: ctx is 'circuit, 'local-constructor, or a local function's
-    ;; id, so only non-symbol contexts collect touches and edges
-    (define touch-ht (make-eq-hashtable))      ; local function -> (src . description)
-    (define edge-ht (make-eq-hashtable))       ; local function -> ((src . callee) ...)
-    (define constructor-call* '())             ; the constructor's local calls, reversed
-    (define (record-touch! ctx src description)
-      (unless (symbol? ctx)
-        (unless (eq-hashtable-ref touch-ht ctx #f)
-          (eq-hashtable-set! touch-ht ctx (cons src description)))))
-    (define (record-local-call! ctx src function-name)
-      (if (eq? ctx 'local-constructor)
-          (set! constructor-call* (cons (cons src function-name) constructor-call*))
-          (unless (symbol? ctx)
-            (eq-hashtable-set! edge-ht ctx
-              (cons (cons src function-name) (eq-hashtable-ref edge-ht ctx '()))))))
-    ;; the first ledger touch reachable from f through local calls, as (g src . description)
-    (define (find-touch f)
-      (let loop ([pending (list f)] [seen '()])
-        (cond
-          [(null? pending) #f]
-          [(memq (car pending) seen) (loop (cdr pending) seen)]
-          [(eq-hashtable-ref touch-ht (car pending) #f) =>
-           (lambda (t) (cons (car pending) t))]
-          [else
-           (loop (append (map cdr (eq-hashtable-ref edge-ht (car pending) '())) (cdr pending))
-                 (cons (car pending) seen))]))))
+        [(,src ,ledger-op ,expr* ...) ledger-op])))
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (for-each record-declaration! pelt*)
      (for-each Program-Element pelt*)
-     ;; the constructor's transitive check runs after the walk, when every local
-     ;; function's touches and calls are recorded
-     (for-each
-       (lambda (call)
-         (cond
-           [(find-touch (cdr call)) =>
-            (lambda (t)
-              (source-errorf (car call)
-                "the local constructor cannot access ledger state: it calls (directly or indirectly) local function ~a, which ~a at ~a"
-                (id-sym (car t)) (cddr t) (format-source-object (cadr t))))]
-           [else (void)]))
-       (reverse constructor-call*))
      ir])
   (record-declaration! : Program-Element (ir) -> * (void)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
@@ -162,26 +121,14 @@
             (source-errorf src "~a is only callable from local functions"
               (final-op-name accessor*)))]
          [(id-local? ledger-field-name) (void)]
-         [(eq? ctx 'local-constructor)
-          (source-errorf src "the local constructor cannot access ledger field ~a"
-            (id-sym ledger-field-name))]
-         [(class-memq? op-class '(read local-read))
-          ;; a snapshot quote: allowed in a local function, but join-safety must see it
-          (record-touch! ctx src (format "reads ledger field ~a" (id-sym ledger-field-name)))]
+         [(class-memq? op-class '(read local-read)) (void)]
          [else
           (source-errorf src "~a cannot update ledger field ~a"
             (context-name ctx) (id-sym ledger-field-name))]))
      ir]
     [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
-     (cond
-       [(eq? ctx 'circuit)
-        (source-errorf src "for-of iteration over a container is only available in local functions")]
-       [(id-local? ledger-field-name) (void)]
-       [(eq? ctx 'local-constructor)
-        (source-errorf src "the local constructor cannot access ledger field ~a"
-          (id-sym ledger-field-name))]
-       [else
-        (record-touch! ctx src (format "iterates ledger field ~a" (id-sym ledger-field-name)))])
+     (when (eq? ctx 'circuit)
+       (source-errorf src "for-of iteration over a container is only available in local functions"))
      (Expression expr ctx)
      ir]
     [(call ,src ,function-name ,[expr*] ...)
@@ -192,7 +139,6 @@
          [(circuit)
           (unless (id-pure? function-name)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
-         [(local-circuit) (record-local-call! ctx src function-name)]
          [else (void)]))
      ir]
     [(contract-call ,src ,elt-name (,[expr] ,type) ,[expr*] ...)
@@ -215,6 +161,5 @@
          [(circuit)
           (unless (id-pure? function-name^)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]
-         [(local-circuit) (record-local-call! ctx src function-name^)]
          [else (void)]))
      ir]))
