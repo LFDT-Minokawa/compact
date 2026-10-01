@@ -34,7 +34,7 @@ midnight-zk-stdlib = "2.3.5"
 midnight-circuits = "7.2.4"
 # For `decider::serialize_vk`, which writes a key as its `verify_proof_vks`
 # entry. The rev the flake pins for zkir-v3.
-midnight-zkir = { git = "https://github.com/midnightntwrk/midnight-zkir", rev = "e602b03136c13ace761aa54fed72205dff33c7be" }
+midnight-zkir = { git = "https://github.com/midnightntwrk/midnight-zkir", rev = "4e04e0ea76ec5a3f78d1d49598a55183ca9a1fca" }
 midnight-curves = "0.3.1"
 midnight-proofs = { version = "0.8.2", default-features = false, features = ["circuit-params", "committed-instances"] }
 base64 = "0.22"

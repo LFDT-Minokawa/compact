@@ -1619,7 +1619,7 @@ dependencies = [
 [[package]]
 name = "midnight-zkir"
 version = "3.0.0"
-source = "git+https://github.com/midnightntwrk/midnight-zkir?rev=e602b03136c13ace761aa54fed72205dff33c7be#e602b03136c13ace761aa54fed72205dff33c7be"
+source = "git+https://github.com/midnightntwrk/midnight-zkir?rev=4e04e0ea76ec5a3f78d1d49598a55183ca9a1fca#4e04e0ea76ec5a3f78d1d49598a55183ca9a1fca"
 dependencies = [
  "anyhow",
  "const-hex",
