@@ -17,5 +17,5 @@ import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url, {
     expectedError:
-        /b\.compact line 16 char 1:\s+include cycle involving "[^"]*\/lib\/a\.compact"/,
+        /b\.compact line 16 char 1:\s+include cycle involving\s+"[^"]*\/lib\/a\.compact"/,
 });
