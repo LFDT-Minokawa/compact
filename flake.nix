@@ -26,6 +26,7 @@
     zkir = {
       # zkir key-generation binary for ZKIR 2
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
@@ -38,6 +39,7 @@
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
       url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1"; # zkir-v3
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
@@ -47,6 +49,9 @@
     chez-exe.url = "github:tkerber/chez-exe";
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # The release ships both zkir binaries for x86_64-darwin but nixpkgs-unstable dropped that
+    # platform, so they are built from 26.05, which supports it until the end of 2026.
+    nixpkgs-zkir.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
     utils.url = "github:numtide/flake-utils";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     npmlock2nix = {
@@ -212,7 +217,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.35.0"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.102"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples

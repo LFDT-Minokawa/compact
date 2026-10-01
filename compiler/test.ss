@@ -33978,6 +33978,25 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (call %deserialize.1 %x.4))))
     )
+
+  ; the value of an assert is [], so it combines with a [] literal in a conditional
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'x') : [];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? [] : assert(true, 'x');"
+      "}"
+      )
+    (succeeds)
+    )
 )
 
 ; examples of where disclose can be placed
@@ -71638,6 +71657,39 @@ groups than for single tests.
     (succeeds)
     )
 
+  ; the value of an assert is []
+  (test
+    '(
+      "export circuit bound(): [] {"
+      "  const r: [] = assert(true, 'a');"
+      "  return r;"
+      "}"
+      "export circuit direct(): [] {"
+      "  return assert(true, 'a');"
+      "}"
+      "export circuit in_tuple(): [[], Field] {"
+      "  return [assert(true, 'a'), 1 as Field];"
+      "}"
+      "export circuit in_conditional(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'a') : [];"
+      "}"
+      "export circuit fails(b: Boolean): [] {"
+      "  assert(disclose(b), 'boom');"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, true)).result).toEqual([]);"
+        "  await expect(C.circuits.fails(Ctxt, false)).rejects.toThrow('failed assert: boom');"
+        "});"
+        ))
+    )
+
   (test
     '(
       "module M<T, #N> {"
@@ -91676,6 +91728,33 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type frob = [Uint<32>, Boolean];"
+      "new type blob = Bytes<8>;"
+      "ledger F: [frob, blob];"
+      "export circuit foo(x: frob, y: blob): Bytes<16> {"
+      "  F = disclose([x, y]);"
+      "  return serialize<[frob, blob], 16>(F);"
+      "}"
+      "export circuit unfoo(bv: Bytes<16>): [frob, blob] {"
+      "  F = deserialize<[frob, blob], 16>(disclose(bv));"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
+        "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
+        "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
+        "    .toEqual([[0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f])]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
@@ -92833,6 +92912,51 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
         "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256k1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256k1Point>(aa) == persistentHash<Secp256k1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256k1Point): Secp256k1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256k1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256k1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
         ))
     )
 
@@ -94371,6 +94495,51 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256r1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256r1Point>(aa) == persistentHash<Secp256r1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256r1Point): Secp256r1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256r1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256r1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export ledger base: Secp256r1Base;"
       "export ledger scalar: Secp256r1Scalar;"
       "export circuit addb(b0: Secp256r1Base, b1: Secp256r1Base): Secp256r1Base {"
@@ -95877,6 +96046,82 @@ groups than for single tests.
         "    'failed assert: Curve25519Point identity is not a permitted ed25519Verify verification key');"
         "});"
         ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Curve25519Point;"
+      "export circuit foo1(x: Curve25519Point): Bytes<64> {"
+      "  F1 = disclose(x);"
+      "  return serialize<Curve25519Point, 64>(F1);"
+      "}"
+    ; "export circuit foo2(x: Secp256k1Point): Bytes<64> {"
+    ; "  F2 = disclose(x);"
+    ; "  return serialize<Secp256k1Point, 64>(F2);"
+    ; "}"
+    ; "export circuit foo3(x: Secp256r1Point): Bytes<64> {"
+    ; "  F3 = disclose(x);"
+    ; "  return serialize<Secp256r1Point, 64>(F3);"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "serialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Secp256r1Point;"
+      "export circuit foo1(bv: Bytes<64>): Curve25519Point {"
+      "  F1 = deserialize<Curve25519Point, 64>(disclose(bv));"
+      "  return F1;"
+      "}"
+    ; "export circuit foo2(bv: Bytes<64>): Secp256k1Point {"
+    ; "  F2 = deserialize<Secp256k1Point, 64>(disclose(bv));"
+    ; "  return F2;"
+    ; "}"
+    ; "export circuit foo3(bv: Bytes<64>): Secp256r1Point {"
+    ; "  F3 = deserialize<Secp256r1Point, 64>(disclose(bv));"
+    ; "  return F3;"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(x: Map<Boolean, Set<Boolean>>): Bytes<64> {"
+      "  F = x;"
+      "  return serialize<Map<Boolean, Set<Boolean>>, 64>(F);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Map<Boolean, Set<Boolean>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(bv: Bytes<64>): Map<Boolean, Set<Boolean>> {"
+      "  F = deserialize<Map<Boolean, Set<Boolean>>, 64>(bv);"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
     )
 )
 
