@@ -1851,7 +1851,8 @@
                                            (ledger-initializers src state pl-array
                                              (set-operations state xpelt0*
                                                (cons*
-                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState~a});" constructorContext state constructorContext (if (has-local-ledger? xpelt0*) ", localState: this.initialLocalState()" ""))
+                                                 ;; the deploy runs no capsule, therefore its context carries no local state
+                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState});" constructorContext state constructorContext)
                                                  2 "const partialProofData = {"
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"

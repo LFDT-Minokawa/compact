@@ -31248,6 +31248,87 @@ groups than for single tests.
     )
 )
 
+(run-tests reject-constructor-local-calls
+  ; the deploy runs no capsule, therefore the constructor runs no local code: no local
+  ; function calls and no local ADT operations, directly or through the circuits it calls
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local seed(): [] {"
+      "  credits.increment(1);"
+      "}"
+      "constructor() {"
+      "  seed();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "constructor cannot run local code but ~a at ~a" ("calls local function seed" "line 7 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local seed(): [] {"
+      "  credits.increment(1);"
+      "}"
+      "circuit setup(): [] {"
+      "  seed();"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 1" "constructor cannot run local code but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls local function seed" "line 7 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "constructor() {"
+      "  credits.increment(1);"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot run local code but ~a at ~a" ("operates on local field credits" "line 4 char 3")))
+    )
+
+  ; the constructor keeps its public half: ledger writes, pure circuits, and witnesses
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "witness seed(): Uint<8>;"
+      "pure circuit twice(n: Uint<8>): Uint<16> {"
+      "  return n * 2;"
+      "}"
+      "constructor() {"
+      "  total.increment(disclose(twice(seed())));"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (succeeds)
+    )
+)
+
 (run-tests check-local-callability
   ; a local function calls local functions, pure circuits, and local ADT operations, and
   ; nothing that reaches the public transcript or the proof
