@@ -13,6 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// PM-16056
-export sealed ledger c: Bytes<32>;
-export sealed ledger c: Bytes<32>;
+import { defineCompileTest } from '@test/compact-test';
+
+export default defineCompileTest(import.meta.url);

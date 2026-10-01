@@ -13,10 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+import { defineCompileTest } from '@test/compact-test';
 
-export sealed ledger c: Counter;
-
-export circuit test(): [] {
-  c.increment(1);
-}
+export default defineCompileTest(import.meta.url);

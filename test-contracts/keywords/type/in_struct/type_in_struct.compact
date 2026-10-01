@@ -13,24 +13,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
-
-export ledger set: Set<Field>;
-export ledger counter: Counter;
-
-struct bob {
-  x: Field,
-  y: Field
+struct Reading {
+  count: Count,
+  tag: Tag
 }
 
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
+new type Count = Uint<32>;
 
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
+type Tag = Bytes<4>;
 
-  assert(e.x == 1 as Field, "not 1");
+type Total = Field;
+
+// New types and aliases can be struct field types, even when declared after the struct.
+export circuit type_in_struct(a: Reading, b: Reading): [Reading, Total] {
+  const sum = Reading { count: a.count + b.count, tag: a.tag };
+  return [sum, sum.count as Total];
 }

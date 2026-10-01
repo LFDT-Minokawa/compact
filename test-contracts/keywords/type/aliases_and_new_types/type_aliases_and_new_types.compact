@@ -13,24 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+type Num = Field;
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
+export type Shared = Field;
 
-struct bob {
-  x: Field,
-  y: Field
-}
+new type Result = Field;
 
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
+// An alias, an exported alias and a new type can be used together as parameter and return types.
+export circuit type_aliases_and_new_types(a: Shared, b: Num): Result {
+  return (a + b + 1) as Result;
 }

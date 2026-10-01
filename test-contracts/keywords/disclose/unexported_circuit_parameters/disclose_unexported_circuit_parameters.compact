@@ -13,24 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+witness secret(): Field;
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
-
-struct bob {
-  x: Field,
-  y: Field
+circuit difference(a: Field, b: Field): Field {
+  return a - b;
 }
 
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
+// An unexported circuit's parameters need no disclose; witness values are disclosed where they enter the exported circuit's result.
+export circuit disclose_unexported_circuit_parameters(): Field {
+  return difference(disclose(secret()), disclose(secret()));
 }

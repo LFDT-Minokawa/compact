@@ -13,9 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import "std";
+import { defineCompileTest } from '@test/compact-test';
 
-circuit bob(): Uint<8> {
-  kernel.checkpoint();
-  return 1;
-}
+export default defineCompileTest(import.meta.url);

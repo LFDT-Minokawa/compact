@@ -13,24 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+import { defineCompileTest } from '@test/compact-test';
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
-
-struct bob {
-  x: Field,
-  y: Field
-}
-
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
-}
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 19 char 1:\s+another binding found for c in the same scope at line 17 char 1/,
+});

@@ -13,24 +13,25 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+export ledger x: Field;
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
-
-struct bob {
-  x: Field,
-  y: Field
-}
-
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
+// A disclosed value can decide a branch that writes the ledger, whether disclosed in the condition, bound to a const first, or disclosed inside an anonymous circuit.
+export circuit disclose_branch_conditions(b: Boolean, c: Boolean): Field {
+  if (disclose(b)) {
+    x = 1 as Field;
+  }
   const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
+  if (p) {
+    x = 2 as Field;
+  }
+  if (!disclose(c)) {
+    x = 3 as Field;
+  }
+  const a = (() => {
+    return disclose(c);
+  })();
+  if (a) {
+    x = 4 as Field;
+  }
+  return x;
 }

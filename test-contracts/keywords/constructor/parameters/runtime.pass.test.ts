@@ -13,24 +13,24 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+import { expect } from 'vitest';
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
+import type { Contract } from './.build/contract/index.js';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-struct bob {
-  x: Field,
-  y: Field
-}
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const v = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n];
+        const { contract, ctx } = await createTestContract(
+            Contract,
+            {},
+            undefined,
+            [v],
+        );
+        const result = (await contract.circuits.constructor_parameters(ctx))
+            .result;
 
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
-}
+        expect(result).toEqual(45n);
+    },
+);

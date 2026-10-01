@@ -5,7 +5,7 @@
 // you may not use this file except in compliance with the License.
 // You may obtain a copy of the License at
 //
-// 	http://www.apache.org/licenses/LICENSE-2.0
+//  	http://www.apache.org/licenses/LICENSE-2.0
 //
 // Unless required by applicable law or agreed to in writing, software
 // distributed under the License is distributed on an "AS IS" BASIS,
@@ -13,11 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-struct S { a: Uint<32>; b: Boolean; c: Bytes<8>; }
-export circuit F(a: Uint<32>, b: Boolean, c: Bytes<8>): S {
+import { defineCompileTest } from '@test/compact-test';
 
-const s1 = S {c: c, a: a, b: b};
-const s2 = S {...s1, b: true};
-const s3 = S {...s2, ...s1};
-return s3;
-}
+export default defineCompileTest(import.meta.url);

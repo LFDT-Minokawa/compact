@@ -13,24 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import CompactStandardLibrary;
+// Declaring two ledger fields with the same name in one scope is an error.
+export ledger c: Field;
 
-export ledger set: Set<Field>;
-export ledger counter: Counter;
-
-struct bob {
-  x: Field,
-  y: Field
-}
-
-export circuit tom(b: Boolean, c: Boolean, d: Vector<3, Field>, e: bob) : [] {
-  const p = disclose(c);
-  set.insert(disclose(b) as Field);
-  set.insert(p as Field);
-
-  counter.increment(disclose(b as Uint<16>));
-  counter.increment(disclose(d[2] as Uint<16>));
-  counter.increment(disclose(e.x) as Uint<16>);
-
-  assert(e.x == 1 as Field, "not 1");
-}
+export ledger c: Field;
