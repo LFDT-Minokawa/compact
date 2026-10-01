@@ -39,6 +39,15 @@ go-to-definition. Fixtures under a `slow/` path segment still run by default,
 but their compile work runs exclusively so expensive proving-key generation does
 not race other compiler jobs.
 
+## Shared Harness
+
+Helpers that several fixtures share live under `support/`, outside the fixture
+tree, and are imported through a path alias. The crypto fixtures use
+`@test/crypto` (`support/crypto/`) for hex conversion, the known-answer test
+driver, the `Bytes<N>` width sweep, and the vendored Wycheproof and
+ethereum/tests vectors; see `support/crypto/README.md`. A new alias needs an
+entry in both `vitest.config.ts` and the `paths` block of `tsconfig.json`.
+
 ## Compile Tests
 
 Compile tests export metadata through `defineCompileTest`:
@@ -47,6 +56,17 @@ Compile tests export metadata through `defineCompileTest`:
 import { defineCompileTest } from '@test/compact-test';
 
 export default defineCompileTest(import.meta.url);
+```
+
+A fixture whose contract needs a non-default compiler mode declares the extra
+flags with `compilerArgs`. They are passed ahead of the contract and output
+paths for every compiler invocation of that fixture, including the `yarn lint`
+artifact preparation run:
+
+```ts
+export default defineCompileTest(import.meta.url, {
+    compilerArgs: ['--feature-zkir-v3'],
+});
 ```
 
 For compile-fail fixtures, include the diagnostic that proves the expected
@@ -67,17 +87,34 @@ and export metadata through `defineRuntimeTest`:
 import { expect } from 'vitest';
 
 import type { Contract } from './.build/contract/index.js';
-import {
-    createTestContract,
-    defineRuntimeTest,
-} from '@test/compact-test';
+import { createTestContract, defineRuntimeTest } from '@test/compact-test';
 
-export default defineRuntimeTest<typeof Contract>(import.meta.url, async (Contract) => {
-    const { contract, ctx } = await createTestContract(Contract);
-    const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
+export default defineRuntimeTest<typeof Contract>(
+    import.meta.url,
+    async (Contract) => {
+        const { contract, ctx } = await createTestContract(Contract);
+        const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
 
-    expect(Array.from(result)).toEqual([5]);
-});
+        expect(Array.from(result)).toEqual([5]);
+    },
+);
+```
+
+The callback's second argument is the generated `pureCircuits` record. A
+contract whose circuits are all pure exposes nothing on the contract instance,
+so such a fixture reads them straight off `pureCircuits` and never calls
+`createTestContract`:
+
+```ts
+import type { Contract, PureCircuits } from './.build/contract/index.js';
+import { defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract, PureCircuits>(
+    import.meta.url,
+    (_Contract, pure) => {
+        expect(pure.hashBytes32(input)).toEqual(digest);
+    },
+);
 ```
 
 The generated type import is valid during local typechecking because
@@ -107,10 +144,21 @@ COMPACT_TEST_KEEP_ARTIFACTS=1 yarn test primitives/bytes/slice/basic/runtime.pas
 
 ## Commands
 
-Run from this package directory:
+Run this from the repository root — it is what CI runs, and the only command
+that needs no setup first:
 
 ```sh
-corepack yarn install --immutable
+./test-contracts/test.sh
+```
+
+The wrapper enters the `.#test-contracts` Nix shell, links the runtime that
+shell provides, installs this package with Corepack/Yarn, and runs the fixtures
+with the Nix-built `compactc`.
+
+Once it has run once, the per-fixture commands work from this package directory,
+because the symlink it created is still there:
+
+```sh
 yarn lint
 yarn test
 yarn test primitives/bytes/slice/basic/runtime.pass.test.ts
@@ -121,21 +169,23 @@ fixture or test-file path filters. Selecting a runtime test also selects its
 compile prerequisite, so a runtime-only filtered run still compiles the fixture
 inside Vitest before importing the generated contract value.
 
-The package links `@midnight-ntwrk/compact-runtime` through the
-`.compact-runtime` symlink, which points at a locally built runtime — the
-prebuilt Nix package substituted from the cache (CI) or the working-tree build
-at `../runtime` (local development). The easiest command from the repository
-root is:
-
-```sh
-./test-contracts/test.sh
-```
-
-That wrapper links the runtime the `.#test-contracts` Nix shell pulled from the
-cache (`$COMPACT_RUNTIME_PKG`, falling back to `../runtime`), installs this
-package with Corepack/Yarn, and runs the fixtures with the Nix-built `compactc`
-compiler. Compile hang
+`yarn lint` prepares generated imports with `--skip-zk`; `yarn test` uses full
+compiler runs so compile tests still cover proving-key generation. Compile hang
 protection is owned by Vitest and CI through `testTimeout` in
-`vitest.config.ts`. `yarn lint` prepares generated imports with `--skip-zk`;
-`yarn test` uses full compiler runs so compile tests still cover proving-key
-generation.
+`vitest.config.ts`.
+
+## The Linked Runtime
+
+The package links `@midnight-ntwrk/compact-runtime` through the
+`.compact-runtime` symlink, which the wrapper points at `$COMPACT_RUNTIME_PKG` —
+set by the `.#test-contracts` shell to a Nix-built runtime substituted from the
+cache. Set it yourself to test against a runtime you built; it falls back to
+`../runtime`.
+
+Generated contracts typecheck against that runtime's own declarations. Nothing
+local stands in for them, so a compiler change that makes generated code
+reference a new runtime type is caught here, and whichever runtime is linked
+must be built — the wrapper checks for `dist/index.d.ts` and stops with a
+message naming the path if it is missing. The Nix package always is; a working
+tree at `../runtime` is only built once `npm run build` has run there, which
+needs the `.#runtime` shell for Chez.

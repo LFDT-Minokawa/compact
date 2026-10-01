@@ -13,35 +13,33 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { spawn } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { pathToFileURL } from 'node:url';
 
 import { afterAll, describe, test } from 'vitest';
 
+import type {
+    CompactContractConstructor,
+    CompileResult,
+    CompileTestDefinition,
+    DiscoveredFixture,
+    FixtureTestMetadata,
+    GeneratedContractModule,
+    RuntimeTestDefinition,
+    TestPhase,
+} from './types.ts';
 import {
-    type CompactContractConstructor,
-    type CompileResult,
-    type CompileTestDefinition,
-    type RuntimeTestDefinition,
-    type TestResult,
-} from './compact-test.js';
-
-type TestPhase = 'compile' | 'runtime';
-
-type TestFileRef = {
-    filePath: string;
-    phase: TestPhase;
-    result: TestResult;
-};
-
-type DiscoveredFixture = {
-    fixtureDir: string;
-    relativeFixtureDir: string;
-    compile?: TestFileRef;
-    runtime?: TestFileRef;
-};
+    compileContract,
+    discoverFixtures,
+    findFixtureContract,
+    fixtureMetadataKey,
+    fixtureOutputDir,
+    loadCompileDefinition,
+    matchesFilters,
+    normalizePath,
+    testRoot,
+} from './utils.ts';
 
 type SelectedFixture = DiscoveredFixture & {
     contractPath: string;
@@ -55,11 +53,6 @@ type FixtureStatus = {
     failed: boolean;
 };
 
-type FixtureTestMetadata = {
-    durationMs?: number;
-    filePath: string;
-};
-
 type FixtureTestContext = {
     task: {
         meta: object;
@@ -71,9 +64,6 @@ type CompileSlotWaiter = {
     resolve: () => void;
 };
 
-const testRoot = path.dirname(fileURLToPath(import.meta.url));
-const compactTestFilePattern = /^(compile|runtime)\.(pass|fail)\.test\.ts$/;
-const fixtureMetadataKey = 'compactFixture';
 const maxConcurrentCompiles = 4;
 const compileResults = new Map<string, Promise<CompileResult>>();
 const fixtureStatuses = new Map<string, FixtureStatus>();
@@ -87,7 +77,9 @@ const selectedFixtures = orderExecutionFixtures(
 );
 
 if (selectedFixtures.length === 0) {
-    throw new Error(`No Compact test fixtures matched filters: ${filters.join(', ')}`);
+    throw new Error(
+        `No Compact test fixtures matched filters: ${filters.join(', ')}`,
+    );
 }
 
 afterAll(async () => {
@@ -95,7 +87,9 @@ afterAll(async () => {
 });
 
 describe('Compact test contracts', () => {
-    const runtimeFixtures = selectedFixtures.filter((item) => item.includeRuntime);
+    const runtimeFixtures = selectedFixtures.filter(
+        (item) => item.includeRuntime,
+    );
 
     for (const fixture of selectedFixtures) {
         test.concurrent(testName(fixture, 'compile'), async (context) => {
@@ -106,7 +100,11 @@ describe('Compact test contracts', () => {
 
     for (const fixture of runtimeFixtures) {
         test.concurrent(testName(fixture, 'runtime'), async (context) => {
-            const metadata = recordFixtureTestMetadata(context, fixture, 'runtime');
+            const metadata = recordFixtureTestMetadata(
+                context,
+                fixture,
+                'runtime',
+            );
 
             await runRuntimeTest(fixture, metadata);
         });
@@ -114,120 +112,28 @@ describe('Compact test contracts', () => {
 });
 
 /**
- * Discovers self-contained fixture files beneath the test package root.
- */
-async function discoverFixtures(rootDir: string) {
-    const testFiles = await findFixtureTestFiles(rootDir);
-    const byFixtureDir = new Map<string, TestFileRef[]>();
-
-    for (const filePath of testFiles) {
-        const parsed = parseFixtureTestFile(filePath);
-        const fixtureDir = path.dirname(filePath);
-        const files = byFixtureDir.get(fixtureDir) ?? [];
-
-        files.push(parsed);
-        byFixtureDir.set(fixtureDir, files);
-    }
-
-    return [...byFixtureDir.entries()]
-        .sort(([left], [right]) => left.localeCompare(right))
-        .map(([fixtureDir, files]) => buildDiscoveredFixture(fixtureDir, files));
-}
-
-/**
- * Walks the package tree and returns every compile/runtime fixture module.
- */
-async function findFixtureTestFiles(rootDir: string): Promise<string[]> {
-    const entries = await fs.readdir(rootDir, {
-        withFileTypes: true,
-    });
-    const files: string[] = [];
-
-    for (const entry of entries) {
-        if (
-            entry.name === '.build' ||
-            entry.name === '.compact-test-build' ||
-            entry.name === 'node_modules'
-        ) {
-            continue;
-        }
-
-        const entryPath = path.join(rootDir, entry.name);
-
-        if (entry.isDirectory()) {
-            files.push(...await findFixtureTestFiles(entryPath));
-            continue;
-        }
-
-        if (entry.isFile() && compactTestFilePattern.test(entry.name)) {
-            files.push(entryPath);
-        }
-    }
-
-    return files;
-}
-
-/**
- * Groups compile/runtime files into a single fixture record.
- */
-function buildDiscoveredFixture(
-    fixtureDir: string,
-    files: TestFileRef[],
-): DiscoveredFixture {
-    const compileFiles = files.filter((file) => file.phase === 'compile');
-    const runtimeFiles = files.filter((file) => file.phase === 'runtime');
-
-    if (compileFiles.length > 1) {
-        throw new Error(`${fixtureDir} has multiple compile test files`);
-    }
-
-    if (runtimeFiles.length > 1) {
-        throw new Error(`${fixtureDir} has multiple runtime test files`);
-    }
-
-    return {
-        fixtureDir,
-        relativeFixtureDir: path.relative(testRoot, fixtureDir),
-        compile: compileFiles[0],
-        runtime: runtimeFiles[0],
-    };
-}
-
-/**
- * Parses phase and expected result directly from a fixture test file name.
- */
-function parseFixtureTestFile(filePath: string): TestFileRef {
-    const match = compactTestFilePattern.exec(path.basename(filePath));
-
-    if (match === null) {
-        throw new Error(`Invalid Compact test file name: ${filePath}`);
-    }
-
-    return {
-        filePath,
-        phase: match[1] as TestPhase,
-        result: match[2] as TestResult,
-    };
-}
-
-/**
  * Applies CLI path filters while adding compile prerequisites for runtime cases.
  */
 function selectFixtures(
     fixtures: DiscoveredFixture[],
     selectedFilters: string[],
-): Array<DiscoveredFixture & {
-    includeRuntime: boolean;
-}> {
+): Array<
+    DiscoveredFixture & {
+        includeRuntime: boolean;
+    }
+> {
     return fixtures.flatMap((fixture) => {
-        const includeAll = selectedFilters.length === 0 ||
+        const includeAll =
+            selectedFilters.length === 0 ||
             matchesFilters(fixture.fixtureDir, selectedFilters);
-        const compileSelected = fixture.compile !== undefined &&
+        const compileSelected =
+            fixture.compile !== undefined &&
             matchesFilters(fixture.compile.filePath, selectedFilters);
-        const runtimeSelected = fixture.runtime !== undefined &&
+        const runtimeSelected =
+            fixture.runtime !== undefined &&
             matchesFilters(fixture.runtime.filePath, selectedFilters);
-        const includeRuntime = fixture.runtime !== undefined &&
-            (includeAll || runtimeSelected);
+        const includeRuntime =
+            fixture.runtime !== undefined && (includeAll || runtimeSelected);
         const includeFixture = includeAll || compileSelected || runtimeSelected;
 
         if (!includeFixture) {
@@ -246,10 +152,12 @@ function selectFixtures(
             );
         }
 
-        return [{
-            ...fixture,
-            includeRuntime,
-        }];
+        return [
+            {
+                ...fixture,
+                includeRuntime,
+            },
+        ];
     });
 }
 
@@ -257,21 +165,27 @@ function selectFixtures(
  * Loads compile metadata and resolves fixture-scoped contract/build paths.
  */
 async function prepareSelectedFixtures(
-    fixtures: Array<DiscoveredFixture & {
-        includeRuntime: boolean;
-    }>,
+    fixtures: Array<
+        DiscoveredFixture & {
+            includeRuntime: boolean;
+        }
+    >,
 ): Promise<SelectedFixture[]> {
-    return Promise.all(fixtures.map(async (fixture) => {
-        const contractPath = await findFixtureContract(fixture.fixtureDir);
-        const outputDir = fixtureOutputDir(fixture.fixtureDir);
+    return Promise.all(
+        fixtures.map(async (fixture) => {
+            const contractPath = await findFixtureContract(fixture.fixtureDir);
+            const outputDir = fixtureOutputDir(fixture.fixtureDir);
 
-        return {
-            ...fixture,
-            contractPath,
-            outputDir,
-            compileDefinition: await loadCompileDefinition(fixture.compile!.filePath),
-        };
-    }));
+            return {
+                ...fixture,
+                contractPath,
+                outputDir,
+                compileDefinition: await loadCompileDefinition(
+                    fixture.compile!.filePath,
+                ),
+            };
+        }),
+    );
 }
 
 /**
@@ -279,7 +193,8 @@ async function prepareSelectedFixtures(
  */
 function orderExecutionFixtures(fixtures: SelectedFixture[]) {
     return [...fixtures].sort((left, right) => {
-        const slowOrder = Number(isSlowFixture(left)) - Number(isSlowFixture(right));
+        const slowOrder =
+            Number(isSlowFixture(left)) - Number(isSlowFixture(right));
 
         return slowOrder === 0
             ? left.relativeFixtureDir.localeCompare(right.relativeFixtureDir)
@@ -288,28 +203,10 @@ function orderExecutionFixtures(fixtures: SelectedFixture[]) {
 }
 
 /**
- * Imports a compile fixture module, which should only export metadata.
- */
-async function loadCompileDefinition(filePath: string) {
-    const module = await import(pathToFileURL(filePath).href) as {
-        default?: unknown;
-    };
-    const definition = module.default;
-
-    if (!isCompileDefinition(definition)) {
-        throw new Error(
-            `${filePath} must export default defineCompileTest(import.meta.url, ...)`,
-        );
-    }
-
-    return definition;
-}
-
-/**
  * Imports a runtime fixture after generated artifacts exist.
  */
 async function loadRuntimeDefinition(filePath: string) {
-    const module = await import(pathToFileURL(filePath).href) as {
+    const module = (await import(pathToFileURL(filePath).href)) as {
         default?: unknown;
     };
     const definition = module.default;
@@ -354,10 +251,10 @@ async function runRuntimeTest(
     }
 
     let definition: RuntimeTestDefinition;
-    let Contract: CompactContractConstructor;
+    let generated: GeneratedContractModule;
 
     try {
-        Contract = await loadGeneratedContract(fixture);
+        generated = await loadGeneratedContract(fixture);
         definition = await loadRuntimeDefinition(fixture.runtime!.filePath);
     } catch (error) {
         markFixtureFailed(fixture);
@@ -367,13 +264,16 @@ async function runRuntimeTest(
     const runtimeStartedAt = performance.now();
 
     try {
-        await definition.run(Contract);
+        await definition.run(generated.Contract, generated.pureCircuits);
     } catch (error) {
         metadata.durationMs = performance.now() - runtimeStartedAt;
 
         if (definition.result === 'fail') {
             try {
-                assertExpectedRuntimeError(error, definition.options.expectedError);
+                assertExpectedRuntimeError(
+                    error,
+                    definition.options.expectedError,
+                );
             } catch (assertionError) {
                 markFixtureFailed(fixture);
                 throw assertionError;
@@ -397,13 +297,21 @@ async function runRuntimeTest(
 }
 
 /**
- * Imports the generated contract class after compilation has produced it.
+ * Imports the generated contract module after compilation has produced it.
+ *
+ * Both the `Contract` constructor and the `pureCircuits` record are handed to
+ * the runtime callback: a contract whose circuits are all pure exports an empty
+ * `Contract` surface, so a fixture covering pure circuits reads them straight
+ * off `pureCircuits` instead of instantiating the contract.
  */
-async function loadGeneratedContract(fixture: SelectedFixture) {
-    const module = await import(
+async function loadGeneratedContract(
+    fixture: SelectedFixture,
+): Promise<GeneratedContractModule> {
+    const module = (await import(
         pathToFileURL(path.join(fixture.outputDir, 'contract', 'index.js')).href
-    ) as {
+    )) as {
         Contract?: unknown;
+        pureCircuits?: unknown;
     };
 
     if (!isGeneratedContractConstructor(module.Contract)) {
@@ -412,13 +320,21 @@ async function loadGeneratedContract(fixture: SelectedFixture) {
         );
     }
 
-    return module.Contract;
+    return {
+        Contract: module.Contract,
+        // Codegen always emits the export, but a contract with no pure circuits
+        // is not worth failing the fixture over.
+        pureCircuits: (module.pureCircuits ??
+            {}) as GeneratedContractModule['pureCircuits'],
+    };
 }
 
 /**
  * Compiles a selected fixture once into its fixture-scoped output directory.
  */
-async function compileFixture(fixture: SelectedFixture): Promise<CompileResult> {
+async function compileFixture(
+    fixture: SelectedFixture,
+): Promise<CompileResult> {
     const cached = compileResults.get(fixture.fixtureDir);
 
     if (cached !== undefined) {
@@ -449,7 +365,12 @@ async function compileFixtureUncached(
             recursive: true,
         });
 
-        const result = await compileContract(fixture.contractPath, fixture.outputDir);
+        const result = await compileContract(
+            process.env.COMPACT_BINARY ?? 'compactc',
+            fixture.contractPath,
+            fixture.outputDir,
+            fixture.compileDefinition.options.compilerArgs ?? [],
+        );
 
         return {
             contractPath: fixture.contractPath,
@@ -498,7 +419,7 @@ function drainCompileSlotQueue() {
         return;
     }
 
-    for (let index = 0; index < compileSlotQueue.length;) {
+    for (let index = 0; index < compileSlotQueue.length; ) {
         const waiter = compileSlotQueue[index];
 
         if (waiter.exclusive) {
@@ -536,61 +457,6 @@ function releaseCompileSlot(exclusive: boolean) {
 }
 
 /**
- * Invokes the Compact compiler and captures stdout, stderr, and exit code.
- */
-function compileContract(
-    contractPath: string,
-    outputDir: string,
-): Promise<{
-    stderr: string;
-    stdout: string;
-    exitCode: number;
-}> {
-    return new Promise((resolve, reject) => {
-        const compilerPath = process.env.COMPACT_BINARY ?? 'compactc';
-        const child = spawn(
-            compilerPath,
-            compilerArgs(compilerPath, contractPath, outputDir),
-            {
-                stdio: ['ignore', 'pipe', 'pipe'],
-            },
-        );
-        let stdout = '';
-        let stderr = '';
-
-        child.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-        child.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-        child.on('error', (error) => {
-            reject(error);
-        });
-        child.on('close', (code) => {
-            resolve({
-                stdout,
-                stderr,
-                exitCode: code ?? 1,
-            });
-        });
-    });
-}
-
-/**
- * Builds argv for either the Nix `compactc` binary or a `compact` wrapper.
- */
-function compilerArgs(
-    compilerPath: string,
-    contractPath: string,
-    outputDir: string,
-) {
-    return path.basename(compilerPath) === 'compact'
-        ? ['compile', contractPath, outputDir]
-        : [contractPath, outputDir];
-}
-
-/**
  * Checks whether the compiler result matches the compile fixture expectation.
  */
 function assertExpectedCompileResult(
@@ -624,9 +490,14 @@ function assertExpectedCompileResult(
  */
 function assertExpectedCompileError(
     result: CompileResult,
-    expectedError: NonNullable<CompileTestDefinition['options']['expectedError']>,
+    expectedError: NonNullable<
+        CompileTestDefinition['options']['expectedError']
+    >,
 ) {
-    if (expectedError instanceof RegExp && expectedError.test(compilerOutput(result))) {
+    if (
+        expectedError instanceof RegExp &&
+        expectedError.test(compilerOutput(result))
+    ) {
         return;
     }
 
@@ -643,16 +514,16 @@ function assertExpectedCompileError(
  * Combines compiler output streams for diagnostic matching.
  */
 function compilerOutput(result: CompileResult) {
-    return [result.stdout, result.stderr]
-        .filter(Boolean)
-        .join('\n');
+    return [result.stdout, result.stderr].filter(Boolean).join('\n');
 }
 
 /**
  * Formats a compile-failure expectation for assertion error messages.
  */
 function describeExpectedCompileError(
-    expectedError: NonNullable<CompileTestDefinition['options']['expectedError']>,
+    expectedError: NonNullable<
+        CompileTestDefinition['options']['expectedError']
+    >,
 ) {
     return expectedError instanceof RegExp
         ? expectedError.toString()
@@ -670,7 +541,10 @@ function assertExpectedRuntimeError(
         return;
     }
 
-    if (expectedError instanceof RegExp && expectedError.test(errorMessage(error))) {
+    if (
+        expectedError instanceof RegExp &&
+        expectedError.test(errorMessage(error))
+    ) {
         return;
     }
 
@@ -687,7 +561,9 @@ function assertExpectedRuntimeError(
  * Formats a runtime-failure expectation for assertion error messages.
  */
 function describeExpectedError(
-    expectedError: NonNullable<RuntimeTestDefinition['options']['expectedError']>,
+    expectedError: NonNullable<
+        RuntimeTestDefinition['options']['expectedError']
+    >,
 ) {
     return expectedError instanceof RegExp
         ? expectedError.toString()
@@ -698,25 +574,7 @@ function describeExpectedError(
  * Normalizes unknown thrown values into strings for assertion messages.
  */
 function errorMessage(error: unknown) {
-    return error instanceof Error
-        ? error.message
-        : String(error);
-}
-
-/**
- * Resolves the single `.compact` source owned by a fixture directory.
- */
-async function findFixtureContract(fixtureDir: string) {
-    const entries = await fs.readdir(fixtureDir);
-    const contracts = entries.filter((entry) => entry.endsWith('.compact'));
-
-    if (contracts.length !== 1) {
-        throw new Error(
-            `${fixtureDir} must contain exactly one .compact contract, found ${contracts.length}`,
-        );
-    }
-
-    return path.join(fixtureDir, contracts[0]);
+    return error instanceof Error ? error.message : String(error);
 }
 
 /**
@@ -772,31 +630,29 @@ async function cleanupPassedFixtures() {
  * Checks whether this run should preserve passing fixture artifacts.
  */
 function keepArtifacts() {
-    return process.env.COMPACT_TEST_KEEP_ARTIFACTS === '1' ||
-        process.env.COMPACT_TEST_KEEP_ARTIFACTS === 'true';
-}
-
-/**
- * Builds the fixture-scoped output directory.
- */
-function fixtureOutputDir(fixtureDir: string) {
-    return path.join(fixtureDir, '.build');
+    return (
+        process.env.COMPACT_TEST_KEEP_ARTIFACTS === '1' ||
+        process.env.COMPACT_TEST_KEEP_ARTIFACTS === 'true'
+    );
 }
 
 /**
  * Checks whether a fixture is marked as expensive compiler coverage.
  */
 function isSlowFixture(fixture: Pick<DiscoveredFixture, 'relativeFixtureDir'>) {
-    return normalizePath(fixture.relativeFixtureDir).split('/').includes('slow');
+    return normalizePath(fixture.relativeFixtureDir)
+        .split('/')
+        .includes('slow');
 }
 
 /**
  * Builds the Vitest display name for a selected fixture phase.
  */
 function testName(fixture: SelectedFixture, phase: TestPhase) {
-    const result = phase === 'compile'
-        ? fixture.compileDefinition.result
-        : fixture.runtime!.result;
+    const result =
+        phase === 'compile'
+            ? fixture.compileDefinition.result
+            : fixture.runtime!.result;
 
     return `${fixture.relativeFixtureDir} ${phase} ${result}`;
 }
@@ -824,9 +680,10 @@ function fixtureTestMetadata(
     fixture: SelectedFixture,
     phase: TestPhase,
 ): FixtureTestMetadata {
-    const result = phase === 'compile'
-        ? fixture.compileDefinition.result
-        : fixture.runtime!.result;
+    const result =
+        phase === 'compile'
+            ? fixture.compileDefinition.result
+            : fixture.runtime!.result;
 
     return {
         filePath: `${fixture.relativeFixtureDir}/${phase}.${result}.test.ts`,
@@ -849,51 +706,21 @@ function filtersFromEnvironment() {
         throw new Error('COMPACT_TEST_FILTERS must be a JSON array');
     }
 
-    return parsed.filter((filter): filter is string => typeof filter === 'string');
-}
-
-/**
- * Checks whether a fixture path matches any CLI path filter.
- */
-function matchesFilters(targetPath: string, selectedFilters: string[]) {
-    const normalizedTarget = normalizePath(targetPath);
-    const relativeTarget = normalizePath(path.relative(testRoot, targetPath));
-
-    return selectedFilters.some((filter) => {
-        const normalizedFilter = normalizePath(filter);
-        const absoluteFilter = normalizePath(path.resolve(testRoot, filter));
-
-        return relativeTarget.includes(normalizedFilter) ||
-            normalizedTarget.includes(normalizedFilter) ||
-            normalizedTarget.includes(absoluteFilter);
-    });
-}
-
-/**
- * Normalizes path separators for stable substring matching.
- */
-function normalizePath(value: string) {
-    return value.split(path.sep).join('/');
-}
-
-/**
- * Narrows imported compile metadata.
- */
-function isCompileDefinition(value: unknown): value is CompileTestDefinition {
-    return typeof value === 'object' &&
-        value !== null &&
-        'kind' in value &&
-        value.kind === 'compact-compile-test';
+    return parsed.filter(
+        (filter): filter is string => typeof filter === 'string',
+    );
 }
 
 /**
  * Narrows imported runtime metadata.
  */
 function isRuntimeDefinition(value: unknown): value is RuntimeTestDefinition {
-    return typeof value === 'object' &&
+    return (
+        typeof value === 'object' &&
         value !== null &&
         'kind' in value &&
-        value.kind === 'compact-runtime-test';
+        value.kind === 'compact-runtime-test'
+    );
 }
 
 /**

@@ -56,7 +56,13 @@ export class SimpleWallet {
 
   public increment(): Ledger {
     const address = sampleContractAddress();
-    const ctx = createCircuitContext(address, '0'.repeat(64), this.contractState, this.privateState);
+    const ctx = createCircuitContext({
+      circuitId: 'increment',
+      contractAddress: address,
+      coinPublicKeyOrZswapState: '0'.repeat(64),
+      contractState: this.contractState,
+      privateState: this.privateState,
+    });
     const circuitResults = this.contract.impureCircuits.increment(ctx);
     return ledger(circuitResults.context.currentQueryContext.state);
   }

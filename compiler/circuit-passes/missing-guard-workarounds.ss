@@ -65,11 +65,20 @@
          (Single single test var-name))]
     [(= ,test (,var-name1 ,var-name2) (field->bytes ,src ,len ,ftype ,triv))
      (if (or (eqv? test 1)
-             (nanopass-case (Lflattened Field-Type) ftype
+             (strict-nanopass-case (Lflattened Field-Type) ftype
                [(field-native) (> len (field-bytes))]
-               [(field-base (curve-secp256k1)) #t]
-               [(field-scalar (curve-secp256k1)) #t]
-               [else #f]))
+               [(field-base ,ctype)
+                (strict-nanopass-case (Lflattened Curve-Type) ctype
+                  [(curve-curve25519) #t]
+                  [(curve-jubjub) (assert cannot-happen)]
+                  [(curve-secp256k1) #t]
+                  [(curve-secp256r1) #t])]
+               [(field-scalar ,ctype)
+                (strict-nanopass-case (Lflattened Curve-Type) ctype
+                  [(curve-curve25519) #t]
+                  [(curve-jubjub) (assert cannot-happen)]
+                  [(curve-secp256k1) #t]
+                  [(curve-secp256r1) #t])]))
          (list ir)
          (with-output-language (Lflattened Statement)
            (with-temp-ids (id-src var-name1) (q t1 t2)
@@ -98,12 +107,22 @@
              (lambda (triv2)
                (list `(= 1 ,var-name (< ,bits ,triv1 ,triv2))))))))]
     [(bytes->field ,src ,ftype ,len ,triv1 ,triv2)
-     (nanopass-case (Lflattened Field-Type) ftype
-       [(field-base (curve-secp256k1)) (list `(= 1 ,var-name ,ir))]
-       [(field-scalar (curve-secp256k1)) (list `(= 1 ,var-name ,ir))]
-       [(field-native) (guard (<= len (field-bytes))) (list `(= 1 ,var-name ,ir))]
-       [(field-native)
-        (with-output-language (Lflattened Statement)
+     (with-output-language (Lflattened Statement)
+       (strict-nanopass-case (Lflattened Field-Type) ftype
+         [(field-base ,ctype)
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (list `(= 1 ,var-name ,ir))]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (list `(= 1 ,var-name ,ir))]
+            [(curve-secp256r1) (list `(= 1 ,var-name ,ir))])]
+         [(field-scalar ,ctype)
+          (strict-nanopass-case (Lflattened Curve-Type) ctype
+            [(curve-curve25519) (list `(= 1 ,var-name ,ir))]
+            [(curve-jubjub) (assert cannot-happen)]
+            [(curve-secp256k1) (list `(= 1 ,var-name ,ir))]
+            [(curve-secp256r1) (list `(= 1 ,var-name ,ir))])]
+         [(field-native) (guard (<= len (field-bytes))) (list `(= 1 ,var-name ,ir))]
+         [(field-native)
           ;; 256^k is one more than the largest value that fits in k bytes,
           ;; i.e., k base-256 digits, and is the same as 2^(8k).  So this use
           ;; of div-and-mod produces a remainder r representing the value of
@@ -134,8 +153,7 @@
                         `(assert ,src ,t6 "bytes value is too big to fit in a field")
                         ;; when bytes->field would fail, provide it something innocuous
                         `(= 1 ,t7 (select ,t5 ,triv1 0))
-                        `(= 1 ,var-name (bytes->field ,src ,ftype ,len ,t7 ,triv2))))))))))]
-       [else (assert cannot-happen)])]
+                        `(= 1 ,var-name (bytes->field ,src ,ftype ,len ,t7 ,triv2)))))))))]))]
     [(vector->bytes ,triv ,triv* ...)
      (with-output-language (Lflattened Statement)
        (let f ([triv* (cons triv triv*)] [rtriv* '()])
