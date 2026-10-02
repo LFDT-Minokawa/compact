@@ -38693,6 +38693,81 @@ groups than for single tests.
      )
     )
 
+  ; a circuit is proved only when it has an on-chain effect; local operations are none, so a
+  ; circuit that only writes local state has no proof, like a witness-only circuit
+  (test-group
+    ((create-file "local-only-circuits.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger counter: Counter;"
+         "export local notes: Counter;"
+         "export circuit noteLocally(): [] {"
+         "  notes.increment(1);"
+         "}"
+         "export circuit noteBoth(): [] {"
+         "  notes.increment(1);"
+         "  counter.increment(1);"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/local-only-circuits/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"noteLocally\","
+         "      \"pure\": false,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    },"
+         "    {"
+         "      \"name\": \"noteBoth\","
+         "      \"pure\": false,"
+         "      \"proof\": true,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"counter\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ],"
+         "  \"local\": ["
+         "    {"
+         "      \"name\": \"notes\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
   (test-group
     ((create-file "nested-ledger-adt.compact"
        '(
@@ -97712,6 +97787,35 @@ groups than for single tests.
         "  runtime.registerHostInterface('midnight:capsule/keys@1.0.0', { secretKey: () => new Uint8Array(16) });"
         "  await expect(contract.circuits.reveal(r2.context))"
         "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; a local-only circuit gets no zkir and is not provable, but it runs and its local effect
+  ; shows; the circuit with an on-chain effect is proved as before
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger counter: Counter;"
+      "export local notes: Counter;"
+      "export circuit noteLocally(): [] {"
+      "  notes.increment(1);"
+      "}"
+      "export circuit noteBoth(): [] {"
+      "  notes.increment(1);"
+      "  counter.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a circuit without an on-chain effect is not proved', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect(Object.keys(contract.provableCircuits)).toEqual(['noteBoth']);"
+        "  expect(Object.keys(contract.impureCircuits).sort()).toEqual(['noteBoth', 'noteLocally']);"
+        "  const r1 = await contract.circuits.noteLocally(context);"
+        "  const r2 = await contract.circuits.noteBoth(r1.context);"
+        "  expect(contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state).notes).toEqual(2n);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).counter).toEqual(1n);"
         "});"
         ))
     )
