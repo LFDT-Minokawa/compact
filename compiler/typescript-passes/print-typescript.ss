@@ -166,6 +166,7 @@
       (XPelt-internal-circuit src internal-id arg* type stmt pure?)
       (XPelt-local-circuit src internal-id arg* type stmt external-name*)
       (XPelt-witness src internal-id arg* type external-name)
+      (XPelt-host src internal-id interface-id host-name arg* type)
       (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
       (XPelt-type-definition src type-name export-name tvar-name* type)
       (XPelt-public-ledger pl-array lconstructor external-names)
@@ -180,6 +181,8 @@
         [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-witness src internal-id arg* type external-name)
+         (format-internal-binding unique-global-name internal-id)]
+        [(XPelt-host src internal-id interface-id host-name arg* type)
          (format-internal-binding unique-global-name internal-id)]
         [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
          (format-internal-binding unique-global-name internal-id)]
@@ -206,6 +209,17 @@
     (define local-circuit-ht (make-eq-hashtable))
     (define (local-circuit-type function-name)
       (eq-hashtable-ref local-circuit-ht function-name #f))
+    ;; host function names, mapped to their result types; a host result crosses into the
+    ;; proof from a circuit exactly as a local result does
+    (define host-function-ht (make-eq-hashtable))
+    (define (host-function-type function-name)
+      (eq-hashtable-ref host-function-ht function-name #f))
+    ;; the result type of a call that pushes a private input at the call site: a local or
+    ;; host function called from a circuit; #f for every other call
+    (define (private-input-type function-name)
+      (and (not in-local-body?)
+           (or (local-circuit-type function-name)
+               (host-function-type function-name))))
     ;; field name to (path-index* . type), both stores, for foreach and snapshot emission
     (define field-layout-ht (make-eq-hashtable))
     (define (record-field-layouts! pl-array)
@@ -586,15 +600,15 @@
           q
           ")")))
 
-    ;; a function passed by name to map or fold is called through a lambda, and a local
-    ;; function called that way from a circuit crosses into the proof exactly as a direct
-    ;; call does, therefore the lambda pushes each result as a private input
+    ;; a function passed by name to map or fold is called through a lambda, and a local or
+    ;; host function called that way from a circuit crosses into the proof exactly as a
+    ;; direct call does, therefore the lambda pushes each result as a private input
     (define (function-reference-lambda src function-name fun)
       (let* ([args (format-internal-binding unique-local-name (make-temp-id src 'args))]
              [call-q (make-Qconcat fun "(..." args ")")])
         (make-Qconcat "(..." args ") =>" 2
           (cond
-            [(and (not in-local-body?) (local-circuit-type function-name)) =>
+            [(private-input-type function-name) =>
              (lambda (type) (wrap-private-input-push src type call-q))]
             [else call-q]))))
 
@@ -2088,6 +2102,8 @@
                (print-local-circuit src internal-id arg* stmt #f #f))]
             [(XPelt-witness src internal-id arg* type external-name)
              (print-external-witness src internal-id uname arg* type external-name)]
+            [(XPelt-host src internal-id interface-id host-name arg* type)
+             (print-host-function src internal-id uname interface-id host-name arg* type)]
             [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
              (print-external-circuit src internal-id native-entry uname arg* type external-name pure?)]
             [else (void)]))
@@ -2154,6 +2170,44 @@
                       2 "return " result ";"
                       0 "}"))))))
           (newline))
+
+        ;; a host function is resolved by the runtime, not supplied by the DApp, therefore the
+        ;; wrapper asks the runtime for the implementation by interface id and name; every
+        ;; result is recorded for the fold, and a caller in a circuit pushes it as a private
+        ;; input at the call site, since a caller in a local function must not
+        (define (print-host-function src internal-id uname interface-id host-name arg* type)
+          (with-local-unique-names
+            (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
+                  [descriptor-name? (type->maybe-descriptor-name type)]
+                  [what (format "host function ~a of ~a" host-name interface-id)])
+              (print-Q 2
+                (let ([q-formal* (map make-Qformal! arg*)])
+                  (apply make-Qconcat/src src
+                    (make-Qconcat
+                      (make-Qconcat/src (id-src internal-id) (format "~a" uname))
+                      "("
+                      (make-Qargs #f q-formal*)
+                      ")"
+                      0 "{")
+                    2 (format "const ~a = __compactRuntime.callHostFunction(context, '~a', '~a', [" result interface-id host-name)
+                    (apply (make-Qsep ",") q-formal*)
+                    "]);"
+                    (result-type-check src what type result
+                      (list
+                        2 "__compactRuntime.recordHostOutput(partialProofData, {"
+                        4 "value: " (if descriptor-name?
+                                        (format "~a.toValue(~a)" descriptor-name? result)
+                                        "[]")
+                          ","
+                        4 "alignment: " (if descriptor-name?
+                                            (format "~a.alignment()" descriptor-name?)
+                                            "[]")
+                        2 "});"
+                        2 "return "
+                        result
+                        ";"
+                        0 "}")))))
+              (newline))))
 
         (define (print-external-witness src internal-id uname arg* type external-name)
           (with-local-unique-names
@@ -2650,6 +2704,9 @@
     [(witness ,src ,function-name (,arg* ...) ,type)
      (let ([external-name (symbol->string (id-sym function-name))])
        (XPelt-witness src function-name arg* type external-name))]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (eq-hashtable-set! host-function-ht function-name type)
+     (XPelt-host src function-name interface-id host-name arg* type)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      (let ([external-name (symbol->string (id-sym function-name))])
        (Xpelt-native-circuit src function-name native-entry arg* type external-name (id-pure? function-name)))]
@@ -3268,7 +3325,7 @@
             "("
             (make-Qargs (id-pure? function-name) expr*)
             ")"))]
-       [(and (not in-local-body?) (local-circuit-type function-name)) =>
+       [(private-input-type function-name) =>
         (lambda (type)
           (parenthesize level (precedence call)
             (wrap-private-input-push src type

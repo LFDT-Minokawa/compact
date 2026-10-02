@@ -402,6 +402,8 @@
      (build-function 'circuit function-name arg* type)]
     [(witness ,src ,function-name (,arg* ...) ,type)
      (build-function 'witness function-name arg* type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (build-function 'host function-name arg* type)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (build-function 'local-circuit function-name arg* type)]
     [(public-ledger-declaration ,public-binding* ... ,lconstructor) (void)]

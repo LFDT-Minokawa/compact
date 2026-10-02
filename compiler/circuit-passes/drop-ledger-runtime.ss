@@ -36,9 +36,11 @@
         ...)])
   (Program-Element : Program-Element (ir) -> Program-Element ()
     [,export-tdefn (assert cannot-happen)]
-    ;; the circuit pipeline consumes a local function's results as private inputs,
-    ;; therefore the definition reduces to a witness-shaped declaration
+    ;; the circuit pipeline consumes a local function's or a host function's results as
+    ;; private inputs, therefore both reduce to witness-shaped declarations
     [(local-circuit ,src ,function-name (,[arg*] ...) ,[type] ,expr)
+     `(witness ,src ,function-name (,arg* ...) ,type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
      `(witness ,src ,function-name (,arg* ...) ,type)])
   (Expression : Expression (ir) -> Expression ()
     (definitions

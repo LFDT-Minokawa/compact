@@ -1016,6 +1016,9 @@
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
      (check-zkir-v3-curve type)
      (build-function 'witness #f function-name arg* type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
+     (check-zkir-v3-curve type)
+     (build-function 'host #f function-name arg* type)]
     [(local-circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "local function" -> type] ,expr)
      (check-zkir-v3-curve type)
      (build-function 'local-circuit #f function-name arg* type)]
@@ -1061,6 +1064,9 @@
   (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
      `(witness ,src ,function-name (,arg* ...) ,type)])
+  (Host-Declaration : Host-Declaration (ir) -> Host-Declaration ()
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
+     `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])
   (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
     [(export-typedef ,src ,type-name (,tvar-name* ...) ,[type])
      (if (public-adt? type)

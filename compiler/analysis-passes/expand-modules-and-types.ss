@@ -879,6 +879,8 @@
                    (handle-fun src 'native pelt exported? function-name type-param*)]
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'witness pelt exported? function-name type-param*)]
+                  [(host ,src ,exported? ,interface-id ,function-name (,arg* ...) ,type)
+                   (handle-fun src 'host pelt exported? function-name '())]
                   ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
                   ;; so its result reaches the caller's proof unconstrained, and the callee's module
                   ;; is unknown until run time so it cannot be inlined instead. The runtime stops the
@@ -1229,6 +1231,8 @@
      `(native ,src ,id ,native-entry (,arg* ...) ,type)]
     [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
      `(witness ,src ,id (,arg* ...) ,type)]
+    [(host ,src ,exported? ,interface-id ,function-name (,[arg*] ...) ,[type])
+     `(host ,src ,id ,interface-id ,function-name (,arg* ...) ,type)]
     [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type] ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
        (for-each

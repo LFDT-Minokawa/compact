@@ -71,6 +71,27 @@
         [(talias ,src ,nominal? ,type-name ,type)
          (unwrap-to-adt type)]
         [else type]))
+    ;; (interface-id . function-json) pairs to one JSON object per interface, in first-seen
+    ;; order, each listing its functions in declaration order
+    (define (group-host-functions tagged*)
+      (let loop ([tagged* tagged*] [interface* '()])
+        (if (null? tagged*)
+            (map (lambda (interface)
+                   (list
+                     (cons "interface" (car interface))
+                     (cons "functions" (list->vector (reverse (cdr interface))))))
+                 (reverse interface*))
+            (let ([interface-id (caar tagged*)] [function (cdar tagged*)])
+              (loop (cdr tagged*)
+                    (cond
+                      [(assoc interface-id interface*) =>
+                       (lambda (interface)
+                         (map (lambda (x)
+                                (if (eq? x interface)
+                                    (cons interface-id (cons function (cdr interface)))
+                                    x))
+                              interface*))]
+                      [else (cons (cons interface-id (list function)) interface*)]))))))
     (define (tcontract-tail contract-name elt-name* pure-dcl* type** type*)
       (list
         (cons "name" (symbol->string contract-name))
@@ -88,9 +109,10 @@
                  elt-name* pure-dcl* type** type*))))))
   (Program : Program (ir) -> * (json)
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
-     ;; the local section appears only for contracts with a local half, so contract-info
-     ;; is unchanged for everything else
-     (let ([local-field* (fold-right (lambda (pelt field*) (LedgerField pelt field* #t)) '() pelt*)])
+     ;; the local and host sections appear only for contracts with a local half or host
+     ;; requirements, so contract-info is unchanged for everything else
+     (let ([local-field* (fold-right (lambda (pelt field*) (LedgerField pelt field* #t)) '() pelt*)]
+           [host-interface* (group-host-functions (fold-right Host '() pelt*))])
      (append
       (list
        (cons
@@ -129,7 +151,29 @@
          (list->vector (fold-right (lambda (pelt field*) (LedgerField pelt field* #f)) '() pelt*))))
       (if (null? local-field*)
           '()
-          (list (cons "local" (list->vector local-field*))))))])
+          (list (cons "local" (list->vector local-field*))))
+      (if (null? host-interface*)
+          '()
+          (list (cons "host" (list->vector host-interface*))))))])
+  ;; the host functions the contract requires, one entry per declared function, tagged
+  ;; with its interface id; `group-host-functions` folds them into one entry per interface
+  (Host : Program-Element (ir host*) -> * (json)
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (cons
+       (cons
+         interface-id
+         (list
+           (cons
+             "name"
+             (symbol->string host-name))
+           (cons
+             "arguments"
+             (list->vector (map Argument arg*)))
+           (cons
+             "result type"
+             (Type type))))
+       host*)]
+    [else host*])
   (Witness : Program-Element (ir witness*) -> * (json)
     [(witness ,src ,function-name (,arg* ...) ,type)
      (cons

@@ -66,6 +66,12 @@ export interface PartialProofData {
    * unaffected.
    */
   localTranscript?: LocalTranscriptEntry[];
+  /**
+   * Every host function result of the call, in call order: the pinned nondeterminism a
+   * re-execution consumes instead of re-sampling. Absent until the first host call, so proof
+   * data built by older generated code is unaffected.
+   */
+  hostOutputs?: ocrt.AlignedValue[];
 }
 
 /**

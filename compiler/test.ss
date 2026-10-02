@@ -8100,40 +8100,57 @@ groups than for single tests.
   )
 )
 
-(run-tests reject-host-declarations
-  ; host blocks parse but do not yet compile, therefore the frontier error names the block
+(run-tests flatten-host-declarations
+  ; a host block becomes one declaration per signature, in place, inside modules too
   (test
     '(
       "witness w(): Field;"
-      "export host midnight:capsule/keys {"
+      "export host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "host midnight:capsule/zswap@1.0.0 {"
+      "  ownPublicKey(): Field;"
+      "  createZswapInput(coin: Field): [];"
+      "}"
+      "module M {"
+      "  export host midnight:capsule/keys@1.0.0 {"
+      "    secretKey(): Bytes<32>;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (witness #f w () () (tfield (field-native)))
+        (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (host #f "midnight:capsule/zswap@1.0.0" ownPublicKey () (tfield (field-native)))
+        (host #f "midnight:capsule/zswap@1.0.0" createZswapInput ([coin (tfield (field-native))]) (ttuple))
+        (module #f M ()
+          (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32)))))
+    )
+
+  ; the runtime resolves interfaces by id, so only the ids it implements are accepted,
+  ; version included
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.1 {"
       "  secretKey(): Bytes<32>;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "host blocks are not yet supported" ()))
+      irritants: '("testfile.compact line 1 char 1" "unknown host interface ~a: this compiler provides ~a" ("midnight:capsule/keys@1.0.1" "midnight:capsule/keys@1.0.0, midnight:capsule/zswap@1.0.0")))
     )
 
   (test
     '(
-      "module M {"
-      "  host midnight:capsule/keys {"
-      "    secretKey(): Bytes<32>;"
-      "  }"
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "  publicKey(): Bytes<32>;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 3" "host blocks are not yet supported" ()))
-    )
-
-  (test
-    '(
-      "witness w(): Field;"
-      )
-    (returns
-      (program
-        (witness #f w () () (tfield (field-native)))))
+      irritants: '("testfile.compact line 3 char 3" "host interface ~a has no function ~a: it provides ~a" ("midnight:capsule/keys@1.0.0" publicKey "secretKey")))
     )
 )
 
@@ -8148,6 +8165,49 @@ groups than for single tests.
     (returns
       (program ((f %f.0))
         (local-circuit %f.0 () (ttuple) (tuple))))
+    )
+
+  ; a host function binds like a witness: the id is the binding, the name within the
+  ; interface travels with it for the runtime
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (returns
+      (program ((f %f.0))
+        (host %secretKey.1 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (circuit %f.0 () (tbytes 32) (call (fref ((%secretKey.1)))))))
+    )
+
+  ; the direction document's vendor module: a module exports its host block
+  (test
+    '(
+      "module Keys {"
+      "  export host midnight:capsule/keys@1.0.0 {"
+      "    secretKey(): Bytes<32>;"
+      "  }"
+      "}"
+      "import Keys;"
+      "export circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (returns
+      (program ((f %f.0))
+        (host %secretKey.1 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (circuit %f.0 () (tbytes 32) (call (fref ((%secretKey.1)))))))
+    )
+
+  (test
+    '(
+      "export host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "cannot export ~s (~s) from the top level" (host secretKey)))
     )
 )
 
@@ -31447,6 +31507,20 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 35")))
     )
+
+  ; a host function is runtime-provided nondeterminism, therefore calling one makes a
+  ; circuit impure, as calling a witness does
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export pure circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (f "calls host function secretKey" "line 4 char 45")))
+    )
 )
 
 (run-tests reject-constructor-local-calls
@@ -31527,6 +31601,42 @@ groups than for single tests.
       "}"
       )
     (succeeds)
+    )
+
+  ; decision 4's other half: the capsule secret cannot exist before the address does, and
+  ; every other host value can be passed in, therefore the constructor calls no host
+  ; function, directly or through the circuits it calls
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "constructor() {"
+      "  owner = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "constructor cannot call host functions but ~a at ~a" ("calls host function secretKey" "line 6 char 11")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "circuit setup(): [] {"
+      "  owner = secretKey();"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 1" "constructor cannot call host functions but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls host function secretKey" "line 6 char 11")))
     )
 )
 
@@ -31785,6 +31895,86 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 13" "~a cannot call impure circuit ~a" ("the local constructor" bump)))
+    )
+
+  ; a local function may call a host function, and a circuit may too
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local k: Bytes<32>;"
+      "local refresh(): [] {"
+      "  k = secretKey();"
+      "}"
+      "export circuit go(): [] { refresh(); }"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 (Kernel)))
+        (public-ledger-declaration (constructor () (tuple)))
+        (local-ledger-declaration
+          (%k.1 (__compact_Cell (tbytes 32)))
+          (local-constructor (tuple)))
+        (host %secretKey.2 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (local-circuit %refresh.3 () (ttuple)
+          (seq
+            (public-ledger %k.1 (write (call %secretKey.2)))
+            (tuple)))
+        (circuit %go.4 () (ttuple) (seq (call %refresh.3) (tuple)))))
+    )
+
+  ; the local constructor runs with no host access in this iteration (plan §5)
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local k: Bytes<32>;"
+      "local constructor {"
+      "  k = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 7" "the local constructor cannot call host function ~a" (secretKey)))
+    )
+
+  ; localState() has no host access, therefore an exported local function calls no host
+  ; function, directly or through the local functions it calls (an implementation decision
+  ; to revisit)
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export local key(): Bytes<32> {"
+      "  return secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported local function ~a cannot call host functions but calls host function ~a at ~a" (key secretKey "line 5 char 10")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local inner(): Bytes<32> {"
+      "  return secretKey();"
+      "}"
+      "local middle(): Bytes<32> {"
+      "  return inner();"
+      "}"
+      "export local key(): Bytes<32> {"
+      "  return middle();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 1" "exported local function ~a cannot call host functions but calls (directly or indirectly) local function ~a, which calls host function ~a at ~a" (key inner secretKey "line 5 char 10")))
     )
 )
 
@@ -34604,6 +34794,35 @@ groups than for single tests.
     '(
       "export circuit foo(b: Boolean): [] {"
       "  return disclose(b) ? [] : assert(true, 'x');"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; a host result is witness data, therefore publishing it demands disclose
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "export circuit claim(): [] {"
+      "  owner = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 9" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function secretKey at line 2 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 9"))))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "export circuit claim(): [] {"
+      "  owner = disclose(secretKey());"
       "}"
       )
     (succeeds)
@@ -38404,6 +38623,80 @@ groups than for single tests.
          "        \"type-name\": \"Bytes\","
          "        \"length\": 32"
          "      }"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  ; the host section lists the interfaces the contract requires and the functions it
+  ; declares of each, which is what a resolution gate needs; it appears only when there are
+  ; any
+  (test-group
+    ((create-file "host-requirements.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "host midnight:capsule/keys@1.0.0 {"
+         "  secretKey(): Bytes<32>;"
+         "}"
+         "export ledger owner: Bytes<32>;"
+         "export circuit claim(): [] {"
+         "  owner = disclose(secretKey());"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/host-requirements/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"claim\","
+         "      \"pure\": false,"
+         "      \"proof\": true,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"witnesses\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"owner\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Cell\","
+         "      \"type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"midnight:capsule/keys@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"secretKey\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
          "    }"
          "  ]"
          "}"))
@@ -97375,6 +97668,86 @@ groups than for single tests.
         "  expect(folded.toString()).toEqual(r1.context.callContext.currentLocalQueryContext!.state.state.toString());"
         "  const r2 = await contract.circuits.publish(r1.context, a, b);"
         "  expect(r2.result).toEqual([true, false, true, true]);"
+        "});"
+        ))
+    )
+
+  ; host functions end to end: the runtime registry resolves the implementation (none is
+  ; built in for the keys interface, so the seam is named until one is registered), every
+  ; result is recorded, a circuit's call crosses into the proof as a private input while a
+  ; local function's does not, and the declared result type is checked at run time
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local notes: Set<Bytes<32>>;"
+      "export ledger commitments: Set<Bytes<32>>;"
+      "local mine(): Bytes<32> {"
+      "  return persistentHash<Bytes<32>>(secretKey());"
+      "}"
+      "export circuit commit(): [] {"
+      "  const k = secretKey();"
+      "  commitments.insert(disclose(persistentHash<Bytes<32>>(k)));"
+      "  notes.insert(mine());"
+      "}"
+      "export circuit reveal(): Bytes<32> {"
+      "  return disclose(secretKey());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('host functions resolve through the runtime registry and cross into the proof from circuits', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.reveal(context))"
+        "      .rejects.toThrow(/no implementation of host interface midnight:capsule\\/keys@1.0.0 is registered/);"
+        "  const key = new Uint8Array(32).fill(7);"
+        "  runtime.registerHostInterface('midnight:capsule/keys@1.0.0', { secretKey: () => key });"
+        "  const r1 = await contract.circuits.reveal(context);"
+        "  expect(r1.result).toEqual(key);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.commit(r1.context);"
+        "  const pd = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the circuit's own call and the local function's are both recorded, in call order"
+        "  expect(pd.hostOutputs).toHaveLength(2);"
+        "  expect(pd.hostOutputs![0]).toEqual(pd.hostOutputs![1]);"
+        "  // the circuit's host call, the local call's result, and the local op cross into the proof;"
+        "  // the local function's host call does not"
+        "  expect(pd.privateTranscriptOutputs).toHaveLength(3);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).commitments.size()).toEqual(1n);"
+        "  runtime.registerHostInterface('midnight:capsule/keys@1.0.0', { secretKey: () => new Uint8Array(16) });"
+        "  await expect(contract.circuits.reveal(r2.context))"
+        "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; the zswap interface is built into compact-runtime, so a contract declaring it gets the
+  ; wallet's coin operations with nothing supplied by the DApp; the standard library still
+  ; binds the same names as native witnesses, hence the selective import
+  (test
+    '(
+      "import { ZswapCoinPublicKey } from CompactStandardLibrary;"
+      "host midnight:capsule/zswap@1.0.0 {"
+      "  ownPublicKey(): ZswapCoinPublicKey;"
+      "}"
+      "export ledger owner: ZswapCoinPublicKey;"
+      "export circuit claim(): [] {"
+      "  owner = disclose(ownPublicKey());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the built-in zswap host interface answers from the context', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r = await contract.circuits.claim(context);"
+        "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd = r.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.hostOutputs).toHaveLength(1);"
+        "  expect(pd.privateTranscriptOutputs).toHaveLength(1);"
         "});"
         ))
     )

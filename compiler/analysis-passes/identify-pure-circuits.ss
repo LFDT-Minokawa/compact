@@ -17,9 +17,10 @@
 
 (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
   ; impure circuits are those that might touch public state, emit an event,
-  ; call any witnesses, or call any other impure circuits (including via
-  ; cross-contract calls).  pure circuits are those that are not impure.  we
-  ; presently assume that all native circuits are pure.
+  ; call any witnesses, local functions, or host functions, or call any other
+  ; impure circuits (including via cross-contract calls).  pure circuits are
+  ; those that are not impure.  we presently assume that all native circuits
+  ; are pure.
   (definitions
     (define-condition-type &impure-condition &condition
       make-impure-condition impure-condition?
@@ -28,6 +29,9 @@
       (reason impure-condition-reason))
     ; function-ht maps function names to one of:
     ;   witness:               a witness
+    ;   native-witness:        a native witness
+    ;   local-circuit:         a local function
+    ;   host:                  a host function
     ;   an Lnodca Expression:  a circuit that has yet to be processed
     ;   inprocess-circuit:     a circuit that is being processed; used to detect cycles
     ;   pure-circuit:          a processed circuit, determined pure
@@ -56,6 +60,9 @@
             [(eq? result 'local-circuit)
              (raise (make-impure-condition calling-function-name src
                       (format "calls local function ~s" (id-sym function-name))))]
+            [(eq? result 'host)
+             (raise (make-impure-condition calling-function-name src
+                      (format "calls host function ~s" (id-sym function-name))))]
             [(impure-condition? result) (raise-continuable result)]
             [(eq? result 'inprocess-circuit) (assert cannot-happen)] ; should have been caught by reject-recursive-circuits
             [else (assert cannot-happen)]))))
@@ -82,6 +89,8 @@
              'pure-circuit)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'witness)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (eq-hashtable-set! function-ht function-name 'host)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! function-ht function-name 'local-circuit)]
     [,kdecl (void)]

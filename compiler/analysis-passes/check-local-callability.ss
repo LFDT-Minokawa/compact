@@ -18,20 +18,23 @@
 ; NB: must come after identify-pure-circuits, which settles `id-pure?`.
 (define-pass check-local-callability : Lnodca (ir) -> Lnodca ()
   ; The callability matrix for local code: a local function calls local functions, pure
-  ; circuits, and local ADT operations, but nothing that reaches the public transcript or
-  ; the proof, therefore no witnesses, no impure circuits, no cross-contract calls, no
-  ; events, and no ledger writes; ledger reads (read and local-read classes, and for-of
-  ; iteration) are snapshot quotes, so a local function may perform them.  The local
+  ; circuits, host functions, and local ADT operations, but nothing that reaches the public
+  ; transcript or the proof, therefore no witnesses, no impure circuits, no cross-contract
+  ; calls, no events, and no ledger writes; ledger reads (read and local-read classes, and
+  ; for-of iteration) are snapshot quotes, so a local function may perform them.  The local
   ; constructor is a local function with no arguments, run as the prologue of the account's
-  ; first landed circuit call against that call's basis, therefore the same rules apply to it.
-  ; An exported local function is the DApp's read-only view of the capsule, therefore it
-  ; must not update local state, directly or through the local functions it calls; the
-  ; walk records each local function's local writes, ledger reads, and local calls, and the
-  ; closures are checked afterward.  The ledger-read closure also settles `id-reads-ledger?`,
-  ; which tells the TypeScript backend which exported local functions need a ledger state.
+  ; first landed circuit call against that call's basis, therefore the same rules apply to
+  ; it, but host calls stay out of it in this iteration (plan §5).  An exported local
+  ; function is the DApp's read-only view of the capsule, therefore it must not update
+  ; local state, and the DApp's accessor has no host access, therefore it must not call
+  ; host functions either, in both cases directly or through the local functions it calls
+  ; (the host rule is an implementation decision to revisit); the walk records each local
+  ; function's local writes, ledger reads, host calls, and local calls, and the closures
+  ; are checked afterward.  The ledger-read closure also settles `id-reads-ledger?`, which
+  ; tells the TypeScript backend which exported local functions need a ledger state.
   (definitions
-    ; function names to 'witness, 'native-witness, 'circuit, 'callable (pure natives), or
-    ; 'local-circuit
+    ; function names to 'witness, 'native-witness, 'circuit, 'callable (pure natives),
+    ; 'local-circuit, or 'host
     (define function-ht (make-eq-hashtable))
     ; ledger and local field names to their declared types, for resolving operation classes
     (define field-type-ht (make-eq-hashtable))
@@ -81,6 +84,7 @@
     ;; closure bookkeeping: ctx is 'circuit, 'local-constructor, or a local function's id,
     ;; so only an id context collects touches and edges
     (define write-ht (make-eq-hashtable))       ; local function -> (src . description)
+    (define host-ht (make-eq-hashtable))        ; local function -> (src . host function)
     (define read-ht (make-eq-hashtable))        ; local function -> #t
     (define edge-ht (make-eq-hashtable))        ; local function -> (callee ...)
     (define exported-local* '())
@@ -88,6 +92,11 @@
       (unless (symbol? ctx)
         (unless (eq-hashtable-ref write-ht ctx #f)
           (eq-hashtable-set! write-ht ctx (cons src description)))))
+    (define (record-host-call! ctx src function-name)
+      (if (eq? ctx 'local-constructor)
+          (source-errorf src "the local constructor cannot call host function ~a" (id-sym function-name))
+          (unless (eq-hashtable-ref host-ht ctx #f)
+            (eq-hashtable-set! host-ht ctx (cons src function-name)))))
     (define (record-ledger-read! ctx)
       (unless (symbol? ctx)
         (eq-hashtable-set! read-ht ctx #t)))
@@ -128,6 +137,17 @@
                 (source-errorf (id-src f)
                   "exported local function ~a cannot update local state but calls (directly or indirectly) local function ~a, which ~a at ~a"
                   (id-sym f) (id-sym g) (cdr touch) (format-source-object (car touch)))))]
+           [(eq-hashtable-ref host-ht f #f) =>
+            (lambda (touch)
+              (source-errorf (id-src f)
+                "exported local function ~a cannot call host functions but calls host function ~a at ~a"
+                (id-sym f) (id-sym (cdr touch)) (format-source-object (car touch))))]
+           [(find (lambda (g) (eq-hashtable-ref host-ht g #f)) (remq f (closure f))) =>
+            (lambda (g)
+              (let ([touch (eq-hashtable-ref host-ht g #f)])
+                (source-errorf (id-src f)
+                  "exported local function ~a cannot call host functions but calls (directly or indirectly) local function ~a, which calls host function ~a at ~a"
+                  (id-sym f) (id-sym g) (id-sym (cdr touch)) (format-source-object (car touch)))))]
            [else (void)]))
        (reverse exported-local*))
      ir])
@@ -140,6 +160,8 @@
        (set! exported-local* (cons function-name exported-local*)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'witness)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (eq-hashtable-set! function-ht function-name 'host)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name
        (if (eq? (native-entry-class native-entry) 'witness) 'native-witness 'callable))]
@@ -200,6 +222,7 @@
           (unless (id-pure? function-name)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
          [(local-circuit) (record-local-call! ctx function-name)]
+         [(host) (record-host-call! ctx src function-name)]
          [else (void)]))
      ir]
     [(contract-call ,src ,elt-name (,[expr] ,type) ,[expr*] ...)
@@ -223,5 +246,6 @@
           (unless (id-pure? function-name^)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]
          [(local-circuit) (record-local-call! ctx function-name^)]
+         [(host) (record-host-call! ctx src function-name^)]
          [else (void)]))
      ir]))

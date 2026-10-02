@@ -242,7 +242,10 @@
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
     [(witness ,src ,function-name (,[arg*] ...) ,[type])
      (maybe-register-descriptor! type)
-     `(witness ,src ,function-name (,arg* ...) ,type)])
+     `(witness ,src ,function-name (,arg* ...) ,type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
+     (maybe-register-descriptor! type)
+     `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])
   (Type : Type (ir) -> Type ()
     [(tadt ,src ,adt-name ([,adt-formal* ,[adt-arg*]] ...) ,vm-expr (,[adt-op* adt-name -> adt-op*] ...) (,[adt-rt-op*] ...))
      `(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])

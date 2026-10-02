@@ -24,6 +24,7 @@ export * from './constructor-context.js';
 export * from './circuit-context.js';
 export * from './proof-data.js';
 export * from './local-state.js';
+export * from './host.js';
 export * from './witness.js';
 export * from './utils.js';
 export * from './interface-descriptor.js';

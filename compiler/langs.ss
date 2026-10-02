@@ -23,7 +23,7 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code vm-code-runtime
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
-          Lnohost unparse-Lnohost Lnohost-pretty-formats
+          Lflathost unparse-Lflathost Lflathost-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -339,20 +339,17 @@
     (Include (incld)
       (- (include src file))))
 
-  ;; host blocks parse and format but do not yet compile, therefore
-  ;; `reject-host-declarations` subtracts them here
-  (define-language/pretty Lnohost (extends Lnoinclude)
-    (terminals
-      (- (string (prefix mesg opaque-type file interface-id)))
-      (+ (string (prefix mesg opaque-type file))))
-    (Program-Element (pelt)
-      (- hdecl))
+  ;; expansion and the passes after it bind functions one declaration at a time, therefore
+  ;; `flatten-host-declarations` splits a host block into one declaration per signature
+  (define-language/pretty Lflathost (extends Lnoinclude)
     (Host-Declaration (hdecl)
-      (- (host src exported? interface-id hsig* ...)))
+      (- (host src exported? interface-id hsig* ...))
+      (+ (host src exported? interface-id function-name (arg* ...) type) =>
+           (host exported? interface-id function-name (arg* 0 ...) 4 type)))
     (Host-Signature (hsig)
       (- (src function-name (arg* ...) type))))
 
-  (define-language/pretty Lsingleconst (extends Lnohost)
+  (define-language/pretty Lsingleconst (extends Lflathost)
     (Const-Binding (cbinding)
       (- (src pattern type expr)))
     (Statement (stmt)
@@ -452,9 +449,9 @@
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-         (string (prefix mesg opaque-type file)))
+         (string (prefix mesg opaque-type file interface-id)))
       (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
-         (string (prefix mesg opaque-type file discloses))
+         (string (prefix mesg opaque-type file discloses interface-id))
          (procedure (result-type runtime-code))
          (vm-expr (vm-expr))
          (vm-code (vm-code))
@@ -556,11 +553,11 @@
       (+ (len (len)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (boolean (exported sealed pure-dcl nominal))
-         (string (prefix mesg opaque-type file discloses)))
-      (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind))
+         (string (prefix mesg opaque-type file discloses interface-id)))
+      (+ (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name opaque-type-name ledger-op ledger-op-class adt-name adt-formal symbolic-function-name generic-kind host-name))
          (boolean (pure-dcl nominal))
          (id (name var-name function-name ledger-field-name))
-         (string (mesg opaque-type file discloses))))
+         (string (mesg opaque-type file discloses interface-id))))
     (Program (p)
       (- (program src pelt* ...))
       (+ (program src ((export-name* name*) ...) ((struct-name* type*) ...) (unused-pelt* ...) (ecdecl* ...) (cidecl* ...) pelt* ...)
@@ -624,6 +621,12 @@
       (- (witness src exported? function-name (type-param* ...) (arg* ...) type))
       (+ (witness src function-name (arg* ...) type) =>
            (witness function-name (arg* 0 ...) 4 type)))
+    ;; the id is the binding and host-name the function's name within its interface, which the
+    ;; runtime dispatches on
+    (Host-Declaration (hdecl)
+      (- (host src exported? interface-id function-name (arg* ...) type))
+      (+ (host src function-name interface-id host-name (arg* ...) type) =>
+           (host function-name interface-id host-name (arg* 0 ...) 4 type)))
     (Structure-Definition (structdef)
       (- (struct src exported? struct-name (type-param* ...) arg* ...)))
     (Enum-Definition (enumdef)
@@ -706,10 +709,10 @@
       (len (len))
       (bits (bits))
       (maybe-bits (mbits))
-      (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal))
+      (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal host-name))
       (boolean (pure-dcl nominal))
       (id (name var-name function-name ledger-field-name))
-      (string (mesg opaque-type file discloses sugar))
+      (string (mesg opaque-type file discloses sugar interface-id))
       (datum (datum))
       (source-object (src))
       (procedure (result-type runtime-code))
@@ -723,6 +726,7 @@
       cdefn
       ndecl
       wdecl
+      hdecl
       ldecl
       lconstructor
       export-tdefn)
@@ -737,6 +741,9 @@
     (Witness-Declaration (wdecl)
       (witness src function-name (arg* ...) type) =>
         (witness function-name (arg* 0 ...) 4 type))
+    (Host-Declaration (hdecl)
+      (host src function-name interface-id host-name (arg* ...) type) =>
+        (host function-name interface-id host-name (arg* 0 ...) 4 type))
     (Export-Type-Definition (export-tdefn)
       (export-typedef src type-name (tvar-name* ...) type) =>
         (export-typedef type-name (tvar-name* ...) #f type))
@@ -1035,20 +1042,26 @@
 
   (define-language/pretty Lposttypescript (extends Lloweredemit)
     (terminals
-      (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
+      (- (symbol (export-name contract-name struct-name enum-name type-name tvar-name elt-name ledger-op ledger-op-class adt-name adt-formal host-name)))
       (+ (symbol (export-name contract-name struct-name enum-name elt-name ledger-op ledger-op-class adt-name adt-formal)))
       (- (boolean (pure-dcl nominal)))
       (+ (boolean (pure-dcl)))
+      (- (string (mesg opaque-type file discloses sugar interface-id)))
+      (+ (string (mesg opaque-type file discloses sugar)))
       (- (procedure (result-type runtime-code))))
     (Program (p)
       (- (program src (contract-type* ...) ((export-name* name*) ...) pelt* ...))
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
-      (- export-tdefn))
+      (- export-tdefn
+         hdecl))
     (Export-Type-Definition (export-tdefn)
       (- (export-typedef src type-name (tvar-name* ...) type)))
-    ;; `drop-ledger-runtime` reduces local functions to witness-shaped declarations and
-    ;; drops the local package, therefore the circuit pipeline never sees the local forms.
+    ;; `drop-ledger-runtime` reduces local functions and host functions to witness-shaped
+    ;; declarations and drops the local package, therefore the circuit pipeline never sees
+    ;; the local forms or the host forms.
+    (Host-Declaration (hdecl)
+      (- (host src function-name interface-id host-name (arg* ...) type)))
     (Ledger-Declaration (ldecl)
       (- (local-ledger-declaration pl-array lconstructor)))
     (Ledger-Constructor (lconstructor)

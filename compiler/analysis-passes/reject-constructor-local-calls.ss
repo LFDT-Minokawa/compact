@@ -18,12 +18,15 @@
 (define-pass reject-constructor-local-calls : Lnodca (ir) -> Lnodca ()
   ; The deploy runs no capsule, therefore the constructor can run no local code: it may
   ; neither call a local function nor operate on a local field, directly or through the
-  ; circuits it calls.
+  ; circuits it calls.  The one host value a deploy would want is the capsule secret, which
+  ; cannot exist before the address does (plan §6.12), therefore the constructor cannot call
+  ; host functions either, by the same transitive rule.
   (definitions
     (define-condition-type &local-code-condition &condition
       make-local-code-condition local-code-condition?
       (function-name local-code-condition-function-name)
       (src local-code-condition-src)
+      (rule local-code-condition-rule)        ; "run local code" or "call host functions"
       (reason local-code-condition-reason))
     ; function-ht maps ids (circuit names) to one of:
     ;   an Lnodca Expression:  a circuit that has yet to be processed
@@ -31,7 +34,8 @@
     ;   #f:                    a processed circuit, determined not to run local code
     ;   a sealed condition:    a processed circuit, determined to run local code
     (define function-ht (make-eq-hashtable))
-    (define local-function-ht (make-eq-hashtable))
+    ; local and host function ids to the rule a call to them breaks
+    (define capsule-function-ht (make-eq-hashtable))
     (define (process-circuit! a)
       (let ([function-name (car a)] [maybe-expr (cdr a)])
         (when (Lnodca-Expression? maybe-expr)
@@ -41,15 +45,19 @@
             (Expression maybe-expr function-name)
             (set-cdr! a #f)))))
     (define (process-function-name! src function-name^ function-name)
-      (if (eq-hashtable-ref local-function-ht function-name^ #f)
-          (raise (make-local-code-condition function-name src
-                   (format "calls local function ~a" (id-sym function-name^))))
+      (cond
+        [(eq-hashtable-ref capsule-function-ht function-name^ #f) =>
+         (lambda (kind)
+           (raise (make-local-code-condition function-name src
+                    (if (eq? kind 'host) "call host functions" "run local code")
+                    (format "calls ~a function ~a" kind (id-sym function-name^)))))]
+        [else
           (let ([a (eq-hashtable-cell function-ht function-name^ #f)])
             (process-circuit! a)
             (let ([result (cdr a)])
               (assert (not (eq? result 'inprocess-circuit)))
               (when (local-code-condition? result)
-                (raise-continuable result))))))
+                (raise-continuable result))))]))
   )
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -60,7 +68,9 @@
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! function-ht function-name expr)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
-     (eq-hashtable-set! local-function-ht function-name #t)]
+     (eq-hashtable-set! capsule-function-ht function-name 'local)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (eq-hashtable-set! capsule-function-ht function-name 'host)]
     [else (void)])
   ;; only the constructor is checked; circuits are processed as the constructor reaches them
   (Program-Element : Program-Element (ir) -> Program-Element ()
@@ -74,10 +84,10 @@
          (when (local-code-condition? result)
            (let ([offending-function-name (local-code-condition-function-name result)])
              (if (eq? offending-function-name #f)
-                 (source-errorf src "constructor cannot run local code but ~a at ~a"
+                 (source-errorf src (string-append "constructor cannot " (local-code-condition-rule result) " but ~a at ~a")
                                 (local-code-condition-reason result)
                                 (format-source-object (local-code-condition-src result)))
-                 (source-errorf src "constructor cannot run local code but calls (directly or indirectly) ~a, which ~a at ~a"
+                 (source-errorf src (string-append "constructor cannot " (local-code-condition-rule result) " but calls (directly or indirectly) ~a, which ~a at ~a")
                                 (id-sym offending-function-name)
                                 (local-code-condition-reason result)
                                 (format-source-object (local-code-condition-src result))))))))
@@ -89,12 +99,12 @@
      ir]
     [(public-ledger ,src ,ledger-field-name ,sugar? ,[accessor*] ...)
      (when (id-local? ledger-field-name)
-       (raise (make-local-code-condition function-name src
+       (raise (make-local-code-condition function-name src "run local code"
                 (format "operates on local field ~a" (id-sym ledger-field-name)))))
      ir]
     [(foreach ,src ,var-name ,ledger-field-name ,type ,[expr])
      (when (id-local? ledger-field-name)
-       (raise (make-local-code-condition function-name src
+       (raise (make-local-code-condition function-name src "run local code"
                 (format "iterates local field ~a" (id-sym ledger-field-name)))))
      ir])
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())

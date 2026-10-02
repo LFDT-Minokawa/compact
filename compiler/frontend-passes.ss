@@ -24,11 +24,12 @@
           (langs)
           (parser)
           (ledger)
+          (host-interfaces)
           (pass-helpers))
 
   (include "frontend-passes/resolve-includes.ss")
 
-  (include "frontend-passes/reject-host-declarations.ss")
+  (include "frontend-passes/flatten-host-declarations.ss")
 
   (include "frontend-passes/expand-const.ss")
 
@@ -50,7 +51,7 @@
 
   (define-passes frontend-passes
     (resolve-includes                Lnoinclude)
-    (reject-host-declarations        Lnohost)
+    (flatten-host-declarations       Lflathost)
     (expand-const                    Lsingleconst)
     (expand-patterns                 Lnopattern)
     (reject-for-return               Lnopattern)
