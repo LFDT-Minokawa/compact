@@ -38,9 +38,13 @@ function drive(pure: PureCircuits, vector: EddsaVector): boolean {
         );
     }
 
-    // An s at or above the group order never reaches the circuit, and counts
-    // as a bad signature.
-    return vector.scalarInRange && circuit(vector.msg, vector.sig, vector.pk);
+    // The runtime refuses an s at or above the group order and an R outside the
+    // prime-order subgroup, so these count as bad signatures.
+    return (
+        vector.scalarInRange &&
+        vector.rInSubgroup &&
+        circuit(vector.msg, vector.sig, vector.pk)
+    );
 }
 
 /** How many vectors there are of each message length. */

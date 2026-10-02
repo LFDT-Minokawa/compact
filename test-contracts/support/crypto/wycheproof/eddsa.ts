@@ -81,6 +81,8 @@ export type EddsaVector = DrivenVector & {
     pk: Curve25519Point;
     /** False when s is not below the group order. */
     scalarInRange: boolean;
+    /** False when R is outside the prime-order subgroup. */
+    rInSubgroup: boolean;
 };
 
 /** Decodes a compressed point, or undefined if the bytes are not one. */
@@ -184,6 +186,7 @@ function classifyEddsa(suite: EddsaSuite): Classified<EddsaVector> {
                 sig,
                 pk,
                 scalarInRange: sig.s < ORDER,
+                rInSubgroup: ed25519.Point.fromAffine(sig.r).isTorsionFree(),
             });
         }
     }
