@@ -33,6 +33,7 @@
           (frontend-passes)
           (analysis-passes)
           (save-contract-info-passes)
+          (save-analyzed-ir-passes)
           (typescript-passes)
           (circuit-passes)
           (zkir-passes)
@@ -145,6 +146,10 @@
                         (with-target-ports
                           '((contract-info.json . "compiler/contract-info.json"))
                           (run-passes save-contract-info-passes analyzed-ir proof-circuit-name*))
+                        (when (write-analyzed-ir)
+                          (with-target-ports
+                            '((analyzed-ir.sexp . "compiler/analyzed-ir.sexp"))
+                            (run-passes save-analyzed-ir-passes analyzed-ir proof-circuit-name*)))
                         (with-target-ports
                           (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                proof-circuit-name*)
