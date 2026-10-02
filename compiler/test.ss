@@ -8101,16 +8101,17 @@ groups than for single tests.
 )
 
 (run-tests flatten-host-declarations
-  ; a host block becomes one declaration per signature, in place, inside modules too
+  ; a host block becomes one declaration per signature, in place, inside modules too; which
+  ; interfaces exist is the runtime's business, so any well-formed id passes
   (test
     '(
       "witness w(): Field;"
       "export host midnight:capsule/keys@1.0.0 {"
       "  secretKey(): Bytes<32>;"
       "}"
-      "host midnight:capsule/zswap@1.0.0 {"
-      "  ownPublicKey(): Field;"
-      "  createZswapInput(coin: Field): [];"
+      "host vendor:thing/api@2.0.0-rc.1 {"
+      "  thing(): Field;"
+      "  doThing(x: Field): [];"
       "}"
       "module M {"
       "  export host midnight:capsule/keys@1.0.0 {"
@@ -8122,35 +8123,10 @@ groups than for single tests.
       (program
         (witness #f w () () (tfield (field-native)))
         (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
-        (host #f "midnight:capsule/zswap@1.0.0" ownPublicKey () (tfield (field-native)))
-        (host #f "midnight:capsule/zswap@1.0.0" createZswapInput ([coin (tfield (field-native))]) (ttuple))
+        (host #f "vendor:thing/api@2.0.0-rc.1" thing () (tfield (field-native)))
+        (host #f "vendor:thing/api@2.0.0-rc.1" doThing ([x (tfield (field-native))]) (ttuple))
         (module #f M ()
           (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32)))))
-    )
-
-  ; the runtime resolves interfaces by id, so only the ids it implements are accepted,
-  ; version included
-  (test
-    '(
-      "host midnight:capsule/keys@1.0.1 {"
-      "  secretKey(): Bytes<32>;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "unknown host interface ~a: this compiler provides ~a" ("midnight:capsule/keys@1.0.1" "midnight:capsule/keys@1.0.0, midnight:capsule/zswap@1.0.0")))
-    )
-
-  (test
-    '(
-      "host midnight:capsule/keys@1.0.0 {"
-      "  secretKey(): Bytes<32>;"
-      "  publicKey(): Bytes<32>;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "host interface ~a has no function ~a: it provides ~a" ("midnight:capsule/keys@1.0.0" publicKey "secretKey")))
     )
 )
 
@@ -97720,6 +97696,47 @@ groups than for single tests.
         "  runtime.registerHostInterface('midnight:capsule/keys@1.0.0', { secretKey: () => new Uint8Array(16) });"
         "  await expect(contract.circuits.reveal(r2.context))"
         "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; the direction document's vendor module: any interface id compiles, and the registry
+  ; decides at call time whether an implementation exists
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "module identus_verification {"
+      "  export struct SignedDate {"
+      "    date: Uint<64>;"
+      "    issuer: Bytes<32>;"
+      "    signature: Bytes<64>;"
+      "  }"
+      "  export host identus:verification/age@1.2.0 {"
+      "    ageCredential(): SignedDate;"
+      "  }"
+      "}"
+      "import identus_verification;"
+      "export ledger issuers: Set<Bytes<32>>;"
+      "export circuit present(): Uint<64> {"
+      "  const credential = ageCredential();"
+      "  issuers.insert(disclose(credential.issuer));"
+      "  return disclose(credential.date);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a vendor-published host interface resolves through the registry', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  await expect(contract.circuits.present(context))"
+        "      .rejects.toThrow(/no implementation of host interface identus:verification\\/age@1.2.0 is registered/);"
+        "  const issuer = new Uint8Array(32).fill(9);"
+        "  runtime.registerHostInterface('identus:verification/age@1.2.0', {"
+        "    ageCredential: () => ({ date: 20010101n, issuer, signature: new Uint8Array(64).fill(1) }),"
+        "  });"
+        "  const r = await contract.circuits.present(context);"
+        "  expect(r.result).toEqual(20010101n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).issuers.member(issuer)).toEqual(true);"
+        "  expect(r.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
         "});"
         ))
     )

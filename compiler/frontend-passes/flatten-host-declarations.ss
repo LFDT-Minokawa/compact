@@ -17,32 +17,21 @@
 
 ;; a host block names an interface and declares the functions the contract requires of it;
 ;; expansion binds functions one declaration at a time, therefore each signature becomes a
-;; declaration of its own, carrying the interface id.  The interface and its functions must
-;; be ones the runtime provides, so an unknown id or function is rejected here, before any
-;; name is bound.
+;; declaration of its own, carrying the interface id.  Which interfaces exist is the
+;; runtime's business (its registry resolves an id when a function is called), so no id is
+;; rejected here.
 (define-pass flatten-host-declarations : Lnoinclude (ir) -> Lflathost ()
   (definitions
-    (define (format-names name*)
-      (format "~{~a~^, ~}" name*))
-    (define (check-interface! src interface-id)
-      (or (host-interface-functions interface-id)
-          (source-errorf src "unknown host interface ~a: this compiler provides ~a"
-            interface-id (format-names (host-interface-ids)))))
-    (define (check-function! src interface-id function-name provided*)
-      (unless (memq function-name provided*)
-        (source-errorf src "host interface ~a has no function ~a: it provides ~a"
-          interface-id function-name (format-names provided*))))
     (define (flatten-pelts pelt*)
       (fold-right
         (lambda (pelt pelt*)
           (nanopass-case (Lnoinclude Program-Element) pelt
             [(host ,src ,exported? ,interface-id ,hsig* ...)
-             (let ([provided* (check-interface! src interface-id)])
-               (fold-right
-                 (lambda (hsig pelt*)
-                   (cons (Host-Signature hsig exported? interface-id provided*) pelt*))
-                 pelt*
-                 hsig*))]
+             (fold-right
+               (lambda (hsig pelt*)
+                 (cons (Host-Signature hsig exported? interface-id) pelt*))
+               pelt*
+               hsig*)]
             [else (cons (Program-Element pelt) pelt*)]))
         '()
         pelt*)))
@@ -54,7 +43,6 @@
      `(module ,src ,exported? ,module-name (,type-param* ...) ,(flatten-pelts pelt*) ...)]
     ;; flatten-pelts takes every host block out of a program or module body
     [(host ,src ,exported? ,interface-id ,hsig* ...) (assert cannot-happen)])
-  (Host-Signature : Host-Signature (ir exported? interface-id provided*) -> Program-Element ()
+  (Host-Signature : Host-Signature (ir exported? interface-id) -> Program-Element ()
     [(,src ,function-name (,[arg*] ...) ,[type])
-     (check-function! src interface-id function-name provided*)
      `(host ,src ,exported? ,interface-id ,function-name (,arg* ...) ,type)]))

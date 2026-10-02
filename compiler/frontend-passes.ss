@@ -24,7 +24,6 @@
           (langs)
           (parser)
           (ledger)
-          (host-interfaces)
           (pass-helpers))
 
   (include "frontend-passes/resolve-includes.ss")

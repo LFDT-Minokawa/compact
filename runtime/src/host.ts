@@ -32,10 +32,10 @@ export type HostInterface = Readonly<Record<string, HostFunction>>;
 
 /**
  * A contract's `host` blocks name the runtime-provided functions it requires, and the DApp
- * supplies none of them: the runtime resolves each interface by id. This registry is that
- * resolution. It starts with the interfaces compact-runtime implements itself (the compiler's
- * `host-interfaces.ss` lists the same ids and function names), and {@link registerHostInterface}
- * is the seam through which a capsule runtime - or a test - supplies or replaces one.
+ * supplies none of them: the runtime resolves each interface by id when a function is called,
+ * so the compiler accepts any well-formed id. This registry is that resolution. It starts with
+ * the interfaces compact-runtime implements itself, and {@link registerHostInterface} is the
+ * seam through which a capsule runtime - or a test - supplies or replaces one.
  */
 const hostInterfaces = new Map<string, HostInterface>();
 
