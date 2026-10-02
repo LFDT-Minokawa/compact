@@ -97327,6 +97327,58 @@ groups than for single tests.
         ))
     )
 
+  ; the tree reads that run in JavaScript rehash the stored tree on every read, which is cheap
+  ; because the VM keeps a tree hashed; a cache for the rehash was measured and not built, and
+  ; this pins what one would have to keep: a read sees every earlier write in the same call,
+  ; on the local store and on the public one
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "export ledger published: MerkleTree<4, Bytes<8>>;"
+      "local noted(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [notes.findPathForLeaf(a).is_some, notes.findPathForLeaf(b).is_some];"
+      "}"
+      "local grow(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  notes.insert(a);"
+      "  const r1 = notes.root();"
+      "  const before = noted(a, b);"
+      "  notes.insert(b);"
+      "  const after = noted(a, b);"
+      "  return [before[0], before[1], after[0], after[1], r1.field != notes.root().field];"
+      "}"
+      "export circuit record(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  return disclose(grow(a, b));"
+      "}"
+      "local seen(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [published.findPathForLeaf(a).is_some, published.findPathForLeaf(b).is_some];"
+      "}"
+      "export circuit publish(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean] {"
+      "  published.insert(disclose(a));"
+      "  const before = seen(a, b);"
+      "  published.insert(disclose(b));"
+      "  const after = seen(a, b);"
+      "  return disclose([before[0], before[1], after[0], after[1]]);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('tree reads see every write to their store within one call', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const prior = context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r1 = await contract.circuits.record(context, a, b);"
+        "  expect(r1.result).toEqual([true, false, true, true, true]);"
+        "  const pd = r1.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const r2 = await contract.circuits.publish(r1.context, a, b);"
+        "  expect(r2.result).toEqual([true, false, true, true]);"
+        "});"
+        ))
+    )
+
   ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
   ; check rather than a proof, so the negative case is a false answer, not a fault
   (test
