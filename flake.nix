@@ -26,6 +26,7 @@
     zkir = {
       # zkir key-generation binary for ZKIR 2
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
@@ -37,16 +38,20 @@
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1"; # zkir-v3
+      inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-ledger/04c9c5d9bcebb8d4427d8589fb54d58a55599c14";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
 
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    # The release ships both zkir binaries for x86_64-darwin but nixpkgs-unstable dropped that
+    # platform, so they are built from 26.05, which supports it until the end of 2026.
+    nixpkgs-zkir.url = "github:NixOS/nixpkgs/nixpkgs-26.05-darwin";
     utils.url = "github:numtide/flake-utils";
     inclusive.url = "github:input-output-hk/nix-inclusive";
     npmlock2nix = {
@@ -192,7 +197,7 @@
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
               };
               "@midnightntwrk/zkir-v3" = let
-                pkg = zkir-v3-wasm.packages.${system}.zkir-v3-wasm;
+                pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
               in {
                 tarPath = "${pkg}/lib/midnight-zkir-v3-${pkg.version}.tgz";
                 libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v3";
@@ -212,7 +217,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.34.101"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.103"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -340,7 +345,7 @@
           # which is the name the compiler invokes.
           packages.zkir-v3-bin = pkgs.runCommand "zkir-v3-bin" {} ''
             mkdir -p $out/bin
-            ln -s ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/bin/zkir-v3
+            ln -s ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/bin/zkir-v3
           '';
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
@@ -358,7 +363,7 @@
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
               cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
-              cp ${zkir-v3.packages.${system}.zkir-v3}/bin/zkir $out/lib/zkir-v3
+              cp ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/lib/zkir-v3
 
               chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3

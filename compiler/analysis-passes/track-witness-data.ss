@@ -844,7 +844,7 @@
     ; define-pass doesn't realize above pattern covers let*
     [(let* ,src ([,local* ,[* abs*]] ...) ,expr) (assert cannot-happen)]
 
-    [(assert ,src ,[* abs] ,mesg) (Abs-atomic '())]
+    [(assert ,src ,[* abs] ,mesg) (Abs-multiple '())]
 
     [(cast-from-enum ,src ,type ,type^ ,[* abs]) abs]
     [(cast-to-enum ,src ,type ,type^ ,[* abs]) abs]

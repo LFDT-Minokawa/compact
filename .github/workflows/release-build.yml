@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       branch:
-        description: 'Release branch'
+        description: 'Branch, tag or commit to build'
         required: true
         type: string
       platform:
@@ -52,9 +52,11 @@ jobs:
       contents: read
     steps:
       - name: Set name of artifact
+        env:
+          TAG: ${{ inputs.tag }}
+          ARCH: ${{ inputs.architecture }}
         run: |
-          export ARTIFACT_NAME=compactc_${{ inputs.tag }}_${{ inputs.architecture }}
-          echo "ARTIFACT_NAME=$ARTIFACT_NAME" >> $GITHUB_ENV
+          echo "ARTIFACT_NAME=compactc_${TAG}_${ARCH}" >> "$GITHUB_ENV"
 
       - name: Checkout compactc repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -77,6 +79,16 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
 
+      - name: Record the release in the compiler version
+        env:
+          TAG: ${{ inputs.tag }}
+        run: |
+          EXPECTED="$(./scripts/stamp-compiler-version.sh \
+            "$TAG" \
+            "$(git rev-parse HEAD)" \
+            "$(git show -s --format=%cs HEAD)")"
+          echo "EXPECTED_COMPILER_VERSION=$EXPECTED" >> "$GITHUB_ENV"
+
       - name: Create binary for specific system
         run: |
           ${{ inputs.buildCommand }}
@@ -90,6 +102,22 @@ jobs:
           else
             zip --junk-paths ${{ env.ARTIFACT_NAME }}.zip result/**/**
           fi
+
+      - name: Check the built compiler reports the stamped version
+        run: |
+          # The stamp edits a tracked file after checkout and the build reads the
+          # working tree, so nothing else here proves the build picked it up -- every
+          # step would pass and ship an unstamped binary. Checked against the zip, so
+          # what is checked is what ships.
+          tmp="$(mktemp -d)"
+          unzip -q "${ARTIFACT_NAME}.zip" -d "$tmp"
+          chmod +x "$tmp"/* || true
+          got="$("$tmp/compactc" --version)"
+          if [ "$got" != "$EXPECTED_COMPILER_VERSION" ]; then
+            echo "::error::built compiler reports '$got', expected '$EXPECTED_COMPILER_VERSION'"
+            exit 1
+          fi
+          echo "compactc --version -> $got"
 
       - name: Upload release artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

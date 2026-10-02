@@ -1,0 +1,51 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// keccak256 accepts any ordinary Compact type, one circuit per kind.
+//
+// The test only checks the digest is 32 bytes, is the same every time, and
+// differs for different inputs. Encodings are in ../field_types.
+//
+// All the circuits are pure, so no feature flag is needed.
+
+struct Mixed { tag: Bytes<8>, count: Uint<64>, flag: Boolean }
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export circuit hashField(x: Field): Bytes<32> {
+    return disclose(keccak256<Field>(x));
+}
+
+export circuit hashBytes32(x: Bytes<32>): Bytes<32> {
+    return disclose(keccak256<Bytes<32>>(x));
+}
+
+export circuit hashBool(x: Boolean): Bytes<32> {
+    return disclose(keccak256<Boolean>(x));
+}
+
+export circuit hashUint(x: Uint<64>): Bytes<32> {
+    return disclose(keccak256<Uint<64>>(x));
+}
+
+export circuit hashVector(x: Vector<4, Field>): Bytes<32> {
+    return disclose(keccak256<Vector<4, Field>>(x));
+}
+
+export circuit hashStruct(x: Mixed): Bytes<32> {
+    return disclose(keccak256<Mixed>(x));
+}

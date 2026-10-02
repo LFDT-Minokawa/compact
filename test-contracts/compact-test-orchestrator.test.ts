@@ -25,6 +25,7 @@ import type {
     CompileTestDefinition,
     DiscoveredFixture,
     FixtureTestMetadata,
+    GeneratedContractModule,
     RuntimeTestDefinition,
     TestPhase,
 } from './types.ts';
@@ -250,10 +251,10 @@ async function runRuntimeTest(
     }
 
     let definition: RuntimeTestDefinition;
-    let Contract: CompactContractConstructor;
+    let generated: GeneratedContractModule;
 
     try {
-        Contract = await loadGeneratedContract(fixture);
+        generated = await loadGeneratedContract(fixture);
         definition = await loadRuntimeDefinition(fixture.runtime!.filePath);
     } catch (error) {
         markFixtureFailed(fixture);
@@ -263,7 +264,7 @@ async function runRuntimeTest(
     const runtimeStartedAt = performance.now();
 
     try {
-        await definition.run(Contract);
+        await definition.run(generated.Contract, generated.pureCircuits);
     } catch (error) {
         metadata.durationMs = performance.now() - runtimeStartedAt;
 
@@ -296,13 +297,21 @@ async function runRuntimeTest(
 }
 
 /**
- * Imports the generated contract class after compilation has produced it.
+ * Imports the generated contract module after compilation has produced it.
+ *
+ * Both the `Contract` constructor and the `pureCircuits` record are handed to
+ * the runtime callback: a contract whose circuits are all pure exports an empty
+ * `Contract` surface, so a fixture covering pure circuits reads them straight
+ * off `pureCircuits` instead of instantiating the contract.
  */
-async function loadGeneratedContract(fixture: SelectedFixture) {
+async function loadGeneratedContract(
+    fixture: SelectedFixture,
+): Promise<GeneratedContractModule> {
     const module = (await import(
         pathToFileURL(path.join(fixture.outputDir, 'contract', 'index.js')).href
     )) as {
         Contract?: unknown;
+        pureCircuits?: unknown;
     };
 
     if (!isGeneratedContractConstructor(module.Contract)) {
@@ -311,7 +320,13 @@ async function loadGeneratedContract(fixture: SelectedFixture) {
         );
     }
 
-    return module.Contract;
+    return {
+        Contract: module.Contract,
+        // Codegen always emits the export, but a contract with no pure circuits
+        // is not worth failing the fixture over.
+        pureCircuits: (module.pureCircuits ??
+            {}) as GeneratedContractModule['pureCircuits'],
+    };
 }
 
 /**

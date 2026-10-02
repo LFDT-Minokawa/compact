@@ -7,7 +7,8 @@
         "module": "esnext",
         "moduleResolution": "bundler",
         "paths": {
-            "@test/compact-test": ["./compact-test.ts"]
+            "@test/compact-test": ["./compact-test.ts"],
+            "@test/crypto": ["./support/crypto/index.ts"]
         },
         "strict": true,
         "target": "esnext",

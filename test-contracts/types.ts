@@ -73,11 +73,19 @@ export type CompileTestDefinition = {
 
 export type RuntimeTestDefinition<
     Contract extends CompactContractConstructor = CompactContractConstructor,
+    Pure = GeneratedPureCircuits,
 > = {
     kind: 'compact-runtime-test';
     result: TestResult;
     options: RuntimeTestOptions;
-    run: (Contract: Contract) => Promise<void> | void;
+    run: (Contract: Contract, pureCircuits: Pure) => Promise<void> | void;
+};
+
+export type GeneratedPureCircuits = Record<string, (...args: any[]) => any>;
+
+export type GeneratedContractModule = {
+    Contract: CompactContractConstructor;
+    pureCircuits: GeneratedPureCircuits;
 };
 
 export type CompactContract<PrivateState = any> = {

@@ -39,6 +39,15 @@ go-to-definition. Fixtures under a `slow/` path segment still run by default,
 but their compile work runs exclusively so expensive proving-key generation does
 not race other compiler jobs.
 
+## Shared Harness
+
+Helpers that several fixtures share live under `support/`, outside the fixture
+tree, and are imported through a path alias. The crypto fixtures use
+`@test/crypto` (`support/crypto/`) for hex conversion, the known-answer test
+driver, the `Bytes<N>` width sweep, and the vendored Wycheproof and
+ethereum/tests vectors; see `support/crypto/README.md`. A new alias needs an
+entry in both `vitest.config.ts` and the `paths` block of `tsconfig.json`.
+
 ## Compile Tests
 
 Compile tests export metadata through `defineCompileTest`:
@@ -87,6 +96,23 @@ export default defineRuntimeTest<typeof Contract>(
         const result = (await contract.circuits.bytes_slice_basic(ctx)).result;
 
         expect(Array.from(result)).toEqual([5]);
+    },
+);
+```
+
+The callback's second argument is the generated `pureCircuits` record. A
+contract whose circuits are all pure exposes nothing on the contract instance,
+so such a fixture reads them straight off `pureCircuits` and never calls
+`createTestContract`:
+
+```ts
+import type { Contract, PureCircuits } from './.build/contract/index.js';
+import { defineRuntimeTest } from '@test/compact-test';
+
+export default defineRuntimeTest<typeof Contract, PureCircuits>(
+    import.meta.url,
+    (_Contract, pure) => {
+        expect(pure.hashBytes32(input)).toEqual(digest);
     },
 );
 ```

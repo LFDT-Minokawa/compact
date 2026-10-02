@@ -38,6 +38,11 @@ class HeaderManager:
         self.excluded_files = self.config.get("excluded_files", [])
         self.header_template = self.config.get("header_template", "")
         self.company_name = "Midnight Foundation"
+        # Both notices are in the tree -- older files credit Midnight Foundation,
+        # newer ones the Minokawa project contributors -- so validation accepts
+        # either, but stamping still writes company_name.
+        self.company_pattern = "(?:" + "|".join(
+            map(re.escape, ("Midnight Foundation", "Minokawa project contributors"))) + ")"
         self.root_directory = directory
         self.processed_files = 0
         self.total_files = 0
@@ -96,9 +101,6 @@ class HeaderManager:
         regex_lines = []
 
         for line in template_lines:
-            escaped = re.escape(line)
-            escaped = escaped.replace(r"\[YEAR\]", r"\d{4}")
-            escaped = escaped.replace(r"\[COMPANY\]", re.escape(self.company_name))
 
             # Empty lines become just the prefix, non-empty lines have prefix + whitespace + content
             if line:
@@ -106,7 +108,7 @@ class HeaderManager:
                 line_stripped = line.lstrip()
                 escaped_stripped = re.escape(line_stripped)
                 escaped_stripped = escaped_stripped.replace(r"\[YEAR\]", r"\d{4}")
-                escaped_stripped = escaped_stripped.replace(r"\[COMPANY\]", re.escape(self.company_name))
+                escaped_stripped = escaped_stripped.replace(r"\[COMPANY\]", self.company_pattern)
                 # Match prefix + one or more whitespace + content (flexible whitespace)
                 regex_lines.append(re.escape(prefix) + r"\s+" + escaped_stripped)
             else:
