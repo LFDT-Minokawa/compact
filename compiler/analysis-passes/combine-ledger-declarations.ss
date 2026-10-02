@@ -38,6 +38,12 @@
     (define (local-ctor? lconstructor)
       (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
         [(local-constructor ,src ,expr) #t]
+        [else #f]))
+    ;; an exported local function is a method of the local store's accessor, therefore it
+    ;; needs the store to exist, if only as an empty package
+    (define (exported-local-function? pelt)
+      (nanopass-case (Lnotundeclared Program-Element) pelt
+        [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr) (id-exported? function-name)]
         [else #f])))
   (Program : Program (ir) -> Program ()
     [(program ,src (,[contract-type*] ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
@@ -81,7 +87,7 @@
                                   "found other ledger constructors in program: \
                                    ~{\n    ~a~^,~}"
                                   (map format-source-object (cdr src*))))]))
-            ,(if (and (null? local-ldecl*) (null? local-ctor*))
+            ,(if (and (null? local-ldecl*) (null? local-ctor*) (not (ormap exported-local-function? pelt*)))
                  '()
                  (list
                    `(local-ledger-declaration

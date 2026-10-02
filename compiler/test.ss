@@ -7938,15 +7938,16 @@ groups than for single tests.
 )
 
 (run-tests expand-modules-and-types
-  ; local functions are declarations, not exports
+  ; an exported local function is the DApp's read-only view, therefore it is kept and listed
+  ; among the exports like a circuit
   (test
     '(
       "export local f(): [] {"
       "}"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (local-circuit f)))
+    (returns
+      (program ((f %f.0))
+        (local-circuit %f.0 () (ttuple) (tuple))))
     )
 )
 
@@ -31478,6 +31479,75 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 3" "~a cannot update ledger field ~a" ("the local constructor" x)))
+    )
+
+  ; an exported local function is the DApp's read-only view: local writes are out, directly
+  ; or through the local functions it calls, while local reads, ledger reads, iteration, and
+  ; pure circuits are in
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "local credits: Counter;"
+      "local seen: Set<Uint<8>>;"
+      "pure circuit twice(n: Uint<64>): Uint<64> {"
+      "  return n * 2 as Uint<64>;"
+      "}"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.member(k) ? prices.lookup(k) : 0;"
+      "}"
+      "export local report(k: Uint<8>): Uint<64> {"
+      "  for (const v of seen) {"
+      "    assert(v >= 0, 'nope');"
+      "  }"
+      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
+      "}"
+      "export circuit tick(k: Uint<8>): [] {"
+      "  credits.increment(1);"
+      "  seen.insert(k);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export local bump(): Uint<64> {"
+      "  credits.increment(1);"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "exported local function ~a cannot update local state but ~a at ~a" (bump "updates local field credits" "line 4 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local touch(): [] {"
+      "  credits.resetToDefault();"
+      "}"
+      "local probe(): Uint<64> {"
+      "  touch();"
+      "  return credits.read();"
+      "}"
+      "export local peek(): Uint<64> {"
+      "  return probe();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 1" "exported local function ~a cannot update local state but calls (directly or indirectly) local function ~a, which ~a at ~a" (peek touch "updates local field credits" "line 4 char 3")))
     )
 
   (test
@@ -97444,6 +97514,139 @@ groups than for single tests.
         "  expect(locDec).toEqual(pubDec);"
         "  expect(pubIdx).not.toEqual('no error');"
         "  expect(locIdx).toEqual(pubIdx);"
+        "});"
+        ))
+    )
+
+  ; decision 7: an exported local function is a method of localState(); it stays an ordinary
+  ; local function for circuits, and one that reads the ledger (directly or through the local
+  ; functions it calls) runs only when the accessor is given a ledger state
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: MerkleTree<4, Bytes<8>>;"
+      "export local credits: Counter;"
+      "local seen: Set<Uint<8>>;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "pure circuit twice(n: Uint<64>): Uint<64> {"
+      "  return n * 2 as Uint<64>;"
+      "}"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.member(k) ? prices.lookup(k) : 0;"
+      "}"
+      "export local quote(k: Uint<8>): Uint<64> {"
+      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
+      "}"
+      "export local seenBefore(k: Uint<8>): Boolean {"
+      "  return seen.member(k);"
+      "}"
+      "export local noteProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return notes.findPathForLeaf(leaf);"
+      "}"
+      "export local registryProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return registry.findPathForLeaf(leaf);"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(leaf: Bytes<8>): [] {"
+      "  registry.insert(disclose(leaf));"
+      "}"
+      "export circuit tick(k: Uint<8>, leaf: Bytes<8>): [] {"
+      "  credits.increment(1);"
+      "  seen.insert(k);"
+      "  notes.insert(leaf);"
+      "}"
+      "export circuit check(k: Uint<8>): Uint<64> {"
+      "  return disclose(quote(k));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('exported local functions are methods of localState', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const leaf = new Uint8Array([7, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.register(r1.context, leaf);"
+        "  const r3 = await contract.circuits.tick(r2.context, 3n, leaf);"
+        "  const r4 = await contract.circuits.tick(r3.context, 5n, leaf);"
+        "  const local = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const ledger = r4.context.callContext.currentQueryContext.state;"
+        "  const L = contractCode.localState(local, ledger);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.quote(3n)).toEqual(14n);"
+        "  expect(L.quote(4n)).toEqual(4n);"
+        "  expect(L.seenBefore(5n)).toEqual(true);"
+        "  expect(L.seenBefore(6n)).toEqual(false);"
+        "  expect(L.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(new Uint8Array(8)).is_some).toEqual(false);"
+        "  // the same function is still an ordinary local function for circuits"
+        "  const r5 = await contract.circuits.check(r4.context, 3n);"
+        "  expect(r5.result).toEqual(14n);"
+        "  // before any call, the accessor answers from the declaration defaults"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState(), ledger);"
+        "  expect(L0.quote(3n)).toEqual(10n);"
+        "  // a function that reads the ledger refuses to run without a ledger state; one that"
+        "  // does not runs with the local state alone"
+        "  const Lno = (contractCode as any).localState(local);"
+        "  expect(Lno.seenBefore(3n)).toEqual(true);"
+        "  expect(Lno.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(() => Lno.quote(3n)).toThrow(/needs a ledger state/);"
+        "  expect(() => (L as any).quote(300n)).toThrow();"
+        "  expect(() => (L as any).seenBefore()).toThrow(/expected 1 argument/);"
+        "});"
+        ))
+    )
+
+  ; the ledger-state parameter is optional exactly when no exported local function reads the
+  ; ledger; the .d.ts is exercised by the type-checker, so the one-argument call must type
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "export local balance(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(): [] {"
+      "  total.increment(1);"
+      "  credits.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('no exported local function reads the ledger, so localState takes the local state alone', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r1 = await contract.circuits.tick(context);"
+        "  const L = contractCode.localState(r1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.balance()).toEqual(1n);"
+        "  expect(contractCode.localState(contractCode.initialLocalState()).balance()).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  ; a program with exported local functions but no local declarations still gets a local store,
+  ; empty, so the accessor and initialLocalState() exist
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "export local snapshotTotal(): Uint<64> {"
+      "  return total.read();"
+      "}"
+      "export circuit bump(): [] {"
+      "  total.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an exported local function with no local fields still has a store to hang on', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const r1 = await contract.circuits.bump(context);"
+        "  const L = contractCode.localState(contractCode.initialLocalState(), r1.context.callContext.currentQueryContext.state);"
+        "  expect(L.snapshotTotal()).toEqual(1n);"
         "});"
         ))
     )

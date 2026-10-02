@@ -24,6 +24,11 @@
   ; iteration) are snapshot quotes, so a local function may perform them.  The local
   ; constructor is a local function with no arguments, run as the prologue of the account's
   ; first landed circuit call against that call's basis, therefore the same rules apply to it.
+  ; An exported local function is the DApp's read-only view of the capsule, therefore it
+  ; must not update local state, directly or through the local functions it calls; the
+  ; walk records each local function's local writes, ledger reads, and local calls, and the
+  ; closures are checked afterward.  The ledger-read closure also settles `id-reads-ledger?`,
+  ; which tells the TypeScript backend which exported local functions need a ledger state.
   (definitions
     ; function names to 'witness, 'native-witness, 'circuit, 'callable (pure natives), or
     ; 'local-circuit
@@ -72,17 +77,67 @@
              [else #f])))
     (define (final-op-name accessor*)
       (nanopass-case (Lnodca Ledger-Accessor) (car (last-pair accessor*))
-        [(,src ,ledger-op ,expr* ...) ledger-op])))
+        [(,src ,ledger-op ,expr* ...) ledger-op]))
+    ;; closure bookkeeping: ctx is 'circuit, 'local-constructor, or a local function's id,
+    ;; so only an id context collects touches and edges
+    (define write-ht (make-eq-hashtable))       ; local function -> (src . description)
+    (define read-ht (make-eq-hashtable))        ; local function -> #t
+    (define edge-ht (make-eq-hashtable))        ; local function -> (callee ...)
+    (define exported-local* '())
+    (define (record-local-write! ctx src description)
+      (unless (symbol? ctx)
+        (unless (eq-hashtable-ref write-ht ctx #f)
+          (eq-hashtable-set! write-ht ctx (cons src description)))))
+    (define (record-ledger-read! ctx)
+      (unless (symbol? ctx)
+        (eq-hashtable-set! read-ht ctx #t)))
+    (define (record-local-call! ctx function-name)
+      (unless (symbol? ctx)
+        (eq-hashtable-set! edge-ht ctx (cons function-name (eq-hashtable-ref edge-ht ctx '())))))
+    ;; the local functions reachable from f through local calls, f included
+    (define (closure f)
+      (let loop ([pending (list f)] [seen '()])
+        (cond
+          [(null? pending) seen]
+          [(memq (car pending) seen) (loop (cdr pending) seen)]
+          [else
+           (loop (append (eq-hashtable-ref edge-ht (car pending) '()) (cdr pending))
+                 (cons (car pending) seen))]))))
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (for-each record-declaration! pelt*)
      (for-each Program-Element pelt*)
+     (let ([local* (vector->list (hashtable-keys function-ht))])
+       (for-each
+         (lambda (f)
+           (when (and (eq? (eq-hashtable-ref function-ht f #f) 'local-circuit)
+                      (ormap (lambda (g) (eq-hashtable-ref read-ht g #f)) (closure f)))
+             (id-reads-ledger?-set! f #t)))
+         local*))
+     (for-each
+       (lambda (f)
+         (cond
+           [(eq-hashtable-ref write-ht f #f) =>
+            (lambda (touch)
+              (source-errorf (id-src f)
+                "exported local function ~a cannot update local state but ~a at ~a"
+                (id-sym f) (cdr touch) (format-source-object (car touch))))]
+           [(find (lambda (g) (eq-hashtable-ref write-ht g #f)) (remq f (closure f))) =>
+            (lambda (g)
+              (let ([touch (eq-hashtable-ref write-ht g #f)])
+                (source-errorf (id-src f)
+                  "exported local function ~a cannot update local state but calls (directly or indirectly) local function ~a, which ~a at ~a"
+                  (id-sym f) (id-sym g) (cdr touch) (format-source-object (car touch)))))]
+           [else (void)]))
+       (reverse exported-local*))
      ir])
   (record-declaration! : Program-Element (ir) -> * (void)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (eq-hashtable-set! function-ht function-name 'circuit)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
-     (eq-hashtable-set! function-ht function-name 'local-circuit)]
+     (eq-hashtable-set! function-ht function-name 'local-circuit)
+     (when (id-exported? function-name)
+       (set! exported-local* (cons function-name exported-local*)))]
     [(witness ,src ,function-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'witness)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
@@ -120,15 +175,20 @@
           (when (class-memq? op-class '(local-read))
             (source-errorf src "~a is only callable from local functions"
               (final-op-name accessor*)))]
-         [(id-local? ledger-field-name) (void)]
-         [(class-memq? op-class '(read local-read)) (void)]
+         [(id-local? ledger-field-name)
+          (unless (class-memq? op-class '(read local-read))
+            (record-local-write! ctx src (format "updates local field ~a" (id-sym ledger-field-name))))]
+         [(class-memq? op-class '(read local-read)) (record-ledger-read! ctx)]
          [else
           (source-errorf src "~a cannot update ledger field ~a"
             (context-name ctx) (id-sym ledger-field-name))]))
      ir]
     [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
-     (when (eq? ctx 'circuit)
-       (source-errorf src "for-of iteration over a container is only available in local functions"))
+     (cond
+       [(eq? ctx 'circuit)
+        (source-errorf src "for-of iteration over a container is only available in local functions")]
+       [(id-local? ledger-field-name) (void)]
+       [else (record-ledger-read! ctx)])
      (Expression expr ctx)
      ir]
     [(call ,src ,function-name ,[expr*] ...)
@@ -139,6 +199,7 @@
          [(circuit)
           (unless (id-pure? function-name)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
+         [(local-circuit) (record-local-call! ctx function-name)]
          [else (void)]))
      ir]
     [(contract-call ,src ,elt-name (,[expr] ,type) ,[expr*] ...)
@@ -161,5 +222,6 @@
          [(circuit)
           (unless (id-pure? function-name^)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]
+         [(local-circuit) (record-local-call! ctx function-name^)]
          [else (void)]))
      ir]))

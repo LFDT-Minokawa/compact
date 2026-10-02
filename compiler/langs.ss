@@ -30,7 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
-          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-prefix
+          id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-reads-ledger? id-reads-ledger?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
           Lnotundeclared unparse-Lnotundeclared Lnotundeclared-pretty-formats Lnotundeclared-Ledger-Declaration? Lnotundeclared-Ledger-Constructor?
@@ -481,7 +481,7 @@
       (+ (curve-secp256r1)))
     )
 
-  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-prefix)
+  (module (id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-local? id-local?-set! id-reads-ledger? id-reads-ledger?-set! id-prefix)
     (define id-prefix (make-parameter "%"))
     (define id-counter (make-parameter 0))
     (define-record-type id
@@ -497,6 +497,7 @@
              id-pure? id-pure?-set!
              id-sealed? id-sealed?-set!
              id-local? id-local?-set!
+             id-reads-ledger? id-reads-ledger?-set!
              id-temp? id-temp?-set!)
       (define-syntax define-flag
         (syntax-rules ()
@@ -508,7 +509,10 @@
       (define-flag 1 id-sealed? id-sealed?-set!)
       (define-flag 2 id-pure? id-pure?-set!)
       (define-flag 3 id-temp? id-temp?-set!)
-      (define-flag 4 id-local? id-local?-set!))
+      (define-flag 4 id-local? id-local?-set!)
+      ;; a local function whose closure reads the ledger, therefore localState() runs it only
+      ;; when given a ledger state; settled by check-local-callability
+      (define-flag 5 id-reads-ledger? id-reads-ledger?-set!))
     (define (make-source-id src sym) (make-id src sym))
     (define (make-temp-id src sym)
       (let ([id (make-id src sym)])

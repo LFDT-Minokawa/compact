@@ -1104,7 +1104,7 @@
                      [(Info-functions name info-fun+)
                       (for-each
                         (lambda (info-fun)
-                          (unless (eq? (info-fun-kind info-fun) 'circuit)
+                          (unless (memq (info-fun-kind info-fun) '(circuit local-circuit))
                             (source-errorf src "cannot export ~s (~s) from the top level" (info-fun-kind info-fun) export-name))
                           (unless (null? (info-fun-type-param* info-fun))
                             (source-errorf src "cannot export type-parameterized function (~s) from the top level" export-name))

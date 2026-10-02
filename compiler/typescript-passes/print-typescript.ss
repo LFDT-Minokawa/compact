@@ -164,7 +164,7 @@
     (define-datatype XPelt
       (XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
       (XPelt-internal-circuit src internal-id arg* type stmt pure?)
-      (XPelt-local-circuit src internal-id arg* type stmt)
+      (XPelt-local-circuit src internal-id arg* type stmt external-name*)
       (XPelt-witness src internal-id arg* type external-name)
       (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
       (XPelt-type-definition src type-name export-name tvar-name* type)
@@ -177,7 +177,7 @@
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-internal-circuit src internal-id arg* type stmt pure?)
          (format-internal-binding unique-global-name internal-id)]
-        [(XPelt-local-circuit src internal-id arg* type stmt)
+        [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-witness src internal-id arg* type external-name)
          (format-internal-binding unique-global-name internal-id)]
@@ -687,7 +687,7 @@
            (newline)]
           [else (void)]))
 
-      (module (print-ledger-declaration print-local-state-declaration)
+      (module (print-ledger-declaration print-local-state-declaration print-local-function-declaration)
         (define (op-signature-Q adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
@@ -803,7 +803,8 @@
                  exported-public-binding?
                  (pl-array->public-bindings pl-array)))]
             [else (void)]))
-        ;; localState()'s type twin: the exported bindings of the local store
+        ;; localState()'s type twin: the exported bindings of the local store, then the
+        ;; exported local functions as methods
         (define (print-local-state-declaration xpelt uname)
           (XPelt-case xpelt
             [(XPelt-local-ledger pl-array ledger-constructor external-names)
@@ -812,6 +813,23 @@
                (filter
                  exported-public-binding?
                  (pl-array->public-bindings pl-array)))]
+            [else (void)]))
+        (define (print-local-function-declaration xpelt uname)
+          (XPelt-case xpelt
+            [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
+             (for-each
+               (lambda (external-name)
+                 (with-local-unique-names
+                   (print-Q 2
+                     (make-Qconcat
+                       external-name
+                       "("
+                       (apply (make-Qsep ",") (map Typed-Argument arg*))
+                       "): "
+                       (Type type)
+                       ";")))
+                 (newline))
+               external-name*)]
             [else (void)])))
 
       (define (print-exported-types xpelt*)
@@ -902,6 +920,13 @@
                       "): Promise<__compactRuntime.ConstructorResult<PS>>;"))
                   (newline))])]
             [else (loop (cdr xpelt*))])))
+      (define (exported-ledger-reader? xpelt*)
+        (ormap (lambda (xpelt)
+                 (XPelt-case xpelt
+                   [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
+                    (and (not (null? external-name*)) (id-reads-ledger? internal-id))]
+                   [else #f]))
+               xpelt*))
       (let ([local-ledger?
               (ormap (lambda (xpelt)
                        (XPelt-case xpelt
@@ -943,6 +968,7 @@
             (when local-ledger?
               (display-string "export type LocalState = {\n")
               (for-each print-local-state-declaration xpelt* uname*)
+              (for-each print-local-function-declaration xpelt* uname*)
               (display-string "}\n")
               (newline))
             (display-string "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {\n")
@@ -959,7 +985,11 @@
             (display-string "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;\n")
             (when local-ledger?
               (display-string "export declare function initialLocalState(): __compactRuntime.StateValue;\n")
-              (display-string "export declare function localState(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): LocalState;\n"))
+              ;; an exported local function that reads the ledger runs only against a ledger
+              ;; state, therefore the parameter is optional exactly when no exported local
+              ;; function does
+              (printf "export declare function localState(state: __compactRuntime.StateValue | __compactRuntime.ChargedState, ledgerState~a: __compactRuntime.StateValue | __compactRuntime.ChargedState): LocalState;\n"
+                (if (exported-ledger-reader? xpelt*) "" "?")))
             (display-string "export declare const pureCircuits: PureCircuits;\n")
             (display-string "export declare const expectedVk: Record<string, string>;\n")
             (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
@@ -1713,59 +1743,101 @@
                   (nanopass-case (Ltypescript ADT-Runtime-Op) adt-op
                     [(,ledger-op ((,var-name* ,type*) ...) ,result-type ,runtime-code)
                      (values var-name* type*)])))
+            ;; an exported local function is a method of localState(): the dummy contract runs
+            ;; it against the accessor's context, and one that reads the ledger refuses to run
+            ;; without a ledger state
+            (define (local-function-method-Q xpelt uname)
+              (XPelt-case xpelt
+                [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
+                 (map (lambda (external-name)
+                        (with-local-unique-names
+                          (let* ([var-name* (map arg->id arg*)]
+                                 [type* (map arg->type arg*)]
+                                 [formal* (map (lambda (var-name) (format-internal-binding unique-local-name var-name)) var-name*)]
+                                 [args (format-internal-binding unique-local-name (make-temp-id src 'args))]
+                                 [nargs (length var-name*)])
+                            (apply make-Qconcat/src src
+                              external-name
+                              (format "(...~a) {" args)
+                              2 (format "if (~a.length !== ~d) {" args nargs)
+                              4 (format "throw new __compactRuntime.CompactError(`~a: expected ~d argument~:*~p, received ${~a.length}`);" external-name nargs args)
+                              2 "}"
+                              (bind-args args formal*
+                                (argument-type-checks src external-name 0 var-name* type*
+                                  (append
+                                    (if (id-reads-ledger? internal-id)
+                                        (list
+                                          2 "if (context.callContext.currentQueryContext === undefined) {"
+                                          4 (format "throw new __compactRuntime.CompactError(`~a: reads the ledger, so localState needs a ledger state`);" external-name)
+                                          2 "}")
+                                        '())
+                                    (list
+                                      2 (format "return _dummyContract.~a(" uname)
+                                        (apply (make-Qsep ",") "context" "partialProofData" formal*)
+                                        ");"
+                                      0 "}"))))))))
+                      external-name*)]
+                [else '()]))
             ;; ledger() and localState() differ only in which query context the emitted ops
-            ;; run against, so one printer serves both stores
-            (define (print-state-accessor fn-name context-line pl-array external-names local?)
+            ;; run against, so one printer serves both stores; localState() also takes the
+            ;; ledger state its exported local functions may read, and carries them as methods
+            (define (print-state-accessor fn-name context-line pl-array external-names local? method-q*)
               (print-Q 0
-                 (make-Qconcat
-                   (format "export function ~a(stateOrChargedState) {" fn-name)
+                 (apply make-Qconcat
+                   (format "export function ~a(~a) {" fn-name
+                     (if local? "stateOrChargedState, ledgerStateOrChargedState" "stateOrChargedState"))
                    2 "const state = stateOrChargedState instanceof __compactRuntime.StateValue ? stateOrChargedState : stateOrChargedState.state;"
                    2 "const chargedState = stateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(stateOrChargedState) : stateOrChargedState;"
-                   2 "const context = {"
-                   4 context-line
-                   4 "costModel: __compactRuntime.CostModel.initialCostModel()"
-                   2 "};"
-                   2 "const partialProofData = {"
-                   4 "input: { value: [], alignment: [] },"
-                   4 "output: undefined,"
-                   4 "publicTranscript: [],"
-                   4 "privateTranscriptOutputs: []"
-                   2 "};"
-                   2 "return {"
-                   4 (apply (make-Qsep ",")
-                       (fold-right
-                         (lambda (binding q*)
-                           (nanopass-case (Ltypescript Public-Ledger-Binding) binding
-                             [(,src ,ledger-field-name (,path-index* ...) ,type)
-                              (nanopass-case (Ltypescript Type) (de-alias type)
-                                [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                                 (fold-right
-                                   (lambda (export-name q*)
-                                     (cons
-                                       (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
-                                              [read-op (has-read? all-op*)])
-                                         (if read-op
-                                             (make-Qconcat/src src
-                                                               "get "
-                                                               export-name
-                                                               "() {"
-                                                               2 (adt-op-body-Q src read-op path-index* '() adt-arg* local?)
-                                                               0 "}")
-                                             (make-Qconcat/src src
-                                                               export-name
-                                                               ": {"
-                                                               2 (ledger-field-Q src path-index* adt-arg* all-op* local?)
-                                                               0 "}")))
-                                       q*))
-                                   q*
-                                   (external-names ledger-field-name))]
-                                [else (assertf cannot-happen "expected adt type, received ~a" type)])]))
-                         '()
-                         (filter
-                           exported-public-binding?
-                           (pl-array->public-bindings pl-array))))
-                   2 "};"
-                   0 "}"))
+                   (append
+                     (if local?
+                         (list 2 "const ledgerChargedState = ledgerStateOrChargedState === undefined ? undefined : ledgerStateOrChargedState instanceof __compactRuntime.StateValue ? new __compactRuntime.ChargedState(ledgerStateOrChargedState) : ledgerStateOrChargedState;")
+                         '())
+                     (list
+                       2 "const context = {"
+                       4 context-line
+                       4 "costModel: __compactRuntime.CostModel.initialCostModel()"
+                       2 "};"
+                       2 "const partialProofData = {"
+                       4 "input: { value: [], alignment: [] },"
+                       4 "output: undefined,"
+                       4 "publicTranscript: [],"
+                       4 "privateTranscriptOutputs: []"
+                       2 "};"
+                       2 "return {"
+                       4 (apply (make-Qsep ",")
+                           (fold-right
+                             (lambda (binding q*)
+                               (nanopass-case (Ltypescript Public-Ledger-Binding) binding
+                                 [(,src ,ledger-field-name (,path-index* ...) ,type)
+                                  (nanopass-case (Ltypescript Type) (de-alias type)
+                                    [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                                     (fold-right
+                                       (lambda (export-name q*)
+                                         (cons
+                                           (let* ([all-op* (filter is-runtime-op? (append adt-op* adt-rt-op*))]
+                                                  [read-op (has-read? all-op*)])
+                                             (if read-op
+                                                 (make-Qconcat/src src
+                                                                   "get "
+                                                                   export-name
+                                                                   "() {"
+                                                                   2 (adt-op-body-Q src read-op path-index* '() adt-arg* local?)
+                                                                   0 "}")
+                                                 (make-Qconcat/src src
+                                                                   export-name
+                                                                   ": {"
+                                                                   2 (ledger-field-Q src path-index* adt-arg* all-op* local?)
+                                                                   0 "}")))
+                                           q*))
+                                       q*
+                                       (external-names ledger-field-name))]
+                                    [else (assertf cannot-happen "expected adt type, received ~a" type)])]))
+                             method-q*
+                             (filter
+                               exported-public-binding?
+                               (pl-array->public-bindings pl-array))))
+                       2 "};"
+                       0 "}"))))
               (newline))
             (let loop ([xpelt* xpelt0*])
               (assert (not (null? xpelt*)))
@@ -1773,15 +1845,16 @@
                 [(XPelt-public-ledger pl-array lconstructor external-names)
                  (print-state-accessor "ledger"
                    "callContext: { currentQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
-                   pl-array external-names #f)]
+                   pl-array external-names #f '())]
                 [else (loop (cdr xpelt*))]))
             (let loop ([xpelt* xpelt0*])
               (unless (null? xpelt*)
                 (XPelt-case (car xpelt*)
                   [(XPelt-local-ledger pl-array lconstructor external-names)
                    (print-state-accessor "localState"
-                     "callContext: { currentLocalQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
-                     pl-array external-names #t)]
+                     "callContext: { currentLocalQueryContext: new __compactRuntime.QueryContext(chargedState, __compactRuntime.dummyContractAddress()), currentQueryContext: ledgerChargedState === undefined ? undefined : new __compactRuntime.QueryContext(ledgerChargedState, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() },"
+                     pl-array external-names #t
+                     (apply append (map local-function-method-Q xpelt0* uname*)))]
                   [else (loop (cdr xpelt*))])))))
 
         (define (set-operations state xpelt* q*)
@@ -1992,7 +2065,7 @@
              (print-local-circuit src internal-id arg* stmt pure? (not pure?))]
             [(XPelt-internal-circuit src internal-id arg* type stmt pure?)
              (print-local-circuit src internal-id arg* stmt pure? (not pure?))]
-            [(XPelt-local-circuit src internal-id arg* type stmt)
+            [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
              ;; synchronous: a local function calls only local code and pure circuits
              (fluid-let ([in-local-body? #t])
                (print-local-circuit src internal-id arg* stmt #f #f))]
@@ -2573,7 +2646,8 @@
        (XPelt-type-definition src actual-type-name type-name tvar-name* type))]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,stmt)
      (eq-hashtable-set! local-circuit-ht function-name type)
-     (XPelt-local-circuit src function-name arg* type stmt)]
+     (XPelt-local-circuit src function-name arg* type stmt
+       (if (id-exported? function-name) (external-names function-name) '()))]
     [(public-ledger-declaration ,pl-array ,lconstructor)
      (record-field-layouts! pl-array)
      (XPelt-public-ledger pl-array lconstructor external-names)]
