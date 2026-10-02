@@ -20,25 +20,25 @@ import { generate, resolveContractCount } from '../fuzzer/fuzzers';
 
 const contractsDir: string = createTempFolder();
 
-generate(contractsDir, resolveContractCount(process.env.NO_OF_FUZZER_TESTS));
-const generatedContracts = fs.readdirSync(contractsDir);
+/* Each contract comes with the compiler flags its grammar needs. */
+const generatedContracts = generate(contractsDir, resolveContractCount(process.env.NO_OF_FUZZER_TESTS));
 const failDir = path.join(process.cwd(), 'failed-contracts');
 
 describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
     fs.rmSync(failDir, { recursive: true, force: true });
     fs.mkdirSync(failDir, { recursive: true });
 
-    generatedContracts.forEach((fileName) => {
-        const filePath = path.join(contractsDir, fileName);
+    generatedContracts.forEach(({ file, flags }) => {
+        const fileName = path.basename(file);
 
         test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
-            const contractContent = getFileContent(filePath);
+            const contractContent = getFileContent(file);
             const outputDir = createTempFolder();
 
             const failPath = path.join(failDir, fileName);
             fs.writeFileSync(failPath, contractContent);
 
-            const result = await compile([Arguments.SKIP_ZK, filePath, outputDir]);
+            const result = await compile([...flags, Arguments.SKIP_ZK, file, outputDir]);
             expectCompilerResult(result, {
                 contract: '',
                 ignoreStdOut: false,

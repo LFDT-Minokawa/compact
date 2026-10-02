@@ -23,17 +23,20 @@ export class Fuzzer {
     private readonly startNode: string;
     private readonly grammar: Grammar;
     private readonly limits: TerminalLimits;
+    private readonly label: string;
     private readonly MAX_DEPTH = 100;
 
     constructor(
         private readonly name: FuzzerName,
         private readonly outputDir: string,
         private readonly contractAmount: number,
-        options: { grammar?: Grammar; limits?: TerminalLimits } = {},
+        options: { grammar?: Grammar; limits?: TerminalLimits; label?: string } = {},
     ) {
         this.startNode = ENTRY_POINTS[name];
         this.grammar = options.grammar ?? grammar;
         this.limits = options.limits ?? TERMINAL_LIMITS;
+        /* Names the output files. Two runs of one fuzzer need different labels. */
+        this.label = options.label ?? name;
     }
 
     #generate(node: string, depth = 0): string {
@@ -60,12 +63,12 @@ export class Fuzzer {
 
         const written: string[] = [];
         for (let i = 0; i < this.contractAmount; i++) {
-            const filePath = path.join(this.outputDir, `${this.name}_contract_${i}.compact`);
+            const filePath = path.join(this.outputDir, `${this.label}_contract_${i}.compact`);
             fs.writeFileSync(filePath, this.generate());
             written.push(filePath);
         }
 
-        console.log(`generated ${written.length} contracts for '${this.name}' in ${this.outputDir}`);
+        console.log(`generated ${written.length} contracts for '${this.label}' in ${this.outputDir}`);
         return written;
     }
 }

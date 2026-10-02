@@ -13,9 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ENTRY_POINTS, TERMINALS, grammar, validate, validateCategories, type FuzzerName } from '../fuzzer/grammar';
+import {
+    ENTRY_POINTS,
+    TERMINALS,
+    buildGrammar,
+    grammar,
+    validate,
+    validateCategories,
+    type Feature,
+    type FuzzerName,
+    type Terminal,
+} from '../fuzzer/grammar';
 import { DEFAULT_CONTRACTS_PER_FUZZER, MAX_CONTRACTS_PER_FUZZER, resolveContractCount } from '../fuzzer/fuzzers';
 import { Fuzzer } from '../fuzzer/utils/fuzzer';
+import { TERMINAL_GENERATORS, TERMINAL_LIMITS } from '../fuzzer/utils/generators';
 import type { Grammar } from '../fuzzer/grammar/types';
 
 const fuzzerNames = Object.keys(ENTRY_POINTS) as FuzzerName[];
@@ -103,4 +114,64 @@ describe('[UNIT] fuzzer contract count', () => {
     ])('%s falls back to the default', (_label, raw) => {
         expect(resolveContractCount(raw)).toBe(DEFAULT_CONTRACTS_PER_FUZZER);
     });
+});
+
+/* The bounds are the compiler's own, from compiler/langs.ss, so a generator that drifts past them fails here. */
+describe('[UNIT] fuzzer type sizes stay inside the compiler limits', () => {
+    test.each([
+        ['uint_width', 0n, 248n],
+        ['uint_bound', 1n, 2n ** 248n],
+        ['vector_length', 0n, 2n ** 24n],
+        ['bytes_length', 0n, 2n ** 24n],
+        ['merkle_depth', 2n, 32n],
+    ] as [Terminal, bigint, bigint][])('%s is always an integer from %s to %s', (terminal, min, max) => {
+        const draws = Array.from({ length: 5000 }, () => TERMINAL_GENERATORS[terminal](TERMINAL_LIMITS));
+        const illegal = draws.filter((draw) => {
+            try {
+                const value = BigInt(draw);
+                return value < min || value > max;
+            } catch {
+                return true;
+            }
+        });
+        expect(illegal).toEqual([]);
+    });
+});
+
+/* A call that needs a flag is written only by the grammar built for that flag. */
+describe('[UNIT] fuzzer feature-gated calls', () => {
+    const writes = (features: Feature[], name: string): boolean => {
+        const table = buildGrammar(features);
+        return [...table.variable_statement_methods, ...table.no_variable_statement_methods].some(
+            (alternative) => Array.isArray(alternative) && alternative[0] === name,
+        );
+    };
+
+    test.each([
+        'sha512',
+        'neg',
+        'inv',
+        'secp256k1PointX',
+        'secp256k1PointY',
+        'secp256r1PointX',
+        'secp256r1PointY',
+        'curve25519PointX',
+        'curve25519PointY',
+        'secp256k1EcdsaVerify',
+        'secp256k1EthereumAddress',
+        'secp256r1EcdsaVerify',
+        'ed25519Verify',
+    ])('%s is written only when zkir-v3 is on', (name) => {
+        expect(writes([], name)).toBe(false);
+        expect(writes(['zkir-v3'], name)).toBe(true);
+    });
+
+    /* keccak256 is in scope without the flag, so the plain grammar keeps it as a rejected case. */
+    test.each(['keccak256', 'ecNeg', 'jubjubPointX', 'jubjubPointY', 'constructJubjubPoint', 'jubjubSchnorrVerify'])(
+        '%s is written with or without zkir-v3',
+        (name) => {
+            expect(writes([], name)).toBe(true);
+            expect(writes(['zkir-v3'], name)).toBe(true);
+        },
+    );
 });
