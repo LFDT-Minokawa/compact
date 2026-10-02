@@ -26,6 +26,16 @@ export const createLocalQueryContext = (localState: ocrt.StateValue): ocrt.Query
   new ocrt.QueryContext(new ocrt.ChargedState(localState), ocrt.dummyContractAddress());
 
 /**
+ * The local state of every contract in the call tree that keeps one, by address, as the
+ * `StateValue`s an application compares a fold of the call's records against. A plain view of
+ * {@link CircuitContext.localQueryContexts}, which holds the VM contexts the call ran against.
+ */
+export const localStates = (circuitContext: CircuitContext): Record<ocrt.ContractAddress, ocrt.StateValue> =>
+  Object.fromEntries(
+    Object.entries(circuitContext.localQueryContexts).map(([address, queryContext]) => [address, queryContext.state.state]),
+  );
+
+/**
  * Runs a program (query) against the current local state in the given circuit context. Records the
  * ops, `popeq` results filled and offset-tagged, in the given partial proof data's local
  * transcript.
@@ -51,6 +61,14 @@ export const queryLocalState = (
   try {
     const res = localQueryContext.query(program, circuitContext.costModel);
     circuitContext.callContext.currentLocalQueryContext = res.context;
+    // The query returns a fresh context, therefore the per-address cell is re-pointed with the live
+    // one, as `queryLedgerState` does; a cross-contract return reads the callee's state from the
+    // map. Only in a real circuit context: the `localState()` accessor and `initialLocalState()`
+    // run against a synthetic one with no address and no maps.
+    const liveAddress = circuitContext.callContext.contractAddress;
+    if (liveAddress !== undefined && circuitContext.localQueryContexts !== undefined) {
+      circuitContext.localQueryContexts[liveAddress] = res.context;
+    }
 
     const reads = res.events.filter((e) => e.tag === 'read');
     let i = 0;

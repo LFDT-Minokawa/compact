@@ -129,7 +129,7 @@ export const startContract = async <
     contractState: constructorResult.currentContractState,
     privateState: constructorResult.currentPrivateState,
     // a fresh capsule holds the declaration defaults; the join constructor runs at the first call
-    localState: (module as any).initialLocalState?.(),
+    localState: module.initialLocalState?.(),
   });
 
   const wrappedImpureCircuits = {} as C['impureCircuits'];

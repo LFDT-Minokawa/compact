@@ -31,6 +31,25 @@ export type HostFunction = (context: CircuitContext, ...args: any[]) => any;
 export type HostInterface = Readonly<Record<string, HostFunction>>;
 
 /**
+ * What a contract's `host` blocks require of its environment: the function names declared of
+ * each interface id, as the generated module exports them (`hostInterfaces`) and contract-info
+ * lists them. Only functions a circuit can reach are listed, so this is what a run can call, not
+ * what the source mentions.
+ */
+export type HostInterfaceRequirements = Readonly<Record<string, readonly string[]>>;
+
+/**
+ * One interface a requirement names that the registry does not satisfy: `missing` is every
+ * required function with no implementation, which is all of them when nothing is `registered`
+ * under the id.
+ */
+export type HostInterfaceGap = {
+  readonly interfaceId: string;
+  readonly registered: boolean;
+  readonly missing: readonly string[];
+};
+
+/**
  * A contract's `host` blocks name the runtime-provided functions it requires, and the DApp
  * supplies none of them: the runtime resolves each interface by id when a function is called,
  * so the compiler accepts any well-formed id. This registry is that resolution. It starts with
@@ -65,6 +84,26 @@ export const hostFunction = (interfaceId: string, name: string): HostFunction =>
     throw new CompactError(`the implementation of host interface ${interfaceId} has no function ${name}`);
   }
   return fn;
+};
+
+/**
+ * The requirements the registry does not meet, in the requirements' order. A module's
+ * requirements and the registry are both known before anything runs, therefore a gap is a
+ * property of the (module, environment) pair and not of a call: a cross-contract call checks
+ * this at resolution rather than failing at the first host call on some path, and an application
+ * can check its own root module, which has no resolution step, the same way. The lookup in
+ * {@link hostFunction} at the call stays as the backstop for both.
+ */
+export const missingHostFunctions = (requirements: HostInterfaceRequirements): HostInterfaceGap[] => {
+  const gaps: HostInterfaceGap[] = [];
+  for (const [interfaceId, names] of Object.entries(requirements)) {
+    const implementation = hostInterfaces.get(interfaceId);
+    const missing = names.filter((name) => typeof implementation?.[name] !== 'function');
+    if (missing.length !== 0) {
+      gaps.push({ interfaceId, registered: implementation !== undefined, missing });
+    }
+  }
+  return gaps;
 };
 
 /**

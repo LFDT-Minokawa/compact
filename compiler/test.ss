@@ -798,7 +798,7 @@ groups than for single tests.
                       "import { p256 } from '@noble/curves/nist.js';\n"
                       "import { ed25519 } from '@noble/curves/ed25519.js';\n"
                       "import { startContract, flushProofChecks } from './util.js';\n"
-                      "import { TestChain } from './ccc-util.js';\n"
+                      "import { Account, TestChain } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
                       "\n"
                       "afterEach(async () => {\n"
@@ -74338,7 +74338,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74430,7 +74431,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74531,7 +74533,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74652,7 +74655,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -77190,7 +77194,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -77759,6 +77764,8 @@ groups than for single tests.
         ""
         "export const declaredInterfaces = {};"
         ""
+        "export const hostInterfaces = {};"
+        ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -77768,7 +77775,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -78223,7 +78230,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78288,7 +78296,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78346,7 +78355,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78436,7 +78446,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
@@ -79188,7 +79199,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -79494,7 +79506,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -80194,7 +80207,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -80853,7 +80867,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88248,7 +88263,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88309,7 +88325,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88370,7 +88387,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88428,7 +88446,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88492,7 +88511,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88579,7 +88599,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -89673,7 +89694,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -90981,7 +91003,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -91225,6 +91248,8 @@ groups than for single tests.
         "};"
         ""
         "export const declaredInterfaces = {};"
+        ""
+        "export const hostInterfaces = {};"
         ""
         "//# sourceMappingURL=index.js.map"))
     )
@@ -92758,7 +92783,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -94693,8 +94719,9 @@ groups than for single tests.
         "    {tag: 'Secp256k1Scalar'},"
         "    {tag: 'Secp256k1Point'}]);"
         "});"
-        "test('an absent declaredInterfaces is an empty object', () => {"
+        "test('an absent declaredInterfaces is an empty object, as is an absent hostInterfaces', () => {"
         "  expect(curveCode.declaredInterfaces).toEqual({});"
+        "  expect(curveCode.hostInterfaces).toEqual({});"
         "});"
         ))
     )
@@ -96963,7 +96990,8 @@ groups than for single tests.
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -97767,10 +97795,16 @@ groups than for single tests.
       '(
         "test('host functions resolve through the runtime registry and cross into the proof from circuits', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // the module declares what it requires, so a resolution gate can check it before a run"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/keys@1.0.0': ['secretKey'] });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces)).toEqual(["
+        "    { interfaceId: 'midnight:capsule/keys@1.0.0', registered: false, missing: ['secretKey'] },"
+        "  ]);"
         "  await expect(contract.circuits.reveal(context))"
         "      .rejects.toThrow(/no implementation of host interface midnight:capsule\\/keys@1.0.0 is registered/);"
         "  const key = new Uint8Array(32).fill(7);"
         "  runtime.registerHostInterface('midnight:capsule/keys@1.0.0', { secretKey: () => key });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces)).toEqual([]);"
         "  const r1 = await contract.circuits.reveal(context);"
         "  expect(r1.result).toEqual(key);"
         "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
@@ -97882,6 +97916,8 @@ groups than for single tests.
       '(
         "test('the standard library\\'s zswap host interface answers from the context', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  // of the interface's three functions only the reachable one is a requirement"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey'] });"
         "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
         "  const r1 = await contract.circuits.claim(context);"
         "  expect(contractCode.ledger(r1.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
@@ -98528,6 +98564,25 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the result of an operation on local field credits at line 4 char 10" ("\n    nature of the disclosure:\n      the value returned from exported circuit peek might disclose the witness value"))))
     )
+
+  ; phase 2, cross-contract local state: a callee's capsule is installed before its wrapper runs
+  ; (the account's folded state, or the declaration defaults at first touch, when its local
+  ; constructor runs inside the caller's transaction), its host interfaces are checked at
+  ; resolution, each capsule gets its own record, and the caller's record pins the callee's return
+  (test-group
+    ((source-file "test-center/composable/Capsule/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Capsule/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/capsule.ts")))
+
+  ; the direction document's worked example: the vendor module, the registry with its own private
+  ; books as a callee, and the ballot as the root, with two participants folding from scratch
+  (test-group
+    ((source-file "test-center/composable/Ballot/Registry.compact")
+     (stage-javascript registryCode '()))
+    ((source-file "test-center/composable/Ballot/Ballot.compact")
+     (stage-javascript ballotCode "test-center/ts/composable/ballot.ts")))
+
 )
 
 (run-javascript)

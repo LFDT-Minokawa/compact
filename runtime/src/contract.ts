@@ -29,6 +29,8 @@ import { InterfaceDescriptor } from './interface-descriptor.js';
 import { ModuleResolutionContext, ModuleResolutionError, ModuleResolutionFailure } from './module-resolution.js';
 import { ContractModuleProvider, ModuleThunk } from './providers.js';
 import { Module } from './module.js';
+import { missingHostFunctions } from './host.js';
+import { createLocalQueryContext } from './local-state.js';
 import { VerifierKeyHash, isVerifierKeyHash, verifierKeyHashOf } from './verifier-key-hash.js';
 import { emptyZswapLocalState, EncodedCoinPublicKey } from './zswap.js';
 import { assertIsContractAddress, fromHex } from './utils.js';
@@ -158,6 +160,64 @@ const checkModuleConformance = (
       const exhaustive: never = conformance;
       throw new CompactError(`unhandled conformance outcome ${JSON.stringify(exhaustive)}`);
     }
+  }
+};
+
+/**
+ * Checks that this environment implements every host function the callee's circuits can reach.
+ * Both sides are static — the module's `hostInterfaces` and the registry — therefore the check
+ * belongs to resolution, like conformance, and not to the first host call on whichever path a
+ * run takes; `hostFunction`'s lookup at the call remains the backstop.
+ *
+ * @internal
+ */
+const checkHostInterfaces = (calleeModule: Module, resolutionContext: ModuleResolutionContext): void => {
+  const gap = missingHostFunctions(calleeModule.hostInterfaces ?? {})[0];
+  if (gap !== undefined) {
+    failResolution(resolutionContext, { kind: 'HostInterfaceAbsent', ...gap });
+  }
+};
+
+/**
+ * The local state to install for a callee: the account's capsule from the
+ * {@link LocalStateProvider}, or the declaration defaults when the provider has none, which is
+ * the capsule's first touch (plan §5: its local constructor then runs as this call's prologue).
+ * `undefined` when there is nothing to install, because the callee keeps no local state or an
+ * earlier call in this transaction installed it. Read only, like `resolveDeployedState`: the
+ * provider is asked before the commit point, therefore a failing lookup rejects the call with the
+ * caller's context untouched.
+ *
+ * @internal
+ */
+const resolveLocalQueryContext = async (
+  context: CircuitContext,
+  callee: ocrt.ContractAddress,
+  calleeModule: Module,
+  resolutionContext: ModuleResolutionContext,
+): Promise<ocrt.QueryContext | undefined> => {
+  const initialLocalState = calleeModule.initialLocalState;
+  if (initialLocalState === undefined || callee in context.localQueryContexts) {
+    return undefined;
+  }
+  const provider = context.localStateProvider;
+  if (provider === undefined) {
+    failResolution(resolutionContext, { kind: 'LocalStateProviderAbsent' });
+  }
+  let localState: ocrt.StateValue | undefined;
+  try {
+    localState = await provider.getLocalState(callee);
+  } catch (cause) {
+    failResolution(resolutionContext, { kind: 'LocalStateProviderThrew', cause });
+  }
+  if (localState === undefined) {
+    return createLocalQueryContext(initialLocalState());
+  }
+  // Wrapping is where a value that is not a `StateValue` is found out, and it is still before the
+  // commit point here.
+  try {
+    return createLocalQueryContext(localState);
+  } catch {
+    failResolution(resolutionContext, { kind: 'LocalStateProviderThrew', cause: localState });
   }
 };
 
@@ -305,6 +365,28 @@ const enterQueryContext = (
 };
 
 /**
+ * The callee's local query context, installed at the commit point beside `enterQueryContext`'s
+ * entry: the resolved one on the first call to an address in the transaction, the map's own on a
+ * later sequential call, so the second call sees the first's local writes. `undefined` for a
+ * callee that keeps no local state. Nothing here can reject.
+ *
+ * @internal
+ */
+const enterLocalQueryContext = (
+  context: CircuitContext,
+  callee: ocrt.ContractAddress,
+  resolved: ocrt.QueryContext | undefined,
+): ocrt.QueryContext | undefined => {
+  if (callee in context.localQueryContexts) {
+    return context.localQueryContexts[callee];
+  }
+  if (resolved !== undefined) {
+    context.localQueryContexts[callee] = resolved;
+  }
+  return resolved;
+};
+
+/**
  * Gets a contract's accumulated gas cost from the circuit context. {@link enterQueryContext}
  * always leaves a cost behind, so a miss is a bug.
  *
@@ -354,6 +436,7 @@ const setupCallContext = (
   circuitId: CircuitId,
   contractAddress: ocrt.ContractAddress,
   queryContext: ocrt.QueryContext,
+  localQueryContext: ocrt.QueryContext | undefined,
   currentGasCost: ocrt.RunningCost,
   callerCoinPublicKey: EncodedCoinPublicKey,
 ): void => {
@@ -364,8 +447,9 @@ const setupCallContext = (
   context.callContext.currentGasCost = currentGasCost;
   // Undefined because sub-calls do not support witnesses, so a callee has no private state.
   context.callContext.currentPrivateState = undefined;
-  // Local state is likewise the calling party's own: a callee runs with none.
-  context.callContext.currentLocalQueryContext = undefined;
+  // The callee's own capsule, installed before its wrapper runs so that the prologue's guard read
+  // sees it; `undefined` for a callee that keeps no local state.
+  context.callContext.currentLocalQueryContext = localQueryContext;
   // A callee *can* do coin operations — an output addressed to a contract is credited only if that
   // contract claims it in the same transaction — so each gets its own state, created on first entry
   // and reused on a later sequential call to the same address.
@@ -421,6 +505,7 @@ const restoreCircuitContext = (
   callerCircuitContext.queryContexts = calleeCircuitContext.queryContexts;
   callerCircuitContext.gasCosts = calleeCircuitContext.gasCosts;
   callerCircuitContext.zswapLocalStates = calleeCircuitContext.zswapLocalStates;
+  callerCircuitContext.localQueryContexts = calleeCircuitContext.localQueryContexts;
   callerCircuitContext.contractStates = calleeCircuitContext.contractStates;
   callerCircuitContext.callProofDataTrace = calleeCircuitContext.callProofDataTrace;
   // Only reached on a successful return, so a reverted sub-call's events go with its discarded
@@ -636,11 +721,23 @@ export const crossContractCall = async ({
     // 7. The operation exists and carries a key, and its fingerprint agrees.
     checkImplementation(deployedState, calleeModule, calleeCircuitId, resolutionContext);
 
-    // 8. The callee is who it claims to be, so commit to calling it. Everything above rejects
-    //    without touching the caller's context; nothing below can reject at all.
-    const calleeQueryContext = enterQueryContext(circuitContext, calleeAddress, deployedState);
+    // 8. The module is the deployed code; now this environment must be able to run it: every host
+    //    function it declares is implemented, and, if it keeps local state, this account's capsule
+    //    for it can be found (or is first touched here).
+    checkHostInterfaces(calleeModule, resolutionContext);
+    const resolvedLocalQueryContext = await resolveLocalQueryContext(
+      circuitContext,
+      calleeAddress,
+      calleeModule,
+      resolutionContext,
+    );
 
-    // 9. Construct the callee and run it.
+    // 9. The callee is who it claims to be and can run here, so commit to calling it. Everything
+    //    above rejects without touching the caller's context; nothing below can reject at all.
+    const calleeQueryContext = enterQueryContext(circuitContext, calleeAddress, deployedState);
+    const calleeLocalQueryContext = enterLocalQueryContext(circuitContext, calleeAddress, resolvedLocalQueryContext);
+
+    // 10. Construct the callee and run it.
     const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];
     assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
@@ -652,6 +749,7 @@ export const crossContractCall = async ({
       calleeCircuitId,
       calleeAddress,
       calleeQueryContext,
+      calleeLocalQueryContext,
       calleeGasCosts,
       callerZswapLocalState.coinPublicKey,
     );
@@ -664,6 +762,9 @@ export const crossContractCall = async ({
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
     callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
+    // The caller's record pins the result the chain bound it to; the callee's record (the trace
+    // entry above) holds the callee's own local transcript and host outputs.
+    (callerProofData.calleeReturns ??= []).push(calleeCallProofData.output);
     kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
     return circuitResult.result;

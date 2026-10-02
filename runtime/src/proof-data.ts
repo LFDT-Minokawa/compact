@@ -72,6 +72,14 @@ export interface PartialProofData {
    * data built by older generated code is unaffected.
    */
   hostOutputs?: ocrt.AlignedValue[];
+  /**
+   * The value each cross-contract callee returned to this call, in call order. The landed
+   * transaction binds this contract to that value through the communication commitment, therefore
+   * a re-execution consumes it instead of re-running the callee; an external result like a host
+   * output, kept apart from them because its origin is another capsule's record. Absent until the
+   * first cross-contract call.
+   */
+  calleeReturns?: ocrt.AlignedValue[];
 }
 
 /**

@@ -1025,6 +1025,7 @@
             (display-string "export declare const expectedVk: Record<string, string>;\n")
             (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
             (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
+            (display-string "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;\n")
             )))))
 
     (define (format-curve-type ctype)
@@ -2427,6 +2428,31 @@
             '()
             xpelt*)))
 
+      ;; The host functions the circuits can reach, by interface id — unused declarations are gone
+      ;; by now, therefore this is what a run can call, which is what the runtime's resolution gate
+      ;; checks against its registry. Interfaces in first-seen order, each listing its functions in
+      ;; declaration order, as contract-info's `host` section does.
+      (define (print-host-interfaces xpelt*)
+        (print-table "hostInterfaces"
+          (let loop ([xpelt* xpelt*] [interface* '()])
+            (if (null? xpelt*)
+                (map (lambda (interface)
+                       (format "~a: [~a]"
+                         (format-javascript-string (car interface))
+                         (comma-separated (map format-javascript-string (reverse (cdr interface))))))
+                     (reverse interface*))
+                (loop (cdr xpelt*)
+                  (XPelt-case (car xpelt*)
+                    [(XPelt-host src internal-id interface-id host-name arg* type)
+                     (let ([name (symbol->string host-name)])
+                       (cond
+                         [(assoc interface-id interface*) =>
+                          (lambda (interface)
+                            (map (lambda (x) (if (eq? x interface) (cons interface-id (cons name (cdr interface))) x))
+                                 interface*))]
+                         [else (cons (list interface-id name) interface*)]))]
+                    [else interface*]))))))
+
       ;; contract-type* holds exactly the contract types a call is made on.
       (define (print-declared-interfaces contract-type*)
         (print-table "declaredInterfaces"
@@ -2469,6 +2495,7 @@
             (print-expected-vk)
             (print-circuit-signatures xpelt*)
             (print-declared-interfaces contract-type*)
+            (print-host-interfaces xpelt*)
             (print-contract-footer)
             (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
             (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))

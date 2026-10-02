@@ -19,6 +19,7 @@ import {
   callHostFunction,
   createCircuitContext,
   hostFunction,
+  missingHostFunctions,
   PartialProofData,
   recordHostOutput,
   registerHostInterface,
@@ -63,6 +64,24 @@ describe('host interfaces', () => {
 
   test('an unknown interface names the seam', () => {
     expect(() => hostFunction('vendor:thing/api@2.0.0', 'f')).toThrow(/registerHostInterface supplies one/);
+  });
+
+  test('a requirement is checked against the registry before anything runs', () => {
+    // Satisfied: the built-in interface, any subset of its functions.
+    expect(missingHostFunctions({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey', 'createZswapOutput'] })).toEqual([]);
+    expect(missingHostFunctions({})).toEqual([]);
+    // Unregistered: every declared function is missing, and the gap says nothing is registered.
+    expect(missingHostFunctions({ 'vendor:thing/api@2.0.0': ['f', 'g'] })).toEqual([
+      { interfaceId: 'vendor:thing/api@2.0.0', registered: false, missing: ['f', 'g'] },
+    ]);
+    // Registered but incomplete: only the functions the implementation lacks, in declaration order.
+    registerHostInterface('vendor:thing/partial@1.0.0', { f: () => 1n, h: 'not a function' as never });
+    expect(
+      missingHostFunctions({
+        'vendor:thing/partial@1.0.0': ['f', 'g', 'h'],
+        'midnight:capsule/zswap@1.0.0': ['ownPublicKey'],
+      }),
+    ).toEqual([{ interfaceId: 'vendor:thing/partial@1.0.0', registered: true, missing: ['g', 'h'] }]);
   });
 
   test('host outputs are recorded in call order, created on the first', () => {

@@ -25,10 +25,12 @@ import {
   ContractModuleProvider,
   ContractStateProvider,
   EncodedContractAddress,
+  LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
   createConstructorContext,
   createCircuitContext,
+  foldLocalTranscript,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 import {
@@ -159,11 +161,95 @@ export interface CallTransaction<PS, W extends Witnesses<PS>, C extends Contract
   args: readonly unknown[];
   witnesses: W;
   privateState: PS;
+  /**
+   * Whose transaction this is: the account's capsules supply the entry contract's local state and
+   * serve the runtime's {@link LocalStateProvider} for callees, and a landed call folds its records
+   * into them. Omit it for contracts without local state, as before.
+   */
+  account?: Account;
   coinPublicKey?: ocrt.CoinPublicKey;
   gasLimit?: ocrt.RunningCost;
   costModel?: ocrt.CostModel;
   time?: number;
   parentBlockHash?: string;
+}
+
+/**
+ * One participant's capsules: the local state of every contract the account has touched, folded
+ * (tier 1) from the records of its landed transactions, one record per capsule per transaction. A
+ * chain holds no local state, so this is separate from {@link TestChain} and a test holds one per
+ * participant; as the runtime's {@link LocalStateProvider} it answers for callees, and the harness
+ * reads the entry contract's state from it directly.
+ */
+export class Account implements LocalStateProvider {
+  private readonly states = new Map<ocrt.ContractAddress, ocrt.StateValue>();
+
+  /** Every record folded so far, in landing order, keyed by the capsule it belongs to. */
+  readonly records = new Map<ocrt.ContractAddress, CallProofData[]>();
+
+  /** Provider lookups served, keyed by callee address, so a test can assert when the runtime asks. */
+  private readonly lookups = new Map<ocrt.ContractAddress, number>();
+
+  /** {@link LocalStateProvider}: the capsule as last folded, or `undefined` before the first touch. */
+  async getLocalState(address: ocrt.ContractAddress): Promise<ocrt.StateValue | undefined> {
+    this.lookups.set(address, (this.lookups.get(address) ?? 0) + 1);
+    return this.states.get(address);
+  }
+
+  /** The folded capsule for `address`, if the account has touched the contract. */
+  localState(address: ocrt.ContractAddress): ocrt.StateValue | undefined {
+    return this.states.get(address);
+  }
+
+  /** How many times the runtime asked for `address` (0 if never). */
+  lookupCount(address: ocrt.ContractAddress): number {
+    return this.lookups.get(address) ?? 0;
+  }
+
+  /**
+   * The entry contract's local state for a call: the folded capsule, or the declaration defaults
+   * when this is the account's first touch; `undefined` for a contract without a local half.
+   */
+  entryLocalState(module: RuntimeModule, address: ocrt.ContractAddress): ocrt.StateValue | undefined {
+    return this.states.get(address) ?? module.initialLocalState?.();
+  }
+
+  /**
+   * Folds a landed transaction's records into the capsules they touched: each record replays
+   * against that capsule's prior (the declaration defaults at a first touch), so the fold is the
+   * tier-1 account of the call and not a copy of the rehearsed state.
+   */
+  commit(results: CircuitResults<unknown, unknown>, moduleFor: (address: ocrt.ContractAddress) => RuntimeModule): void {
+    for (const record of results.context.callProofDataTrace) {
+      if (record.localTranscript === undefined) {
+        continue;
+      }
+      const initialLocalState = moduleFor(record.contractAddress).initialLocalState;
+      if (initialLocalState === undefined) {
+        throw new Error(`a record for ${record.contractAddress} has a local transcript but its module keeps no local state`);
+      }
+      const prior = this.states.get(record.contractAddress) ?? initialLocalState();
+      this.states.set(record.contractAddress, foldLocalTranscript(prior, record.localTranscript, { tag: 'success' }));
+      const records = this.records.get(record.contractAddress) ?? [];
+      records.push(record);
+      this.records.set(record.contractAddress, records);
+    }
+  }
+
+  /**
+   * Folds every record of a capsule from the declaration defaults, as a fresh device recovering
+   * the account would, and returns the result for comparison with the folded or rehearsed state.
+   */
+  refold(module: RuntimeModule, address: ocrt.ContractAddress): ocrt.StateValue {
+    const initialLocalState = module.initialLocalState;
+    if (initialLocalState === undefined) {
+      throw new Error(`the module for ${address} keeps no local state`);
+    }
+    return (this.records.get(address) ?? []).reduce(
+      (state, record) => foldLocalTranscript(state, record.localTranscript!, { tag: 'success' }),
+      initialLocalState(),
+    );
+  }
 }
 
 /**
@@ -181,6 +267,8 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
   private readonly states = new Map<ocrt.ContractAddress, ocrt.ContractState>();
   private readonly contractDirByAddress = new Map<ocrt.ContractAddress, string>();
   private readonly moduleByAddress = new Map<ocrt.ContractAddress, ModuleThunk>();
+  /** The modules behind the thunks, for the synchronous reads an {@link Account} fold needs. */
+  private readonly loadedModuleByAddress = new Map<ocrt.ContractAddress, RuntimeModule>();
 
   /** Number of cross-contract state fetches served, keyed by callee address. */
   private readonly fetchCounts = new Map<ocrt.ContractAddress, number>();
@@ -214,6 +302,16 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
    */
   overrideModule(address: ocrt.ContractAddress, module: RuntimeModule): void {
     this.moduleByAddress.set(address, () => Promise.resolve(module));
+    this.loadedModuleByAddress.set(address, module);
+  }
+
+  /** The module bound to `address`, for the harness's own reads. */
+  moduleFor(address: ocrt.ContractAddress): RuntimeModule {
+    const module = this.loadedModuleByAddress.get(address);
+    if (module === undefined) {
+      throw new Error(`No module bound to address ${address}`);
+    }
+    return module;
   }
 
   /**
@@ -279,6 +377,7 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
     this.states.set(address, constructorResult.currentContractState);
     this.contractDirByAddress.set(address, tx.module.contractDir);
     this.moduleByAddress.set(address, () => Promise.resolve(module));
+    this.loadedModuleByAddress.set(address, module);
 
     return {
       module,
@@ -304,11 +403,12 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
       coinPublicKeyOrZswapState: tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
       contractState: entryState,
       privateState: tx.privateState,
+      localState: tx.account?.entryLocalState(tx.module, tx.address),
       gasLimit: tx.gasLimit,
       costModel: tx.costModel,
       time: now,
       parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
-      crossContract: { stateProvider: this, moduleProvider: this },
+      crossContract: { stateProvider: this, moduleProvider: this, localStateProvider: tx.account },
     }) as CircuitContext<PS>;
 
     const circuits = contract.circuits as Circuits<PS>;
@@ -330,6 +430,8 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
     scheduleProofChecks(result, 0, this.contractDirByAddress);
 
     this.commit(result.context);
+    // The chain lands the public side; the account folds the records of every capsule touched.
+    tx.account?.commit(result, (address) => this.moduleFor(address));
 
     return result;
   }

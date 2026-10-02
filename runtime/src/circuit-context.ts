@@ -23,7 +23,8 @@ import {
 } from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
-import { ContractModuleProvider, ContractStateProvider } from './providers.js';
+import { createLocalQueryContext } from './local-state.js';
+import { ContractModuleProvider, ContractStateProvider, LocalStateProvider } from './providers.js';
 
 export type CircuitId = string;
 
@@ -96,8 +97,12 @@ export interface CallContext<PS = any> {
    */
   currentZswapLocalState: EncodedZswapLocalState | undefined;
   /**
-   * The contract's local (private) state, threaded through {@link queryLocalState}. Absent when no
-   * local state was supplied, so a contract without a local half pays nothing.
+   * The contract's local (private) state, threaded through {@link queryLocalState}, and aliased by
+   * {@link CircuitContext.localQueryContexts} under the contract's address. For the entry contract it
+   * is the `localState` option; for a cross-contract callee it is installed before the callee's
+   * wrapper runs, from the account's {@link LocalStateProvider} or, at the capsule's first touch,
+   * the callee's declaration defaults. Absent when the contract keeps no local state, so a contract
+   * without a local half pays nothing.
    */
   currentLocalQueryContext: ocrt.QueryContext | undefined;
   /**
@@ -149,6 +154,14 @@ export interface CircuitContext<PS = any> {
    */
   zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
   /**
+   * The current local state of every contract in the call tree that keeps one, keyed like
+   * {@link queryContexts}: each entry is the capsule `(this account, address)` as the call tree has
+   * advanced it. The entry contract's is seeded from the `localState` option; a callee's is installed
+   * at its first entry in the transaction and reused by a later sequential call to the same address.
+   * `.state.state` of an entry is the `StateValue` an application persists or folds against.
+   */
+  localQueryContexts: Record<ocrt.ContractAddress, ocrt.QueryContext>;
+  /**
    * The deployed state of every cross-contract callee, keyed by address and filled on first
    * resolution. The cached query context keeps only ledger data, so this is where a callee's
    * verifier keys are read from, for any of its circuits and on every call. The entry contract is
@@ -178,6 +191,11 @@ export interface CircuitContext<PS = any> {
    */
   moduleProvider?: ContractModuleProvider;
   /**
+   * The {@link LocalStateProvider}. Absent unless the execution can call into contracts that keep
+   * local state; resolving such a callee without one is a `LocalStateProviderAbsent` failure.
+   */
+  localStateProvider?: LocalStateProvider;
+  /**
    * The contract addresses currently executing: the entry contract, plus every callee whose call
    * has not returned. Shared by reference across the call tree, so {@link crossContractCall} can
    * reject re-entry (`A -> A`, `A -> B -> A`) from any depth.
@@ -198,6 +216,12 @@ export type CrossContractInputs = {
   readonly stateProvider: ContractStateProvider;
   /** The {@link ContractModuleProvider}. */
   readonly moduleProvider: ContractModuleProvider;
+  /**
+   * The {@link LocalStateProvider}: this account's capsules, for callees that keep local state.
+   * Optional because an execution whose callees keep none needs no account; a callee that does
+   * fails resolution without one.
+   */
+  readonly localStateProvider?: LocalStateProvider;
 };
 
 /** The inputs to {@link createCircuitContext}. */
@@ -262,9 +286,8 @@ export const createCircuitContext = <PS>({
     time,
     parentBlockHash,
   );
-  callContext.currentLocalQueryContext = localState
-    ? new ocrt.QueryContext(new ocrt.ChargedState(localState), ocrt.dummyContractAddress())
-    : undefined;
+  const localQueryContext = localState ? createLocalQueryContext(localState) : undefined;
+  callContext.currentLocalQueryContext = localQueryContext;
   // The per-address maps below must alias *this* call context's cells, so a write through either
   // route is visible from the other. (They previously indexed a second, separately-constructed
   // call context, which held distinct `QueryContext` objects.)
@@ -275,12 +298,14 @@ export const createCircuitContext = <PS>({
     queryContexts: { [contractAddress]: callContext.currentQueryContext },
     gasCosts: { [contractAddress]: callContext.currentGasCost },
     zswapLocalStates: { [contractAddress]: zswapLocalState },
+    localQueryContexts: localQueryContext === undefined ? {} : { [contractAddress]: localQueryContext },
     contractStates: {},
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
     stateProvider: crossContract?.stateProvider,
     moduleProvider: crossContract?.moduleProvider,
+    localStateProvider: crossContract?.localStateProvider,
     activeContracts: new Set([contractAddress]),
     events: [],
   };
@@ -296,6 +321,7 @@ export const copyCircuitContext = (context: CircuitContext): CircuitContext => (
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
   zswapLocalStates: { ...context.zswapLocalStates },
+  localQueryContexts: { ...context.localQueryContexts },
   contractStates: { ...context.contractStates },
   callProofDataTrace: [...context.callProofDataTrace],
   events: [...context.events],

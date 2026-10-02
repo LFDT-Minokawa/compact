@@ -41,3 +41,18 @@ export type ModuleThunk = () => Promise<Module>;
 export interface ContractModuleProvider {
   resolve(calleeAddress: ocrt.ContractAddress): ModuleThunk | undefined;
 }
+
+/**
+ * A user-provided lookup of this account's local state for a cross-contract callee: the capsule
+ * `(account, callee)` as folded from the account's landed transactions, or `undefined` when the
+ * account has never touched the contract, which the runtime takes as the capsule's first touch and
+ * seeds with the callee's declaration defaults.
+ *
+ * Local state is the account's own and not a chain read, therefore there is no block hash: one
+ * current value per callee rather than one per block. The runtime only reads through it (what a
+ * call did comes back in its records, and folding them is the application's), and asks once per
+ * callee per transaction, since a second sequential call must see what the first left behind.
+ */
+export interface LocalStateProvider {
+  getLocalState(calleeAddress: ocrt.ContractAddress): Promise<ocrt.StateValue | undefined>;
+}
