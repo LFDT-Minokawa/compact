@@ -147,10 +147,30 @@ describe('[UNIT] fuzzer feature-gated calls', () => {
         );
     };
 
-    test.each(['neg', 'inv', 'secp256k1PointX', 'secp256k1PointY', 'secp256k1EcdsaVerify', 'secp256k1EthereumAddress'])(
-        '%s is written only when zkir-v3 is on',
+    test.each([
+        'sha512',
+        'neg',
+        'inv',
+        'secp256k1PointX',
+        'secp256k1PointY',
+        'secp256r1PointX',
+        'secp256r1PointY',
+        'curve25519PointX',
+        'curve25519PointY',
+        'secp256k1EcdsaVerify',
+        'secp256k1EthereumAddress',
+        'secp256r1EcdsaVerify',
+        'ed25519Verify',
+    ])('%s is written only when zkir-v3 is on', (name) => {
+        expect(writes([], name)).toBe(false);
+        expect(writes(['zkir-v3'], name)).toBe(true);
+    });
+
+    /* keccak256 is in scope without the flag, so the plain grammar keeps it as a rejected case. */
+    test.each(['keccak256', 'ecNeg', 'jubjubPointX', 'jubjubPointY', 'constructJubjubPoint', 'jubjubSchnorrVerify'])(
+        '%s is written with or without zkir-v3',
         (name) => {
-            expect(writes([], name)).toBe(false);
+            expect(writes([], name)).toBe(true);
             expect(writes(['zkir-v3'], name)).toBe(true);
         },
     );
