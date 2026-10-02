@@ -13,24 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+// The whole ed25519 library only exists with the v3 flag, so naming one of
+// its types is enough to fail without it.
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+pragma language_version >= 0.25.0;
 
-export { ED25519, runEddsaKat, type EddsaVector } from './eddsa.ts';
+import CompactStandardLibrary;
+
+export circuit ed25519_requires_zkir_v3(sig: Ed25519Signature): [] { }

@@ -36,11 +36,28 @@ SPDX-License-Identifier: Apache-2.0
 | `secp256k1EthereumAddress`   | 2 `ethereum/tests` key-to-address vectors                               |
 | `Secp256k1Base` round trip   | 0, 1, a mid-range value, `MAX_SECP256K1_BASE`                           |
 
+## secp256r1
+
+| circuit                    | vectors                                                             |
+| -------------------------- | ------------------------------------------------------------------- |
+| `secp256r1EcdsaVerify`     | Wycheproof corpus, 265 of 484 driven, digest hashed off-circuit     |
+| `proveEcdsa{N}`            | the same corpus, SHA-256 in-circuit; one circuit per message length |
+| `Secp256r1Base` round trip | 0, 1, a mid-range value, `MAX_SECP256R1_BASE`                       |
+
+## ed25519
+
+| circuit                       | vectors                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------ |
+| `verifyEddsa{N}`              | Wycheproof corpus, 120 of 151 driven, SHA-512 in-circuit; one circuit per message length   |
+| `Curve25519Base` round trip   | 0, 1, a mid-range value, `MAX_CURVE25519_BASE`                                             |
+| `Curve25519Scalar` round trip | 0, 1, a mid-range value, either side of the 204-bit limb boundary, `MAX_CURVE25519_SCALAR` |
+
 ## Compile-only
 
-`--feature-zkir-v3` gates: the secp256k1 stdlib is unbound without it, and
-`keccak256` in a provable circuit is rejected by ZKIR v2 and accepted by v3.
-Two secp256k1 contracts also compile through v3 lowering with proving keys.
+`--feature-zkir-v3` gates: the secp256k1, secp256r1 and ed25519 stdlib is
+unbound without it, and `keccak256` in a provable circuit is rejected by ZKIR
+v2 and accepted by v3. Two secp256k1 contracts, one secp256r1 contract and one
+ed25519 contract also compile through v3 lowering with proving keys.
 
 ## Choosing a reference
 
@@ -50,5 +67,6 @@ A known-answer test is worth as much as its reference, and no more:
   digest is a genuine second implementation.
 - **`keccak256`** is implemented _with_ `@noble/hashes`, so a computed digest
   only checks the encoding. Published digests are the real oracle there.
-- **`secp256k1EcdsaVerify`** is written in Compact, so `@noble/curves`' verify
-  is independent, and Wycheproof's own verdicts are a third opinion.
+- **`secp256k1EcdsaVerify`**, **`secp256r1EcdsaVerify`** and
+  **`ed25519Verify`** are written in Compact, so `@noble/curves`' verify is
+  independent, and Wycheproof's own verdicts are a third opinion.

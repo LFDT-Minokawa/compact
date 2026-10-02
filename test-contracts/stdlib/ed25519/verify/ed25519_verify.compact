@@ -1,0 +1,235 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The Ed25519 signature check over the Wycheproof corpus.
+//
+// The scheme hashes the message itself, so there is no pre-hashed variant.
+// `Bytes<N>` is fixed-size, so there is one circuit per message length the
+// corpus drives, and the runtime test reports a length with no circuit rather
+// than skipping it.
+//
+// Pure, so no keys are generated, but the v3 flag is still needed.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export circuit verifyEddsa0(
+    msg: Bytes<0>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<0>(msg, sig, pk));
+}
+
+export circuit verifyEddsa1(
+    msg: Bytes<1>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<1>(msg, sig, pk));
+}
+
+export circuit verifyEddsa2(
+    msg: Bytes<2>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<2>(msg, sig, pk));
+}
+
+export circuit verifyEddsa4(
+    msg: Bytes<4>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<4>(msg, sig, pk));
+}
+
+export circuit verifyEddsa5(
+    msg: Bytes<5>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<5>(msg, sig, pk));
+}
+
+export circuit verifyEddsa6(
+    msg: Bytes<6>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<6>(msg, sig, pk));
+}
+
+export circuit verifyEddsa8(
+    msg: Bytes<8>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<8>(msg, sig, pk));
+}
+
+export circuit verifyEddsa10(
+    msg: Bytes<10>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<10>(msg, sig, pk));
+}
+
+export circuit verifyEddsa12(
+    msg: Bytes<12>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<12>(msg, sig, pk));
+}
+
+export circuit verifyEddsa14(
+    msg: Bytes<14>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<14>(msg, sig, pk));
+}
+
+export circuit verifyEddsa16(
+    msg: Bytes<16>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<16>(msg, sig, pk));
+}
+
+export circuit verifyEddsa20(
+    msg: Bytes<20>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<20>(msg, sig, pk));
+}
+
+export circuit verifyEddsa22(
+    msg: Bytes<22>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<22>(msg, sig, pk));
+}
+
+export circuit verifyEddsa23(
+    msg: Bytes<23>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<23>(msg, sig, pk));
+}
+
+export circuit verifyEddsa28(
+    msg: Bytes<28>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<28>(msg, sig, pk));
+}
+
+export circuit verifyEddsa29(
+    msg: Bytes<29>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<29>(msg, sig, pk));
+}
+
+export circuit verifyEddsa32(
+    msg: Bytes<32>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<32>(msg, sig, pk));
+}
+
+export circuit verifyEddsa37(
+    msg: Bytes<37>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<37>(msg, sig, pk));
+}
+
+export circuit verifyEddsa41(
+    msg: Bytes<41>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<41>(msg, sig, pk));
+}
+
+export circuit verifyEddsa46(
+    msg: Bytes<46>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<46>(msg, sig, pk));
+}
+
+export circuit verifyEddsa51(
+    msg: Bytes<51>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<51>(msg, sig, pk));
+}
+
+export circuit verifyEddsa60(
+    msg: Bytes<60>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<60>(msg, sig, pk));
+}
+
+export circuit verifyEddsa65(
+    msg: Bytes<65>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<65>(msg, sig, pk));
+}
+
+export circuit verifyEddsa132(
+    msg: Bytes<132>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<132>(msg, sig, pk));
+}
+
+export circuit verifyEddsa296(
+    msg: Bytes<296>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<296>(msg, sig, pk));
+}
+
+export circuit verifyEddsa1023(
+    msg: Bytes<1023>,
+    sig: Ed25519Signature,
+    pk: Curve25519Point
+): Boolean {
+    return disclose(ed25519Verify<1023>(msg, sig, pk));
+}

@@ -13,24 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import { defineCompileTest } from '@test/compact-test';
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
-
-export { ED25519, runEddsaKat, type EddsaVector } from './eddsa.ts';
+// `Curve25519Base` needs the v3 flag.
+export default defineCompileTest(import.meta.url, {
+    compilerArgs: ['--feature-zkir-v3'],
+});

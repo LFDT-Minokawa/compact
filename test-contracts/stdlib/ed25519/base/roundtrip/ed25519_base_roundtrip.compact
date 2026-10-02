@@ -13,24 +13,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import CompactStandardLibrary;
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+export ledger stored: Curve25519Base;
 
-export { ED25519, runEddsaKat, type EddsaVector } from './eddsa.ts';
+// A Curve25519Base survives a round trip through the ledger: the assignment
+// writes the two-atom encoding and the return reads it back.
+export circuit ed25519_base_roundtrip(value: Curve25519Base): Curve25519Base {
+    stored = disclose(value);
+    return stored;
+}

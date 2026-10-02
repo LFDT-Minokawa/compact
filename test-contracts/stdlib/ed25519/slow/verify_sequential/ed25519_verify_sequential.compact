@@ -1,0 +1,41 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Two and three signature checks in one circuit, to be sure repeating the
+// gate does not upset the compiler.
+//
+// The ledger write makes them provable, so this generates keys and is slow.
+
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export ledger n: Uint<64>;
+
+witness sigOf(i: Uint<8>): Ed25519Signature;
+witness keyOf(i: Uint<8>): Curve25519Point;
+
+export circuit two(msg: Bytes<32>): [] {
+    const a = ed25519Verify<32>(msg, sigOf(0), keyOf(0));
+    const b = ed25519Verify<32>(msg, sigOf(1), keyOf(1));
+    n = disclose((a && b) ? 1 : 0);
+}
+
+export circuit three(msg: Bytes<32>): [] {
+    const a = ed25519Verify<32>(msg, sigOf(0), keyOf(0));
+    const b = ed25519Verify<32>(msg, sigOf(1), keyOf(1));
+    const c = ed25519Verify<32>(msg, sigOf(2), keyOf(2));
+    n = disclose((a && b && c) ? 1 : 0);
+}
