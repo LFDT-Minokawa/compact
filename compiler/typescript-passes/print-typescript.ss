@@ -2369,14 +2369,17 @@
      (make-Qconcat (format-internal-binding unique-local-name var-name) ": " type)])
   (Stmt : Statement (ir return? outer-pure?) -> * (Q)
     [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt])
-     (make-Qconcat
+     (apply make-Qconcat
        (make-Qconcat
          "if ("
          expr
          ")"
          0 "{")
        2 stmt
-       0 "}")]
+       ; in return position the missing else must still return the empty tuple
+       (if return?
+           (list 0 "} else {" 2 "return [];" 0 "}")
+           (list 0 "}")))]
     [(if ,src ,[Expr : expr (precedence add1 none) outer-pure? -> * expr] ,[* stmt1] ,[* stmt2])
      (make-Qconcat
        (make-Qconcat

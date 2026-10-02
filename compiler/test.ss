@@ -71657,6 +71657,40 @@ groups than for single tests.
     (succeeds)
     )
 
+  ; a returned conditional with a [] else branch returns []
+  (test
+    '(
+      "circuit helper(): [] {"
+      "}"
+      "export circuit ternary(b: Boolean): [] {"
+      "  return disclose(b) ? helper() : [];"
+      "}"
+      "export circuit ternary_flipped(b: Boolean): [] {"
+      "  return disclose(b) ? [] : helper();"
+      "}"
+      "export circuit ternary_in_seq(b: Boolean): [] {"
+      "  return (helper(), disclose(b) ? helper() : []);"
+      "}"
+      "export circuit if_return(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    return helper();"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  for (const b of [true, false]) {"
+        "    expect((await C.circuits.ternary(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.ternary_flipped(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.ternary_in_seq(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.if_return(Ctxt, b)).result).toEqual([]);"
+        "  }"
+        "});"
+        ))
+    )
+
   ; the value of an assert is []
   (test
     '(
@@ -71685,6 +71719,7 @@ groups than for single tests.
         "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
         "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
         "  expect((await C.circuits.in_conditional(Ctxt, true)).result).toEqual([]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, false)).result).toEqual([]);"
         "  await expect(C.circuits.fails(Ctxt, false)).rejects.toThrow('failed assert: boom');"
         "});"
         ))
