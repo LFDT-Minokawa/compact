@@ -97254,6 +97254,79 @@ groups than for single tests.
         ))
     )
 
+  ; a local body is synchronous, therefore the lambdas, mappers, and folders printed inside one
+  ; are too (an `await` in a plain method is a syntax error); from a circuit, a local function
+  ; passed by name to map or fold crosses into the proof like any other local call
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tags: Set<Bytes<8>>;"
+      "local isTagged(x: Bytes<8>): Boolean {"
+      "  return tags.member(x);"
+      "}"
+      "local tagged(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return map((x) => tags.member(x), xs);"
+      "}"
+      "local countTagged(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs);"
+      "}"
+      "export circuit tag(x: Bytes<8>): [] {"
+      "  tags.insert(x);"
+      "}"
+      "export circuit which(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(tagged(xs));"
+      "}"
+      "export circuit howMany(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(countTagged(xs));"
+      "}"
+      "export circuit whichByName(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyByLambda(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs));"
+      "}"
+      "export ledger queries: Counter;"
+      "local countIfTagged(acc: Uint<8>, x: Bytes<8>): Uint<8> {"
+      "  return isTagged(x) ? (acc + 1) as Uint<8> : acc;"
+      "}"
+      "export circuit whichOnChain(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  queries.increment(1);"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyOnChain(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  queries.increment(1);"
+      "  return disclose(fold(countIfTagged, 0 as Uint<8>, xs));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('map and fold run synchronously in local functions and cross into the proof from circuits', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const c = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.tag(context, a);"
+        "  const r2 = await contract.circuits.tag(r1.context, b);"
+        "  const r3 = await contract.circuits.which(r2.context, [a, b, c]);"
+        "  expect(r3.result).toEqual([true, true, false]);"
+        "  const r4 = await contract.circuits.howMany(r3.context, [a, b, c]);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const r5 = await contract.circuits.whichByName(r4.context, [a, c, b]);"
+        "  expect(r5.result).toEqual([true, false, true]);"
+        "  const r6 = await contract.circuits.howManyByLambda(r5.context, [c, c, a]);"
+        "  expect(r6.result).toEqual(1n);"
+        "  // with a public op in the body the circuit is proved, so the local calls by name must"
+        "  // push their results as private inputs"
+        "  const r7 = await contract.circuits.whichOnChain(r6.context, [b, a, c]);"
+        "  expect(r7.result).toEqual([true, true, false]);"
+        "  expect(r7.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "  const r8 = await contract.circuits.howManyOnChain(r7.context, [a, b, c]);"
+        "  expect(r8.result).toEqual(2n);"
+        "  expect(r8.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "});"
+        ))
+    )
+
   ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
   ; check rather than a proof, so the negative case is a false answer, not a fault
   (test

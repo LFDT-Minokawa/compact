@@ -194,6 +194,11 @@
       (eq-hashtable-set! function-async-ht function-name #t))
     (define (function-async? function-name)
       (eq-hashtable-ref function-async-ht function-name #f))
+    ;; an anonymous function inherits its context's asynchrony, but a local body is
+    ;; synchronous whatever its purity (it calls only local code and pure circuits),
+    ;; therefore a lambda, mapper, or folder printed inside one is synchronous too
+    (define (lambda-async? outer-pure?)
+      (and (not outer-pure?) (not in-local-body?)))
 
     ;; local function names, mapped to their result types.  a call from a circuit crosses
     ;; into the proof (the caller pushes the result as a private input) but a call from
@@ -580,6 +585,18 @@
                   result)
           q
           ")")))
+
+    ;; a function passed by name to map or fold is called through a lambda, and a local
+    ;; function called that way from a circuit crosses into the proof exactly as a direct
+    ;; call does, therefore the lambda pushes each result as a private input
+    (define (function-reference-lambda src function-name fun)
+      (let* ([args (format-internal-binding unique-local-name (make-temp-id src 'args))]
+             [call-q (make-Qconcat fun "(..." args ")")])
+        (make-Qconcat "(..." args ") =>" 2
+          (cond
+            [(and (not in-local-body?) (local-circuit-type function-name)) =>
+             (lambda (type) (wrap-private-input-push src type call-q))]
+            [else call-q]))))
 
     (define (path-chain-Q path-elt*)
       (apply make-Qconcat
@@ -3159,7 +3176,7 @@
                     [else outer-pure?])]
            [async? (nanopass-case (Ltypescript Function) fun0
                      [(fref ,src ,function-name) (function-async? function-name)]
-                     [else (not outer-pure?)])])
+                     [else (lambda-async? outer-pure?)])])
        (set! helper*
          (cons
            (let ([i+ (enumerate (cons expr expr*))])
@@ -3185,9 +3202,7 @@
                 (make-Qargs pure?
                   (cons*
                     (nanopass-case (Ltypescript Function) fun0
-                      [(fref ,src ,function-name)
-                       (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                         (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                      [(fref ,src ,function-name) (function-reference-lambda src function-name fun)]
                       [else fun])
                     expr
                     expr*))
@@ -3207,7 +3222,7 @@
                     [else outer-pure?])]
            [async? (nanopass-case (Ltypescript Function) fun0
                      [(fref ,src ,function-name) (function-async? function-name)]
-                     [else (not outer-pure?)])])
+                     [else (lambda-async? outer-pure?)])])
        (set! helper*
          (cons
            (let ([i+ (enumerate (cons expr expr*))])
@@ -3233,9 +3248,7 @@
                 (make-Qargs pure?
                   (cons*
                     (nanopass-case (Ltypescript Function) fun0
-                      [(fref ,src ,function-name)
-                       (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
-                         (make-Qconcat "(..." args ") =>" 2 fun "(..." args ")"))]
+                      [(fref ,src ,function-name) (function-reference-lambda src function-name fun)]
                       [else fun])
                     expr0
                     expr
@@ -3561,7 +3574,7 @@
        (make-Qconcat
          "("
          (make-Qconcat
-           (if outer-pure? "(" "async (")
+           (if (lambda-async? outer-pure?) "async (" "(")
            (make-Qargs outer-pure? q-formal*)
            ") =>"
            0 "{"
