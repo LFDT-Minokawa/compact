@@ -83,6 +83,13 @@
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
              [arg* (Argument-List arg-list)])
          `(witness ,src ,(and kwd-export? #t) ,(token-value function-name) (,type-param* ...) (,arg* ...) ,type))])
+    (Host-Declaration : Host-Declaration (ir) -> Host-Declaration ()
+      [(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,[hsig*] ...) ,rbrace)
+       `(host ,src ,(and kwd-export? #t) ,(token-value interface-id) ,hsig* ...)])
+    (Host-Signature : Host-Signature (ir) -> Host-Signature ()
+      [(,src ,function-name ,arg-list ,[type] ,semicolon)
+       (let ([arg* (Argument-List arg-list)])
+         `(,src ,(token-value function-name) (,arg* ...) ,type))])
     (External-Contract-Declaration : External-Contract-Declaration (ir) -> External-Contract-Declaration ()
       [(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,[ecdecl-circuit*] ...) (,sep* ...) ,rbrace ,semicolon?)
        `(external-contract ,src ,(and kwd-export? #t) ,(token-value contract-name) ,ecdecl-circuit* ...)])

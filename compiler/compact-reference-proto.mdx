@@ -177,6 +177,10 @@ all represent identifier tokens.
 @(anchor-here version)
 - *version* represents version literals (in pragmas).
 
+@(anchor-here interface-id)
+- *interface-id* represents host interface ids (in `host` blocks): `namespace:package/name`,
+each part a kebab-case label, optionally followed by `@` and a semantic version.
+
 While identifiers and string literals are each represented by more than one name,
 each represents the entire set of possible identifier or string-literal tokens.
 The grammar snippets use different terminal names only to suggest their use, e.g,

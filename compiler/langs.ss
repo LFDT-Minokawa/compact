@@ -23,6 +23,7 @@
           make-vm-expr vm-expr? vm-expr-expr make-vm-code vm-code? vm-code-code vm-code-runtime
           Lsrc unparse-Lsrc Lsrc-pretty-formats Lsrc-Include?
           Lnoinclude unparse-Lnoinclude Lnoinclude-pretty-formats
+          Lnohost unparse-Lnohost Lnohost-pretty-formats
           Lsingleconst unparse-Lsingleconst Lsingleconst-pretty-formats
           Lnopattern unparse-Lnopattern Lnopattern-pretty-formats
           Lhoisted unparse-Lhoisted Lhoisted-pretty-formats
@@ -128,7 +129,7 @@
       (field (nat))
       (boolean (exported sealed pure-dcl nominal))
       (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
-      (string (prefix mesg opaque-type file))
+      (string (prefix mesg opaque-type file interface-id))
       (datum (datum))
       (source-object (src))
       )
@@ -144,6 +145,7 @@
       lconstructor
       cdefn
       wdecl
+      hdecl
       ecdecl
       cidecl
       structdef
@@ -191,6 +193,14 @@
     (Witness-Declaration (wdecl)
       (witness src exported? function-name (type-param* ...) (arg* ...) type) =>
         (witness exported? function-name (type-param* ...) (arg* 0 ...) 4 type)
+      )
+    (Host-Declaration (hdecl)
+      (host src exported? interface-id hsig* ...) =>
+        (host exported? interface-id #f hsig* ...)
+      )
+    (Host-Signature (hsig)
+      (src function-name (arg* ...) type) =>
+        (function-name (arg* 0 ...) 4 type)
       )
     (External-Contract-Declaration (ecdecl)
       (external-contract src exported? contract-name ecdecl-circuit* ...) =>
@@ -329,7 +339,20 @@
     (Include (incld)
       (- (include src file))))
 
-  (define-language/pretty Lsingleconst (extends Lnoinclude)
+  ;; host blocks parse and format but do not yet compile, therefore
+  ;; `reject-host-declarations` subtracts them here
+  (define-language/pretty Lnohost (extends Lnoinclude)
+    (terminals
+      (- (string (prefix mesg opaque-type file interface-id)))
+      (+ (string (prefix mesg opaque-type file))))
+    (Program-Element (pelt)
+      (- hdecl))
+    (Host-Declaration (hdecl)
+      (- (host src exported? interface-id hsig* ...)))
+    (Host-Signature (hsig)
+      (- (src function-name (arg* ...) type))))
+
+  (define-language/pretty Lsingleconst (extends Lnohost)
     (Const-Binding (cbinding)
       (- (src pattern type expr)))
     (Statement (stmt)

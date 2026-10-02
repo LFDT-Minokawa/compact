@@ -33,6 +33,11 @@ A string literal has the same syntax as a Typescript string.
 
 A version literal takes the form nat.nat representing major and minor versions or nat.nat.nat representing major, minor, and bugfix versions. Where version literals are allowed, a plain nat representing just the major version is also allowed.
 
+#### interface-id-literal
+*interface-id*
+
+A host interface id names a runtime-provided interface as namespace:package/name, each part a kebab-case label, optionally followed by @ and a semantic version such as 1.2.0 or 1.2.0-rc.1.
+
 #### Compact
 
 <div className="lang-ref-table">
@@ -58,6 +63,7 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                   | \|      | [*type-alias-declaration*](#type-declaration)                |
 |                   | \|      | [*ledger-declaration*](#ledger-declaration)                  |
 |                   | \|      | [*witness-declaration*](#witness-declaration)                |
+|                   | \|      | [*host-declaration*](#host-declaration)                      |
 |                   | \|      | [*constructor-definition*](#constructor)                     |
 |                   | \|      | [*circuit-definition*](#circuit-definition)                  |
 </div>
@@ -226,6 +232,22 @@ A version literal takes the form nat.nat representing major and minor versions o
 |                       |         |                                                                                                                                                                                   |
 |-----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
 | *witness-declaration* | &xrarr; | `export`<sup>opt</sup> `witness` [*id*](#identifier) [*gparams*](#generic-parameter-list)<sup>opt</sup> [*simple-parameter-list*](#simple-parameter-list) `:` [*type*](#type) `;` |
+</div>
+
+#### Host-declaration
+
+<div className="lang-ref-table">
+|                    |         |                                                                                                                                                         |
+|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------------------------|
+| *host-declaration* | &xrarr; | `export`<sup>opt</sup> `host` [*interface-id*](#interface-id-literal) `{` [*host-signature*](#host-signature) ⋯ [*host-signature*](#host-signature) `}` |
+</div>
+
+#### Host-signature
+
+<div className="lang-ref-table">
+|                  |         |                                                                                               |
+|------------------|---------|-----------------------------------------------------------------------------------------------|
+| *host-signature* | &xrarr; | [*id*](#identifier) [*simple-parameter-list*](#simple-parameter-list) `:` [*type*](#type) `;` |
 </div>
 
 #### Constructor

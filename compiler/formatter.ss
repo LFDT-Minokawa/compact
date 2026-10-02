@@ -876,6 +876,19 @@
                           (Return-Type return-type)
                           (add-punctuation semicolon '())))
                  '()))))]
+      [(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,hsig* ...) ,rbrace)
+       (// src
+           (apply make-Qconcat #f
+             (apply make-Qconcat #f
+               (add-modifier kwd-export?
+                 (list
+                   (make-Qtoken kwd)
+                   nbsp (make-Qtoken interface-id)
+                   nbsp (make-Qtoken lbrace))))
+             (fold-right
+               (lambda (hsig q*) (cons* nl 2 (Host-Signature hsig) q*))
+               (cons nl (add-closer 2 nl rbrace '()))
+               hsig*)))]
       [(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat #f
@@ -1049,6 +1062,15 @@
        (apply make-Qconcat #f
          (add-punctuation colon
            (cons* nbsp (Type type) '())))])
+    (Host-Signature : Host-Signature (ir) -> * (q)
+      [(,src ,function-name ,arg-list ,return-type ,semicolon)
+       (// src
+           (make-Qsignature
+             (Qfun function-name #f)
+             (arg-list-getter arg-list)
+             (cons
+               (Return-Type return-type)
+               (add-punctuation semicolon '()))))])
     (External-Contract-Circuit : External-Contract-Circuit (ir) -> * (q)
       [(,src ,kwd-pure? ,kwd ,function-name ,arg-list ,return-type)
        (// src

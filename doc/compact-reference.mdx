@@ -173,6 +173,9 @@ all represent identifier tokens.
 
 - *version* represents version literals (in pragmas).
 
+- *interface-id* represents host interface ids (in `host` blocks): `namespace:package/name`,
+each part a kebab-case label, optionally followed by `@` and a semantic version.
+
 While identifiers and string literals are each represented by more than one name,
 each represents the entire set of possible identifier or string-literal tokens.
 The grammar snippets use different terminal names only to suggest their use, e.g,
@@ -1118,23 +1121,26 @@ circuit sumSomeYs([{y: b1,}, , {y: b3,},]: [S, S, S]): Uint<64> {
 A compact program is a sequence of zero or more program elements.
 
 <div className="lang-ref-table">
-|                   |         |                                                                            |
-|-------------------|---------|----------------------------------------------------------------------------|
-| *program*         | &xrarr; | [*program-element*](#programs) ⋯ [*program-element*](#programs)            |
-| *program-element* | &xrarr; | [*pragma-form*](#pragmas)                                                  |
-|                   | \|      | [*module-definition*](#modules-exports-and-imports)                        |
-|                   | \|      | [*import-form*](#imports)                                                  |
-|                   | \|      | [*export-form*](#exports)                                                  |
-|                   | \|      | [*include-form*](#include-files)                                           |
-|                   | \|      | [*struct-declaration*](#structure-types)                                   |
-|                   | \|      | [*enum-declaration*](#enumeration-types)                                   |
-|                   | \|      | [*contract-declaration*](#contract-types)                                  |
-|                   | \|      | [*implements-declaration*](#contract-types)                                |
-|                   | \|      | [*type-alias-declaration*](#type-aliases)                                  |
-|                   | \|      | [*ledger-declaration*](#declaring-and-maintaining-public-state)            |
-|                   | \|      | [*witness-declaration*](#declaring-witnesses-for-private-state-management) |
-|                   | \|      | [*constructor-definition*](#contract-constructor)                          |
-|                   | \|      | [*circuit-definition*](#circuit-definitions)                               |
+|                    |         |                                                                                                                                       |
+|--------------------|---------|---------------------------------------------------------------------------------------------------------------------------------------|
+| *program*          | &xrarr; | [*program-element*](#programs) ⋯ [*program-element*](#programs)                                                                       |
+| *program-element*  | &xrarr; | [*pragma-form*](#pragmas)                                                                                                             |
+|                    | \|      | [*module-definition*](#modules-exports-and-imports)                                                                                   |
+|                    | \|      | [*import-form*](#imports)                                                                                                             |
+|                    | \|      | [*export-form*](#exports)                                                                                                             |
+|                    | \|      | [*include-form*](#include-files)                                                                                                      |
+|                    | \|      | [*struct-declaration*](#structure-types)                                                                                              |
+|                    | \|      | [*enum-declaration*](#enumeration-types)                                                                                              |
+|                    | \|      | [*contract-declaration*](#contract-types)                                                                                             |
+|                    | \|      | [*implements-declaration*](#contract-types)                                                                                           |
+|                    | \|      | [*type-alias-declaration*](#type-aliases)                                                                                             |
+|                    | \|      | [*ledger-declaration*](#declaring-and-maintaining-public-state)                                                                       |
+|                    | \|      | [*witness-declaration*](#declaring-witnesses-for-private-state-management)                                                            |
+|                    | \|      | [*host-declaration*](#programs)                                                                                                       |
+|                    | \|      | [*constructor-definition*](#contract-constructor)                                                                                     |
+|                    | \|      | [*circuit-definition*](#circuit-definitions)                                                                                          |
+| *host-declaration* | &xrarr; | `export`<sup>opt</sup> `host` [*interface-id*](#terminal-names) `{` [*host-signature*](#programs) ⋯ [*host-signature*](#programs) `}` |
+| *host-signature*   | &xrarr; | [*id*](#terminal-names) [*simple-parameter-list*](#contract-types) `:` [*type*](#primitive-types) `;`                                 |
 </div>
 
 Briefly:

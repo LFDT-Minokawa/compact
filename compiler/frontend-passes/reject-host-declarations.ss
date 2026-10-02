@@ -15,12 +15,9 @@
 
 #!chezscheme
 
-; expands a multi-variable const into multiple single-variable const
-(define-pass expand-const : Lnohost (ir) -> Lsingleconst ()
-  (Const-Binding : Const-Binding (ir) -> Statement ()
-    [(,src ,[pattern] ,[type] ,[expr])
-     `(const ,src ,pattern ,type ,expr)])
-  (Statement : Statement (ir) -> Statement ()
-    [(const ,src ,[Const-Binding : cbinding -> stmt]) stmt]
-    [(const ,src ,[Const-Binding : cbinding -> stmt] ,[Const-Binding : cbinding* -> stmt*] ...)
-     `(seq ,src ,stmt ,stmt* ...)]))
+;; host blocks parse and format but do not yet compile, therefore this pass rejects them
+;; with a clear error rather than letting a later pass choke
+(define-pass reject-host-declarations : Lnoinclude (ir) -> Lnohost ()
+  (Program-Element : Program-Element (ir) -> Program-Element ()
+    [(host ,src ,exported? ,interface-id ,hsig* ...)
+     (source-errorf src "host blocks are not yet supported")]))

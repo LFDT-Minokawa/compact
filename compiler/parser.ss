@@ -90,6 +90,7 @@
      enum
      fold
      for
+     host
      if
      implements
      include
@@ -134,7 +135,6 @@
      extends
      finally
      function
-     host
      in
      instanceof
      interface
@@ -337,6 +337,7 @@
   (define string-literal (sat/what "a string" (lambda (x) (eq? (token-type x) 'string))))
 
   (define version-literal (sat/what "a version string" (lambda (x) (eq? (token-type x) 'version))))
+  (define interface-id-literal (sat/what "a host interface id" (lambda (x) (eq? (token-type x) 'interface-id))))
 
   (define (make-binop src expr1 op expr2)
     (with-output-language (Lparser Expression)
@@ -386,7 +387,12 @@
           ("A version literal takes the form nat.nat representing major and minor"
            "versions or nat.nat.nat representing major, minor, and bugfix versions."
            "Where version literals are allowed, a plain nat representing just the"
-           "major version is also allowed."))))
+           "major version is also allowed.")))
+      (interface-id-literal (interface-id)
+        (DESCRIPTION
+          ("A host interface id names a runtime-provided interface as namespace:package/name,"
+           "each part a kebab-case label, optionally followed by @ and a semantic version"
+           "such as 1.2.0 or 1.2.0-rc.1."))))
     (Compact (program)
       [program :: src (K* program-element) eof =>
        (lambda (src pelt* eof)
@@ -405,6 +411,7 @@
       [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
       [program-element-witness-declaration :: witness-declaration => values]
+      [program-element-host-declaration :: host-declaration => values]
       [program-element-ledger-constructor :: constructor-definition => values]
       [program-element-circuit-definition :: circuit-definition => values]
       )
@@ -549,6 +556,16 @@
        (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
          (with-output-language (Lparser Witness-Declaration)
            `(witness ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
+    (Host-declaration (host-declaration)
+      [host-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD host) interface-id #\{ (K* host-signature) #\} =>
+       (lambda (src kwd-export? kwd interface-id lbrace hsig* rbrace)
+         (with-output-language (Lparser Host-Declaration)
+           `(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,hsig* ...) ,rbrace)))])
+    (Host-signature (host-signature)
+      [host-signature :: src id simple-parameter-list #\: type #\; =>
+       (lambda (src id simple-param-list colon type semicolon)
+         (with-output-language (Lparser Host-Signature)
+           `(,src ,id ,simple-param-list (,colon ,type) ,semicolon)))])
     (Constructor (constructor-definition)
       [ledger-constructor :: src (KEYWORD constructor) pattern-parameter-list block =>
        (lambda (src kwd pattern-param-list blck)

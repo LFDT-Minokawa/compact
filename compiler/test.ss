@@ -1002,6 +1002,44 @@ groups than for single tests.
 
   (test
     '(
+      "host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; derive(label: Bytes<8>, n: Uint<8>): Bytes<32>; }"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "host midnight:capsule/keys@1.0.0 {"
+        "  secretKey(): Bytes<32>;"
+        "  derive(label: Bytes<8>, n: Uint<8>): Bytes<32>;"
+        "}"))
+    )
+
+  (test
+    '(
+      "export host identus:verification/age@1.2.0-rc.1+build.7 {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export host identus:verification/age@1.2.0-rc.1+build.7 {"
+        "}"))
+    )
+
+  ; comments between `host` and its id survive the one-token lexer mode
+  (test
+    '(
+      "host // the runtime's key store"
+      "  /* one more */ midnight:capsule/keys {"
+      "  secretKey(): Bytes<32>; // the capsule's"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "host // the runtime's key store"
+        "/* one more */ midnight:capsule/keys {"
+        "  secretKey(): Bytes<32>; // the capsule's"
+        "}"))
+    )
+
+  (test
+    '(
       "export // ?"
       "  circuit f(): [] {}"
       )
@@ -4583,6 +4621,131 @@ groups than for single tests.
           (block (= credits (- credits 1))))))
     )
 
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "  derive(label: Bytes<8>, n: Uint<8>): Bytes<32>;"
+      "}"
+      "export host identus:verification/age {"
+      "  ageCredential(): Bytes<32>;"
+      "}"
+      )
+    (returns
+      (program
+        (host #f "midnight:capsule/keys@1.0.0"
+          (secretKey () (tbytes 32))
+          (derive ([label (tbytes 8)] [n (tunsigned 8)]) (tbytes 32)))
+        (host #t "identus:verification/age"
+          (ageCredential () (tbytes 32)))))
+    )
+
+  ; an interface id is one token: kebab-case labels of lowercase or uppercase words, with an
+  ; optional semantic version
+  (test
+    '(
+      "host MIDNIGHT:capsule-runtime/key-store@0.1.0 {"
+      "}"
+      )
+    (returns
+      (program
+        (host #f "MIDNIGHT:capsule-runtime/key-store@0.1.0")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight:capsule")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0 {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight:capsule/keys@1.0")))
+    )
+
+  ; a word is all lowercase or all uppercase, so a capitalised word is malformed
+  (test
+    '(
+      "host Midnight:capsule/keys {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("Midnight:capsule/keys")))
+    )
+
+  ; an underscore ends the id token, so the id reported is the part before it
+  (test
+    '(
+      "host midnight_io:capsule/keys {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight")))
+    )
+
+  (test
+    '(
+      "host 'midnight:capsule/keys' {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "parse error: found ~a looking for~?" ("\"'midnight:capsule/keys'\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host interface id"))))
+    )
+
+  (test
+    '(
+      "host {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "parse error: found ~a looking for~?" ("\"{\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host interface id"))))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys {"
+      "  secretKey(): Bytes<32>"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "parse error: found ~a looking for~?" ("\"}\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\""))))
+    )
+
+  (test
+    '(
+      "export host midnight:capsule/keys {"
+      "  circuit secretKey(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "parse error: found ~a looking for~?" ("keyword \"circuit\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host signature" "\"}\""))))
+    )
+
+  ; `host` is a keyword now rather than one reserved for future use
+  (test
+    '(
+      "ledger host: Field;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 8" "parse error: found ~a looking for~?" ("keyword \"host\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
   (test ;; FIXME uncomment composable contract in test.compact
     "test-center/compact/test.compact"
     (returns
@@ -7935,6 +8098,43 @@ groups than for single tests.
        irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
      ))
   )
+)
+
+(run-tests reject-host-declarations
+  ; host blocks parse but do not yet compile, therefore the frontier error names the block
+  (test
+    '(
+      "witness w(): Field;"
+      "export host midnight:capsule/keys {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "host blocks are not yet supported" ()))
+    )
+
+  (test
+    '(
+      "module M {"
+      "  host midnight:capsule/keys {"
+      "    secretKey(): Bytes<32>;"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "host blocks are not yet supported" ()))
+    )
+
+  (test
+    '(
+      "witness w(): Field;"
+      )
+    (returns
+      (program
+        (witness #f w () () (tfield (field-native)))))
+    )
 )
 
 (run-tests expand-modules-and-types
