@@ -18672,7 +18672,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native ownPublicKey)))
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (host ownPublicKey)))
     )
 
   (test
@@ -34803,6 +34803,20 @@ groups than for single tests.
       )
     (succeeds)
     )
+
+  ; the standard library's coin public key is a host result, therefore publishing it needs
+  ; disclose like any other witness value (it was exempt as a native witness)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function ownPublicKey at <standard library>" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value"))))
+    )
 )
 
 ; examples of where disclose can be placed
@@ -49021,57 +49035,35 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
+        (witness %createZswapInput.8 ((argument
+                                        (%coin.9 %coin.10 %coin.11 %coin.12
+                                          %coin.13 %coin.14)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)
+                                              (tunsigned
+                                                18446744073709551615)))))
+             (ty () ()))
+        (witness %createZswapOutput.15 ((argument
+                                          (%coin.16
+                                            %coin.17
+                                            %coin.18
+                                            %coin.19
+                                            %coin.20)
                                           (ty ((abytes 32)
                                                 (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+                                                (abytes 16))
                                               ((tunsigned 255)
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
@@ -49079,46 +49071,69 @@ groups than for single tests.
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
                                                 (tunsigned
-                                                  340282366920938463463374607431768211455)
+                                                  340282366920938463463374607431768211455))))
+                                        (argument
+                                          (%recipient.21
+                                            %recipient.22
+                                            %recipient.23
+                                            %recipient.24
+                                            %recipient.25)
+                                          (ty ((abytes 1)
+                                                (abytes 32)
+                                                (abytes 32))
+                                              ((tunsigned 1)
+                                                (tunsigned 255)
                                                 (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (native %transientHash.26 ((argument
+                                     (%value.27 %value.28)
+                                     (ty ((afield) (afield))
+                                         ((tfield (field-native))
+                                           (tfield (field-native))))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %persistentHash.29 ((argument
+                                      (%value.30 %value.31 %value.32 %value.33 %value.34
+                                        %value.35 %value.36 %value.37
+                                        %value.38)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %degradeToTransient.39 ((argument
+                                          (%x.40 %x.41)
+                                          (ty ((abytes 32))
+                                              ((tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.42 ((argument
+                                            (%x.43)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (circuit %relay.44 ((argument
+                              (%coin.45 %coin.46 %coin.47 %coin.48 %coin.49)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -49129,116 +49144,116 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.50 %value.51)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
+               %value.50
+               %value.51))
+          (= 1 (%tmp.52 %tmp.53)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %value.45
-               %value.46))
+               %value.50
+               %value.51))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.52
+               %tmp.53))
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapInput.8
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0))
-          (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
+          (= 1 (%tmp.54 %tmp.55)
+             (call %persistentHash.29
                136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %selfAddr.0
+               %selfAddr.2))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
-               %tmp.51
-               %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.54
+               %tmp.55))
+          (= 1 (%t.56)
+             (call %degradeToTransient.39 %coin.45 %coin.46))
+          (= 1 (%t.57)
+             (call %transientHash.26
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.56))
+          (= 1 (%t.58 %t.59) (call %upgradeFromTransient.42 %t.57))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.60 %tmp.61)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.60
+               %tmp.61))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.62 %tmp.63)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
           ())))
@@ -49255,57 +49270,35 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
+        (witness %createZswapInput.8 ((argument
+                                        (%coin.9 %coin.10 %coin.11 %coin.12
+                                          %coin.13 %coin.14)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)
+                                              (tunsigned
+                                                18446744073709551615)))))
+             (ty () ()))
+        (witness %createZswapOutput.15 ((argument
+                                          (%coin.16
+                                            %coin.17
+                                            %coin.18
+                                            %coin.19
+                                            %coin.20)
                                           (ty ((abytes 32)
                                                 (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+                                                (abytes 16))
                                               ((tunsigned 255)
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
@@ -49313,46 +49306,69 @@ groups than for single tests.
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
                                                 (tunsigned
-                                                  340282366920938463463374607431768211455)
+                                                  340282366920938463463374607431768211455))))
+                                        (argument
+                                          (%recipient.21
+                                            %recipient.22
+                                            %recipient.23
+                                            %recipient.24
+                                            %recipient.25)
+                                          (ty ((abytes 1)
+                                                (abytes 32)
+                                                (abytes 32))
+                                              ((tunsigned 1)
+                                                (tunsigned 255)
                                                 (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (native %transientHash.26 ((argument
+                                     (%value.27 %value.28)
+                                     (ty ((afield) (afield))
+                                         ((tfield (field-native))
+                                           (tfield (field-native))))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %persistentHash.29 ((argument
+                                      (%value.30 %value.31 %value.32 %value.33 %value.34
+                                        %value.35 %value.36 %value.37
+                                        %value.38)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %degradeToTransient.39 ((argument
+                                          (%x.40 %x.41)
+                                          (ty ((abytes 32))
+                                              ((tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.42 ((argument
+                                            (%x.43)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (circuit %relay.44 ((argument
+                              (%coin.45 %coin.46 %coin.47 %coin.48 %coin.49)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -49363,7 +49379,7 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -49384,113 +49400,113 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tunsigned 340282366920938463463374607431768211455)))
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.50 %value.51)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
+               %value.50
+               %value.51))
+          (= 1 (%tmp.52 %tmp.53)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %value.45
-               %value.46))
+               %value.50
+               %value.51))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.52
+               %tmp.53))
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapInput.8
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0))
-          (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
+          (= 1 (%tmp.54 %tmp.55)
+             (call %persistentHash.29
                136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %selfAddr.0
+               %selfAddr.2))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
-               %tmp.51
-               %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.54
+               %tmp.55))
+          (= 1 (%t.56)
+             (call %degradeToTransient.39 %coin.45 %coin.46))
+          (= 1 (%t.57)
+             (call %transientHash.26
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.56))
+          (= 1 (%t.58 %t.59) (call %upgradeFromTransient.42 %t.57))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.60 %tmp.61)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.60
+               %tmp.61))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.62 %tmp.63)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
-          (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
+          (0 0 0 0 0 0 %t.58 %t.59 %coin.47 %coin.48 %coin.49))))
     )
 
   (test
@@ -76873,7 +76889,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(): ZswapCoinPublicKey {"
-      "  return ownPublicKey();"
+      "  return disclose(ownPublicKey());"
       "}"
        )
     (stage-javascript
@@ -76891,7 +76907,7 @@ groups than for single tests.
       "struct S { x: Field, y: ZswapCoinPublicKey }"
       "witness next_fib(): Field;"
       "export circuit fib() : S {"
-      "  return S{ x: disclose(next_fib()), y: ownPublicKey() };"
+      "  return S{ x: disclose(next_fib()), y: disclose(ownPublicKey()) };"
       "}")
     (stage-javascript
       '(
@@ -78749,7 +78765,7 @@ groups than for single tests.
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls native witness ownPublicKey" "line 3 char 10")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls host function ownPublicKey" "line 3 char 10")))
     )
 
     (test
@@ -97741,30 +97757,39 @@ groups than for single tests.
         ))
     )
 
-  ; the zswap interface is built into compact-runtime, so a contract declaring it gets the
-  ; wallet's coin operations with nothing supplied by the DApp; the standard library still
-  ; binds the same names as native witnesses, hence the selective import
+  ; the standard library declares the wallet's coin operations as the zswap host interface,
+  ; which compact-runtime implements from the context, so a contract gets them with nothing
+  ; supplied by the DApp, from circuits and from local functions alike
   (test
     '(
-      "import { ZswapCoinPublicKey } from CompactStandardLibrary;"
-      "host midnight:capsule/zswap@1.0.0 {"
-      "  ownPublicKey(): ZswapCoinPublicKey;"
-      "}"
+      "import CompactStandardLibrary;"
       "export ledger owner: ZswapCoinPublicKey;"
       "export circuit claim(): [] {"
       "  owner = disclose(ownPublicKey());"
       "}"
+      "local who(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+      "export circuit claimLocally(): [] {"
+      "  owner = disclose(who());"
+      "}"
       )
     (stage-javascript
       '(
-        "test('the built-in zswap host interface answers from the context', async () => {"
+        "test('the standard library\\'s zswap host interface answers from the context', async () => {"
         "  const [contract, context] = await startContract(contractCode, {}, 0);"
-        "  const r = await contract.circuits.claim(context);"
         "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
-        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
-        "  const pd = r.context.callProofDataTrace.at(-1)!;"
-        "  expect(pd.hostOutputs).toHaveLength(1);"
-        "  expect(pd.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r1 = await contract.circuits.claim(context);"
+        "  expect(contractCode.ledger(r1.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd1.hostOutputs).toHaveLength(1);"
+        "  expect(pd1.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.claimLocally(r1.context);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd2 = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the local function's host call is recorded but only its own result crosses into the proof"
+        "  expect(pd2.hostOutputs).toHaveLength(1);"
+        "  expect(pd2.privateTranscriptOutputs).toHaveLength(1);"
         "});"
         ))
     )

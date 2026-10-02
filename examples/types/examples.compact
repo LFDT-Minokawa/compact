@@ -509,7 +509,7 @@ new type t37_address = ContractAddress;
 new type t37_either = Either<t37_pubkey, t37_address>;
 
 export circuit test37(): t37_either {
-  return left<t37_pubkey, t37_address>(ownPublicKey() as t37_pubkey) as t37_either;
+  return left<t37_pubkey, t37_address>(disclose(ownPublicKey()) as t37_pubkey) as t37_either;
 }
 
 // Test 38: Custom types with assert

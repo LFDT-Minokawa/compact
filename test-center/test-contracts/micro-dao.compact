@@ -177,7 +177,7 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
     dao_token_domain_separator(),
     disclose(amount),
     evolveNonce(0, disclose(coin.nonce)),
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey())
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey()))
   );
 }
 
@@ -185,7 +185,7 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
  * Let beneficiary cash out if voting was in favor of proposal
  */
 circuit cash_out(): ShieldedCoinInfo {
-  const addr = ownPublicKey();
+  const addr = disclose(ownPublicKey());
   assert(state == LedgerState.final &&
          beneficiary.is_some &&
          beneficiary.value == addr &&

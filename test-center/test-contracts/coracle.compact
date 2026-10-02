@@ -273,7 +273,7 @@ circuit red_concede(): ShieldedCoinInfo {
 
   return sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     red_deposit.value
   ).sent;
 }
@@ -295,7 +295,7 @@ circuit blue_concede(): ShieldedCoinInfo {
 
   return sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     blue_deposit.value
   ).sent;
 }
@@ -321,12 +321,12 @@ circuit red_withdraw(): WithdrawnCoins {
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     pot.value
   ).sent;
   const deposit = sendShielded(
     red_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     red_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};
@@ -340,12 +340,12 @@ circuit blue_withdraw(): WithdrawnCoins {
 
   const wager = sendShielded(
     pot,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     pot.value
   ).sent;
   const deposit = sendShielded(
     blue_deposit,
-    left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()),
+    left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())),
     blue_deposit.value
   ).sent;
   return WithdrawnCoins{wager, deposit};

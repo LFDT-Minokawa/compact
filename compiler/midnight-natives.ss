@@ -100,18 +100,3 @@
    [y Field (discloses "a JubjubPoint containing Y coordinate")])
   (TypeRef JubjubPoint))
 
-(declare-native-entry witness ownPublicKey
-  "__compactRuntime.ownPublicKey"
-  ()
-  (TypeRef ZswapCoinPublicKey))
-
-(declare-native-entry witness createZswapInput
-  "__compactRuntime.createZswapInput"
-  ([coin (TypeRef QualifiedShieldedCoinInfo) (discloses nothing)])
-  Void)
-
-(declare-native-entry witness createZswapOutput
-  "__compactRuntime.createZswapOutput"
-  ([coin (TypeRef ShieldedCoinInfo) (discloses nothing)]
-   [recipient (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (discloses nothing)])
-  Void)

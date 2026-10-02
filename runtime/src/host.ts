@@ -84,10 +84,11 @@ export const recordHostOutput = (partialProofData: PartialProofData, output: ocr
 };
 
 // The interfaces compact-runtime implements. The zswap functions are the wallet's coin
-// operations, served from the context's Zswap local state as the standard library's native
-// witnesses were. The capsule secret has no source in compact-runtime and its derivation is
-// open (plan §6.12), therefore the keys interface is declared for the compiler but not
-// implemented here: a call fails until a capsule runtime registers it.
+// operations, which the standard library declares as a host block and which are served from
+// the context's Zswap local state. The capsule secret (`midnight:capsule/keys@1.0.0`,
+// `secretKey(): Bytes<32>`) has no source in compact-runtime and its derivation is open
+// (plan §6.12), therefore nothing implements it here: a call fails until a capsule runtime
+// registers it.
 registerHostInterface('midnight:capsule/zswap@1.0.0', {
   ownPublicKey: (context) => ownPublicKey(context),
   createZswapInput: (context, coin) => createZswapInput(context, coin),
