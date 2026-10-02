@@ -87,7 +87,25 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --ir-hook <pathname> loads a Scheme file that defines `hook`. The compiler
+    calls it with the compilation stages, proof circuit names, selected compiler
+    values, and the target directory. The hook controls its own output. It uses
+    internal compiler structures, so it can require updates between compiler
+    versions. Load only files you trust.
 "))
+
+(define (load-hook pathname)
+  (define (complain)
+    (external-errorf "the file loaded by --ir-hook must define a procedure named hook"))
+  (check-pathname pathname)
+  (unless (file-exists? pathname)
+    (external-errorf "the file named by --ir-hook does not exist: ~a" pathname))
+  (load pathname)
+  (unless (top-level-bound? 'hook (interaction-environment)) (complain))
+  (let ([hook (eval 'hook (interaction-environment))])
+    (unless (procedure? hook) (complain))
+    hook))
 
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
 
@@ -125,6 +143,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--compact-path) (string search-list)]
              [(--trace-search)]
              [(--trace-passes)]
+             [(--ir-hook) (string ir-hook-pathname)]
              [(--feature-zkir-v3)])
       (string source-pathname)
       (string target-directory-pathname))
@@ -141,7 +160,9 @@ The following flags, if present, affect the compiler's behavior as follows:
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
        (handle-exceptions ?--vscode
-         (generate-everything source-pathname target-directory-pathname)))]
+         ;; Report hook loading failures through the compiler error handler.
+         (parameterize ([ir-hook (and ?--ir-hook (load-hook ir-hook-pathname))])
+           (generate-everything source-pathname target-directory-pathname))))]
     [((flags [(--help) $ (exit-flag! 'help)]
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]

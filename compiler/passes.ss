@@ -33,6 +33,10 @@
           (frontend-passes)
           (analysis-passes)
           (save-contract-info-passes)
+          (vm)
+          (compiler-version)
+          (language-version)
+          (runtime-version)
           (typescript-passes)
           (circuit-passes)
           (zkir-passes)
@@ -193,6 +197,23 @@
                             (run-passes manifest-passes circuit-ir
                               output-directory-pathname
                               output-subdirectories)))
+                        ;; Run the hook last because the compiler cannot roll back its output after a later failure.
+                        (cond
+                          [(ir-hook) =>
+                           (lambda (hook)
+                             (define (stage-with-unparser name ir pass*)
+                               (list name ir (passrec-unparse (car (last-pair pass*)))))
+                             (hook (list (stage-with-unparser 'lsrc lsrc-ir parser-passes)
+                                         (stage-with-unparser 'frontend frontend-ir frontend-passes)
+                                         (stage-with-unparser 'analyzed analyzed-ir analysis-passes)
+                                         (stage-with-unparser 'circuit circuit-ir circuit-passes))
+                                   proof-circuit-name*
+                                   `((expand-vm-code . ,expand-vm-code)
+                                     (align . ,VMalign)
+                                     (compiler-version . ,compiler-version-string)
+                                     (language-version . ,language-version-string)
+                                     (runtime-version . ,runtime-version-string))
+                                   output-directory-pathname))])
                         (when final-pass (internal-errorf 'generate-everything "never encountered final pass ~s" final-pass)))])))))))]))
 
   (define-pass extract-circuit-names : Lflattened (ir) -> * (ls)
