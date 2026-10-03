@@ -52027,6 +52027,54 @@ groups than for single tests.
 )
 
 (run-tests print-zkir
+  ; a local operation's result is a private input, like a witness call's, and a local operation
+  ; adds no public inputs: the public transcript it is not in has nothing to declare
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger round: Counter;"
+      "export local credits: Counter;"
+      "export circuit tick(bump: Boolean): Uint<64> {"
+      "  round.increment(1);"
+      "  if (bump) {"
+      "    credits.increment(1);"
+      "    return disclose(credits.read());"
+      "  } else {"
+      "    return 0;"
+      "  }"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/tick.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"private_input\", \"guard\": 0 },"
+        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 64 },"
+        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 6, \"b\": 3 },"
+        "    { \"op\": \"output\", \"var\": 7 }"
+        "  ]"
+        "}"))
+    )
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
