@@ -24,7 +24,6 @@ describe('createCoinCommitment', () => {
       contractAddress: ocrt.sampleContractAddress(),
       coinPublicKeyOrZswapState: '0'.repeat(64),
       contractState: new ocrt.ContractState(),
-      privateState: undefined,
     });
     const coinInfo = {
       tag: 'shielded',

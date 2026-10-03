@@ -62,7 +62,6 @@ A host interface id names a runtime-provided interface as namespace:package/name
 |                   | \|      | [*implements-declaration*](#contract-implements-declaration) |
 |                   | \|      | [*type-alias-declaration*](#type-declaration)                |
 |                   | \|      | [*ledger-declaration*](#ledger-declaration)                  |
-|                   | \|      | [*witness-declaration*](#witness-declaration)                |
 |                   | \|      | [*host-declaration*](#host-declaration)                      |
 |                   | \|      | [*constructor-definition*](#constructor)                     |
 |                   | \|      | [*circuit-definition*](#circuit-definition)                  |
@@ -224,14 +223,6 @@ A host interface id names a runtime-provided interface as namespace:package/name
 |----------------------|---------|----------------------------------------------------------------------------------------------------|
 | *ledger-declaration* | &xrarr; | `export`<sup>opt</sup> `sealed`<sup>opt</sup> `ledger` [*id*](#identifier) `:` [*type*](#type) `;` |
 |                      | \|      | `export`<sup>opt</sup> `local` [*id*](#identifier) `:` [*type*](#type) `;`                         |
-</div>
-
-#### Witness-declaration
-
-<div className="lang-ref-table">
-|                       |         |                                                                                                                                                                                   |
-|-----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| *witness-declaration* | &xrarr; | `export`<sup>opt</sup> `witness` [*id*](#identifier) [*gparams*](#generic-parameter-list)<sup>opt</sup> [*simple-parameter-list*](#simple-parameter-list) `:` [*type*](#type) `;` |
 </div>
 
 #### Host-declaration

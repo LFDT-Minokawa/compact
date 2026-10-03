@@ -44,7 +44,6 @@ const makeContext = (address: ocrt.ContractAddress) =>
     contractAddress: address,
     coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
     contractState: new ocrt.ContractState(),
-    privateState: undefined,
   });
 
 describe('per-contract Zswap local state', () => {
@@ -142,9 +141,8 @@ describe('ownPublicKey', () => {
   });
 
   test('reads the submitter key from whichever contract is executing', () => {
-    // The Zswap natives are declared `witness` but touch no persistent private state, so the rule
-    // keeping witnesses out of a callee does not reach them. A callee gets the submitter's key so it
-    // can pay them back.
+    // The Zswap operations are host functions of the submitter's wallet, therefore a callee gets the
+    // submitter's key so it can pay them back.
     const callee = makeContext(ocrt.sampleContractAddress());
     expect(compactRuntime.ownPublicKey(callee).bytes).toEqual(ocrt.encodeCoinPublicKey(COIN_PUBLIC_KEY));
   });

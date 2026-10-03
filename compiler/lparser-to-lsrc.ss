@@ -78,11 +78,6 @@
        (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
              [parg* (Pattern-Argument-List parg-list)])
          `(local-circuit ,src ,(and kwd-export? #t) ,(token-value function-name) (,type-param* ...) (,parg* ...) ,type ,blck))])
-    (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
-      [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,[type] ,semicolon)
-       (let ([type-param* (if generic-param-list? (Generic-Param-List generic-param-list?) '())]
-             [arg* (Argument-List arg-list)])
-         `(witness ,src ,(and kwd-export? #t) ,(token-value function-name) (,type-param* ...) (,arg* ...) ,type))])
     (Host-Declaration : Host-Declaration (ir) -> Host-Declaration ()
       [(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,[hsig*] ...) ,rbrace)
        `(host ,src ,(and kwd-export? #t) ,(token-value interface-id) ,hsig* ...)])

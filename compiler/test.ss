@@ -2989,7 +2989,6 @@ groups than for single tests.
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
-      "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
       '(
@@ -3034,12 +3033,7 @@ groups than for single tests.
         "           vector2,"
         "           vector3"
         "           );"
-        "}"
-        ""
-        "witness fairlylongwitnessname<typeA, typeB, sizeX>("
-        "          vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
-        "          ): Vector<sizeX, typeA>;"))
+        "}"))
     )
 
   (test
@@ -7767,11 +7761,30 @@ groups than for single tests.
 
   (test
     '(
+      "circuit witness():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"witness\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
       "circuit yield():[] {}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"yield\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  ; a witness declaration is a parse error now that host functions supply what it did
+  (test
+    '(
+      "witness w(): Field;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "parse error: found ~a looking for~?" ("keyword \"witness\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
     )
 )
 
@@ -8146,7 +8159,7 @@ groups than for single tests.
         (local-circuit %f.0 () (ttuple) (tuple))))
     )
 
-  ; a host function binds like a witness: the id is the binding, the name within the
+  ; a host function binds like a circuit: the id is the binding, the name within the
   ; interface travels with it for the runtime
   (test
     '(
@@ -14355,15 +14368,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native degradeToTransient)))
-    )
-
-  (test
-    '(
-      "export witness w(): [];"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (witness w)))
     )
 
   (test
@@ -31556,7 +31560,7 @@ groups than for single tests.
     )
 
   ; a host function is runtime-provided nondeterminism, therefore calling one makes a
-  ; circuit impure, as calling a witness does
+  ; circuit impure
   (test
     '(
       "host midnight:capsule/keys@1.0.0 {"
@@ -31689,21 +31693,6 @@ groups than for single tests.
 (run-tests check-local-callability
   ; a local function calls local functions, pure circuits, and local ADT operations, and
   ; nothing that reaches the public transcript or the proof
-  (test
-    '(
-      "witness w(): Field;"
-      "local f(): Field {"
-      "  return w();"
-      "}"
-      "export circuit g(): Field {"
-      "  return disclose(f());"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "~a cannot call witness ~a" ("local function f" w)))
-    )
-
   (test
     '(
       "ledger x: Field;"
@@ -38333,8 +38322,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -38397,8 +38384,6 @@ groups than for single tests.
          "        \"type-name\": \"Field\""
          "      }"
          "    }"
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -38493,8 +38478,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -38573,8 +38556,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -38667,8 +38648,6 @@ groups than for single tests.
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -38739,8 +38718,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -38776,7 +38753,7 @@ groups than for single tests.
     )
 
   ; a circuit is proved only when it has an on-chain effect; local operations are none, so a
-  ; circuit that only writes local state has no proof, like a witness-only circuit
+  ; circuit that only writes local state has no proof, like a circuit that only calls host functions
   (test-group
     ((create-file "local-only-circuits.compact"
        '(
@@ -38826,8 +38803,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -38866,8 +38841,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -38926,8 +38899,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -40358,8 +40329,6 @@ groups than for single tests.
         "      }"
         "    }"
         "  ],"
-        "  \"witnesses\": ["
-        "  ],"
         "  \"contracts\": ["
         "  ],"
         "  \"ledger\": ["
@@ -40907,8 +40876,6 @@ groups than for single tests.
          "        ]"
          "      }"
          "    }"
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -72791,7 +72758,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  for (const b of [true, false]) {"
         "    expect((await C.circuits.ternary(Ctxt, b)).result).toEqual([]);"
         "    expect((await C.circuits.ternary_flipped(Ctxt, b)).result).toEqual([]);"
@@ -72825,7 +72792,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
         "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
         "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
@@ -72854,7 +72821,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar1(Ctxt)).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
         "  expect((await C.circuits.bar2(Ctxt)).result).toEqual([[true, false], [false, false], [true, false]]);"
         "});"
@@ -73534,7 +73501,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.getMiddle(Ctxt, new Uint8Array([17, 18, 19, 20, 21]))).result).toEqual(new Uint8Array([18, 19, 20]));"
         "});"
         ))
@@ -73550,11 +73517,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Field: true -> 1n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('Boolean to Field: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         )))
@@ -73569,11 +73536,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Uint<0..2>: true -> 1n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('Boolean to Uint<0..2>: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         )))
@@ -73588,11 +73555,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Uint<0..1>: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         "test('Boolean to Uint<0..1>: true throws (1 > 0)', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow();"
         "});"
         )))
@@ -73607,15 +73574,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Boolean: 0n -> false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('Field to Boolean: 1n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(true);"
         "});"
         "test('Field to Boolean: 99n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 99n)).result).toEqual(true);"
         "});"
         )))
@@ -73630,11 +73597,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Boolean: 0n -> false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('Uint to Boolean: 5n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(true);"
         "});"
         )))
@@ -73649,11 +73616,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint downcast: in-range value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 9n)).result).toEqual(9n);"
         "});"
         "test('Uint downcast: out-of-range value throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 10n)).rejects.toThrow();"
         "});"
         )))
@@ -73668,11 +73635,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Uint: in-range value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         "test('Field to Uint: out-of-range value throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 10n)).rejects.toThrow();"
         "});"
         )))
@@ -73687,11 +73654,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Field: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02]))).result).toEqual(0x0201n);"
         "});"
         "test('Bytes to Field: zero bytes -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x00]))).result).toEqual(0n);"
         "});"
         )))
@@ -73706,15 +73673,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Uint: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x03, 0x00]))).result).toEqual(3n);"
         "});"
         "test('Bytes to Uint: exceed maxval', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).rejects.toThrow();"
         "});"
         "test('Bytes to Uint: max value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0x00]))).result).toEqual(255n);"
         "});"
         )))
@@ -73729,11 +73696,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Bytes: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([0x01, 0x02]));"
         "});"
         "test('Field to Bytes: value too large for target throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x010000n)).rejects.toThrow();"
         "});"
         )))
@@ -73748,11 +73715,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Bytes: value fits', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 42n)).result).toEqual(new Uint8Array([42]));"
         "});"
         "test('Uint to Bytes: value too large for target throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 256n)).rejects.toThrow();"
         "});"
         )))
@@ -73767,7 +73734,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Vector of Uint<0..256> to Bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n, 3n])).result).toEqual(new Uint8Array([1, 2, 3]));"
         "});"
         )))
@@ -73782,7 +73749,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Tuple of Uint subtypes to Bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [10n, 20n])).result).toEqual(new Uint8Array([10, 20]));"
         "});"
         )))
@@ -73797,7 +73764,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Vector of Uint<0..256>', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([10, 20, 30]))).result).toEqual([10n, 20n, 30n]);"
         "});"
         )))
@@ -73812,7 +73779,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Vector of Field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02]))).result).toEqual([1n, 2n]);"
         "});"
         )))
@@ -73827,7 +73794,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Tuple of Uint supertypes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([5, 10]))).result).toEqual([5n, 10n]);"
         "});"
         )))
@@ -73843,11 +73810,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to Field: red -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "});"
         "test('Enum to Field: blue -> 2n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
         "});"
         )))
@@ -73863,7 +73830,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to wide Uint: no runtime check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
         "});"
         )))
@@ -73879,11 +73846,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to narrow Uint: in-range succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "});"
         "test('Enum to narrow Uint: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 2)).rejects.toThrow();"
         "});"
         )))
@@ -73899,11 +73866,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Enum: valid value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "});"
         "test('Field to Enum: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 3n)).rejects.toThrow();"
         "});"
         )))
@@ -73919,11 +73886,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Enum: valid value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "});"
         "test('Uint to Enum: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 3n)).rejects.toThrow();"
         "});"
         )))
@@ -73939,7 +73906,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Enum: fits entirely, no check needed', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
         "});"
         )))
@@ -73954,7 +73921,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint upcast: zero cost, value preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 9n)).result).toEqual(9n);"
         "});"
         )))
@@ -73969,7 +73936,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint upcast to Field: zero cost, value preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         )))
@@ -73984,7 +73951,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Vector upcast: zero cost, values preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 7n])).result).toEqual([3n, 7n]);"
         "});"
         )))
@@ -73999,7 +73966,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('Large field literal: compile-time erasure', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(string-append "  expect((await C.circuits.foo(Ctxt)).result).toEqual(52435875175126190479447740508185965837690552500527637822603658699938581184512n);")
         "});"
         )))
@@ -74066,8 +74033,6 @@ groups than for single tests.
          "        \"length\": 32"
          "      }"
          "    }"
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -74142,8 +74107,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "    {"
          "      \"name\": \"C1\","
@@ -74182,7 +74145,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  });"
          ))
      ))
@@ -74214,11 +74177,11 @@ groups than for single tests.
        '(
          ; each contract should be visible under its contractCode name
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode1, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode1);"
          "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3n);"
          "});"
          "test('check 2', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode2, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode2);"
          "  expect((await C.circuits.foo(Ctxt)).result).toEqual(7n);"
          "});"
          )))
@@ -74386,33 +74349,29 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -74424,7 +74383,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "  expect(contractCode.pureCircuits.bar(5n)).toEqual(6n);"
         "  });"
@@ -74479,33 +74438,29 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -74517,7 +74472,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "  });"
         ))
@@ -74581,33 +74536,29 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -74619,7 +74570,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(3n);"
         "  });"
         ))
@@ -74703,33 +74654,29 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -74741,7 +74688,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(3n);"
         "  });"
         ))
@@ -74757,7 +74704,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(false);"
         "  });"
@@ -74774,7 +74721,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(false);"
@@ -74792,7 +74739,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(true);"
@@ -74810,7 +74757,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(true);"
@@ -74827,7 +74774,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n], [4n,3n,7n,12n])).result).toEqual([true, false, false, true]);"
         "});"
         ))
@@ -74842,7 +74789,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n], [4n,3n,7n,12n])).result).toEqual([true, false, false, true]);"
         "});"
         ))
@@ -74858,7 +74805,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 5n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 4n)).result).toEqual(false);"
         "  });"
@@ -74875,7 +74822,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n])).result).toEqual(true);"
         "  });"
         ))
@@ -74892,7 +74839,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true})).result).toEqual(false);"
         "  });"
         ))
@@ -74908,7 +74855,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 1]), new Uint8Array([0, 0]))).result).toEqual(true);"
         "  });"
         ))
@@ -74924,7 +74871,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 5n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 4n)).result).toEqual(true);"
         "  });"
@@ -74941,7 +74888,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n])).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 2n])).result).toEqual(true);"
         "  });"
@@ -74959,7 +74906,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true})).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: false})).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 2n, f2: true})).result).toEqual(false);"
@@ -74977,7 +74924,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 1]), new Uint8Array([0, 0]))).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 0]), new Uint8Array([0, 0]))).result).toEqual(true);"
         "  });"
@@ -75004,7 +74951,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('JubjubPoint equality', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const p1 = runtime.ecMulGenerator(5n);"
         "  const p2 = runtime.ecMulGenerator(5n);"
         "  const p3 = runtime.ecMulGenerator(7n);"
@@ -75025,7 +74972,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -75041,7 +74988,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -75058,7 +75005,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -75077,7 +75024,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 10n)).result).toEqual(9n);"
         "});"
         ))
@@ -75096,7 +75043,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "});"
         ))
@@ -75115,7 +75062,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 2n)).result).toEqual(360n);"
         "});"
         ))
@@ -75133,7 +75080,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 2n)).result).toEqual(36n);"
         "});"
         ))
@@ -75181,11 +75128,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 3n)).result).toEqual(6n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 3n)).result).toEqual(4n);"
         "});"
         ))
@@ -75203,7 +75150,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual([ 4n,  4n,  6n, 12n, 12n, 18n, 20n ]);"
         "});"
         ))
@@ -75221,49 +75168,49 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual([ 5n,  3n,  5n, 13n, 11n, 19n, 21n ]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).rejects.toThrow(/type error: bar argument 1 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Field> but received/);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).rejects.toThrow(/type error: bar argument 2 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Boolean> but received/);"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).rejects.toThrow('bar: expected 2 arguments (as invoked from Typescript), received 1');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).rejects.toThrow('bar: expected 2 arguments (as invoked from Typescript), received 3');"
         "});"
         ;; "test('check 6a', async () => {"
-        ;; "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ;; "  const [C, Ctxt] = await startContract(contractCode);"
         ;; ;; FIXME this and following fail. expected: null. received: undefined
         ;; "  // @ts-expect-error"
         ;; "  await expect((<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).rejects.toThrow(runtime.CompactError);"
         ;; "});"
         ;; "test('check 6b', async () => {"
-        ;; "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ;; "  const [C, Ctxt] = await startContract(contractCode);"
         ;; "  // @ts-expect-error"
         ;; "  await expect((<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).rejects.toThrow('type error: bar argument 1 (as invoked from Typescript) at testfile.compact line 4 char 1; expected value of type CircuitContext but received 7773n');"
         ;; "});"
@@ -75280,18 +75227,18 @@ groups than for single tests.
     (stage-javascript
       '(
         "const SPAM = 'test:oracle/spam@1.0.0';"
-        "const serving = (ctx: runtime.CircuitContext<any>, spam: () => any) => withHostInterfaces(ctx, { [SPAM]: { spam } });"
+        "const serving = (ctx: runtime.CircuitContext, spam: () => any) => withHostInterfaces(ctx, { [SPAM]: { spam } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const bytes = new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);"
         "  expect((await C.circuits.foo(serving(Ctxt, () => bytes))).result).toEqual(0x030201n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow('type error: host function spam of test:oracle/spam@1.0.0 return value at testfile.compact line 1 char 31; expected value of type Bytes<32> but received 72n');"
         "});"
         ))
@@ -75309,7 +75256,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual(93n);"
         "});"
         ))
@@ -75325,7 +75272,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([ 104, 101, 108, 108, 111, 33 ]));"
         "});"
         ))
@@ -75341,7 +75288,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([ [ 7n ], [ 11n ], [ 19n ] ]);"
         "});"
         ))
@@ -75358,7 +75305,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ x: 23n, y: 31n });"
         "});"
         ))
@@ -75376,17 +75323,17 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/w@1.0.0': { W: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
@@ -75405,17 +75352,17 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/state@1.0.0': { state: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
@@ -75433,7 +75380,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3);"
         "});"
         ))
@@ -75448,23 +75395,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>'hello')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>'hello')).rejects.toThrow(\"type error: foo argument 1 at testfile.compact line 1 char 1; expected value of type Field but received 'hello'\");"
         "});"
         ))
@@ -75482,23 +75429,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(22n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>'hello')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>'hello')).rejects.toThrow(\"type error: bar argument 1 at testfile.compact line 4 char 1; expected value of type Field but received 'hello'\");"
         "});"
         ))
@@ -75516,23 +75463,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(220n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[1, 2, 3])).rejects.toThrow('type error: bar argument 1 at testfile.compact line 4 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
         "});"
         ))
@@ -75554,15 +75501,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 53n)).result).toEqual(53n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>53)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>53)).rejects.toThrow('type error: bar argument 1 at testfile.compact line 2 char 3; expected value of type Field but received 53');"
         "});"
         ))
@@ -75578,7 +75525,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 'Hello, Compact!')).result)"
         "      .toEqual([ 'Hello, Compact!', 'Hello, Compact!' ]);"
         "});"
@@ -75595,52 +75542,52 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1, 'Hello, Compact!', 'Goodbye')).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Goodbye')).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0, 'Hello, Compact!', 'So long')).result).toEqual(0n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Hello, Compact!')).result).toEqual(3n);"
         "});"
         "const x = 'Hello, Compact!';"
         "test('check 5', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3, x, x)).result).toEqual(2n);"
         "});"
         "test('check 6', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, x, x)).result).toEqual(3n);"
         "});"
         "test('check 7a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>4, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 7b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received 4');"
         "});"
         "test('check 8a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4n, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 8b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4n, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received 4n');"
         "});"
         "test('check 9a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 9b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received false');"
         "});"
         ))
@@ -75655,19 +75602,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(23n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(23n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, true)).result).toEqual(17n);"
         "});"
         ))
@@ -75699,19 +75646,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar1(Ctxt, 'Hello, Compact!', 73n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar2(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar3(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar4(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         ))
@@ -75727,7 +75674,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(1n);"
         "});"
         ))
@@ -75746,7 +75693,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -75761,19 +75708,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 0n)).result).toEqual([]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 1n)).result).toEqual([]);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 2n)).rejects.toThrow('failed assert: oops');"
         "});"
         ))
@@ -75788,15 +75735,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abcሴdef');"
         "});"
         ))
@@ -75811,15 +75758,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abcÜdef');"
         "});"
         ))
@@ -75834,15 +75781,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: bob\\'s \\\"fish\\\"\\r\\0\\b\\f\\t\\v\\n');"
         "});"
         ))
@@ -75857,15 +75804,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abc\\x02\\x7f\\x85\\u2028def');"
         "});"
         ))
@@ -75882,19 +75829,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow('failed assert: abc\\'def');"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(\"failed assert: abc\\\"def\");"
         "});"
         ))
@@ -75907,7 +75854,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         ))
@@ -75922,19 +75869,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(170n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(110n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(170n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, true)).result).toEqual(70n);"
         "});"
         ))
@@ -75949,15 +75896,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 3n, 3n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 4n, 4n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 4n, 5n)).result).toEqual(true);"
         "});"
         ))
@@ -75972,19 +75919,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -75999,19 +75946,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -76026,19 +75973,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(false);"
         "});"
         ))
@@ -76053,19 +76000,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 6n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(false);"
         "});"
         ))
@@ -76080,7 +76027,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual([ 5n, 15n, 35n ]);"
         "});"
         ))
@@ -76092,7 +76039,7 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode, {}, 0); expect((await C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5]))).result).toEqual(~dn) });" #x0504030201)
+        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode); expect((await C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5]))).result).toEqual(~dn) });" #x0504030201)
         ))
     )
 
@@ -76102,13 +76049,13 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode, {}, 0); expect((await C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn) });" #x09080706)
+        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode); expect((await C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn) });" #x09080706)
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 1 char 53: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
         "});"
         ))
@@ -76121,11 +76068,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, false)).result).toEqual(0n);"
         "});"
         ))
@@ -76139,15 +76086,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 0)).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 1)).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 2)).result).toEqual(2n);"
         "});"
         ))
@@ -76160,15 +76107,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 1n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -76182,11 +76129,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual([ 1n ]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual([ 2n ]);"
         "});"
         ))
@@ -76199,15 +76146,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x04030201n)).result).toEqual(new Uint8Array([ 1, 2, 3, 4, 0 ]));"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow('range error at testfile.compact line 1 char 52: field or Uint value 6618611909121 does not fit into 5 bytes');"
         "});"
         ))
@@ -76221,11 +76168,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual([ 1n ]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual([ 2n ]);"
         "});"
         ))
@@ -76282,7 +76229,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -76309,17 +76256,17 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow('Error: expected a cell');"
         "});"
@@ -76346,17 +76293,17 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow('Error: expected a cell');"
         "});"
@@ -76421,7 +76368,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 91n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 91n);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).result).toEqual(91n);"
         "});"
         ))
@@ -76453,12 +76400,12 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/merkle-path-root@1.0.0': { merkle_path_root: (_ctx: any, foo: any) => ({ field: 0n }) } };"
         "test('check 1a', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow('expected a cell');"
         "});"
@@ -76474,7 +76421,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -76489,7 +76436,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -76504,7 +76451,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -76519,7 +76466,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));"
         "});"
         ))
@@ -76534,7 +76481,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));"
         "});"
         ))
@@ -76550,7 +76497,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0);"
         "});"
         ))
@@ -76565,7 +76512,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual('');"
         "});"
         ))
@@ -76580,7 +76527,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]);"
         "});"
         ))
@@ -76599,7 +76546,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ a: 0n, b: false });"
         "});"
         ))
@@ -76622,7 +76569,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({a: [{a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}], c: false});"
         "});"
         ))
@@ -76638,7 +76585,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -76654,7 +76601,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -76706,27 +76653,27 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_counter(Ctxt)).rejects.toThrow('failed assert: the default is 0');"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_set(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_list(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_map(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 5', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_merkletree(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 6', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_historicmerkletree(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         ))
@@ -76777,7 +76724,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.identity(Ctxt, 73n);"
         "  expect(tmp.result).toEqual(73n);"
@@ -76818,27 +76765,27 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: false})).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: true})).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: false})).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: true})).result).toEqual(true);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type struct Maybe<is_some: Boolean, value: Boolean> but received { is_some: true, xalue: true }');"
         "});"
         ))
@@ -76853,19 +76800,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 0n)).result).toEqual(1023n);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 2046 is greater than 1023');"
         "});"
         ))
@@ -76880,23 +76827,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 0n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 1024 is greater than 1023');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 2047 is greater than 1023');"
         "});"
         ))
@@ -76966,7 +76913,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -76977,16 +76924,15 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (stage-javascript
       '(
-        "const witnesses = { C(a: any, b: any): Uint8Array { return new Uint8Array(10); }, W(a: any, b: any): undefined { return; }};"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 20n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 20n);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         "test('check 2a', async () => {"
-        "  await expect(startContract(contractCode, witnesses, 0, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
+        "  await expect(startContract(contractCode, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  await expect(startContract(contractCode, witnesses, 0, <any>[1, 2, 3])).rejects.toThrow('type error: Contract state constructor argument 1 (argument 2 as invoked from Typescript) at test.compact line 111 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
+        "  await expect(startContract(contractCode, <any>[1, 2, 3])).rejects.toThrow('type error: Contract state constructor argument 1 (argument 2 as invoked from Typescript) at test.compact line 111 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
         "});"
         ))
     )
@@ -77002,7 +76948,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // @ts-expect-error"
         "  expect(() => C.foo()).toThrow('C.foo is not a function');"
         "})")))
@@ -77019,7 +76965,7 @@ groups than for single tests.
         "// the oracle keeps the sequence in its own state, as a wallet would"
         "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result).toEqual(2n);"
@@ -77041,7 +76987,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const R = await C.circuits.foo(Ctxt);"
         "  expect(R.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(1);"
         "})"))
@@ -77060,7 +77006,7 @@ groups than for single tests.
         "// the oracle keeps the sequence in its own state, as a wallet would"
         "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result.x).toEqual(2n);"
@@ -77092,7 +77038,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('caller defaults to None when no caller is set', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  expect((await c.circuits.testCaller(context)).result).toEqual({"
         "    is_some: false,"
         "    value: {"
@@ -77104,7 +77050,7 @@ groups than for single tests.
         "});"
         ""
         "test('caller returns Some(left(contract)) when called from a contract', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  const rawCallerAddress = runtime.sampleContractAddress();"
         "  context.callContext.currentQueryContext.block = {"
         "    ...context.callContext.currentQueryContext.block,"
@@ -77121,7 +77067,7 @@ groups than for single tests.
         "});"
         ""
         "test('caller returns Some(right(user)) when called from a user', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  const rawCallerAddress = runtime.sampleUserAddress();"
         "  context.callContext.currentQueryContext.block = {"
         "    ...context.callContext.currentQueryContext.block,"
@@ -77179,22 +77125,10 @@ groups than for single tests.
      (stage-javascript outerCode "test-center/ts/composable/storage.ts")))
 
   (test-group
-    ((source-file "test-center/composable/Witness/Inner.compact")
-     (stage-javascript innerCode '()))
-    ((source-file "test-center/composable/Witness/Outer.compact")
-     (stage-javascript outerCode "test-center/ts/composable/witness.ts")))
-
-  (test-group
     ((source-file "test-center/composable/Purity/Honest.compact")
      (stage-javascript honestCode '()))
     ((source-file "test-center/composable/Purity/Liar.compact")
      (stage-javascript liarCode "test-center/ts/composable/purity.ts")))
-
-  (test-group
-    ((source-file "test-center/composable/CalleeWitness/Callee.compact")
-     (stage-javascript calleeCode '()))
-    ((source-file "test-center/composable/CalleeWitness/Caller.compact")
-     (stage-javascript callerCode "test-center/ts/composable/callee-witness.ts")))
 
   (test-group
     ((source-file "test-center/composable/Events/Inner.compact")
@@ -77218,45 +77152,41 @@ groups than for single tests.
         ""
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type ProvableCircuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "  public_key(sk_0: Uint8Array): Uint8Array;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  public_key(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): Promise<__compactRuntime.CircuitResults<PS, Uint8Array>>;"
+        "export type Circuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  public_key(context: __compactRuntime.CircuitContext, sk_0: Uint8Array): Promise<__compactRuntime.CircuitResults<Uint8Array>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly value: bigint;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext,"
         "               v_0: bigint,"
-        "               sk_0: Uint8Array): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "               sk_0: Uint8Array): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -77393,16 +77323,10 @@ groups than for single tests.
         "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
-        "  witnesses;"
         "  constructor(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    if (args_0.length !== 0) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 0 arguments, received ${args_0.length}`);"
         "    }"
-        "    const witnesses_0 = args_0[0];"
-        "    if (typeof(witnesses_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
-        "    }"
-        "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      set: async (...args_1) => {"
         "        if (args_1.length !== 2) {"
@@ -77544,7 +77468,7 @@ groups than for single tests.
         "    state_0.setOperation('set', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('get', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('clear', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data, privateState: constructorContext_0.initialPrivateState});"
+        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data});"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
@@ -77615,7 +77539,6 @@ groups than for single tests.
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
         "      currentContractState: state_0,"
-        "      currentPrivateState: context.callContext.currentPrivateState,"
         "      currentZswapLocalState: context.callContext.currentZswapLocalState"
         "    }"
         "  }"
@@ -77807,7 +77730,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({ });"
+        "const _dummyContract = new Contract();"
         "export const pureCircuits = {"
         "  public_key: (...args_0) => {"
         "    if (args_0.length !== 1) {"
@@ -77848,7 +77771,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -77858,7 +77781,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -77869,7 +77792,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -77881,7 +77804,7 @@ groups than for single tests.
      '(
        "test('check 1', async () => {"
        "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-       "  const [C, Ctxt] = await startContract(contractCode, {}, 0, sk, {seed_dust: 2n, buy_in_dust: 2n});"
+       "  const [C, Ctxt] = await startContract(contractCode, sk, {seed_dust: 2n, buy_in_dust: 2n});"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77892,7 +77815,7 @@ groups than for single tests.
    (stage-javascript
      '(
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77903,7 +77826,7 @@ groups than for single tests.
    (stage-javascript
      '(
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77914,7 +77837,7 @@ groups than for single tests.
     (stage-javascript
      '(
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77928,7 +77851,7 @@ groups than for single tests.
        "class Maybe{is_some: boolean; value: string; constructor(is_some: boolean, value: string) { this.is_some = is_some; this.value = value;}}"
        "const p1 = new Maybe( true, 'p1' );"
        "const participants: Maybe[] = new Array(5000).fill(p1);"
-       "  const [C, Ctxt] = await startContract(contractCode, {}, 0, new Uint8Array(32), participants);"
+       "  const [C, Ctxt] = await startContract(contractCode, new Uint8Array(32), participants);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        )))
@@ -77946,7 +77869,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 0n)).result).toEqual({ x: 0n, y: 1n });"
         "  expect((await C.circuits.bar(Ctxt, 1n)).result).toEqual({ x: 28336281903124990867587793011069573392383982287722241916350956173377953689573n, y: 39385640392217313770878525135509063452020585410343666726093009378539878503883n });"
         "  expect((await C.circuits.foo(Ctxt, (await C.circuits.bar(Ctxt, 1n)).result)).result).toEqual({x: 52314913592789878805517974153014629220250507019089108027564561641173449264214n, y: 316401541904675051751671509748590036265704531513998184420066319217098126774n });"
@@ -77966,17 +77889,17 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/bar@1.0.0': { bar: () => 101n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, 20n)).result).toEqual(0n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type Uint<0..36> but received 37n');"
         "});"
@@ -77997,35 +77920,35 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: 3n })).result).toEqual(1);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: false, y: 3n })).result).toEqual(2);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: 5n, y: 3n })).result).toEqual(3);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: 3n, y: 3n })).result).toEqual(0);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Field> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 6 char 1; expected value of type struct Q<x: Field, y: Field> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -78045,35 +77968,35 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: [3n, 4n, 5n] })).result).toEqual(1);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: false, y: [3n, 4n, 5n] })).result).toEqual(2);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 7n, 5n], y: [3n, 4n, 5n] })).result).toEqual(3);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 4n, 5n], y: [3n, 4n, 5n] })).result).toEqual(0);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Vector<3, Uint<0..4294967296>>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 6 char 1; expected value of type struct Q<x: Vector<3, Field>, y: Vector<3, Field>> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -78093,39 +78016,39 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [true, false, true], y: 53n, z: 'hola' })).result).toEqual(54n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [true, false, false], y: 53n, z: 'hola' })).result).toEqual(52n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 3n], y: 53n, z: 'hola' })).result).toEqual('hola');"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, { x: [3n, 4n], y: 53n, z: 'hola' })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, { x: [3n, 4n], y: 53n, z: 'hola' })).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 2 char 1; expected value of type struct Q<x: Vector<3, Boolean>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 5 char 1; expected value of type struct Q<x: Vector<2, Field>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -78158,51 +78081,51 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [true, false], y: true })).result).toEqual(true);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [true, true], y: false })).result).toEqual(true);"
         "});"
         "test('check 2c', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [false, true], y: false })).result).toEqual(false);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.tres(Ctxt, { x: [7n, 4n], y: true })).result).toEqual(11n);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.tres(Ctxt, { x: [7n, 4n], y: false })).result).toEqual(28n);"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Uint<0..4096>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 8 char 3; expected value of type struct Q<x: Vector<2, Boolean>, y: Boolean> but received { x: true, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: tres argument 1 at testfile.compact line 14 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Boolean> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -78230,33 +78153,29 @@ groups than for single tests.
         ""
         "export type Q<a> = { x: a[]; y: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  uno(context: __compactRuntime.CircuitContext<PS>, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  uno(context: __compactRuntime.CircuitContext, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -78268,7 +78187,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         ))
@@ -78296,33 +78215,29 @@ groups than for single tests.
         ""
         "export type Q<a> = { x: a[]; y: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  uno(context: __compactRuntime.CircuitContext<PS>, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  uno(context: __compactRuntime.CircuitContext, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -78334,7 +78249,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         ))
@@ -78353,35 +78268,31 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
+        "export type ProvableCircuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
+        "export type Circuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly greeting: string;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext, x_0: string): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -78393,7 +78304,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 'hola');"
+        "  const [C, Ctxt] = await startContract(contractCode, 'hola');"
         "  expect((await C.circuits.hello(Ctxt)).result).toEqual('hola');"
         "});"
         ))
@@ -78420,25 +78331,22 @@ groups than for single tests.
         ""
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
-        "export type Witnesses<PS> = {"
-        "}"
-        ""
-        "export type ImpureCircuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ImpureCircuits = {"
+        "  state(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  context(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  transcript(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  Contract(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ProvableCircuits<PS> = {"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ProvableCircuits = {"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
@@ -78446,31 +78354,29 @@ groups than for single tests.
         "  finalize(): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  state(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  context(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  transcript(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  Contract(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  functions(context: __compactRuntime.CircuitContext<PS>, Maybe_0: Maybe<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  finalize(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  functions(context: __compactRuntime.CircuitContext, Maybe_0: Maybe<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  finalize(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly rat: bigint;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
-        "               witnesses_0: bigint): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext, witnesses_0: bigint): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -78483,12 +78389,12 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/witnesses@1.0.0': { witnesses: (_ctx: any, witnesses: bigint) => witnesses + 11n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, 73n);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits._arguments(Ctxt, 11n, 7n, 13n)).result).toEqual(132n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, 73n);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.finalize(Ctxt)).result).toEqual(20n);"
         "});"
@@ -78503,39 +78409,39 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.red_guess(Ctxt, 11n)).result).toEqual(10n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(<any>(C.circuits.red_guess)(Ctxt, <any>11)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(<any>(C.circuits.red_guess)(Ctxt, <any>11)).rejects.toThrow('type error: red_guess argument 1 at testfile.compact line 2 char 1; expected value of type Field but received 11');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, <any>11, <any>12); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, <any>11, <any>12); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, <any>12); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, <any>12); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, 12n); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, 12n); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         ))
@@ -78551,7 +78457,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, 23n)).result;"
@@ -78573,7 +78479,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, 23n)).result;"
@@ -78593,7 +78499,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, true)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, true)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, false)).result;"
@@ -78624,11 +78530,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.rat(Ctxt)).result).toEqual([]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const L0 = contractCode.ledger(Ctxt0.callContext.currentQueryContext.state);"
         "  expect(L0.foo).toEqual(0n);"
         "  expect(L0.bar.member(17n)).toEqual(false);"
@@ -78684,7 +78590,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(3n);"
         "});"
         )
@@ -78705,7 +78611,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(3n);"
         "});"
         )
@@ -78746,7 +78652,7 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, sk);"
+        "  const [C, Ctxt] = await startContract(contractCode, sk);"
         "  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.yes).toEqual(0n);"
         "  expect(L.potHasCoin).toEqual(false);"
@@ -78790,7 +78696,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -78816,7 +78722,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -79006,7 +78912,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -79032,7 +78938,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt)).result).toEqual(1n);"
         "  });"
         ))
@@ -79055,7 +78961,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.callContext.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
@@ -79083,12 +78989,12 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  expect(tmp.result).toEqual({ is_some: true, value: 9n });"
         "  });"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.callContext.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
@@ -79132,7 +79038,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.identity(Ctxt, 73n);"
         "  expect(tmp.result).toEqual(74n);"
@@ -79171,36 +79077,33 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "  identity(q_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  identity(context: __compactRuntime.CircuitContext<PS>, q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  identity(context: __compactRuntime.CircuitContext, q_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
@@ -79219,13 +79122,12 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -79285,7 +79187,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true, 7n);"
         "  expect(tmp.result).toEqual([]);"
@@ -79399,7 +79301,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true, 7n);"
         "  expect(tmp.result).toEqual([]);"
@@ -79444,7 +79346,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true);"
         "  expect(tmp.result).toEqual([]);"
@@ -79464,7 +79366,7 @@ groups than for single tests.
         "  });"
 
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true);"
         "  tmp = await C.circuits.put(tmp.context, true, 7n, 999999999n);"
@@ -79478,37 +79380,34 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
-        "}"
-        ""
-        "export type ImpureCircuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ImpureCircuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ProvableCircuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ProvableCircuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
@@ -79526,13 +79425,12 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -79573,7 +79471,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_counter(Ctxt, true);"
         "  tmp = await C.circuits.incr_nested_counter(tmp.context, true, 7n);"
@@ -79607,7 +79505,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_map(Ctxt, 3n);"
         "  tmp = await C.circuits.insert_nested_map(tmp.context, 3n, 7n, 11n);"
@@ -79646,7 +79544,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_map(Ctxt, false);"
         "  tmp = await C.circuits.init_nested_counter(tmp.context, false, 7n);"
@@ -79690,7 +79588,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check list', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -79740,7 +79638,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check hmt', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.insert(Ctxt, 5n);"
         "  tmp = await C.circuits.isFull(tmp.context);"
@@ -79773,7 +79671,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check cell', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.write(Ctxt, 5n);"
         "  tmp = await C.circuits.read(tmp.context);"
@@ -79809,7 +79707,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check counter', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.increment(Ctxt, 5n);"
         "  tmp = await C.circuits.read(tmp.context);"
@@ -79848,7 +79746,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check hmt', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.insert(Ctxt, 5n);"
         "  tmp = await C.circuits.isFull(tmp.context);"
@@ -79893,7 +79791,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check set', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -79949,7 +79847,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check map', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -80105,7 +80003,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.foo(Ctxt, '');"
         "  expect(tmp.result).toEqual(true);"
@@ -80171,19 +80069,16 @@ groups than for single tests.
         ""
         "export type MerkleTreeDigest = { field: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
@@ -80227,13 +80122,12 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -80274,7 +80168,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -80297,7 +80191,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -80320,7 +80214,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -80339,7 +80233,7 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const tmp = new Uint8Array(0);"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, tmp)).result).toEqual([tmp, tmp]);"
         "  });"
         ))
@@ -80364,7 +80258,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  var tmp = await C.circuits.M1_foo(Ctxt, 7n);"
         "  expect(tmp.result).toEqual({x: 8n, y: false});"
         "});"
@@ -80400,7 +80294,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.foo(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(37n);"
@@ -80448,7 +80342,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.foo(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(37n);"
@@ -80480,7 +80374,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var L = contractCode.ledger(context.callContext.currentQueryContext.state);"
         "  expect(L.p).toEqual(18n);"
         "  expect(L.q).toEqual(19n);"
@@ -80551,7 +80445,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.M1_foo2(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(1n);"
@@ -80588,13 +80482,13 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 75n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 75n);"
         "  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(75n);"
         "})"
         "test('check 2', async () => {"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow('Contract state constructor: expected 2 arguments (as invoked from Typescript), received 1');"
+        "  await expect(startContract(contractCode)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(startContract(contractCode)).rejects.toThrow('Contract state constructor: expected 2 arguments (as invoked from Typescript), received 1');"
         "})"))
     )
 
@@ -80619,7 +80513,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 20n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(37n);"
@@ -80648,7 +80542,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
@@ -80700,7 +80594,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/y@1.0.0': { Y: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.M$bar(Ctxt, true)).result).toEqual(21n);"
@@ -80731,7 +80625,7 @@ groups than for single tests.
         "// one function serves both declarations of W, as the one witness did"
         "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, ...args: unknown[]) => args.length == 0 ? 17n : !args[0] } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
@@ -80748,7 +80642,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(16n);"
         "});"
         ))
@@ -80771,7 +80665,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 7n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 7n);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(15n);"
         "});"
         ))
@@ -80788,7 +80682,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const qcoin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 57n, mt_index: 3n };"
         "  const coin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 73n };"
         "  const encodedOwnPublicKey = runtime.encodeCoinPublicKey('0'.repeat(64))"
@@ -80815,7 +80709,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 12n, 10n)).result).toEqual(2n);"
         "  expect((await C.circuits.foo(context, 12n, 12n)).result).toEqual(0n);"
         "  await expect(C.circuits.foo(context, 12n, 14n)).rejects.toThrow(runtime.CompactError);"
@@ -80836,7 +80730,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, { x: { x: 29n } })).result).toEqual({ x: 29n });"
         "  await expect(C.circuits.foo(context, { x: { y: 29n } })).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, { x: { y: 29n } })).rejects.toThrow('type error: foo argument 1 at testfile.compact line 4 char 1; expected value of type struct S<x: struct S<x: Field>> but received { x: { y: 29n } }');"
@@ -80859,33 +80753,29 @@ groups than for single tests.
         ""
         "export type Commitment<A> = { value: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  foo(): Commitment<any>;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Commitment<any>>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Commitment<any>>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -80897,7 +80787,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ value: 10n });"
         "});"
         ))
@@ -80929,7 +80819,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -80953,7 +80843,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  const s0 = (await C.circuits.make(context, 3n, true)).result;"
         "  expect(s0).toEqual({x: 3n, y: true});"
         "  const s1 = (await C.circuits.update_x(context, s0, 5n)).result;"
@@ -80983,7 +80873,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.make0(context, 3n, true, 7n)).result).toEqual({x: 3n, y: true, z: 7n});"
         "  expect((await C.circuits.make1(context, 11n, false, 13n)).result).toEqual({x: 11n, y: false, z: 13n});"
         "  expect((await C.circuits.make2(context, 11n, false, 13n)).result).toEqual({x: 11n, y: false, z: 13n});"
@@ -81001,7 +80891,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(2n);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -81019,7 +80909,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(2n);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -81070,7 +80960,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(context, 4n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 4n)).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, 3n)).rejects.toThrow(runtime.CompactError);"
@@ -81120,7 +81010,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(context, 2n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 1n)).result).toEqual(~dn);" (max-field))
@@ -81168,7 +81058,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  expect((await C.circuits.foo(context, 2n)).result).toEqual([]);"
         "  expect((await C.circuits.foo(context, 1n)).result).toEqual([]);"
@@ -81189,7 +81079,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, 1n)).rejects.toThrow('failed assert: oops');"
@@ -81213,7 +81103,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 4n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(true);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
@@ -81237,7 +81127,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 4n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(true);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
@@ -81284,7 +81174,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [3n, 4n])).result).toEqual([3n, 4n]);"
         "  await expect(C.circuits.foo(context, [2n, 3n])).rejects.toThrow('failed assert: oops');"
         "});"
@@ -81341,7 +81231,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [5n, 6n])).result).toEqual([3n, 4n]);"
         "  await expect(C.circuits.foo(context, [2n, 3n])).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, [3n, 4n])).rejects.toThrow('failed assert: oops');"
@@ -81372,7 +81262,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -81439,7 +81329,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -81468,7 +81358,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -81485,7 +81375,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/transient-hash@1.0.0': { transientHash: (_ctx: any, x: boolean) => 101n } };"
         "test('check 1', async () => {"
-        "  var [C, context0] = await startContract(contractCode, {}, 0);"
+        "  var [C, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  expect((await C.circuits.transientHash(context, 7n)).result).toEqual(true);"
         "});"
@@ -81504,7 +81394,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.M$foo(context, 7n)).result).toEqual(8n);"
         "});"
         ))
@@ -81535,7 +81425,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n)).result).toEqual([0n, 0n, 0n, 0n, 0n]);"
         "});"
         ))
@@ -81568,7 +81458,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  let t = await C.circuits.foo(context, 93n);"
         "  expect(t.result).toEqual([3n, 3n, 1n, 71n, 1n]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -81601,7 +81491,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -81621,7 +81511,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 19n)).result).toEqual(false);"
         "  });"
@@ -81641,7 +81531,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [], 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, [], 17n, 19n)).result).toEqual(false);"
         "  await expect(C.circuits.bar(Ctxt, 13n, 17n, 19n)).rejects.toThrow(runtime.CompactError);"
@@ -81668,7 +81558,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 19n)).result).toEqual(false);"
         "  });"
@@ -81686,7 +81576,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 17n, new Uint8Array([1,2,3,4,5,6,7,8]))).result).toEqual([true, [17n, new Uint8Array([1,2,3,4,5,6,7,8])]]);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 19n, new Uint8Array([1,2,3,4,5,6,7,8]))).result).toEqual([false, [19n, new Uint8Array([1,2,3,4,5,6,7,8])]]);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8]))).result).toEqual([false, [17n, new Uint8Array([0,2,3,4,5,6,7,8])]]);"
@@ -81716,7 +81606,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -81741,7 +81631,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -81769,7 +81659,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -81799,7 +81689,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow('oops');"
         "  });"
@@ -81818,7 +81708,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false, true, false, true])).result).toEqual([1n, 0n, 5n, 0n, 9n]);"
         "  expect((await C.circuits.foo(Ctxt, [false, true, false, true, false])).result).toEqual([0n, 3n, 0n, 7n, 0n]);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow(runtime.CompactError);"
@@ -81841,7 +81731,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false, true, false, true])).result).toEqual(15n);"
         "  expect((await C.circuits.foo(Ctxt, [false, true, false, true, false])).result).toEqual(10n);"
         "  });"
@@ -81855,7 +81745,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual([2n, 3n, 4n]);"
         "  });"
         ))
@@ -81868,7 +81758,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual([]);"
         "  });"
         ))
@@ -81881,7 +81771,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual(15n);"
         "  });"
         ))
@@ -81897,7 +81787,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [1n, 2n, 3n])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([1n, 2n, 3n]);"
@@ -81915,7 +81805,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [1n, 2n, 3n])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([1n, 2n, 3n]);"
@@ -81933,7 +81823,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -81951,7 +81841,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -81969,7 +81859,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -81989,7 +81879,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
@@ -82014,7 +81904,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
@@ -82076,7 +81966,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f17).toEqual(101n);"
         "  expect(L.f32).toEqual(0n);"
@@ -82098,7 +81988,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(34n);"
         "  });"
@@ -82119,7 +82009,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -82140,7 +82030,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -82161,7 +82051,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(47n);"
         "  });"
@@ -82271,7 +82161,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -82288,7 +82178,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, true, 17n)).result).toEqual([17n, true]);"
         "  });"
         ))
@@ -82309,7 +82199,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(34n);"
         "  });"
@@ -82331,7 +82221,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -82358,7 +82248,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -82382,7 +82272,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -82406,7 +82296,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo1(Ctxt, [false, 17n, true])).result).toEqual([true, false]);"
         "  expect((await C.circuits.foo2(Ctxt, [false, 17n, true])).result).toEqual([true, 17n]);"
         "  expect((await C.circuits.foo3(Ctxt, [false, 17n, true])).result).toEqual([17n, false]);"
@@ -82453,7 +82343,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, context] = await startContract(contractCode, {}, 0);"
+        "  const [C, context] = await startContract(contractCode);"
         "  expect((await C.impureCircuits.foo1(context)).result).toEqual([]);"
         "  expect((await C.impureCircuits.foo2(context)).result).toEqual([]);"
         "  await expect(C.impureCircuits.foo3(context)).rejects.toThrow(runtime.CompactError);"
@@ -82503,7 +82393,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var { result, context } = await C.circuits.foo1(context);"
         "  expect(result).toEqual([]);"
         "  var { result, context } = await C.circuits.foo2(context);"
@@ -82529,7 +82419,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for lists', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82550,7 +82440,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for lists when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82572,7 +82462,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for maps', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82593,7 +82483,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for maps when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82615,7 +82505,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for sets', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82636,7 +82526,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for sets when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82658,7 +82548,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for cells', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82679,7 +82569,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for cells when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -82699,7 +82589,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, ~dn)).result).toEqual(~:*~dn);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, 1n, ~dn)).result).toEqual(0n);" (max-field))
@@ -82732,7 +82622,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, 1n)).result).toEqual(~dn);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, 0n, 2n)).result).toEqual(~dn-1n);" (max-field))
@@ -82763,7 +82653,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [0n, 0n, 0n])).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, [5n, 6n, 7n])).result).toEqual(~dn-17n);" (max-field))
         "});"
@@ -82786,8 +82676,8 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow(runtime.CompactError);"
-        ,(format "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow('testfile.compact line 8 char 19: cast from Field or Uint value to smaller Uint value failed: ~d is greater than 65535');" (- (max-field) 17))
+        "  await expect(startContract(contractCode)).rejects.toThrow(runtime.CompactError);"
+        ,(format "  await expect(startContract(contractCode)).rejects.toThrow('testfile.compact line 8 char 19: cast from Field or Uint value to smaller Uint value failed: ~d is greater than 65535');" (- (max-field) 17))
         "});"
         ))
     )
@@ -82802,7 +82692,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, ~dn)).result).toEqual(0n);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, ~dn, 0n)).result).toEqual(0n);" (max-field))
@@ -82841,7 +82731,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(10n);"
          "  });"
          )))
@@ -82861,7 +82751,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(10n);"
          "  });"
          )))
@@ -82880,7 +82770,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
@@ -82899,7 +82789,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
@@ -82928,7 +82818,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "  });"
         ))
@@ -82946,7 +82836,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n, 17n, 19n])).result).toEqual(17n);"
         "  });"
         ))
@@ -82962,7 +82852,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -82979,7 +82869,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [7n, 11n, 13n, 17n, 19n]);"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -82998,7 +82888,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -83013,7 +82903,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  var a = Array.from({ length: 5 }, (v, i) => i+1);"
         "  expect(a).toEqual([1,2,3,4,5]);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual([1n,2n,3n,4n,5n]);"
@@ -83035,7 +82925,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (field-bytes))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -83056,7 +82946,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (field-bytes) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -83077,7 +82967,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (* (field-bytes) 2) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -83096,7 +82986,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -83111,7 +83001,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7,8,9,10]));"
         "  });"
         ))
@@ -83128,7 +83018,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7,8,9,10]));"
         "  });"
         ))
@@ -83147,7 +83037,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (- (field-bytes) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -83168,7 +83058,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (field-bytes))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -83189,7 +83079,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (* (field-bytes) 2) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -83219,7 +83109,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n])).result).toEqual(3n);"
         "  });"
         ))
@@ -83235,7 +83125,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [])).result).toEqual([]);"
         "  });"
         ))
@@ -83263,7 +83153,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([5n]);"
         "  });"
         ))
@@ -83279,7 +83169,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n, 11n, 13n, 17n])).result).toEqual([7n, 11n]);"
         "  });"
         ))
@@ -83297,7 +83187,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -83319,7 +83209,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -83342,7 +83232,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
@@ -83364,7 +83254,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
@@ -83385,7 +83275,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n, 11n, 13n, 17n])).result).toEqual([3n, 7n, 11n, 17n]);"
         "  });"
         ))
@@ -83403,7 +83293,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -83440,7 +83330,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 15n, 16n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 31n];"
         "  const q3 = [0n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 15n, 16n];"
@@ -83466,7 +83356,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  // TypeScript assigns type bigint[] to q1 then complains that it might not have enough elemenets for foo's tuple argument, so we have to cast it explicitly to a tuple of bigints."
         "  // In other words, to TypeScript, [expr, ..., expr] is always an array, and if the elements have different types, it is an array of some union type."
@@ -83491,7 +83381,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  // stupid semicolon insertion doesn't allow this:"
         "  /*"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n]"
@@ -83524,7 +83414,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -83547,7 +83437,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -83568,7 +83458,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, []);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83587,7 +83477,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, []);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83608,7 +83498,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([{a: 9n, b: true}, {a: 11n, b: true}, {a: 9999n, b: false}]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -83667,7 +83557,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([{a: 5n, b: true}, {a: 3n, b: true}, {x: new Uint8Array([0x7a, 0x79, 0x78])}]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -83688,7 +83578,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 5n, 7n, 9n, 11n, 7n, 9n, 11n]);"
         "  });"
@@ -83707,7 +83597,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 5n, 7n, 9n, 11n, 7n, 9n, 11n]);"
         "  });"
@@ -83725,7 +83615,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n], [7n, 9n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 9n]);"
         "  });"
@@ -83743,7 +83633,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n], [7n, 9n], 11n);"
         "  expect(t.result).toEqual([3n, 5n, 11n, 7n, 9n]);"
         "  });"
@@ -83764,7 +83654,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -83785,7 +83675,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -83806,7 +83696,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -83827,7 +83717,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n, 3n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -83919,7 +83809,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([true, 0n]);"
         "  });"
@@ -83945,7 +83835,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([false, 0n]);"
         "  });"
@@ -83988,7 +83878,7 @@ groups than for single tests.
       '(
         "const oracle = { 'test:oracle/get-data@1.0.0': { getData: () => 37n }, 'test:oracle/get-randomness@1.0.0': { getRandomness: () => 59n } };"
         "test('check 1', async () => {"
-        "  var [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  const t = await C.circuits.test(Ctxt);"
         "  expect(typeof(t.result)).toEqual('bigint');"
@@ -84005,7 +83895,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -84020,7 +83910,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([]))).result).toEqual([]);"
         "  });"
         ))
@@ -84035,7 +83925,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4]))).result).toEqual([1n,2n,3n,4n,17n,60000n,1n,2n,3n,4n]);"
         "  });"
         ))
@@ -84052,7 +83942,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84070,7 +83960,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84089,7 +83979,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84108,7 +83998,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84127,7 +84017,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84145,7 +84035,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n, [12n, 14n]);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -84163,7 +84053,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n, new Array(1000).fill(37n));"
         "  expect(t.result.length).toEqual(1003);"
         "  });"
@@ -84181,7 +84071,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  });"
@@ -84200,7 +84090,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -84222,7 +84112,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  });"
@@ -84242,7 +84132,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 11, 13, 21, 15, 17, 19]));"
         "  });"
@@ -84264,7 +84154,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" ls)
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -84286,7 +84176,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -84308,7 +84198,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -84374,7 +84264,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, [~{~dn~^, ~}]);" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -84404,7 +84294,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10).fill(37));"
         "  expect(t.result).toEqual(new Uint8Array([255, 37, 37, 37, 37, 37, 37, 37, 37, 0]));"
         "  });"
@@ -84422,7 +84312,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  await expect(C.circuits.foo(Ctxt, new Array(10).fill(256n))).rejects.toThrow(runtime.CompactError);"
@@ -84442,7 +84332,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  await expect(C.circuits.foo(Ctxt, new Array(10).fill(256n))).rejects.toThrow(runtime.CompactError);"
@@ -84552,7 +84442,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -84568,7 +84458,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -84584,7 +84474,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10000).fill(37n));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -84652,7 +84542,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(1000).fill(37n));"
         "  expect(t.result.length).toEqual(70);"
         "  });"
@@ -84670,7 +84560,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -84688,7 +84578,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -84719,7 +84609,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84751,7 +84641,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -84770,7 +84660,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -84789,7 +84679,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -84822,7 +84712,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84854,7 +84744,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -84872,7 +84762,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -84903,7 +84793,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -84947,7 +84837,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84965,7 +84855,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84983,7 +84873,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85028,7 +84918,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -85047,7 +84937,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -85080,7 +84970,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -85127,7 +85017,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85146,7 +85036,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85165,7 +85055,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85213,7 +85103,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -85234,7 +85124,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -85252,7 +85142,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -85296,7 +85186,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85314,7 +85204,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37), new Array(5000).fill(41n), new Uint8Array(10000).fill(43));"
         "  expect(t.result.length).toEqual(10000);"
         "  });"
@@ -85335,7 +85225,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -85388,7 +85278,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -85406,7 +85296,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -85424,7 +85314,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -85455,7 +85345,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85487,7 +85377,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -85506,7 +85396,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -85539,7 +85429,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85584,7 +85474,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85602,7 +85492,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85646,7 +85536,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85691,7 +85581,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85710,7 +85600,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85757,7 +85647,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -85792,7 +85682,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -85811,7 +85701,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85842,7 +85732,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85860,7 +85750,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85904,7 +85794,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85949,7 +85839,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -85968,7 +85858,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -86015,7 +85905,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n, 13n, 15n, 17n, 19n, 21n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -86050,7 +85940,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -86069,7 +85959,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n, 13n, 15n, 17n, 19n, 21n]);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -86087,7 +85977,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(5095n);"
         "  });"
@@ -86119,7 +86009,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(5095n);"
         "  });"
@@ -86151,7 +86041,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([]));"
         "  expect(t.result).toEqual(0n);"
         "  });"
@@ -86183,7 +86073,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(0n);"
         "  });"
@@ -86219,7 +86109,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(59037n);"
         "  });"
@@ -86304,7 +86194,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(4565826117n);"
         "  });"
@@ -86391,7 +86281,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         ,(format "  expect(t.result).toEqual(~dn);" (+ (field-bytes) 2 (/ (* size (+ size 1)) 2)))
         "  });"
@@ -86414,7 +86304,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (map add1 (iota size)))
         ,(format "  expect(t.result).toEqual(~dn);" (+ (field-bytes) 2 (/ (* size (+ size 1)) 2)))
         "  });"
@@ -86441,7 +86331,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86471,7 +86361,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86501,7 +86391,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86531,7 +86421,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86561,7 +86451,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86591,7 +86481,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -86613,7 +86503,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));"
            (reverse (iota 20)))
         ,(format "  expect(t.result).toEqual([~{~a~^, ~}]);"
@@ -86638,7 +86528,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         ,(format "  expect(t.result).toEqual([~{~a~^, ~}]);"
            (let f ([ls (reverse (iota 20))])
@@ -86776,7 +86666,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));"
         "  expect(t.result).toEqual(new Uint8Array([5, 6, 37, 37, 8, 9, 10]));"
         "  });"
@@ -86797,7 +86687,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));"
         "  expect(t.result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0]));"
         "  });"
@@ -86817,7 +86707,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([0n, 0n]);"
         "  });"
@@ -86898,7 +86788,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.boolean$foo(Ctxt, true)).result).toEqual(true);"
         "  expect((await C.circuits.field$foo(Ctxt, 37n)).result).toEqual(37n);"
         "  expect((await C.circuits.uint16$foo(Ctxt, 73n)).result).toEqual(73n);"
@@ -86934,7 +86824,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.field$foo(Ctxt, 37n)).result).toEqual(37n);"
         "  expect((await C.circuits.uint16$foo(Ctxt, 73n)).result).toEqual(73n);"
         "  expect((await C.circuits.vector16$foo(Ctxt, [17n, 23n, 29n, 31n, 37n])).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
@@ -86967,26 +86857,26 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const v1 = [[1n, 3n, 5n], [7n, 9n, 11n]];"
         "  expect((await C.circuits.v1$foo(Ctxt, v1)).result).toEqual(v1);"
         "  });"
         "test('check 2', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v2 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
         "  expect((await C.circuits.v2$foo(Ctxt, <any>v2)).result).toEqual(v2);"
         "  });"
         "test('check 3', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v3 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
         "  expect((await C.circuits.v3$foo(Ctxt, <any>v3)).result).toEqual(v3);"
         "  });"
         "test('check 4', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v4 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
@@ -87135,7 +87025,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -87152,7 +87042,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -87169,7 +87059,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -87193,7 +87083,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -87221,7 +87111,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -87250,7 +87140,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -87279,7 +87169,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -87303,7 +87193,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1, 3, 0, 2]);"
         "  });"
         ))
@@ -87322,7 +87212,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -87345,7 +87235,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -87368,7 +87258,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -87391,7 +87281,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -87416,7 +87306,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -87434,7 +87324,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -87452,7 +87342,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -87470,7 +87360,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow('testfile.compact line 4 char 56: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "});"
@@ -87489,7 +87379,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
@@ -87509,7 +87399,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
@@ -87530,7 +87420,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn);" #x09080706)
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
@@ -87549,7 +87439,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn);" #x09080706)
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of Uint<0..4294967296> type');"
@@ -87568,7 +87458,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -87585,7 +87475,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -87620,7 +87510,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(170n);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(170n);"
         "});"
@@ -87640,7 +87530,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9a(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -87659,7 +87549,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9b(Ctxt, new Uint8Array([20, 30]))).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -87678,7 +87568,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9c(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -87697,7 +87587,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9d(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -87715,7 +87605,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9e(Ctxt)).result).toEqual(30n);"
         "});"
         ))
@@ -87733,7 +87623,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9f(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -87754,7 +87644,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -87775,7 +87665,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(10n);"
         "});"
         ))
@@ -87797,7 +87687,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(10n);"
         "});"
         ))
@@ -87818,7 +87708,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n, 20n, 30n, 40n]);"
         "});"
         ))
@@ -87840,7 +87730,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n, 20n, 30n, 40n]);"
         "});"
         ))
@@ -87861,7 +87751,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n ,20n, 30n, 40n]);"
         "});"
         ))
@@ -87882,7 +87772,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([40n, [10n ,20n, 30n, 40n]]);"
         "});"
         ))
@@ -87903,7 +87793,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -87925,7 +87815,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -87946,7 +87836,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -87966,7 +87856,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([3n]);"
         "});"
         ))
@@ -87986,7 +87876,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, new Uint8Array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0]))).result).toEqual([1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 0n]);"
         "});"
         ))
@@ -88043,7 +87933,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -88065,7 +87955,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -88086,7 +87976,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -88109,7 +87999,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "  expect((await C.circuits.peter(Ctxt, 17n)).result).toEqual(34n);"
         "  expect((await C.circuits.paul(Ctxt, 17n)).result).toEqual(34n);"
@@ -88146,7 +88036,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual([51n, 34n]);"
         "});"
         ))
@@ -88163,7 +88053,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -88183,7 +88073,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test(Ctxt)).result).toEqual(contractCode.Status.Active);"
         "});"
         ))
@@ -88234,7 +88124,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9(Ctxt)).result).toEqual(123456789n);"
         "});"
         ))
@@ -88255,34 +88145,30 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88294,7 +88180,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -88316,35 +88202,31 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: U32;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88356,7 +88238,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -88378,35 +88260,31 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: U32;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88418,7 +88296,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -88439,33 +88317,29 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  foo(x_0: U32): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88477,7 +88351,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -88502,35 +88376,31 @@ groups than for single tests.
         ""
         "export type T = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: S;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88542,7 +88412,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: 101n })).result).toEqual({ x: 101n });"
         "});"
         ))
@@ -88562,7 +88432,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: 101n })).result).toEqual({ x: 101n });"
         "});"
         ))
@@ -88590,35 +88460,31 @@ groups than for single tests.
         ""
         "export type V3U16 = VU16;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: V3U16;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -88630,7 +88496,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual(103n);"
         "});"
         ))
@@ -88648,7 +88514,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt)).result).toEqual(~dn);" (max-field))
         "});"
         ))
@@ -88666,7 +88532,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt)).result).toEqual(~dn);" (max-field))
         "});"
         ))
@@ -88716,7 +88582,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, 11n)).result).toEqual([28n, 6n, 187n, false, false]);"
         "  expect((await C.circuits.foo(Ctxt, 11n, 11n)).result).toEqual([22n, 0n, 121n, false, true]);"
         "  await expect(C.circuits.foo(Ctxt, 17n, 19n)).rejects.toThrow(runtime.CompactError);"
@@ -88777,7 +88643,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, 11n)).result).toEqual([28n, 6n, 187n]);"
         "});"
         ))
@@ -88799,7 +88665,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(13n);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(11n);"
@@ -88824,7 +88690,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(13n);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(11n);"
@@ -88844,7 +88710,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {x: 17n})).result).toEqual(19n);"
         "});"
         ))
@@ -88861,7 +88727,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {x: 17n})).result).toEqual(19n);"
         "});"
         ))
@@ -88878,7 +88744,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual([1, 0, 1, 2]);"
         "});"
         ))
@@ -88912,7 +88778,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -88933,7 +88799,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -88955,7 +88821,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -88977,7 +88843,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -88998,7 +88864,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -89019,7 +88885,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -89041,7 +88907,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -89063,7 +88929,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -89083,7 +88949,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
         "  await expect(C.circuits.foo(Ctxt, 0x12345678n)).rejects.toThrow(runtime.CompactError);"
         "});"
@@ -89104,7 +88970,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
         "  await expect(C.circuits.foo(Ctxt, 0x12345678n)).rejects.toThrow(runtime.CompactError);"
         "});"
@@ -89123,7 +88989,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, 0n)).rejects.toThrow('failed assert: oops');"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual([]);"
@@ -89142,7 +89008,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
         "});"
         ))
@@ -89159,7 +89025,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
         "});"
         ))
@@ -89176,7 +89042,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
         "});"
         ))
@@ -89193,7 +89059,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
         "});"
         ))
@@ -89214,7 +89080,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
         "});"
         ))
@@ -89235,7 +89101,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
         "});"
         ))
@@ -89256,7 +89122,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n)).result).toEqual([1, 0]);"
         "});"
         ))
@@ -89281,7 +89147,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n])).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n])).result).toEqual(false);"
         "  expect((await C.circuits.mt(Ctxt)).result).toEqual([0n, 0n, 0n]);"
@@ -89308,7 +89174,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n])).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n])).result).toEqual(false);"
         "  expect((await C.circuits.mt(Ctxt)).result).toEqual([0n, 0n, 0n]);"
@@ -89337,7 +89203,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true })).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false })).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true })).result).toEqual(false);"
@@ -89367,7 +89233,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true })).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false })).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true })).result).toEqual(false);"
@@ -89390,7 +89256,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual([202n, 206n, 214n]);"
         "});"
         ))
@@ -89410,7 +89276,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual([202n, 206n, 214n]);"
         "});"
         ))
@@ -89430,7 +89296,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n])).result).toEqual(35n);"
         "});"
         ))
@@ -89450,7 +89316,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n])).result).toEqual(35n);"
         "});"
         ))
@@ -89469,7 +89335,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(18n);"
         "});"
         ))
@@ -89491,7 +89357,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -89513,7 +89379,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -89535,7 +89401,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -89556,7 +89422,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual([0, 1, 2]);"
         "});"
         ))
@@ -89577,7 +89443,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(14n);"
         "});"
         ))
@@ -89599,7 +89465,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(63n);"
         "});"
@@ -89620,7 +89486,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -89640,7 +89506,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect((await C.circuits.foo(Ctxt, p)).result).toEqual([p.y, p.x]);"
@@ -89662,7 +89528,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect((await C.circuits.foo(Ctxt, p)).result).toEqual({ x: p.x, y: p.y });"
@@ -89689,31 +89555,27 @@ groups than for single tests.
         ""
         "export type SY<T> = { curidx: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -89746,13 +89608,13 @@ groups than for single tests.
       '(
         "const oracle = (a: bigint, b: bigint) => ({ 'test:oracle/get-a@1.0.0': { get_a: () => a }, 'test:oracle/get-b@1.0.0': { get_b: () => b } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle(3n, 10n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(false);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt = withHostInterfaces(Ctxt0, oracle(10n, 3n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(true);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(false);"
@@ -89793,7 +89655,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89804,7 +89666,7 @@ groups than for single tests.
         "  expect(t.result).toEqual(3n);"
         "});"
         "test('check 2', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89815,7 +89677,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter2(t.context, true, 8n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89824,7 +89686,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter1(t.context, true, 8n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89832,14 +89694,14 @@ groups than for single tests.
         "  await expect(C.circuits.incrementNestedCounter2(t.context, true, 8n, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  // increment using an uninitialized Counter"
         "  await expect(C.circuits.incrementNestedCounter1(t.context, true, 8n, 1n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89850,7 +89712,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter2(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 7', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89859,7 +89721,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter1(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 8', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -89867,14 +89729,14 @@ groups than for single tests.
         "  await expect(C.circuits.incrementNestedCounter2(t.context, false, 7n, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 9', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  // insert using an uninitialized Map"
         "  await expect(C.circuits.incrementNestedCounter1(t.context, false, 7n, 1n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 10', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  // insert using an uninitialized Map"
         "  await expect(C.circuits.initNestedCounter(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
@@ -89899,7 +89761,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3628800n);"
         "});"
         ))
@@ -89930,7 +89792,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([42n, 42n]);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual([0n, 0n]);"
         "});"
@@ -89952,7 +89814,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('elliptic curve negation', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const g = runtime.ecMulGenerator(1n);"
         "  const neg = runtime.ecNeg(g);"
         "  expect((await contract.circuits.foo(context, g)).result).toEqual(neg);"
@@ -89977,7 +89839,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(5n);"
         "  expect((await C.circuits.foo(Ctxt, 256n)).result).toEqual(0n);"
         "  });"
@@ -90000,7 +89862,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 0x12345671234567n)).result).toEqual(new Uint8Array([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));"
         "  expect((await C.circuits.foo(Ctxt, false, 0x100000000000000n)).result).toEqual(new Uint8Array([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));"
         "  expect((await C.circuits.foo(Ctxt, true, 0x12345671234567n)).result).toEqual(new Uint8Array([0x67, 0x45, 0x23, 0x71, 0x56, 0x34, 0x12]));"
@@ -90030,7 +89892,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" no zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
@@ -90061,7 +89923,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" no zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
@@ -90091,7 +89953,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
         "  });"
@@ -90119,7 +89981,7 @@ groups than for single tests.
      (stage-javascript
        `(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
          ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
          "  });"
@@ -90142,7 +90004,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
         ))
@@ -90168,7 +90030,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* yes)
         "  });"
@@ -90195,7 +90057,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* yes)
         "  });"
@@ -90222,7 +90084,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -90249,7 +90111,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -90276,7 +90138,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -90300,7 +90162,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([0x12, 0x34, 0x56, 0x78, 0x91, 0x23, 0x45]));"
         "  expect((await C.circuits.foo(Ctxt, false, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7]));"
         "  });"
@@ -90342,7 +90204,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('JubjubScalar casts', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.testFtoJ(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
         "  expect((await C.circuits.testFtoJ(Ctxt, 1000n)).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
@@ -90425,7 +90287,7 @@ groups than for single tests.
       )
     (stage-javascript
       `("test('JubjubScalar equality', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
         "  expect((await C.circuits.equals(Ctxt, 0n, 0n)).result).toEqual(true);"
         "  expect((await C.circuits.equals(Ctxt, 0n, 1000n)).result).toEqual(false);"
@@ -90809,7 +90671,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.serialize_vector(Ctxt, [0x31n, 0x43n, 0x7fn, 0xffn])).result).toEqual(new Uint8Array([0x31, 0x43, 0x7f, 0xff]));"
         "  });"
         ))
@@ -90995,34 +90857,30 @@ groups than for single tests.
         ""
         "export type S = { F: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -91136,16 +90994,10 @@ groups than for single tests.
         "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
-        "  witnesses;"
         "  constructor(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    if (args_0.length !== 0) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 0 arguments, received ${args_0.length}`);"
         "    }"
-        "    const witnesses_0 = args_0[0];"
-        "    if (typeof(witnesses_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
-        "    }"
-        "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      foo: async (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -91194,7 +91046,7 @@ groups than for single tests.
         "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
         "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
         "    state_0.setOperation('foo', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data, privateState: constructorContext_0.initialPrivateState});"
+        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data});"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
@@ -91204,7 +91056,6 @@ groups than for single tests.
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
         "      currentContractState: state_0,"
-        "      currentPrivateState: context.callContext.currentPrivateState,"
         "      currentZswapLocalState: context.callContext.currentZswapLocalState"
         "    }"
         "  }"
@@ -91258,7 +91109,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({ });"
+        "const _dummyContract = new Contract();"
         "export const pureCircuits = {};"
         "export const expectedVk = {};"
         ""
@@ -91300,7 +91151,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x42);"
         "  const r = await C.circuits.emit_one(Ctxt, n);"
         "  expect(Array.isArray(r.context.events)).toBe(true);"
@@ -91308,7 +91159,7 @@ groups than for single tests.
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields (version, eventType, data)', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, new Uint8Array(32));"
         "  const content = r.context.events[0];"
         "  expect(content.version).toBeDefined();"
@@ -91320,25 +91171,25 @@ groups than for single tests.
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit, no ledger access) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, new Uint8Array(32));"
         "  // Pure circuits use the abbreviated wrapper that omits events"
         "  expect(r.context.events).toEqual([]);"
@@ -91373,13 +91224,13 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('emit inside for emits one event per iteration', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_in_loop(Ctxt, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(3);"
         "});"
         ""
         "test('emit statement does not affect the circuits return value', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x99);"
         "  const r = await C.circuits.emit_then_return(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
@@ -91387,7 +91238,7 @@ groups than for single tests.
         "});"
         ""
         "test('no emit in body leaves r.result unmodified', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x77);"
         "  const r = await C.circuits.return_then_no_emit(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
@@ -91396,7 +91247,7 @@ groups than for single tests.
         "});"
         ""
         "test('impure circuit with conditional emit emits zero events when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x77);"
         "  const r = await C.circuits.no_emit_if_false(Ctxt, false, n);"
         "  expect(r.result).toEqual(n);"
@@ -91423,42 +91274,42 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('serialize_ShieldedSpend returns the nullifier bytes verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0x42);"
         "  const r = await C.circuits.serialize_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toEqual(nullifier);"
         "});"
         ""
         "test('deserialize_ShieldedSpend reconstructs the struct from bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const bytes = new Uint8Array(32).fill(0x55);"
         "  const r = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
         "  expect(r.result.nullifier).toEqual(bytes);"
         "});"
         ""
         "test('round-trip returns true for uniform-byte nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0xAB);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for all-zero nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for all-0xFF nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0xFF);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for non-uniform nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) nullifier[i] = (i * 7 + 13) & 0xFF;"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
@@ -91466,7 +91317,7 @@ groups than for single tests.
         "});"
         ""
         "test('separate serialize then deserialize yields original struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: new Uint8Array(32).fill(0x7E) };"
         "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, orig);"
         "  expect(ser.result).toBeInstanceOf(Uint8Array);"
@@ -91476,7 +91327,7 @@ groups than for single tests.
         "});"
         ""
         "test('deserialize then serialize recovers the original bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const bytes = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) bytes[i] = i * 8;"
         "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
@@ -91485,7 +91336,7 @@ groups than for single tests.
         "});"
         ""
         "test('different nullifiers serialize to different bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const a = { nullifier: new Uint8Array(32).fill(0x01) };"
         "  const b = { nullifier: new Uint8Array(32).fill(0x02) };"
         "  const ra = await C.circuits.serialize_ShieldedSpend(Ctxt, a);"
@@ -91548,13 +91399,13 @@ groups than for single tests.
         "const N512 = () => new Uint8Array(512).fill(0x33);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N512());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N512());"
         "  const content = r.context.events[0];"
         "  expect(content.version).toBe(1);"
@@ -91563,31 +91414,31 @@ groups than for single tests.
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32(), N512());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32(), N512());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32(), N512());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedReceive returns 578-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    contractAddress: { is_some: true, value: N32() },"
@@ -91599,7 +91450,7 @@ groups than for single tests.
         "});"
         ""
         "test('serialize is structural: inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    contractAddress: { is_some: true, value: N32() },"
@@ -91665,43 +91516,43 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedMint returns 81-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
@@ -91712,7 +91563,7 @@ groups than for single tests.
         "});"
         ""
         "test('roundtrip preserves ShieldedMint struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
@@ -91773,50 +91624,50 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedBurn returns 49-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: N32(), amount: { is_some: true, value: 100n } };"
         "  const r = await C.circuits.serialize_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result.length).toBe(49);"
         "});"
         ""
         "test('roundtrip preserves ShieldedBurn struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: N32(), amount: { is_some: false, value: 0n } };"
         "  const r = await C.circuits.roundtrip_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -91902,50 +91753,50 @@ groups than for single tests.
         "});"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedSpend returns 145-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -92031,50 +91882,50 @@ groups than for single tests.
         "});"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedReceive returns 145-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
         "  // serialize is purely structural — no Either canonicalization."
@@ -92139,50 +91990,50 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedMint returns 80-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { domainSep: N32(), tokenType: N32(), amount: 999n };"
         "  const r = await C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result.length).toBe(80);"
         "});"
         ""
         "test('roundtrip preserves UnshieldedMint struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { domainSep: N32(), tokenType: N32(), amount: 12345n };"
         "  const r = await C.circuits.roundtrip_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -92225,49 +92076,49 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_Paused returns 0-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.serialize_Paused(Ctxt, {});"
         "  expect(r.result.length).toBe(0);"
         "});"
         ""
         "test('roundtrip preserves empty Paused struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.roundtrip_Paused(Ctxt, {});"
         "  expect(r.result).toEqual({});"
         "});"
@@ -92310,50 +92161,50 @@ groups than for single tests.
         "const N256 = () => new Uint8Array(256).fill(0x77);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32(), N256());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32(), N256());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32(), N256());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_Misc returns 288-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { name: N32(), payload: N256() };"
         "  const r = await C.circuits.serialize_Misc(Ctxt, orig);"
         "  expect(r.result.length).toBe(288);"
         "});"
         ""
         "test('roundtrip preserves Misc struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { name: N32(), payload: N256() };"
         "  const r = await C.circuits.roundtrip_Misc(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -92397,7 +92248,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('nested equality through aliases', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
         "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
         "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
@@ -92436,7 +92287,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty tuple', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
         "});"
         ))
@@ -92456,7 +92307,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty vector', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
         "});"
         ))
@@ -92476,7 +92327,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty byte vector', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, new Uint8Array())).result)"
         "      .toEqual(new Uint8Array());"
         "});"
@@ -92498,7 +92349,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('struct with no fields', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, {})).result).toEqual({});"
         "});"
         ))
@@ -92519,7 +92370,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('enum with one variant', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, 0)).result).toEqual(0);"
         "});"
         ))
@@ -92539,7 +92390,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint<0..1>', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, 0n)).result).toEqual(0n);"
         "});"
         ))
@@ -92564,7 +92415,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Embedded vector of Uint<0..1>', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const embedded = {"
         "    x: 100n,"
         "    y: Array(10).fill(0n),"
@@ -92597,7 +92448,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint8Array equality comparison', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a0 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
         "  const a1 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
         "  // Different length."
@@ -92656,7 +92507,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('nested Uint8Array equality comparison', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const mk = (bytes: number[], tag: bigint) => ({ data: new Uint8Array(bytes), tag });"
         "  const v0 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
         "  // Structurally identical to v0, but every Uint8Array is a distinct object."
@@ -92717,7 +92568,7 @@ groups than for single tests.
         "  // the circuit's input.  The two targets must agree that the mutated arr0"
         "  // equals arr1."
         "  const oracle = { 'test:oracle/touch@1.0.0': { touch: (_ctx: any, arr: Uint8Array): [] => { arr[0] = 99; return []; } } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
         "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
@@ -92735,7 +92586,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('argument type checks on JS opaque types', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test0(context, new Uint8Array(32))).result).toEqual([]);"
         "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow('type error: ');"
@@ -92768,35 +92619,31 @@ groups than for single tests.
         ""
         "export type JubjubPoint = __compactRuntime.JubjubPoint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  ecMul(a_0: JubjubPoint, b_0: JubjubScalar): JubjubPoint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  ecMul(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  ecMul(context: __compactRuntime.CircuitContext,"
         "        a_0: JubjubPoint,"
-        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<PS, JubjubPoint>>;"
+        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<JubjubPoint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -92824,7 +92671,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.d1(Ctxt, new Uint8Array([0]))).result).toEqual(false);"
         "  expect((await C.circuits.d1(Ctxt, new Uint8Array([1]))).result).toEqual(true);"
         "  await expect(C.circuits.d1(Ctxt, new Uint8Array([2]))).rejects.toThrow(runtime.CompactError);"
@@ -92858,7 +92705,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
         "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
         "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
@@ -93289,7 +93136,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -93336,7 +93183,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Secp256k1Base passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -93376,7 +93223,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -93423,7 +93270,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Secp256k1Scalar passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -93480,7 +93327,7 @@ groups than for single tests.
           (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256k1Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
@@ -93566,7 +93413,7 @@ groups than for single tests.
         "      identity: false,"
         "    }) },"
         "  };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
@@ -93673,7 +93520,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to secp256k1 fields casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -93781,7 +93628,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('secp256k1 fields to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -93856,7 +93703,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Bytes to secp256k1 field casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -93898,7 +93745,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('secp256k1 field to bytes casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -93955,7 +93802,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const msg = new Uint8Array(32).fill(0xab);"
         "  const sig = {r: 17n, s: 31n};"
         "  const pk = {"
@@ -93993,7 +93840,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.secp256k1MulGenerator(5n);"
         "  const p2 = runtime.secp256k1MulGenerator(5n);"
         "  const p3 = runtime.secp256k1MulGenerator(7n);"
@@ -94036,7 +93883,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 4n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
@@ -94073,7 +93920,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Issue 608', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256k1MulGenerator(5n);"
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test0(context, p0);"
@@ -94093,7 +93940,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('sha512 hashing', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256k1MulGenerator(5n);"
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test(context, p0, p1);"
@@ -94114,7 +93961,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Ethereum address byte order', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A public key and (case insensitive) address from a random private key"
         "  // (secp256k1 scalar), generated by"
         "  // https://www.rfctools.com/ethereum-address-test-tool/."
@@ -94198,7 +94045,7 @@ groups than for single tests.
         "  },"
         "};"
         "const withOwner = async (addr: Uint8Array) => {"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  const r = await contract.circuits.setOwner(context, addr);"
         "  return [contract, r.context] as const;"
@@ -94368,7 +94215,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256k1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-secp256k1-base) (1- base0))
@@ -94430,7 +94277,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on the identity', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 3n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
@@ -94467,7 +94314,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on a ledger point', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A Secp256k1Point ledger cell starts out holding the identity, which"
         "  // has no coordinates."
         "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
@@ -94519,7 +94366,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on an identity computed in circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const G = runtime.secp256k1MulGenerator(1n);"
         "  const negG = runtime.secp256k1Mul(G, runtime.SECP256K1_SCALAR_MODULUS - 1n);"
         "  expect(runtime.secp256k1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
@@ -94560,7 +94407,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors guarded by an assert', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  await expect(contract.circuits.storeXChecked(context))"
         "      .rejects.toThrow(/the identity has no coordinates/);"
         "  const G = runtime.secp256k1MulGenerator(1n);"
@@ -94635,7 +94482,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Nested ZKIR native types in various contexts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const result = await contract.circuits.test(context, 3n, 4n);"
         "  expect(result.result).toEqual([]);"
         "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
@@ -94910,7 +94757,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256r1Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -94957,7 +94804,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Secp256r1Base passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -94997,7 +94844,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256r1Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -95044,7 +94891,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Secp256r1Scalar passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -95101,7 +94948,7 @@ groups than for single tests.
           (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256r1Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // The point at X=0."
         "  var pt = {"
         "      x: 0x0n,"
@@ -95187,7 +95034,7 @@ groups than for single tests.
         "      identity: false,"
         "    }) },"
         "  };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
@@ -95282,7 +95129,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to secp256r1 fields casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -95390,7 +95237,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('secp256r1 fields to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -95465,7 +95312,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Bytes to secp256r1 field casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -95507,7 +95354,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('secp256r1 field to bytes casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -95557,7 +95404,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.secp256r1MulGenerator(5n);"
         "  const p2 = runtime.secp256r1MulGenerator(5n);"
         "  const p3 = runtime.secp256r1MulGenerator(7n);"
@@ -95600,7 +95447,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 4n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
@@ -95751,7 +95598,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256r1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-secp256r1-base) (1- base0))
@@ -95812,7 +95659,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on the identity', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 3n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
@@ -95849,7 +95696,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on a ledger point', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A Secp256r1Point ledger cell starts out holding the identity, which"
         "  // has no coordinates."
         "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
@@ -95901,7 +95748,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on an identity computed in circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const G = runtime.secp256r1MulGenerator(1n);"
         "  const negG = runtime.secp256r1Mul(G, runtime.SECP256R1_SCALAR_MODULUS - 1n);"
         "  expect(runtime.secp256r1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
@@ -95942,7 +95789,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors guarded by an assert', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  await expect(contract.circuits.storeXChecked(context))"
         "      .rejects.toThrow(/the identity has no coordinates/);"
         "  const G = runtime.secp256r1MulGenerator(1n);"
@@ -96017,7 +95864,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Nested secp256r1 ZKIR native types in various contexts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const result = await contract.circuits.test(context, 3n, 4n);"
         "  expect(result.result).toEqual([]);"
         "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
@@ -96071,7 +95918,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Issue 608 for secp256r1', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256r1MulGenerator(5n);"
         "  const p1 = runtime.secp256r1MulGenerator(7n);"
         "  await contract.circuits.test(context, p0, p1);"
@@ -96104,7 +95951,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Curve25519Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -96151,7 +95998,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Curve25519Base passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -96191,7 +96038,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Curve25519Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -96238,7 +96085,7 @@ groups than for single tests.
     (stage-javascript
       `("test('Curve25519Scalar passing through host functions', async () => {"
         "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
@@ -96292,7 +96139,7 @@ groups than for single tests.
           (output %t.15 %t.18))))
     (stage-javascript
       '("test('Curve25519Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // ecMulGenerator(2n)."
         "  var pt = {"
         "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
@@ -96370,7 +96217,7 @@ groups than for single tests.
         "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
         "    }) },"
         "  };"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
@@ -96463,7 +96310,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to Curve25519 field casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
@@ -96571,7 +96418,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Curve25519 field to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
@@ -96640,7 +96487,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Curve25519Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.curve25519MulGenerator(5n);"
         "  const p2 = runtime.curve25519MulGenerator(5n);"
         "  const p3 = runtime.curve25519MulGenerator(7n);"
@@ -96789,7 +96636,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256r1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-curve25519-base) (1- base0))
@@ -96860,7 +96707,7 @@ groups than for single tests.
           (output %s.4))))
     (stage-javascript
       '("test('Bytes<64> cast to Curve25519Scalar', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random value in range."
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
         "  var bytes = new Uint8Array(64);"
@@ -96935,31 +96782,27 @@ groups than for single tests.
         ""
         "export type Spam = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -96986,7 +96829,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('secp256r1 ECDSA verification', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const msg = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) msg[i] = i + 1;"
         "  const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
@@ -97059,7 +96902,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Ed25519 verification', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const L = ed25519.Point.Fn.ORDER;"
         "  const hex = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'));"
         "  const point = (b: Uint8Array) => runtime.curve25519FromProjective(ed25519.Point.fromBytes(b));"
@@ -97223,7 +97066,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('local state evolves across chained calls', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.tick(context, 2n);"
         "  expect(r1.result).toEqual(4n);"
         "  const r2 = await contract.circuits.tick(r1.context, 4n);"
@@ -97237,7 +97080,7 @@ groups than for single tests.
         "  expect(a.toString()).toEqual(b.toString());"
         "});"
         "test('the recorded local transcript folds to the live state', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r = await contract.circuits.tick(context, 2n);"
         "  const pd = r.context.callProofDataTrace.at(-1)!;"
         "  const folded = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
@@ -97245,7 +97088,7 @@ groups than for single tests.
         "  expect(folded.toString()).toEqual(live.toString());"
         "});"
         "test('a checkpoint splits the local fold', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r = await contract.circuits.staged(context, 5n);"
         "  const pd = r.context.callProofDataTrace.at(-1)!;"
         "  const c = pd.publicTranscript.findIndex((op) => (op as unknown) === 'ckpt' || (typeof op === 'object' && op !== null && 'ckpt' in (op as object)));"
@@ -97283,7 +97126,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('guarded local operations align with the circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.maybeBump(context, true, 5n);"
         "  expect(r1.result).toEqual(6n);"
         "  const r2 = await contract.circuits.maybeBump(r1.context, false, 5n);"
@@ -97341,7 +97184,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('local maps, nested ADTs, and the local call graph', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const k = new Uint8Array([1]);"
         "  const k2 = new Uint8Array([2]);"
         "  const r1 = await contract.circuits.fetch(context, k);"
@@ -97378,7 +97221,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a struct crosses the local boundary intact', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p = { x: 3n, y: 5n, tag: true };"
         "  const r1 = await contract.circuits.roundTrip(context, p);"
         "  expect(r1.result).toEqual(p);"
@@ -97409,7 +97252,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('enum and vector local cells', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r0 = await contract.circuits.started(context);"
         "  expect(r0.result).toEqual(false);"
         "  const r1 = await contract.circuits.start(r0.context);"
@@ -97443,7 +97286,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('set and list twins across the two stores', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.addBoth(context, 4n);"
         "  expect(r1.result).toEqual(true);"
         "  const L = contractCode.ledger(r1.context.callContext.currentQueryContext.state);"
@@ -97469,7 +97312,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('decrementing a local counter below zero faults', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  await expect(contract.circuits.burn(context, 5n)).rejects.toThrow();"
         "});"
         ))
@@ -97506,7 +97349,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a batched local layout addresses its leaves', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.poke(context);"
         "  expect(r1.result).toEqual(2n);"
         "  const r2 = await contract.circuits.poke(r1.context);"
@@ -97533,14 +97376,14 @@ groups than for single tests.
       '(
         "const secretOracle = (v: bigint) => ({ 'test:oracle/secret@1.0.0': { secret: () => v } });"
         "test('a host result enters local state without disclose', async () => {"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, secretOracle(42n));"
         "  const r1 = await contract.circuits.save(context);"
         "  const r2 = await contract.circuits.reveal(r1.context);"
         "  expect(r2.result).toEqual(42n);"
         "});"
         "test('local state round-trips through CircuitContextOptions', async () => {"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, secretOracle(7n));"
         "  const r1 = await contract.circuits.save(context);"
         "  const persisted = r1.context.callContext.currentLocalQueryContext!.state.state;"
@@ -97549,7 +97392,6 @@ groups than for single tests.
         "    contractAddress: r1.context.callContext.contractAddress,"
         "    coinPublicKeyOrZswapState: '0'.repeat(64),"
         "    contractState: r1.context.callContext.currentQueryContext.state,"
-        "    privateState: r1.context.callContext.currentPrivateState!,"
         "    localState: persisted,"
         "    hostInterfaceProvider: r1.context.hostInterfaceProvider,"
         "  });"
@@ -97591,7 +97433,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a local Merkle tree proves membership and the fold pins it', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
         "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
         "  const missing = new Uint8Array([9, 0, 0, 0, 0, 0, 0, 0]);"
@@ -97659,7 +97501,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('map and fold run synchronously in local functions and cross into the proof from circuits', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
         "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
         "  const c = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0]);"
@@ -97722,7 +97564,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('tree reads see every write to their store within one call', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
         "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
         "  const prior = context.callContext.currentLocalQueryContext!.state.state;"
@@ -97764,7 +97606,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('host functions resolve through the context\\'s provider and cross into the proof from circuits', async () => {"
-        "  const [contract, bare] = await startContract(contractCode, {}, 0);"
+        "  const [contract, bare] = await startContract(contractCode);"
         "  // the module declares what it requires, so a gate can check it against a provider before a run"
         "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/keys@1.0.0': ['secretKey'] });"
         "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, bare.hostInterfaceProvider)).toEqual(["
@@ -97814,7 +97656,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a circuit without an on-chain effect is not proved', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect(Object.keys(contract.provableCircuits)).toEqual(['noteBoth']);"
         "  expect(Object.keys(contract.impureCircuits).sort()).toEqual(['noteBoth', 'noteLocally']);"
         "  const r1 = await contract.circuits.noteLocally(context);"
@@ -97851,7 +97693,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a vendor-published host interface resolves through the provider', async () => {"
-        "  const [contract, bare] = await startContract(contractCode, {}, 0);"
+        "  const [contract, bare] = await startContract(contractCode);"
         "  await expect(contract.circuits.present(bare))"
         "      .rejects.toThrow(/^present: the host interface provider resolves no 'identus:verification\\/age@1.2.0'/);"
         "  const issuer = new Uint8Array(32).fill(9);"
@@ -97888,7 +97730,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('the standard library\\'s zswap host interface is served by the provider like any other', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // of the interface's three functions only the reachable one is a requirement"
         "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey'] });"
         "  // the runtime resolves nothing by itself: without a provider the coin operations are unavailable"
@@ -97938,7 +97780,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('a local historic tree serves indexed paths', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
         "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
         "  const r1 = await contract.circuits.add(context, a);"
@@ -97997,7 +97839,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('iteration folds local containers and pins them', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.note(context, 3n, 10n);"
         "  const r2 = await contract.circuits.note(r1.context, 5n, 20n);"
         "  const r3 = await contract.circuits.sum(r2.context);"
@@ -98036,7 +97878,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('the localState accessor reads exported local fields', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.note(context, 3n, new Uint8Array([1, 2, 3, 4]));"
         "  const r2 = await contract.circuits.note(r1.context, 5n, new Uint8Array([5, 6, 7, 8]));"
         "  const L = contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state);"
@@ -98102,7 +97944,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('local functions read the ledger from the snapshot', async () => {"
-        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
         "  const context = withHostInterfaces(context0, { 'test:oracle/pick@1.0.0': { pick: () => 3n } });"
         "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
         "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
@@ -98147,17 +97989,16 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const joinerContext = (ledgerContext: runtime.CircuitContext<any>, localState?: runtime.StateValue) =>"
+        "const joinerContext = (ledgerContext: runtime.CircuitContext, localState?: runtime.StateValue) =>"
         "  runtime.createCircuitContext({"
         "    circuitId: 'join',"
         "    contractAddress: ledgerContext.callContext.contractAddress,"
         "    coinPublicKeyOrZswapState: '0'.repeat(64),"
         "    contractState: ledgerContext.callContext.currentQueryContext.state,"
-        "    privateState: ledgerContext.callContext.currentPrivateState,"
         "    localState: localState ?? contractCode.initialLocalState(),"
         "  });"
         "test('the join constructor runs at the first call against its basis', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // the deployer joins at their first call, when the membership set is still empty"
         "  const d1 = await contract.circuits.enroll(context, 1n);"
         "  const d2 = await contract.circuits.enroll(d1.context, 2n);"
@@ -98189,7 +98030,7 @@ groups than for single tests.
         "  expect(contractCode.localState(guaranteed).joinedAt).toEqual(2n);"
         "});"
         "test('two first calls in flight: the second diverges on the guard and re-executes', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const d1 = await contract.circuits.enroll(context, 1n);"
         "  const a = await contract.circuits.enroll(joinerContext(d1.context), 5n);"
         "  const b = await contract.circuits.enroll(joinerContext(d1.context), 6n);"
@@ -98303,7 +98144,7 @@ groups than for single tests.
         "const b4 = (n: number) => new Uint8Array([n, 0, 0, 0]);"
         "const b32 = (n: number) => new Uint8Array(32).fill(n);"
         "test('every op emits the same program for both stores and agrees on results', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const steps: [string, unknown[]][] = ["
         "    ['cell_read', []], ['cell_write', [7n]], ['cell_read', []], ['cell_resetToDefault', []], ['cell_read', []],"
         "    ['counter_read', []], ['counter_increment', [5n]], ['counter_decrement', [2n]], ['counter_read', []],"
@@ -98358,7 +98199,7 @@ groups than for single tests.
         "  expect(after.result).toEqual([false, false]);"
         "});"
         "test('faults agree', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const msg = async (p: Promise<unknown>) => { try { await p; return 'no error'; } catch (e) { return String(e); } };"
         "  const pubDec = await msg(contract.circuits.pub_decrement(context, 1n));"
         "  const locDec = await msg(contract.circuits.loc_decrement(context, 1n));"
@@ -98419,7 +98260,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('exported local functions are methods of localState', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const leaf = new Uint8Array([7, 0, 0, 0, 0, 0, 0, 0]);"
         "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
         "  const r2 = await contract.circuits.register(r1.context, leaf);"
@@ -98472,7 +98313,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('no exported local function reads the ledger, so localState takes the local state alone', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.tick(context);"
         "  const L = contractCode.localState(r1.context.callContext.currentLocalQueryContext!.state.state);"
         "  expect(L.balance()).toEqual(1n);"
@@ -98497,7 +98338,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('an exported local function with no local fields still has a store to hang on', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const r1 = await contract.circuits.bump(context);"
         "  const L = contractCode.localState(contractCode.initialLocalState(), r1.context.callContext.currentQueryContext.state);"
         "  expect(L.snapshotTotal()).toEqual(1n);"

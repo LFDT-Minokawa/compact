@@ -77,7 +77,6 @@ const context = (): CircuitContext =>
     contractAddress: ocrt.dummyContractAddress(),
     coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
     contractState: new ocrt.ContractState(),
-    privateState: undefined,
     localState: initialLocalState(),
   });
 
@@ -116,7 +115,6 @@ describe('queryLocalState', () => {
       contractAddress: ocrt.dummyContractAddress(),
       coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
       contractState: new ocrt.ContractState(),
-      privateState: undefined,
     });
     expect(() => queryLocalState(ctx, emptyProofData(), increment(1))).toThrow(/local state/);
   });

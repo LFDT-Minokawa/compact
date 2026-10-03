@@ -235,7 +235,7 @@ const assertHasCurrentZswapLocalState = (circuitContext: CircuitContext): void =
  *
  * @internal
  */
-const setCurrentZswapLocalState = (circuitContext: CircuitContext<unknown>, next: EncodedZswapLocalState): void => {
+const setCurrentZswapLocalState = (circuitContext: CircuitContext, next: EncodedZswapLocalState): void => {
   const address = circuitContext.callContext.contractAddress;
   assertDefined(address, 'contract address on the executing call context');
   assertDefined(circuitContext.zswapLocalStates, 'per-contract Zswap local states on the circuit context');
@@ -250,7 +250,7 @@ const setCurrentZswapLocalState = (circuitContext: CircuitContext<unknown>, next
  *
  * @internal
  */
-const setCurrentQueryContext = (circuitContext: CircuitContext<unknown>, next: ocrt.QueryContext): void => {
+const setCurrentQueryContext = (circuitContext: CircuitContext, next: ocrt.QueryContext): void => {
   const address = circuitContext.callContext.contractAddress;
   assertDefined(address, 'contract address on the executing call context');
   assertDefined(circuitContext.queryContexts, 'per-contract query contexts on the circuit context');
@@ -381,7 +381,7 @@ function createCoinCommitment(coinInfo: EncodedShieldedCoinInfo, recipient: Enco
  *                  representing a contract.
  */
 export function createZswapOutput(
-  circuitContext: CircuitContext<unknown>,
+  circuitContext: CircuitContext,
   coinInfo: EncodedShieldedCoinInfo,
   recipient: EncodedRecipient,
 ): [] {
@@ -409,7 +409,7 @@ export function createZswapOutput(
  *
  * @param circuitContext The current circuit context.
  */
-export function ownPublicKey(circuitContext: CircuitContext<unknown>): EncodedCoinPublicKey {
+export function ownPublicKey(circuitContext: CircuitContext): EncodedCoinPublicKey {
   assertHasCurrentZswapLocalState(circuitContext);
   return circuitContext.callContext.currentZswapLocalState!.coinPublicKey;
 }

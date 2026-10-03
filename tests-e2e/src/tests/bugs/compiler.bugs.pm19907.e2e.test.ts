@@ -56,7 +56,7 @@ describe('[Bug] [PM-19907] Consts in single statements', () => {
             expectFiles(result).thatNoFilesAreGenerated();
         });
 
-        test('example 3 - use witness with if', async () => {
+        test('example 3 - use host function with if', async () => {
             const filePath = CONTRACTS_ROOT + 'negative/example_three.compact';
 
             const outputDir = createTempFolder();

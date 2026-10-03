@@ -63,7 +63,6 @@
       ldecl
       lconstructor
       cdefn
-      wdecl
       hdecl
       cidecl
       ecdecl
@@ -132,10 +131,6 @@
         (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
       (local-circuit src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
         (local-circuit kwd-export? function-name generic-param-list? parg-list 4 return-type #f blck)
-      )
-    (Witness-Declaration (wdecl)
-      (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
-        (witness kwd-export? function-name generic-param-list? arg-list 4 return-type)
       )
     (Host-Declaration (hdecl)
       (host src (maybe kwd-export?) kwd interface-id lbrace (hsig* ...) rbrace) =>

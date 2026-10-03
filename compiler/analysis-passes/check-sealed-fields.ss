@@ -18,7 +18,7 @@
 (define-pass check-sealed-fields : Lnodca (ir) -> Lnodca ()
   ; this pass complains if a sealed field can be modified by an exported circuit or any
   ; circuit that is reachable from an exported circuit.  we presently assume that no
-  ; witnesses or natives can modify any sealed fields.
+  ; host functions or natives can modify any sealed fields.
   (definitions
     (define-condition-type &sealed-condition &condition
       make-sealed-condition sealed-condition?

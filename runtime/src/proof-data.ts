@@ -57,7 +57,8 @@ export interface PartialProofData {
    */
   publicTranscript: ocrt.Op<ocrt.AlignedValue>[];
   /**
-   * The transcript of the witness call outputs
+   * The private inputs the circuit consumes beyond its arguments: host function results, and
+   * local-state results crossing into the proof
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
   /**

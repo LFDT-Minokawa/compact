@@ -67,7 +67,7 @@ export interface CallProofData extends ProofData {
   commCommData?: CommunicationCommitmentData;
 }
 
-export interface CallContext<PS = any> {
+export interface CallContext {
   /**
    * The ID of the circuit that was called.
    */
@@ -88,10 +88,6 @@ export interface CallContext<PS = any> {
    * The current running gas cost of the currently executing contract.
    */
   currentGasCost: ocrt.RunningCost;
-  /**
-   * The current private state for the contract.
-   */
-  currentPrivateState: PS | undefined;
   /**
    * The current Zswap local state. Tracks inputs and outputs produced during circuit execution.
    */
@@ -134,11 +130,11 @@ export type LogEvent = Extract<ocrt.GatherResult, { tag: 'log' }>['content'] & {
 /**
  * The external information accessible from within a Compact circuit call
  */
-export interface CircuitContext<PS = any> {
+export interface CircuitContext {
   /**
    * The context for the current call.
    */
-  callContext: CallContext<PS>;
+  callContext: CallContext;
   /**
    * The current query context of every contract in the call tree.
    */
@@ -231,7 +227,7 @@ export type CrossContractInputs = {
 };
 
 /** The inputs to {@link createCircuitContext}. */
-export type CircuitContextOptions<PS = any> = {
+export type CircuitContextOptions = {
   /** The name of the circuit being executed. */
   readonly circuitId: CircuitId;
   /** The address of the contract defining the circuit being executed. */
@@ -244,8 +240,6 @@ export type CircuitContextOptions<PS = any> = {
     | EncodedZswapLocalState;
   /** The ledger state to execute against — most often a snapshot fetched from the chain. */
   readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
-  /** The witness / private state — most often a snapshot from local storage. */
-  readonly privateState: PS;
   /**
    * The contract's local state, as a `StateValue` — most often a snapshot reconstructed by folding
    * local transcripts. Omit it for a contract with no local half.
@@ -276,12 +270,11 @@ export type CircuitContextOptions<PS = any> = {
  * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always
  * use this function to set up the initial circuit context.
  */
-export const createCircuitContext = <PS>({
+export const createCircuitContext = ({
   circuitId,
   contractAddress,
   coinPublicKeyOrZswapState,
   contractState,
-  privateState,
   localState,
   gasLimit,
   costModel,
@@ -289,13 +282,12 @@ export const createCircuitContext = <PS>({
   parentBlockHash,
   hostInterfaceProvider,
   crossContract,
-}: CircuitContextOptions<PS>): CircuitContext<PS> => {
+}: CircuitContextOptions): CircuitContext => {
   const callContext = createCallContext(
     circuitId,
     contractAddress,
     coinPublicKeyOrZswapState,
     contractState,
-    privateState,
     time,
     parentBlockHash,
   );
@@ -447,16 +439,15 @@ const isEncodedZswapLocalState = (value: any): value is EncodedZswapLocalState =
   );
 };
 
-export const createCallContext = <PS>(
+export const createCallContext = (
   circuitId: CircuitId,
   contractAddress: ocrt.ContractAddress,
   coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
   contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
-  privateState: PS,
   maybeTime?: number,
   parentBlockHash?: string,
   caller?: ocrt.PublicAddress,
-): CallContext<PS> => {
+): CallContext => {
   const time = maybeTime ?? Math.floor(Date.now() / 1_000);
   const initialQueryContext = createInitialQueryContext(contractState, contractAddress, time, parentBlockHash, caller);
 
@@ -478,7 +469,6 @@ export const createCallContext = <PS>(
     initialQueryContext: initialQueryContext,
     currentQueryContext: initialQueryContext,
     currentGasCost: emptyRunningCost(),
-    currentPrivateState: privateState,
     currentZswapLocalState: zswapLocalState,
     currentLocalQueryContext: undefined,
     parentBlockHash,
@@ -499,7 +489,7 @@ export const emptyRunningCost = (): ocrt.RunningCost => ({
 /**
  * The results of the call to a Compact circuit
  */
-export interface CircuitResults<PS = any, R = any> {
+export interface CircuitResults<R = any> {
   /**
    * The primary result, as returned from Compact
    */
@@ -508,7 +498,7 @@ export interface CircuitResults<PS = any, R = any> {
    * The updated context after the circuit execution, that can be used to
    * inform further runs
    */
-  context: CircuitContext<PS>;
+  context: CircuitContext;
   /**
    * The gas consumption of the circuit execution
    */

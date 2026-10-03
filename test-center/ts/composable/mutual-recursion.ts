@@ -37,15 +37,13 @@ const bCalled = (chain: TestChain, address: any): bigint =>
 const buildWiredChain = async () => {
   const chain = new TestChain();
 
-  const a = await chain.deploy({ module: aCode, args: [], initialPrivateState: 0 });
-  const b = await chain.deploy({ module: bCode, args: [], initialPrivateState: 0 });
+  const a = await chain.deploy({ module: aCode, args: [] });
+  const b = await chain.deploy({ module: bCode, args: [] });
 
   // A.set(B): A.ledger.b := B's address. No cross-contract call; commits A only.
   await chain.call({
     module: aCode,
     address: a.address,
-    witnesses: {},
-    privateState: 0,
     circuitId: 'set',
     args: [b.encodedAddress],
   });
@@ -54,8 +52,6 @@ const buildWiredChain = async () => {
   await chain.call({
     module: bCode,
     address: b.address,
-    witnesses: {},
-    privateState: 0,
     circuitId: 'set',
     args: [a.encodedAddress],
   });
@@ -82,8 +78,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: aCode,
       address: a.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isOdd',
       args: [5n],
     });
@@ -105,8 +99,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: aCode,
       address: a.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isOdd',
       args: [5n],
     });
@@ -124,8 +116,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: aCode,
       address: a.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isOdd',
       args: [4n],
     });
@@ -139,8 +129,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: aCode,
       address: a.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isOdd',
       args: [0n],
     });
@@ -158,8 +146,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: bCode,
       address: b.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isEven',
       args: [6n],
     });
@@ -179,8 +165,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
     const { result } = await chain.call({
       module: aCode,
       address: a.address,
-      witnesses: {},
-      privateState: 0,
       circuitId: 'isOdd',
       args: [1n],
     });
@@ -200,8 +184,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
       chain.call({
         module: aCode,
         address: a.address,
-        witnesses: {},
-        privateState: 0,
         circuitId: 'isOdd',
         args: [5n],
       }),
@@ -216,8 +198,6 @@ describe('Mutually recursive contracts across independent transactions', () => {
       chain.call({
         module: bCode,
         address: b.address,
-        witnesses: {},
-        privateState: 0,
         circuitId: 'isEven',
         args: [6n],
       }),

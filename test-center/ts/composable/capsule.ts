@@ -20,8 +20,8 @@
 const TALLY = 'vendor:capsule/tally@1.0.0';
 
 const deployPair = async (chain: TestChain) => {
-  const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-  const outer = await chain.deploy({ module: outerCode, args: [inner.encodedAddress], initialPrivateState: 0 });
+  const inner = await chain.deploy({ module: innerCode, args: [] });
+  const outer = await chain.deploy({ module: outerCode, args: [inner.encodedAddress] });
   return { inner, outer };
 };
 
@@ -33,8 +33,6 @@ const call = (chain: TestChain, outer: any, circuitId: string, account?: Account
   chain.call({
     module: outerCode,
     address: outer.address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args: [],
     account,

@@ -415,7 +415,6 @@ const copyCallContext = ({
   initialQueryContext,
   currentQueryContext,
   currentGasCost,
-  currentPrivateState,
   currentZswapLocalState,
   currentLocalQueryContext,
   parentBlockHash,
@@ -426,7 +425,6 @@ const copyCallContext = ({
   initialQueryContext,
   currentQueryContext,
   currentGasCost,
-  currentPrivateState,
   currentZswapLocalState,
   currentLocalQueryContext,
   parentBlockHash,
@@ -452,8 +450,6 @@ const setupCallContext = (
   context.callContext.initialQueryContext = queryContext;
   context.callContext.currentQueryContext = queryContext;
   context.callContext.currentGasCost = currentGasCost;
-  // Undefined because sub-calls do not support witnesses, so a callee has no private state.
-  context.callContext.currentPrivateState = undefined;
   // The callee's own capsule, installed before its wrapper runs so that the prologue's guard read
   // sees it; `undefined` for a callee that keeps no local state.
   context.callContext.currentLocalQueryContext = localQueryContext;
@@ -477,7 +473,6 @@ const restoreCallContext = (
     initialQueryContext,
     currentQueryContext,
     currentGasCost,
-    currentPrivateState,
     currentZswapLocalState,
     currentLocalQueryContext,
     parentBlockHash,
@@ -489,7 +484,6 @@ const restoreCallContext = (
   callerContext.callContext.initialQueryContext = initialQueryContext;
   callerContext.callContext.currentQueryContext = currentQueryContext;
   callerContext.callContext.currentGasCost = currentGasCost;
-  callerContext.callContext.currentPrivateState = currentPrivateState;
   callerContext.callContext.currentZswapLocalState = currentZswapLocalState;
   callerContext.callContext.currentLocalQueryContext = currentLocalQueryContext;
   callerContext.callContext.parentBlockHash = parentBlockHash;
@@ -636,26 +630,6 @@ const assertNoReentrancy = (circuitContext: CircuitContext, calleeAddress: ocrt.
 };
 
 /**
- * Witnesses for constructing a callee. A callee can never run one, but the generated `Contract`
- * constructor validates a function-valued field for every witness the callee *declares*, so `{}`
- * throws. This proxy satisfies those checks for any name and throws only if a witness is invoked.
- *
- * @internal
- */
-const forbiddenCalleeWitnesses = (calleeAddress: ocrt.ContractAddress): Record<string, never> =>
-  new Proxy(
-    {},
-    {
-      get: (_target, witnessName) => () => {
-        throw new CompactError(
-          `Cross-contract callee '${calleeAddress}' invoked witness '${String(witnessName)}'; ` +
-            `calls to witnesses in non-root contracts are not yet supported`,
-        );
-      },
-    },
-  ) as Record<string, never>;
-
-/**
  * The call site's side of a cross-contract call, as emitted by `compactc`.
  */
 export type CrossContractCallOptions = {
@@ -745,7 +719,7 @@ export const crossContractCall = async ({
     const calleeLocalQueryContext = enterLocalQueryContext(circuitContext, calleeAddress, resolvedLocalQueryContext);
 
     // 10. Construct the callee and run it.
-    const provableCircuit = new calleeModule.Contract(forbiddenCalleeWitnesses(calleeAddress)).provableCircuits[calleeCircuitId];
+    const provableCircuit = new calleeModule.Contract().provableCircuits[calleeCircuitId];
     assertDefined(provableCircuit, `'${calleeCircuitId}' for callee '${calleeAddress}'`);
     const calleeGasCosts = resolveGasCost(circuitContext, calleeAddress);
     const callerCallContext = copyCallContext(circuitContext.callContext);

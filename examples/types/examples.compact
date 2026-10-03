@@ -289,7 +289,7 @@ export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
   return t16_sum_of_fields.lookup(0 as Field);
 }
 
-// Test 17: witness with custom param and return type
+// Test 17: host function with custom param and return type
 new type t17_boolean = Boolean;
 type t17_field = Field;
 host test:oracle/t17-witness@1.0.0 { t17_witness(vara: t17_boolean): t17_field; }

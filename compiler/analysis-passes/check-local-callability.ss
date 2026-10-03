@@ -19,7 +19,7 @@
 (define-pass check-local-callability : Lnodca (ir) -> Lnodca ()
   ; The callability matrix for local code: a local function calls local functions, pure
   ; circuits, host functions, and local ADT operations, but nothing that reaches the public
-  ; transcript or the proof, therefore no witnesses, no impure circuits, no cross-contract
+  ; transcript or the proof, therefore no native witnesses, no impure circuits, no cross-contract
   ; calls, no events, and no ledger writes; ledger reads (read and local-read classes, and
   ; for-of iteration) are snapshot quotes, so a local function may perform them.  The local
   ; constructor is a local function with no arguments, run as the prologue of the account's
@@ -33,8 +33,8 @@
   ; are checked afterward.  The ledger-read closure also settles `id-reads-ledger?`, which
   ; tells the TypeScript backend which exported local functions need a ledger state.
   (definitions
-    ; function names to 'witness, 'native-witness, 'circuit, 'callable (pure natives),
-    ; 'local-circuit, or 'host
+    ; function names to 'native-witness, 'circuit, 'callable (pure natives), 'local-circuit,
+    ; or 'host
     (define function-ht (make-eq-hashtable))
     ; ledger and local field names to their declared types, for resolving operation classes
     (define field-type-ht (make-eq-hashtable))
@@ -158,8 +158,6 @@
      (eq-hashtable-set! function-ht function-name 'local-circuit)
      (when (id-exported? function-name)
        (set! exported-local* (cons function-name exported-local*)))]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (eq-hashtable-set! function-ht function-name 'witness)]
     [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'host)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
@@ -216,8 +214,8 @@
     [(call ,src ,function-name ,[expr*] ...)
      (unless (eq? ctx 'circuit)
        (case (eq-hashtable-ref function-ht function-name #f)
-         [(witness native-witness)
-          (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name))]
+         [(native-witness)
+          (source-errorf src "~a cannot call native witness ~a" (context-name ctx) (id-sym function-name))]
          [(circuit)
           (unless (id-pure? function-name)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name)))]
@@ -240,8 +238,8 @@
     [(fref ,src ,function-name^)
      (unless (eq? ctx 'circuit)
        (case (eq-hashtable-ref function-ht function-name^ #f)
-         [(witness native-witness)
-          (source-errorf src "~a cannot call witness ~a" (context-name ctx) (id-sym function-name^))]
+         [(native-witness)
+          (source-errorf src "~a cannot call native witness ~a" (context-name ctx) (id-sym function-name^))]
          [(circuit)
           (unless (id-pure? function-name^)
             (source-errorf src "~a cannot call impure circuit ~a" (context-name ctx) (id-sym function-name^)))]

@@ -877,8 +877,6 @@
                    (handle-fun src 'local-circuit pelt exported? function-name type-param*)]
                   [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'native pelt exported? function-name type-param*)]
-                  [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-                   (handle-fun src 'witness pelt exported? function-name type-param*)]
                   [(host ,src ,exported? ,interface-id ,function-name (,arg* ...) ,type)
                    (handle-fun src 'host pelt exported? function-name '())]
                   ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
@@ -1229,8 +1227,6 @@
        `(circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
     [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,[arg*] ...) ,[type])
      `(native ,src ,id ,native-entry (,arg* ...) ,type)]
-    [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
-     `(witness ,src ,id (,arg* ...) ,type)]
     [(host ,src ,exported? ,interface-id ,function-name (,[arg*] ...) ,[type])
      `(host ,src ,id ,interface-id ,function-name (,arg* ...) ,type)]
     [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type] ,expr)

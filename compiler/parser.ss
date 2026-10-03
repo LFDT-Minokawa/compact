@@ -106,8 +106,7 @@
      sealed
      slice
      struct
-     type
-     witness))
+     type))
 
   (define-keyword-group keywordDataTypes
     (TITLE "Built-in data type keywords.")
@@ -155,6 +154,7 @@
      void
      while
      with
+     witness ; the former witness declaration, retired in favor of host functions
      yield))
 
   (define (parser-keywords)
@@ -410,7 +410,6 @@
       [program-element-implements-declaration :: implements-declaration => values]
       [program-element-type-declaration :: type-alias-declaration => values]
       [program-element-ledger-declaration :: ledger-declaration => values]
-      [program-element-witness-declaration :: witness-declaration => values]
       [program-element-host-declaration :: host-declaration => values]
       [program-element-ledger-constructor :: constructor-definition => values]
       [program-element-circuit-definition :: circuit-definition => values]
@@ -551,11 +550,6 @@
        (lambda (src kwd-export? kwd id colon type semicolon)
          (with-output-language (Lparser Ledger-Declaration)
            `(local-ledger-declaration ,src ,kwd-export? ,kwd ,id ,colon ,type ,semicolon)))])
-    (Witness-declaration (witness-declaration)
-      [witness-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD witness) id (OPT gparams #f) simple-parameter-list #\: type #\; =>
-       (lambda (src kwd-export? kwd id generic-param-list? simple-param-list colon type semicolon)
-         (with-output-language (Lparser Witness-Declaration)
-           `(witness ,src ,kwd-export? ,kwd ,id ,generic-param-list? ,simple-param-list (,colon ,type) ,semicolon)))])
     (Host-declaration (host-declaration)
       [host-declaration :: src (OPT (KEYWORD export) #f) (KEYWORD host) interface-id #\{ (K* host-signature) #\} =>
        (lambda (src kwd-export? kwd interface-id lbrace hsig* rbrace)

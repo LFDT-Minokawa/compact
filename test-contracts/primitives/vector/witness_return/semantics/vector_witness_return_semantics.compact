@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 host test:oracle/vector-witness@1.0.0 { vector_witness(): Vector<4, Field>; }
 
-// A witness may return a vector; the returned vector slices and indexes like any
+// A host function may return a vector; the returned vector slices and indexes like any
 // other vector. Its values stay private (used only in constraints, not disclosed).
 export circuit vector_witness_return_semantics(): [] {
     const w = vector_witness();

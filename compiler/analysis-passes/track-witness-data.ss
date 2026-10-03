@@ -18,9 +18,10 @@
 (define-pass track-witness-data : Lwithpaths (ir) -> Lwithpaths ()
   ; track-witness-data is the so-called "witness-protection program" or WPP for short
   ; that enforces explicit disclosure of witness values, i.e., values that come into a
-  ; contract via the constructor, exported circuit arguments, or witness return values
-  ; and are possibly disclosed (leaked) into the public ledger or (in the case of
-  ; witness return values only) into the output of an exported circuit.
+  ; contract via the constructor, exported circuit arguments, host function return
+  ; values, or local-state operation results and are possibly disclosed (leaked) into
+  ; the public ledger or (except for the arguments) into the output of an exported
+  ; circuit.
   (definitions
     ; the WPP is implemented as an abstract interpreter, and instances of the Abs datatype
     ; represent abstract values.
@@ -59,7 +60,6 @@
                (new src uid info path*))]))))
 
     (define-datatype Witness-Info
-      (Witness-Return-Value function-name)
       (Host-Return-Value function-name)
       (Constructor-Argument argument-name)
       (Circuit-Argument function-name argument-name)
@@ -93,8 +93,6 @@
       (define (print-info op i info)
         (indent op i)
         (Witness-Info-case info
-          [(Witness-Return-Value function-name)
-           (fprintf op "Witness-Return-Value ~s\n" (id-sym function-name))]
           [(Host-Return-Value function-name)
            (fprintf op "Host-Return-Value ~s\n" (id-sym function-name))]
           [(Constructor-Argument argument-name)
@@ -515,10 +513,6 @@
           (lambda (witness)
             (let ([witness-value (let ([where (format-source-object (witness-src witness))])
                                    (Witness-Info-case (witness-info witness)
-                                     [(Witness-Return-Value function-name)
-                                      (format "the return value of witness ~a at ~a"
-                                        (id-sym function-name)
-                                        where)]
                                      [(Host-Return-Value function-name)
                                       (format "the return value of host function ~a at ~a"
                                         (id-sym function-name)
@@ -595,14 +589,7 @@
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      (hashtable-set! function-ht function-name
        (Fun-native (native-entry-disclosure* native-entry) type))]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (hashtable-set! function-ht function-name
-       (Fun-witness
-         (default-value type
-           (list (make-witness src (next-witness-uid)
-                   (Witness-Return-Value function-name))))))]
-    ;; a host function's result is runtime-provided nondeterminism, witness data like a
-    ;; witness's return value
+    ;; a host function's result is runtime-provided nondeterminism, therefore witness data
     [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (hashtable-set! function-ht function-name
        (Fun-witness
@@ -977,7 +964,6 @@
              (lambda (witness)
                ; don't report exposure of an exported circuit's own arguments via the circuit's return value
                (Witness-Info-case (witness-info witness)
-                 [(Witness-Return-Value function-name) #t]
                  [(Host-Return-Value function-name) #t]
                  [(Constructor-Argument argument-name) #f]
                  [(Circuit-Argument function-name argument-name) #f]

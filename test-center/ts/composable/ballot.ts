@@ -46,8 +46,8 @@ class Participant {
 }
 
 const deployBoth = async (chain: TestChain) => {
-  const registry = await chain.deploy({ module: registryCode, args: [], initialPrivateState: 0 });
-  const ballot = await chain.deploy({ module: ballotCode, args: [registry.encodedAddress, ISSUER], initialPrivateState: 0 });
+  const registry = await chain.deploy({ module: registryCode, args: [] });
+  const ballot = await chain.deploy({ module: ballotCode, args: [registry.encodedAddress, ISSUER] });
   return { registry, ballot };
 };
 
@@ -55,8 +55,6 @@ const callBallot = (chain: TestChain, ballot: any, p: Participant, circuitId: st
   chain.call({
     module: ballotCode,
     address: ballot.address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args,
     time: Number(NOW),
@@ -162,8 +160,6 @@ describe('the registry and the ballot', () => {
       chain.call({
         module: registryCode,
         address: registry.address,
-        witnesses: {},
-        privateState: 0,
         circuitId: 'proveMembership',
         args: [aliceCommitment],
         account: bob.account,

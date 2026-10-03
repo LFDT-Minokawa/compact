@@ -23,8 +23,6 @@ const callLiar = (
   chain.call({
     module: liarCode,
     address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args,
   }) as unknown as Promise<{ result: any; context: any }>;
@@ -34,11 +32,10 @@ describe('cross-contract conformance gate', () => {
     const chain = new TestChain();
     // `Honest.add` touches no ledger fields, so it is pure; `Liar`'s `contract Honest` declares `add`
     // without `pure`. A pure circuit cannot satisfy an impure declaration.
-    const honest = await chain.deploy({ module: honestCode, args: [], initialPrivateState: 0 });
+    const honest = await chain.deploy({ module: honestCode, args: [] });
     const liar = await chain.deploy({
       module: liarCode,
       args: [honest.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const error = await callLiar(chain, liar.address, 'callAdd', 5n).then(

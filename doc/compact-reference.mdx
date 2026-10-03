@@ -30,7 +30,6 @@ kinds of program elements:
 - module and import forms for management of namespaces and separate files,
 - declarations of program-defined types,
 - declarations of the data that the contract stores in the public ledger,
-- declarations of *witnesses*, which are callback functions supplied by the TypeScript runner,
 - definitions of *circuits*, which are functions serving as the operational core of a smart contract, and
 - the definition of at most one *constructor*, which is a function called when a contract
   is created and can be used to initialize public and private state.
@@ -320,9 +319,8 @@ Various entities, specifically
 [module declarations](#modules-exports-and-imports),
 [structure declarations](#structure-types),
 [type-alias declarations](#type-aliases),
-[circuit definitions](#circuit-definitions),
 and
-[witness declarations](#declaring-witnesses-for-private-state-management),
+[circuit definitions](#circuit-definitions)
 can have *generic parameters*, i.e., compile-time type and numeric (natural-number)
 parameters whose values are given at the use site rather than fixed at the point
 of declaration.
@@ -1135,7 +1133,6 @@ A compact program is a sequence of zero or more program elements.
 |                    | \|      | [*implements-declaration*](#contract-types)                                                                                           |
 |                    | \|      | [*type-alias-declaration*](#type-aliases)                                                                                             |
 |                    | \|      | [*ledger-declaration*](#declaring-and-maintaining-public-state)                                                                       |
-|                    | \|      | [*witness-declaration*](#declaring-witnesses-for-private-state-management)                                                            |
 |                    | \|      | [*host-declaration*](#programs)                                                                                                       |
 |                    | \|      | [*constructor-definition*](#contract-constructor)                                                                                     |
 |                    | \|      | [*circuit-definition*](#circuit-definitions)                                                                                          |
@@ -1156,7 +1153,6 @@ Briefly:
 - A [contract definition](#contract-types) defines a contract type.
 - An [implements declaration](#contract-types) declares that a contract satisfies a contract type.
 - A [type-alias definition](#type-aliases) defines a type alias, possibly creating a distinct type.
-- A [witness declaration](#declaring-witnesses-for-private-state-management) declares a witness, which is a callback function whose definition must be provided by any application using the contract.
 - A [ledger declaration](#declaring-and-maintaining-public-state) declares one field of the contract's public state.
 - A [constructor definition](#contract-constructor) defines the contract's constructor, if any.
 - A [circuit definition](#circuit-definitions) defines a circuit.
@@ -1490,52 +1486,6 @@ It is a static error if the file is not present or cannot be read.
 If present and readable, the file must contain a sequence of syntactically
 valid program elements, and these elements are treated as if they had
 been present in the including file in place of the `include` form.
-
-## Declaring witnesses for private state management
-
-A user's private state should be maintained in some secure way by the
-TypeScript driver of a smart contract and never stored directly in the public
-state of the contract.
-A contract must sometimes prove something about some piece of private state,
-however, as well as cause an update to the private state.
-
-The TypeScript driver of the smart contract can provide pieces of private state
-to the contract via the arguments of some exported circuit, and it can update
-the private state based on the return values of the exported circuit.
-
-A circuit can also access or update private state as it operates via *witnesses*.
-Witnesses are callback functions provided by the TypeScript driver.
-
-Witnesses must be declared to make them visible to the circuits of a contract.
-A witness declaration does not include a body, because the implementation is
-provided by the TypeScript driver.
-
-<div className="lang-ref-table">
-|                       |         |                                                                                                                                                                                                     |
-|-----------------------|---------|-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| *witness-declaration* | &xrarr; | `export`<sup>opt</sup> `witness` [*id*](#terminal-names) [*gparams*](#generic-parameters-and-arguments)<sup>opt</sup> [*simple-parameter-list*](#contract-types) `:` [*type*](#primitive-types) `;` |
-</div>
-
-Witness declarations can appear anywhere among the program elements of
-a module or the contract's top level.
-
-For instance:
-
-```compact
-witness W(x: Uint<16>): Bytes<32>;
-```
-
-defines a witness `W`, to which the contract provides a 16-bit unsigned value
-and from which the contract receives 32 bytes of some presumably private data.
-
-:::danger
-
-Do not assume in your contract that the code of any `witness` function
-is the code that you wrote in your own implementation.  Any DApp may
-provide any implementation that it wants for your `witness` functions.
-Results from them should be treated as untrusted input.
-
-:::
 
 ## Declaring and maintaining public state
 

@@ -38,10 +38,10 @@ ronan
     [];
 }
 
-witness
+host test:oracle/caroline@1.0.0 {
 caroline()
 :
-Field   ;
+Field   ; }
 
 export circuit Grendel(
                         x: Field,

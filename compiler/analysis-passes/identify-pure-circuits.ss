@@ -17,8 +17,8 @@
 
 (define-pass identify-pure-circuits : Lnodca (ir) -> Lnodca ()
   ; impure circuits are those that might touch public state, emit an event,
-  ; call any witnesses, local functions, or host functions, or call any other
-  ; impure circuits (including via cross-contract calls).  pure circuits are
+  ; call any native witnesses, local functions, or host functions, or call any
+  ; other impure circuits (including via cross-contract calls).  pure circuits are
   ; those that are not impure.  we presently assume that all native circuits
   ; are pure.
   (definitions
@@ -28,7 +28,6 @@
       (src impure-condition-src)
       (reason impure-condition-reason))
     ; function-ht maps function names to one of:
-    ;   witness:               a witness
     ;   native-witness:        a native witness
     ;   local-circuit:         a local function
     ;   host:                  a host function
@@ -51,9 +50,6 @@
         (let ([result (cdr a)])
           (cond
             [(eq? result 'pure-circuit) (void)]
-            [(eq? result 'witness)
-             (raise (make-impure-condition calling-function-name src
-                      (format "calls witness ~s" (id-sym function-name))))]
             [(eq? result 'native-witness)
              (raise (make-impure-condition calling-function-name src
                       (format "calls native witness ~s" (id-sym function-name))))]
@@ -87,8 +83,6 @@
            (begin
              (id-pure?-set! function-name #t)
              'pure-circuit)))]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (eq-hashtable-set! function-ht function-name 'witness)]
     [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (eq-hashtable-set! function-ht function-name 'host)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)

@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 host test:oracle/bytes-witness@1.0.0 { bytes_witness(): Bytes<4>; }
 
-// A witness may return a Bytes value; the returned bytes index like any other
+// A host function may return a Bytes value; the returned bytes index like any other
 // Bytes. Its values stay private (used only in constraints, not disclosed).
 export circuit bytes_witness_return_semantics(): [] {
     const w = bytes_witness();

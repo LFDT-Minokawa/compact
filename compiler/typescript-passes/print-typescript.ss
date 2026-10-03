@@ -165,7 +165,6 @@
       (XPelt-exported-circuit src internal-id arg* type stmt external-name* pure?)
       (XPelt-internal-circuit src internal-id arg* type stmt pure?)
       (XPelt-local-circuit src internal-id arg* type stmt external-name*)
-      (XPelt-witness src internal-id arg* type external-name)
       (XPelt-host src internal-id interface-id host-name arg* type)
       (Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
       (XPelt-type-definition src type-name export-name tvar-name* type)
@@ -179,8 +178,6 @@
         [(XPelt-internal-circuit src internal-id arg* type stmt pure?)
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
-         (format-internal-binding unique-global-name internal-id)]
-        [(XPelt-witness src internal-id arg* type external-name)
          (format-internal-binding unique-global-name internal-id)]
         [(XPelt-host src internal-id interface-id host-name arg* type)
          (format-internal-binding unique-global-name internal-id)]
@@ -587,7 +584,7 @@
         [else type]))
 
     ;; the circuit consumes a local result as private inputs, therefore a circuit-side local
-    ;; operation or local call records its value, exactly as a witness wrapper does
+    ;; operation or local call records its value, exactly as a host function wrapper does
     (define (wrap-private-input-push src type q)
       (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
             [descriptor-name? (type->maybe-descriptor-name (subst-tcontract type))])
@@ -628,7 +625,7 @@
     (define (print-contract.d.ts src xpelt* uname*)
       ;; Every entry in `Circuits`, `ImpureCircuits`, and `ProvableCircuits` is an async wrapper
       (define (circuit-result-type type)
-        (make-Qconcat "Promise<__compactRuntime.CircuitResults<PS, " (Type type) ">>"))
+        (make-Qconcat "Promise<__compactRuntime.CircuitResults<" (Type type) ">>"))
       (define (print-exported-impure-circuit-declaration do-me?)
         (lambda (xpelt uname)
           (XPelt-case xpelt
@@ -643,7 +640,7 @@
                          external-name
                          "("
                          (apply (make-Qsep ",")
-                           "context: __compactRuntime.CircuitContext<PS>"
+                           "context: __compactRuntime.CircuitContext"
                            (map Typed-Argument arg*))
                          "): "
                          (circuit-result-type type)
@@ -683,7 +680,7 @@
                          external-name
                          "("
                          (apply (make-Qsep ",")
-                           "context: __compactRuntime.CircuitContext<PS>"
+                           "context: __compactRuntime.CircuitContext"
                            (map Typed-Argument arg*))
                          "): "
                          (circuit-result-type type)
@@ -700,24 +697,6 @@
                         not))
                   (list xpelt uname))]
           [else (void)]))
-      (define (print-witness-declaration xpelt uname)
-        (XPelt-case xpelt
-          [(XPelt-witness src internal-id arg* type external-name)
-           (with-local-unique-names
-             (demand-unique-local-name! "private_state")
-             (print-Q 2
-               (make-Qconcat
-                 external-name
-                 "("
-                 (apply (make-Qsep ",")
-                   "context: __compactRuntime.WitnessContext<Ledger, PS>"
-                   (map Typed-Argument arg*))
-                 "): "
-                 "[PS, " (Type type) "]"
-                 ";")))
-           (newline)]
-          [else (void)]))
-
       (module (print-ledger-declaration print-local-state-declaration print-local-function-declaration)
         (define (op-signature-Q adt-op)
           (nanopass-case (Ltypescript ADT-Op) adt-op
@@ -938,7 +917,7 @@
                     (make-Qconcat
                       "initialState("
                       (apply (make-Qsep ",")
-                             "context: __compactRuntime.ConstructorContext<PS>"
+                             "context: __compactRuntime.ConstructorContext"
                              (map (lambda (arg)
                                     (nanopass-case (Ltypescript Argument) arg
                                       [(,var-name ,type)
@@ -948,7 +927,7 @@
                                          (Type type))]))
                                   arg*))
                       ;; initialState is async too because it can call impure circuits
-                      "): Promise<__compactRuntime.ConstructorResult<PS>>;"))
+                      "): Promise<__compactRuntime.ConstructorResult>;"))
                   (newline))])]
             [else (loop (cdr xpelt*))])))
       (define (exported-ledger-reader? xpelt*)
@@ -967,20 +946,15 @@
       (parameterize ([current-output-port (get-target-port 'contract.d.ts)])
         (with-local-unique-names
           (demand-unique-local-name! "T")
-          (demand-unique-local-name! "W")
           (fluid-let ([exported-type-ht (make-hashtable symbol-hash eq?)])
             (display-string "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';\n")
             (print-exported-types xpelt*)
             (newline)
-            (display-string "export type Witnesses<PS> = {\n")
-            (for-each print-witness-declaration xpelt* uname*)
-            (display-string "}\n")
-            (newline)
-            (display-string "export type ImpureCircuits<PS> = {\n")
+            (display-string "export type ImpureCircuits = {\n")
             (for-each (print-exported-impure-circuit-declaration not) xpelt* uname*)
             (display-string "}\n")
             (newline)
-            (display-string "export type ProvableCircuits<PS> = {\n")
+            (display-string "export type ProvableCircuits = {\n")
             (for-each (print-exported-provable-circuit-declaration) xpelt* uname*)
             (display-string "}\n")
             (newline)
@@ -988,7 +962,7 @@
             (for-each print-exported-pure-circuit-declaration xpelt* uname*)
             (display-string "}\n")
             (newline)
-            (display-string "export type Circuits<PS> = {\n")
+            (display-string "export type Circuits = {\n")
             (for-each print-exported-circuit-declaration xpelt* uname*)
             (display-string "}\n")
             (newline)
@@ -1002,12 +976,11 @@
               (for-each print-local-function-declaration xpelt* uname*)
               (display-string "}\n")
               (newline))
-            (display-string "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {\n")
-            (display-string "  witnesses: W;\n")
-            (display-string "  circuits: Circuits<PS>;\n")
-            (display-string "  impureCircuits: ImpureCircuits<PS>;\n")
-            (display-string "  provableCircuits: ProvableCircuits<PS>;\n")
-            (display-string "  constructor(witnesses: W);\n")
+            (display-string "export declare class Contract {\n")
+            (display-string "  circuits: Circuits;\n")
+            (display-string "  impureCircuits: ImpureCircuits;\n")
+            (display-string "  provableCircuits: ProvableCircuits;\n")
+            (display-string "  constructor();\n")
             (print-constructor-declaration xpelt*)
             (when local-ledger?
               (display-string "  initialLocalState(): __compactRuntime.StateValue;\n"))
@@ -1344,7 +1317,6 @@
             (cons*
               2 (make-Qconcat
                   "if (!("
-                  ; we don't insist on currentPrivateState being defined
                   (format "typeof(~a) === 'object' && ~:*~a.callContext.currentQueryContext != undefined" var)
                   ")) {"
                   2 (compact-stdlib "typeError")
@@ -1380,27 +1352,6 @@
                       ")"
                       0 "}")
                     q*)))))
-
-        (define (witness-checks witnesses xpelt* q*)
-          (cons*
-            2 (format "if (typeof(~a) !== 'object') {" witnesses)
-            4 (format "throw new ~a('first (witnesses) argument to Contract constructor is not an object');"
-                      (compact-stdlib "CompactError"))
-            2 "}"
-            (fold-right
-              (lambda (xpelt q*)
-                (XPelt-case xpelt
-                  [(XPelt-witness src internal-id arg* type external-name)
-                   (cons*
-                     2 (format "if (typeof(~a.~a) !== 'function') {" witnesses external-name)
-                     4 (format "throw new ~a('first (witnesses) argument to Contract constructor does not contain a function-valued field named ~a');"
-                               (compact-stdlib "CompactError")
-                               external-name)
-                     2 "}"
-                     q*)]
-                  [else q*]))
-              q*
-              xpelt*)))
 
         (module (bind-args bind-args-with-context)
           (define (bind-arg-helper with-context? args)
@@ -1627,16 +1578,6 @@
             '()
             xpelt*))
 
-        (define (get-witness-names xpelt*)
-          (fold-right
-            (lambda (xpelt witness-name*)
-              (XPelt-case xpelt
-                [(XPelt-witness src internal-id arg* type external-name)
-                 (cons external-name witness-name*)]
-                [else witness-name*]))
-            '()
-            xpelt*))
-
         (define (build-circuit-name-object prefix name*)
           (apply make-Qconcat
             (format "this.~a = {" prefix)
@@ -1659,24 +1600,19 @@
                  [(constructor ,src (,arg* ...) ,stmt)
                   (with-local-unique-names
                     (print-Q 2
-                      (let* ([witnesses (format-internal-binding unique-local-name (make-temp-id src 'witnesses))]
-                             [args (format-internal-binding unique-local-name (make-temp-id src 'args))]
-                             [nargs 1])
+                      (let ([args (format-internal-binding unique-local-name (make-temp-id src 'args))])
                         (apply make-Qconcat/src src
                                (format "constructor(...~a) {" args)
-                               2 (format "if (~a.length !== ~d) {" args nargs)
-                               4 (format "throw new __compactRuntime.CompactError(`Contract constructor: expected ~d argument~:*~p, received ${~a.length}`);" nargs args)
+                               2 (format "if (~a.length !== 0) {" args)
+                               4 (format "throw new __compactRuntime.CompactError(`Contract constructor: expected 0 arguments, received ${~a.length}`);" args)
                                2 "}"
-                               (bind-args args (list witnesses)
-                                 (witness-checks witnesses xpelt0*
-                                   (list
-                                     2 (format "this.witnesses = ~a;" witnesses)
-                                     2 "this.circuits = {"
-                                     4 (build-exported-circuits xpelt0* uname*)
-                                     2 "};"
-                                     2 (build-circuit-name-object "impureCircuits" impure-name*)
-                                     2 (build-circuit-name-object "provableCircuits" provable-name*)
-                                     0 "}")))))))
+                               (list
+                                 2 "this.circuits = {"
+                                 4 (build-exported-circuits xpelt0* uname*)
+                                 2 "};"
+                                 2 (build-circuit-name-object "impureCircuits" impure-name*)
+                                 2 (build-circuit-name-object "provableCircuits" provable-name*)
+                                 0 "}")))))
                   (newline)])]
               [else (loop (cdr xpelt*))])))
 
@@ -1934,14 +1870,6 @@
                              [state (format-internal-binding unique-local-name (make-temp-id src 'state))]
                              [q-formal* (map make-Qformal! arg*)]
                              [nargs (fx+ (length arg*) 1)])
-                        (define (maybe-add-private-state-check k)
-                          (if (null? (get-witness-names xpelt0*))
-                              k
-                              (cons*
-                                2 (format "if (!('initialPrivateState' in ~a)) {" constructorContext)
-                                4 "throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
-                                2 "}"
-                                k)))
                         (apply make-Qconcat/src src
                                (format "async initialState(...~a) {" args)
                                2 (format "if (~a.length !== ~d) {" args nargs)
@@ -1952,8 +1880,7 @@
                                    2 (format "if (typeof(~a) !== 'object') {" constructorContext)
                                    4 "throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
                                    2 "}"
-                                   (maybe-add-private-state-check
-                                     (cons*
+                                   (cons*
                                        2 (format "if (!('initialZswapLocalState' in ~a)) {" constructorContext)
                                        4 "throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
                                        2 "}"
@@ -1967,7 +1894,7 @@
                                              (set-operations state xpelt0*
                                                (cons*
                                                  ;; the deploy runs no capsule, therefore its context carries no local state
-                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data, privateState: ~a.initialPrivateState});" constructorContext state constructorContext)
+                                                 2 (format "const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: ~a.initialZswapLocalState.coinPublicKey, contractState: ~a.data});" constructorContext state)
                                                  2 "const partialProofData = {"
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
@@ -1980,10 +1907,9 @@
                                                      2 (format "~a.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);" state)
                                                      2 "return {"
                                                      4 (format "currentContractState: ~a," state)
-                                                     4 "currentPrivateState: context.callContext.currentPrivateState,"
                                                      4 "currentZswapLocalState: context.callContext.currentZswapLocalState"
                                                      2 "}"
-                                                     0 "}")))))))))))))))
+                                                     0 "}"))))))))))))))
                   (newline)])]
               [else (loop (cdr xpelt*))])))
 
@@ -2118,8 +2044,6 @@
              ;; synchronous: a local function calls only local code and pure circuits
              (fluid-let ([in-local-body? #t])
                (print-local-circuit src internal-id arg* stmt #f #f))]
-            [(XPelt-witness src internal-id arg* type external-name)
-             (print-external-witness src internal-id uname arg* type external-name)]
             [(XPelt-host src internal-id interface-id host-name arg* type)
              (print-host-function src internal-id uname interface-id host-name arg* type)]
             [(Xpelt-native-circuit src internal-id native-entry arg* type external-name pure?)
@@ -2227,46 +2151,6 @@
                         0 "}")))))
               (newline))))
 
-        (define (print-external-witness src internal-id uname arg* type external-name)
-          (with-local-unique-names
-            (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
-                  [witnessContext (format-internal-binding unique-local-name (make-temp-id src 'witnessContext))]
-                  [nextPrivateState (format-internal-binding unique-local-name (make-temp-id src 'nextPrivateState))]
-                  [descriptor-name? (type->maybe-descriptor-name type)])
-              (print-Q 2
-                (let ([q-formal* (map make-Qformal! arg*)])
-                  (apply make-Qconcat/src src
-                    (make-Qconcat
-                      (make-Qconcat/src (id-src internal-id) (format "~a" uname))
-                      "("
-                      (make-Qargs #f q-formal*)
-                      ")"
-                      0 "{")
-                    2 (format "const ~a = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);" witnessContext)
-                    2 (format "const [~a, ~a] = " nextPrivateState result)
-                    "this.witnesses."
-                    (make-Qconcat/src (id-src internal-id) external-name)
-                    "("
-                    (apply (make-Qsep ",") witnessContext q-formal*)
-                    ");"
-                    2 (format "context.callContext.currentPrivateState = ~a;" nextPrivateState)
-                    (result-type-check src external-name type result
-                      (list
-                        2 "partialProofData.privateTranscriptOutputs.push({"
-                        4 "value: " (if descriptor-name?
-                                        (format "~a.toValue(~a)" descriptor-name? result)
-                                        "[]")
-                          ","
-                        4 "alignment: " (if descriptor-name?
-                                            (format "~a.alignment()" descriptor-name?)
-                                            "[]")
-                        2 "});"
-                        2 "return "
-                        result
-                        ";"
-                        0 "}")))))
-              (newline))))
-
         (define (print-contract-class src xpelt* uname*)
           (with-local-unique-names
             (demand-unique-local-name! "this")
@@ -2275,7 +2159,6 @@
             (let-values ([(pure-name* impure-name*) (get-pure&impure-circuit-names xpelt*)])
               (let ([provable-name* (get-provable-circuit-names xpelt*)])
                 (display-string "export class Contract {\n")
-                (display-string "  witnesses;\n")
                 (let ([guard (local-constructor-guard xpelt*)])
                   (fluid-let ([helper* '()]
                               [local-constructor-uname (and guard (unique-global-name "localConstructor"))])
@@ -2290,17 +2173,9 @@
                 (display-string "const _emptyContext = {\n")
                 (display-string "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }\n")
                 (display-string "};\n")
-                (print-Q 0
-                  (make-Qconcat
-                    "const _dummyContract = new Contract({"
-                    2 (apply (make-Qsep ",")
-                             (map (lambda (witness-name)
-                                    (format "~a: (...args) => undefined" witness-name))
-                                  (get-witness-names xpelt*)))
-                    0 "});"))
-                (newline)
+                (display-string "const _dummyContract = new Contract();\n")
                 (when (has-local-ledger? xpelt*)
-                  ;; genesis local state depends on no witness, therefore the dummy contract serves it
+                  ;; genesis local state depends on no account, therefore the dummy contract serves it
                   (display-string "export function initialLocalState() {\n")
                   (display-string "  return _dummyContract.initialLocalState();\n")
                   (display-string "}\n")
@@ -2745,9 +2620,6 @@
          (let ([external-name* (external-names function-name)])
            (XPelt-exported-circuit src function-name arg* type stmt external-name* (id-pure? function-name)))
          (XPelt-internal-circuit src function-name arg* type stmt (id-pure? function-name)))]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (let ([external-name (symbol->string (id-sym function-name))])
-       (XPelt-witness src function-name arg* type external-name))]
     [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (eq-hashtable-set! host-function-ht function-name type)
      (XPelt-host src function-name interface-id host-name arg* type)]

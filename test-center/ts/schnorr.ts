@@ -29,7 +29,7 @@ test('TypeScript signature passes in-circuit verification', async () => {
 
   const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
 
-  const [c, Ctxt] = await startContract(contractCode, {}, 0);
+  const [c, Ctxt] = await startContract(contractCode);
   expect((await c.circuits.verifySchnorrN3(Ctxt, msg, sig, pk)).result).toBe(true);
 });
 
@@ -41,7 +41,7 @@ test('Tampered signature fails in-circuit verification', async () => {
   const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
   const badSig = { ...sig, response: (sig.response + 1n) % runtime.JUBJUB_SCALAR_MODULUS };
 
-  const [c, Ctxt] = await startContract(contractCode, {}, 0);
+  const [c, Ctxt] = await startContract(contractCode);
   expect((await c.circuits.verifySchnorrN3(Ctxt, msg, badSig, pk)).result).toBe(false);
 });
 
@@ -51,7 +51,7 @@ test('Cannot use identity point as a verification key', async () => {
   const msg = sampleMsg();
   const sig = runtime.jubjubSchnorrSign(msgType, msg, sk);
 
-  const [c, Ctxt] = await startContract(contractCode, {}, 0);
+  const [c, Ctxt] = await startContract(contractCode);
   await expect(c.circuits.verifySchnorrN3(Ctxt, msg, sig, identity)).rejects.toThrow(runtime.CompactError);
   await expect(c.circuits.verifySchnorrN3(Ctxt, msg, sig, identity)).rejects.toThrow('failed assert: JubjubPoint identity is not a permitted jubjubSchnorrVerify verification key');
 });

@@ -334,7 +334,7 @@ export circuit test9(): Boolean {
   return config_ok && status_ok;
 }
 
-// Test10: witness functions in modules
+// Test10: host functions in modules
 module Test10 {
   host test:oracle/get-secret@1.0.0 { get_secret(): Field; }
 

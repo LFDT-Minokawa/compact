@@ -41,7 +41,6 @@ const context = (provider?: HostInterfaceProvider) =>
     contractAddress: ocrt.dummyContractAddress(),
     coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
     contractState: new ocrt.ContractState(),
-    privateState: undefined,
     hostInterfaceProvider: provider,
   });
 

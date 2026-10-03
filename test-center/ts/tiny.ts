@@ -17,18 +17,18 @@ const oracle = {
   'test:oracle/private-secret-key@1.0.0': { private$secret_key: (): Uint8Array => new Uint8Array(32) }
 };
 
-const start = async (privateState: number, ...args: any[]) => {
-  const [c, ctxt] = await startContract(contractCode, {}, privateState, ...args);
+const start = async (...args: any[]) => {
+  const [c, ctxt] = await startContract(contractCode, ...args);
   return [c, withHostInterfaces(ctxt, oracle)] as [typeof c, typeof ctxt];
 };
 
 test('Check for initial get', async () => {
-  const [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  const [c, Ctxt] = await start(64n, new Uint8Array(32));
   expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: true, value: 64n })
 });
 
 test('Check for clear, set, get', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   Ctxt = (await c.circuits.set(Ctxt, 5n)).context;
   var q = (await c.circuits.get(Ctxt)).result;
@@ -36,20 +36,20 @@ test('Check for clear, set, get', async () => {
 });
 
 test('Check for clear, set, set', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   Ctxt = (await c.circuits.set(Ctxt, 5n)).context;
   await expect(c.circuits.set(Ctxt, 7n)).rejects.toThrow(runtime.CompactError);
 });
 
 test('Check for clear, get', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   expect((await c.circuits.get(Ctxt)).result).toEqual({ is_some: false, value: 0n })
 });
 
 test('Check with actually big int', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   Ctxt = (await c.circuits.clear(Ctxt)).context;
   const n = 1000000000000000000000000n
   Ctxt = (await c.circuits.set(Ctxt, n)).context;
@@ -57,7 +57,7 @@ test('Check with actually big int', async () => {
 });
 
 test('Check resulting proofData', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   expect((await c.circuits.get(Ctxt)).context.callProofDataTrace.at(-1)).toMatchObject(
     {
       "contractAddress": Ctxt.callContext.contractAddress,
@@ -104,7 +104,7 @@ test('Check resulting proofData', async () => {
 });
 
 test('Check ledger inspection', async () => {
-  var [c, Ctxt] = await start(0, 64n, new Uint8Array(32));
+  var [c, Ctxt] = await start(64n, new Uint8Array(32));
   const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);
   expect(L.value).toEqual(64n);
 });

@@ -45,7 +45,7 @@ export const ENTRY_POINTS = {
     std: 'statements',
     single: 'single_statements',
     struct: 'struct_definitions',
-    witness: 'witness_statements',
+    host: 'host_statements',
 } as const;
 
 export type FuzzerName = keyof typeof ENTRY_POINTS;
@@ -287,9 +287,9 @@ const harness: Grammar = {
     ],
     struct_definitions: [contract('struct_decl', 'struct_definition')],
     enum_definitions: [contract('enum_definition')],
-    witness_statements: [
-        contract('export ', 'witness_declaration'),
-        contract('witness_declaration'),
+    host_statements: [
+        contract('export ', 'host_declaration'),
+        contract('host_declaration'),
     ],
     ledger_statements: [
         ['import CompactStandardLibrary;', 'line_separator', 'optional_modifier', ' ledger ', 'random_string', ': ', 'compact_types', 'end_line'],
@@ -777,25 +777,39 @@ const declarations: Grammar = {
     counter_declaration: [
         ['export ledger counter: Counter', 'end_line']
     ],
-    witness_declaration: [
-        ['witness ', 'random_string', '(): ', 'valid_types', 'end_line'],
-        ['witness ', 'random_keyword', '(): ', 'valid_types', 'end_line'],
-        ['witness ', 'random_string', '(): ', 'compact_types', 'end_line'],
-        ['witness ', 'random_string', '(): ', 'valid_types', 'end_line'],
-        ['witness ', 'random_keyword', '(): ', 'compact_types', 'end_line'],
-        ['witness ', 'random_string', '<', 'witness_args', '>', '():', 'compact_types', 'end_line'],
-        ['witness ', 'random_string', '<', 'witness_args', '>', '(', 'witness_params', '):', 'compact_types', 'end_line'],
-        ['witness ', 'random_string', '<#N, T>', '(x:', 'generic_value', '):', 'generic_type', 'end_line'],
-        ['witness ', 'random_string', '(', 'witness_params', '):', 'compact_types', 'end_line'],
+    /* Host signatures take no generic parameters, so the generic shapes here are invalid-program cases. */
+    host_declaration: [
+        ['host ', 'host_interface_id', ' { ', 'random_string', '(): ', 'valid_types', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' { ', 'random_keyword', '(): ', 'valid_types', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' { ', 'random_string', '(): ', 'compact_types', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' {\n', 'host_signatures', '\n}'],
+        ['host ', 'host_interface_id', ' { ', 'random_string', '<', 'host_args', '>', '():', 'compact_types', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' { ', 'random_string', '<#N, T>', '(x:', 'generic_value', '):', 'generic_type', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' { ', 'random_string', '(', 'host_params', '):', 'compact_types', 'end_line', ' }'],
+        ['host ', 'host_interface_id', ' { ', 'random_string', '(', 'host_params', '):', 'compact_types', ' }'],
+        ['host ', 'host_interface_id', ' {}'],
+        ['host ', 'random_string', ' { ', 'random_string', '(): ', 'compact_types', 'end_line', ' }'],
     ],
-    witness_args: [['random_keyword'], ...commaList(['random_string'], 'witness_args')],
-    witness_params: [
+    host_interface_id: [
+        ['test:oracle/fuzz@1.0.0'],
+        ['test:oracle/fuzz'],
+        ['test:oracle/fuzz@1.0.0-rc.1+build.7'],
+        ['test:oracle/', 'random_string'],
+        ['test:oracle/fuzz@', 'random_version'],
+        ['test:oracle/fuzz@', 'random_number'],
+    ],
+    host_signatures: [
+        ['  ', 'random_string', '(', 'host_params', '): ', 'compact_types', 'end_line'],
+        ['  ', 'random_string', '(): ', 'compact_types', 'end_line', '\n', 'host_signatures'],
+    ],
+    host_args: [['random_keyword'], ...commaList(['random_string'], 'host_args')],
+    host_params: [
         ['random_string', ' : ', 'compact_types'],
         ['random_keyword', ' : ', 'compact_types'],
         ['random_number', ' : ', 'compact_types'],
         ['random_table', ' : ', 'compact_types'],
         ['random_version', ' : ', 'compact_types'],
-        ['random_string', ' : ', 'compact_types', ', ', 'witness_params'],
+        ['random_string', ' : ', 'compact_types', ', ', 'host_params'],
     ],
     struct_definition: [
         ['struct ', 'random_string', ' {\n', 'struct_fields', '\n}', 'end_line'],

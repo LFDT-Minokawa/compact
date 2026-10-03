@@ -240,9 +240,6 @@
      (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
-    [(witness ,src ,function-name (,[arg*] ...) ,[type])
-     (maybe-register-descriptor! type)
-     `(witness ,src ,function-name (,arg* ...) ,type)]
     [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
      (maybe-register-descriptor! type)
      `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])

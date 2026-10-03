@@ -44,12 +44,8 @@ export type ContractInstance = {
   readonly provableCircuits: ProvableCircuits;
 };
 
-/**
- * A generated module's `Contract` constructor. `witnesses` is `any` because a generated `Contract`
- * declares `constructor(witnesses: W)`, and an index signature doesn't satisfy a declared property,
- * so anything narrower makes every generated module unassignable.
- */
-export type ContractCtor = new (witnesses: any) => ContractInstance;
+/** A generated module's `Contract` constructor. */
+export type ContractCtor = new () => ContractInstance;
 
 /**
  * The exports of a generated `contract/index.js` that the runtime needs from a cross-contract

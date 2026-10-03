@@ -32,7 +32,7 @@
     (define-datatype Idtype
       ; ordinary expression types
       (Idtype-Base type)
-      ; circuits, witnesses, and statements
+      ; circuits, host and local functions, and statements
       (Idtype-Function kind arg-name* arg-type* return-type)
       )
     (module (set-idtype! unset-idtype! get-idtype)
@@ -400,8 +400,6 @@
      (build-function 'circuit function-name arg* type)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      (build-function 'circuit function-name arg* type)]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (build-function 'witness function-name arg* type)]
     [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (build-function 'host function-name arg* type)]
     [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)

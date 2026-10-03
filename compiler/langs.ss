@@ -144,7 +144,6 @@
       ldecl
       lconstructor
       cdefn
-      wdecl
       hdecl
       ecdecl
       cidecl
@@ -189,10 +188,6 @@
         (circuit exported? pure-dcl? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
       (local-circuit src exported? function-name (type-param* ...) (parg* ...) type blck) =>
         (local-circuit exported? function-name (type-param* ...) (parg* 0 ...) 4 type #f blck)
-      )
-    (Witness-Declaration (wdecl)
-      (witness src exported? function-name (type-param* ...) (arg* ...) type) =>
-        (witness exported? function-name (type-param* ...) (arg* 0 ...) 4 type)
       )
     (Host-Declaration (hdecl)
       (host src exported? interface-id hsig* ...) =>
@@ -617,10 +612,6 @@
       (- (native src exported? function-name native-entry (type-param* ...) (arg* ...) type))
       (+ (native src function-name native-entry (arg* ...) type) =>
            (native function-name (arg* 0 ...) 4 type)))
-    (Witness-Declaration (wdecl)
-      (- (witness src exported? function-name (type-param* ...) (arg* ...) type))
-      (+ (witness src function-name (arg* ...) type) =>
-           (witness function-name (arg* 0 ...) 4 type)))
     ;; the id is the binding and host-name the function's name within its interface, which the
     ;; runtime dispatches on
     (Host-Declaration (hdecl)
@@ -725,7 +716,6 @@
     (Program-Element (pelt)
       cdefn
       ndecl
-      wdecl
       hdecl
       ldecl
       lconstructor
@@ -738,9 +728,6 @@
     (Native-Declaration (ndecl)
       (native src function-name native-entry (arg* ...) type) =>
         (native function-name (arg* 0 ...) 4 type))
-    (Witness-Declaration (wdecl)
-      (witness src function-name (arg* ...) type) =>
-        (witness function-name (arg* 0 ...) 4 type))
     (Host-Declaration (hdecl)
       (host src function-name interface-id host-name (arg* ...) type) =>
         (host function-name interface-id host-name (arg* 0 ...) 4 type))
@@ -1054,14 +1041,19 @@
       (+ (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...)))
     (Program-Element (pelt)
       (- export-tdefn
-         hdecl))
+         hdecl)
+      (+ wdecl))
     (Export-Type-Definition (export-tdefn)
       (- (export-typedef src type-name (tvar-name* ...) type)))
     ;; `drop-ledger-runtime` reduces local functions and host functions to witness-shaped
     ;; declarations and drops the local package, therefore the circuit pipeline never sees
-    ;; the local forms or the host forms.
+    ;; the local forms or the host forms: a witness is a bodiless function whose result the
+    ;; circuit takes as a prover-supplied input.
     (Host-Declaration (hdecl)
       (- (host src function-name interface-id host-name (arg* ...) type)))
+    (Witness-Declaration (wdecl)
+      (+ (witness src function-name (arg* ...) type) =>
+           (witness function-name (arg* 0 ...) 4 type)))
     (Ledger-Declaration (ldecl)
       (- (local-ledger-declaration pl-array lconstructor)))
     (Ledger-Constructor (lconstructor)

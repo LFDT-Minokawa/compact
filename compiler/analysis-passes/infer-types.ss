@@ -26,7 +26,7 @@
     (define-datatype Idtype
       ; ordinary expression types
       (Idtype-Base type)
-      ; circuits, witnesses, and statements
+      ; circuits, host and local functions, and statements
       (Idtype-Function kind is-native arg-name* arg-type* return-type)
       )
     (module (set-idtype! unset-idtype! get-idtype)
@@ -1013,9 +1013,6 @@
      (build-function 'circuit #f function-name arg* type)]
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      (build-function (native-entry-class native-entry) #t function-name arg* type)]
-    [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     (check-zkir-v3-curve type)
-     (build-function 'witness #f function-name arg* type)]
     [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
      (check-zkir-v3-curve type)
      (build-function 'host #f function-name arg* type)]
@@ -1061,9 +1058,6 @@
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
-  (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
-    [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     `(witness ,src ,function-name (,arg* ...) ,type)])
   (Host-Declaration : Host-Declaration (ir) -> Host-Declaration ()
     [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
      `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])

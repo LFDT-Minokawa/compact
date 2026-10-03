@@ -195,7 +195,6 @@ const harness = (options: {
     contractAddress: callerAddress,
     coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
     contractState: kernelOnlyState(),
-    privateState: 0,
     localState: options.callerLocalState,
     time: 0,
     parentBlockHash: PARENT_BLOCK_HASH,

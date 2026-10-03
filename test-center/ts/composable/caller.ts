@@ -39,24 +39,20 @@ const call = (
   chain.call({
     module,
     address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args: [],
   }) as unknown as Promise<{ result: any; context: any }>;
 
 const deployAll = async () => {
   const chain = new TestChain();
-  const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+  const inner = await chain.deploy({ module: innerCode, args: [] });
   const middle = await chain.deploy({
     module: middleCode,
     args: [inner.encodedAddress],
-    initialPrivateState: 0,
   });
   const outer = await chain.deploy({
     module: outerCode,
     args: [inner.encodedAddress, middle.encodedAddress],
-    initialPrivateState: 0,
   });
   return { chain, inner, middle, outer };
 };

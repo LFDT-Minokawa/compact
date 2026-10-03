@@ -136,9 +136,6 @@
                '()
                pelt*))))
        (cons
-         "witnesses"
-         (list->vector (fold-right Witness '() pelt*)))
-       (cons
          "contracts"
          (list->vector
            (map (lambda (ct)
@@ -174,21 +171,6 @@
              (Type type))))
        host*)]
     [else host*])
-  (Witness : Program-Element (ir witness*) -> * (json)
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (cons
-       (list
-         (cons
-           "name"
-           (symbol->string (id-sym function-name)))
-         (cons
-           "arguments"
-           (list->vector (map Argument arg*)))
-         (cons
-           "result type"
-           (Type type)))
-       witness*)]
-    [else witness*])
   ;; one walker for both stores: local? selects which package contributes
   (LedgerField : Program-Element (ir field* local?) -> * (json)
     (definitions
