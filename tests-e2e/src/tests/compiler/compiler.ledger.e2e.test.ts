@@ -43,7 +43,7 @@ describe('[Contract Info] Ledger added to contract-info.json', async () => {
 
     test('ledger for program defined types added correctly', () => {
         // enum PublicState { setup, commit, reveal, final, }
-        // ledger state: PublicState;
+        // export ledger state: PublicState;
         contractAssertion
             .thatLedgerFieldExists('state')
             .thatLedgerFieldIndexIs('state', 1)
@@ -53,7 +53,7 @@ describe('[Contract Info] Ledger added to contract-info.json', async () => {
                 name: 'PublicState',
                 elements: ['setup', 'commit', 'reveal', 'final'],
             })
-            .thatLedgerFieldIsNotExported('state');
+            .thatLedgerFieldIsExported('state');
 
         // ledger topic: Maybe<Opaque<"string">>;
         contractAssertion

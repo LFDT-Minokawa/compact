@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {zerocash_mint, spend}
+export {zerocash_mint, spend, receive_coin, derive_zk_public_key}
 
 import CompactStandardLibrary;
 
@@ -33,44 +33,76 @@ struct public_key {
   encryption: Opaque<"Uint8Array">;
 }
 
-host test:oracle/private-zk-secret-key@1.0.0 { private$zk_secret_key(): zk_secret_key; }
-host test:oracle/private-remove-coin@1.0.0 { private$remove_coin(coin: coin_info): []; }
-host test:oracle/private-zk-public-key@1.0.0 { private$zk_public_key(): zk_public_key; }
-host test:oracle/private-add-coin@1.0.0 { private$add_coin(coin: coin_info): []; }
-host test:oracle/context-path-of@1.0.0 { context$path_of(cm: commitment): MerkleTreePath<32, commitment>; }
-host test:oracle/context-new-coin-info@1.0.0 { context$new_coin_info(): coin_info; }
-host test:oracle/context-encrypt@1.0.0 { context$encrypt(pk: Opaque<"Uint8Array">, coin: coin_info): Opaque<"Uint8Array">; }
+// the capsule secret: this wallet's zerocash key, and the seed of its fresh coins
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
+// encryption to a recipient is not Compact's to compute, therefore the DApp supplies it
+host zerocash:dapp/encryption@1.0.0 { encrypt(pk: Opaque<"Uint8Array">, coin: coin_info): Opaque<"Uint8Array">; }
 
-ledger nullifiers: Set<nullifier>;
-ledger commitments: HistoricMerkleTree<32, commitment>;
+export ledger nullifiers: Set<nullifier>;
+export ledger commitments: HistoricMerkleTree<32, commitment>;
   // This is a hack, really we want a Sink ADT that doesn't store anything.
-ledger ciphertexts: Opaque<"Uint8Array">;
+export ledger ciphertexts: Opaque<"Uint8Array">;
+
+// this wallet's unspent coins, kept off chain
+export local coins: Set<coin_info>;
+// how many coins this wallet has drawn, therefore each draw is fresh and replays in the fold
+local drawn: Counter;
+
+local my_secret_key(): zk_secret_key {
+  return zk_secret_key{ bytes: secretKey() };
+}
+
+local new_coin_info(): coin_info {
+  drawn.increment(1);
+  const n = drawn.read() as Field as Bytes<32>;
+  const sk = secretKey();
+  return coin_info{
+    nonce: Nonce{ bytes: persistentHash<Vector<3, Bytes<32>>>([pad(32, "lares:zerocash:nonce"), sk, n]) },
+    opening: opening{ bytes: persistentHash<Vector<3, Bytes<32>>>([pad(32, "lares:zerocash:opening"), sk, n]) }
+  };
+}
+
+// an off-chain search of the public tree; the circuit checks the root
+local path_of(cm: commitment): MerkleTreePath<32, commitment> {
+  const path = commitments.findPathForLeaf(cm);
+  assert(path.is_some, "Commitment not in the public tree");
+  return path.value;
+}
 
 circuit spend(dest_public_key: public_key, input_coin: coin_info): [] {
-  const source_secret_key = private$zk_secret_key();
+  // a private convenience check; the sound guard is the nullifier set
+  assert(coins.member(input_coin), "spend: Not one of my coins");
+  const source_secret_key = my_secret_key();
   const old_nullifier = derive_nullifier(input_coin, source_secret_key);
   assert(!nullifiers.member(old_nullifier), "spend: Coin already spent");
   nullifiers.insert(old_nullifier);
   const source_public_key = derive_zk_public_key(source_secret_key);
   const old_commitment = commitment_from_coin_info(input_coin, source_public_key);
-  const commitment_path = context$path_of(old_commitment);
+  const commitment_path = path_of(old_commitment);
   assert(commitments.checkRoot(disclose(merkleTreePathRoot<32, commitment>(commitment_path))) &&
          old_commitment == commitment_path.leaf,
          "spend: Illegal state: merkle path not recognized by public state");
-  const fresh_coin_info = context$new_coin_info();
+  const fresh_coin_info = new_coin_info();
   const fresh_commitment = commitment_from_coin_info(fresh_coin_info, dest_public_key.zk);
   commitments.insert(fresh_commitment);
-  const ciphertext = disclose(context$encrypt(dest_public_key.encryption, fresh_coin_info));
+  const ciphertext = disclose(encrypt(dest_public_key.encryption, fresh_coin_info));
   ciphertexts.write(ciphertext);
-  private$remove_coin(input_coin);
+  coins.remove(input_coin);
 }
 
 circuit zerocash_mint(): [] {
-  const coin = context$new_coin_info();
-  const pk = private$zk_public_key();
-  private$add_coin(coin);
+  const coin = new_coin_info();
+  const pk = derive_zk_public_key(my_secret_key());
+  coins.insert(coin);
   const cm = commitment_from_coin_info(coin, pk);
   commitments.insert(cm);
+}
+
+// a coin another wallet sent, decrypted by the DApp, enters this wallet once its commitment is in
+// the public tree; the circuit has no on-chain effect, so it is not proved
+circuit receive_coin(coin: coin_info): [] {
+  path_of(commitment_from_coin_info(coin, derive_zk_public_key(my_secret_key())));
+  coins.insert(coin);
 }
 
 

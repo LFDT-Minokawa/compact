@@ -77824,85 +77824,35 @@ groups than for single tests.
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
+  ; the sample contracts, each with its private state in the account's capsule and its identity
+  ; in the capsule secret, driven by two or more wallets through the test chain
   (test
     "examples/election.compact"
-    (stage-javascript
-      '(
-        "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode);"
-        "  expect(typeof(C.circuits)).toEqual('object');"
-        "});"
-        ))
-    )
+    (stage-javascript "test-center/ts/samples/election.ts"))
 
   (test
     "examples/zerocash.compact"
-    (stage-javascript
-      '(
-        "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode);"
-        "  expect(typeof(C.circuits)).toEqual('object');"
-        "});"
-        ))
-    )
+    (stage-javascript "test-center/ts/samples/zerocash.ts"))
 
   (test
-   "test-center/test-contracts/micro-dao.compact"
-   (stage-javascript
-     '(
-       "test('check 1', async () => {"
-       "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-       "  const [C, Ctxt] = await startContract(contractCode, sk, {seed_dust: 2n, buy_in_dust: 2n});"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/micro-dao.compact"
+    (stage-javascript "test-center/ts/samples/micro-dao.ts"))
 
   (test
-   "test-center/test-contracts/bboard.compact"
-   (stage-javascript
-     '(
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/bboard.compact"
+    (stage-javascript "test-center/ts/samples/bboard.ts"))
 
   (test
-   "test-center/test-contracts/coracle.compact"
-   (stage-javascript
-     '(
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/coracle.compact"
+    (stage-javascript "test-center/ts/samples/coracle.ts"))
 
-  (test ; just see if it succeeds
+  (test
     "test-center/test-contracts/counter.compact"
-    (stage-javascript
-     '(
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-    )
+    (stage-javascript "test-center/ts/samples/counter.ts"))
 
-  (test ; just see if it succeeds
+  (test
     "test-center/test-contracts/welcome.compact"
-    (stage-javascript
-     '(
-       "test('check 1', async () => {"
-       "class Maybe{is_some: boolean; value: string; constructor(is_some: boolean, value: string) { this.is_some = is_some; this.value = value;}}"
-       "const p1 = new Maybe( true, 'p1' );"
-       "const participants: Maybe[] = new Array(5000).fill(p1);"
-       "  const [C, Ctxt] = await startContract(contractCode, new Uint8Array(32), participants);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       )))
+    (stage-javascript "test-center/ts/samples/welcome.ts"))
 
   (test
     '(
