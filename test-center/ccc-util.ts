@@ -25,6 +25,7 @@ import {
   ContractModuleProvider,
   ContractStateProvider,
   EncodedContractAddress,
+  HostInterface,
   LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
@@ -39,6 +40,7 @@ import {
   InitialStateParams,
   Module,
   Witnesses,
+  hostInterfaceProviderOf,
   registerProofCheck,
 } from './util.js';
 
@@ -167,6 +169,11 @@ export interface CallTransaction<PS, W extends Witnesses<PS>, C extends Contract
    * into them. Omit it for contracts without local state, as before.
    */
   account?: Account;
+  /**
+   * The transacting party's answers to the host interfaces the call tree declares, on top of the
+   * harness wallet's coin operations. Different participants pass different ones.
+   */
+  hostInterfaces?: Record<string, HostInterface>;
   coinPublicKey?: ocrt.CoinPublicKey;
   gasLimit?: ocrt.RunningCost;
   costModel?: ocrt.CostModel;
@@ -408,6 +415,7 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
       costModel: tx.costModel,
       time: now,
       parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
+      hostInterfaceProvider: hostInterfaceProviderOf(tx.hostInterfaces),
       crossContract: { stateProvider: this, moduleProvider: this, localStateProvider: tx.account },
     }) as CircuitContext<PS>;
 

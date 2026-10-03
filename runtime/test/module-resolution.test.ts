@@ -50,10 +50,11 @@ const ALL_FAILURES: { [K in ModuleResolutionFailure['kind']]: Extract<ModuleReso
   ImplementationMismatch: { kind: 'ImplementationMismatch', circuitId: 'transfer', expected: VK_A, actual: VK_B },
   ModuleLoadRejected: { kind: 'ModuleLoadRejected', cause: new Error('boom') },
   IncompleteModule: { kind: 'IncompleteModule', missing: ['circuitSignatures', 'expectedVk'] },
+  HostInterfaceProviderAbsent: { kind: 'HostInterfaceProviderAbsent' },
   HostInterfaceAbsent: {
     kind: 'HostInterfaceAbsent',
     interfaceId: 'midnight:capsule/keys@1.0.0',
-    registered: false,
+    resolved: false,
     missing: ['secretKey'],
   },
   LocalStateProviderAbsent: { kind: 'LocalStateProviderAbsent' },
@@ -152,27 +153,24 @@ describe('ModuleResolutionError message', () => {
     expect(err.message).toContain('argument 2');
   });
 
-  test('a missing host interface says whether to register one or complete it', () => {
-    const unregistered = new ModuleResolutionError(CONTEXT, {
+  test('a missing host interface says whether the provider resolves nothing or something incomplete', () => {
+    const unresolved = new ModuleResolutionError(CONTEXT, {
       kind: 'HostInterfaceAbsent',
       interfaceId: 'midnight:capsule/keys@1.0.0',
-      registered: false,
+      resolved: false,
       missing: ['secretKey'],
     });
-    expect(unregistered.message).toContain("no implementation of host interface 'midnight:capsule/keys@1.0.0' is registered");
-    expect(unregistered.message).toContain('secretKey');
-    expect(unregistered.message).toContain('registerHostInterface');
+    expect(unresolved.message).toContain("the host interface provider resolves no 'midnight:capsule/keys@1.0.0'");
+    expect(unresolved.message).toContain('secretKey');
 
     const incomplete = new ModuleResolutionError(CONTEXT, {
       kind: 'HostInterfaceAbsent',
       interfaceId: 'identus:verification/age@1.2.0',
-      registered: true,
+      resolved: true,
       missing: ['ageCredential', 'issuer'],
     });
-    expect(incomplete.message).toContain(
-      "registered for host interface 'identus:verification/age@1.2.0' has no function ageCredential, issuer",
-    );
-    expect(incomplete.message).not.toContain('registerHostInterface');
+    expect(incomplete.message).toContain("resolves for 'identus:verification/age@1.2.0' has no function ageCredential, issuer");
+    expect(incomplete.message).not.toContain('resolves no');
   });
 });
 

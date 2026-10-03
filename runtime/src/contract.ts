@@ -164,15 +164,22 @@ const checkModuleConformance = (
 };
 
 /**
- * Checks that this environment implements every host function the callee's circuits can reach.
- * Both sides are static — the module's `hostInterfaces` and the registry — therefore the check
- * belongs to resolution, like conformance, and not to the first host call on whichever path a
- * run takes; `hostFunction`'s lookup at the call remains the backstop.
+ * Checks that the context's host interface provider implements every host function the callee's
+ * circuits can reach. Both sides are static — the module's `hostInterfaces` and the provider —
+ * therefore the check belongs to resolution, like conformance, and not to the first host call on
+ * whichever path a run takes; `callHostFunction`'s lookup at the call remains the backstop.
  *
  * @internal
  */
-const checkHostInterfaces = (calleeModule: Module, resolutionContext: ModuleResolutionContext): void => {
-  const gap = missingHostFunctions(calleeModule.hostInterfaces ?? {})[0];
+const checkHostInterfaces = (context: CircuitContext, calleeModule: Module, resolutionContext: ModuleResolutionContext): void => {
+  const requirements = calleeModule.hostInterfaces ?? {};
+  if (Object.keys(requirements).length === 0) {
+    return;
+  }
+  if (context.hostInterfaceProvider === undefined) {
+    failResolution(resolutionContext, { kind: 'HostInterfaceProviderAbsent' });
+  }
+  const gap = missingHostFunctions(requirements, context.hostInterfaceProvider)[0];
   if (gap !== undefined) {
     failResolution(resolutionContext, { kind: 'HostInterfaceAbsent', ...gap });
   }
@@ -724,7 +731,7 @@ export const crossContractCall = async ({
     // 8. The module is the deployed code; now this environment must be able to run it: every host
     //    function it declares is implemented, and, if it keeps local state, this account's capsule
     //    for it can be found (or is first touched here).
-    checkHostInterfaces(calleeModule, resolutionContext);
+    checkHostInterfaces(circuitContext, calleeModule, resolutionContext);
     const resolvedLocalQueryContext = await resolveLocalQueryContext(
       circuitContext,
       calleeAddress,

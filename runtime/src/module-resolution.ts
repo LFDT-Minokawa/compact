@@ -71,14 +71,17 @@ export type ModuleResolutionFailure =
   /** The thunk resolved to something without the exports resolution reads. A module built before
    *  dynamic resolution has a `Contract` and none of the tables. */
   | { readonly kind: 'IncompleteModule'; readonly missing: readonly (keyof Module)[] }
-  /** The callee declares a host interface this environment does not implement: nothing is
-   *  `registered` under the id, or what is lacks the `missing` functions. Checked before the callee
-   *  is entered because both sides are known then, so the call fails whether or not its path would
+  /** The callee declares host functions and the circuit context carries no host interface
+   *  provider to resolve them. */
+  | { readonly kind: 'HostInterfaceProviderAbsent' }
+  /** The callee declares a host interface the provider does not satisfy: it `resolved` nothing
+   *  under the id, or what it resolved lacks the `missing` functions. Checked before the callee is
+   *  entered because both sides are known then, so the call fails whether or not its path would
    *  have reached the function. */
   | {
       readonly kind: 'HostInterfaceAbsent';
       readonly interfaceId: string;
-      readonly registered: boolean;
+      readonly resolved: boolean;
       readonly missing: readonly string[];
     }
   /** The callee keeps local state and the circuit context carries no local state provider, so this
@@ -156,12 +159,14 @@ const describeFailure = (failure: ModuleResolutionFailure): string => {
       return 'loading the resolved module rejected';
     case 'IncompleteModule':
       return `the resolved module does not export ${failure.missing.join(', ')}; it was built before dynamic resolution`;
+    case 'HostInterfaceProviderAbsent':
+      return 'the callee declares host functions and the circuit context carries no host interface provider';
     case 'HostInterfaceAbsent':
-      return failure.registered
-        ? `the implementation registered for host interface '${failure.interfaceId}' has no function ` +
+      return failure.resolved
+        ? `the implementation the host interface provider resolves for '${failure.interfaceId}' has no function ` +
             `${failure.missing.join(', ')}, which the callee declares`
-        : `no implementation of host interface '${failure.interfaceId}' is registered, and the callee declares ` +
-            `${failure.missing.join(', ')} of it (registerHostInterface supplies one)`;
+        : `the host interface provider resolves no '${failure.interfaceId}', of which the callee declares ` +
+            failure.missing.join(', ');
     case 'LocalStateProviderAbsent':
       return 'the callee keeps local state and the circuit context carries no local state provider';
     case 'LocalStateProviderThrew':

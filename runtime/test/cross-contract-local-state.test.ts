@@ -26,6 +26,8 @@ import {
   CompactTypeField,
   ContractModuleProvider,
   ContractStateProvider,
+  HostInterface,
+  HostInterfaceProvider,
   HostInterfaceRequirements,
   InterfaceDescriptor,
   LocalStateProvider,
@@ -38,7 +40,6 @@ import {
   finalizeCallProofData,
   localStates,
   queryLocalState,
-  registerHostInterface,
   verifierKeyHashOf,
 } from '../src/index.js';
 
@@ -176,9 +177,15 @@ type Harness = {
   call: (x: bigint) => Promise<bigint>;
 };
 
+/** A provider serving exactly the given interfaces. */
+const hostInterfaceProviderOf = (interfaces: Record<string, HostInterface>): HostInterfaceProvider => ({
+  resolve: (id) => interfaces[id],
+});
+
 const harness = (options: {
   module: Module;
   localStateProvider?: LocalStateProvider;
+  hostInterfaceProvider?: HostInterfaceProvider;
   callerLocalState?: ocrt.StateValue;
 }): Harness => {
   const callerAddress = ocrt.sampleContractAddress();
@@ -192,6 +199,7 @@ const harness = (options: {
     localState: options.callerLocalState,
     time: 0,
     parentBlockHash: PARENT_BLOCK_HASH,
+    hostInterfaceProvider: options.hostInterfaceProvider,
     crossContract: {
       stateProvider: stateProviderFor(calleeAddress),
       moduleProvider: moduleProviderFor(options.module),
@@ -351,47 +359,51 @@ describe('a callee without local state', () => {
 });
 
 describe('the host interface gate', () => {
-  test('an unregistered interface the callee declares fails resolution, with nothing committed', async () => {
+  const requires = (hostInterfaces: HostInterfaceRequirements) => calleeModule({ localState: false, hostInterfaces });
+
+  test('a callee declaring host functions cannot be resolved without a provider, and nothing is committed', async () => {
+    const h = harness({ module: requires({ 'vendor:gate/any@1.0.0': ['f'] }) });
+    expect((await failureOf(h.call(5n))).kind).toBe('HostInterfaceProviderAbsent');
+    expectNothingCommitted(h);
+  });
+
+  test('an interface the provider does not resolve fails resolution, with nothing committed', async () => {
     const h = harness({
-      module: calleeModule({ localState: false, hostInterfaces: { 'vendor:gate/unregistered@1.0.0': ['f', 'g'] } }),
+      module: requires({ 'vendor:gate/unresolved@1.0.0': ['f', 'g'] }),
+      hostInterfaceProvider: hostInterfaceProviderOf({}),
     });
     const failure = await failureOf(h.call(5n));
-    if (failure.kind !== 'HostInterfaceAbsent') {
-      throw new Error(`expected HostInterfaceAbsent, got ${failure.kind}`);
-    }
     expect(failure).toEqual({
       kind: 'HostInterfaceAbsent',
-      interfaceId: 'vendor:gate/unregistered@1.0.0',
-      registered: false,
+      interfaceId: 'vendor:gate/unresolved@1.0.0',
+      resolved: false,
       missing: ['f', 'g'],
     });
     expectNothingCommitted(h);
   });
 
-  test('an incomplete registration names the functions it lacks', async () => {
-    registerHostInterface('vendor:gate/partial@1.0.0', { f: () => 1n });
+  test('an incomplete implementation names the functions it lacks', async () => {
     const h = harness({
-      module: calleeModule({ localState: false, hostInterfaces: { 'vendor:gate/partial@1.0.0': ['f', 'g'] } }),
+      module: requires({ 'vendor:gate/partial@1.0.0': ['f', 'g'] }),
+      hostInterfaceProvider: hostInterfaceProviderOf({ 'vendor:gate/partial@1.0.0': { f: () => 1n } }),
     });
-    const failure = await failureOf(h.call(5n));
-    expect(failure).toEqual({
+    expect(await failureOf(h.call(5n))).toEqual({
       kind: 'HostInterfaceAbsent',
       interfaceId: 'vendor:gate/partial@1.0.0',
-      registered: true,
+      resolved: true,
       missing: ['g'],
     });
   });
 
-  test('passes once the interface is registered, and a module declaring none is not asked', async () => {
-    const module = calleeModule({ localState: false, hostInterfaces: { 'vendor:gate/late@1.0.0': ['f'] } });
-    const before = harness({ module });
-    expect((await failureOf(before.call(5n))).kind).toBe('HostInterfaceAbsent');
+  test('passes with a provider that serves the interface, and a module declaring none needs no provider', async () => {
+    const module = requires({ 'vendor:gate/served@1.0.0': ['f'] });
+    const served = harness({
+      module,
+      hostInterfaceProvider: hostInterfaceProviderOf({ 'vendor:gate/served@1.0.0': { f: () => 1n } }),
+    });
+    expect(await served.call(5n)).toBe(5n);
 
-    registerHostInterface('vendor:gate/late@1.0.0', { f: () => 1n });
-    const after = harness({ module });
-    expect(await after.call(5n)).toBe(5n);
-
-    const none = harness({ module: calleeModule({ localState: false, hostInterfaces: {} }) });
+    const none = harness({ module: requires({}) });
     expect(await none.call(5n)).toBe(5n);
   });
 
@@ -400,6 +412,7 @@ describe('the host interface gate', () => {
     const h = harness({
       module: calleeModule({ localState: true, hostInterfaces: { 'vendor:gate/first@1.0.0': ['f'] } }),
       localStateProvider: provider,
+      hostInterfaceProvider: hostInterfaceProviderOf({}),
     });
     expect((await failureOf(h.call(5n))).kind).toBe('HostInterfaceAbsent');
     expect(provider.asked).toBe(0);

@@ -25,8 +25,21 @@ const deployPair = async (chain: TestChain) => {
   return { inner, outer };
 };
 
-const call = (chain: TestChain, outer: any, circuitId: string, account?: Account) =>
-  chain.call({ module: outerCode, address: outer.address, witnesses: {}, privateState: 0, circuitId, args: [], account });
+// The transacting party's wallet answers the callee's host interface; the harness's own serves the
+// coin operations beneath it.
+const WALLET = { [TALLY]: { weight: () => 3n } };
+
+const call = (chain: TestChain, outer: any, circuitId: string, account?: Account, hostInterfaces: Record<string, any> = WALLET) =>
+  chain.call({
+    module: outerCode,
+    address: outer.address,
+    witnesses: {},
+    privateState: 0,
+    circuitId,
+    args: [],
+    account,
+    hostInterfaces,
+  });
 
 const resolutionFailure = async (promise: Promise<unknown>) => {
   try {
@@ -49,16 +62,16 @@ describe('a cross-contract callee with local state and a host function', () => {
     expect(outerCode.hostInterfaces).toEqual({});
   });
 
-  test('the gate: an interface the environment lacks fails resolution before anything is committed or looked up', async () => {
+  test('the gate: an interface the wallet does not answer fails resolution before anything is committed or looked up', async () => {
     const chain = new TestChain();
     const { inner, outer } = await deployPair(chain);
     const account = new Account();
 
-    // The registry is process-wide and has no unregister, so the gap exercised here is an
-    // incomplete registration; the unregistered case is a runtime unit test.
-    runtime.registerHostInterface(TALLY, {});
-    const incomplete = await resolutionFailure(call(chain, outer, 'visitOnce', account));
-    expect(incomplete).toEqual({ kind: 'HostInterfaceAbsent', interfaceId: TALLY, registered: true, missing: ['weight'] });
+    // A wallet that does not know the interface at all, then one whose implementation is incomplete.
+    const unresolved = await resolutionFailure(call(chain, outer, 'visitOnce', account, {}));
+    expect(unresolved).toEqual({ kind: 'HostInterfaceAbsent', interfaceId: TALLY, resolved: false, missing: ['weight'] });
+    const incomplete = await resolutionFailure(call(chain, outer, 'visitOnce', account, { [TALLY]: {} }));
+    expect(incomplete).toEqual({ kind: 'HostInterfaceAbsent', interfaceId: TALLY, resolved: true, missing: ['weight'] });
 
     expect(visitors(chain, inner)).toEqual(0n);
     expect(account.lookupCount(inner.address)).toEqual(0);
@@ -68,7 +81,6 @@ describe('a cross-contract callee with local state and a host function', () => {
   test('without an account, a callee that keeps local state cannot be resolved', async () => {
     const chain = new TestChain();
     const { inner, outer } = await deployPair(chain);
-    runtime.registerHostInterface(TALLY, { weight: () => 3n });
 
     const failure = await resolutionFailure(call(chain, outer, 'visitOnce'));
     expect(failure.kind).toEqual('LocalStateProviderAbsent');
@@ -78,7 +90,6 @@ describe('a cross-contract callee with local state and a host function', () => {
   test('first touch installs the defaults and runs the prologue; later calls run against the folded capsule', async () => {
     const chain = new TestChain();
     const { inner, outer } = await deployPair(chain);
-    runtime.registerHostInterface(TALLY, { weight: () => 3n });
     const account = new Account();
 
     // Transaction 1: the callee's capsule does not exist yet.
@@ -129,7 +140,6 @@ describe('a cross-contract callee with local state and a host function', () => {
   test('capsules are per account: another participant starts from the defaults and gets its own prologue', async () => {
     const chain = new TestChain();
     const { inner, outer } = await deployPair(chain);
-    runtime.registerHostInterface(TALLY, { weight: () => 3n });
     const alice = new Account();
     const bob = new Account();
 

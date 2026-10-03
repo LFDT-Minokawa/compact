@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -16,6 +16,7 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import type { CircuitContext } from './circuit-context.js';
 import type { PartialProofData } from './proof-data.js';
+import type { HostInterfaceProvider } from './providers.js';
 import { CompactError } from './error.js';
 import { createZswapInput, createZswapOutput, ownPublicKey } from './zswap.js';
 
@@ -39,79 +40,91 @@ export type HostInterface = Readonly<Record<string, HostFunction>>;
 export type HostInterfaceRequirements = Readonly<Record<string, readonly string[]>>;
 
 /**
- * One interface a requirement names that the registry does not satisfy: `missing` is every
- * required function with no implementation, which is all of them when nothing is `registered`
- * under the id.
+ * One required interface a provider does not satisfy: `missing` is every required function with
+ * no implementation, which is all of them when the provider `resolved` nothing under the id.
  */
 export type HostInterfaceGap = {
   readonly interfaceId: string;
-  readonly registered: boolean;
+  readonly resolved: boolean;
   readonly missing: readonly string[];
 };
 
 /**
- * A contract's `host` blocks name the runtime-provided functions it requires, and the DApp
- * supplies none of them: the runtime resolves each interface by id when a function is called,
- * so the compiler accepts any well-formed id. This registry is that resolution. It starts with
- * the interfaces compact-runtime implements itself, and {@link registerHostInterface} is the
- * seam through which a capsule runtime - or a test - supplies or replaces one.
+ * The requirements a provider does not meet, in the requirements' order; with no provider, every
+ * requirement. A module's requirements and the provider are both known before anything runs,
+ * therefore a gap is a property of the (module, environment) pair and not of a call: a
+ * cross-contract call checks this at resolution rather than failing at the first host call on
+ * some path, a root circuit checks it at entry ({@link assertHostInterfaces}), and the lookup in
+ * {@link callHostFunction} stays as the backstop for both.
  */
-const hostInterfaces = new Map<string, HostInterface>();
-
-/**
- * Registers (or replaces) the implementation of a host interface.
- *
- * @param interfaceId The interface id as a contract writes it, e.g. `midnight:capsule/keys@1.0.0`.
- * @param implementation Its functions, keyed by name.
- */
-export const registerHostInterface = (interfaceId: string, implementation: HostInterface): void => {
-  hostInterfaces.set(interfaceId, implementation);
-};
-
-/**
- * The registered implementation of a host function, or a {@link CompactError} naming what is
- * missing when there is none.
- */
-export const hostFunction = (interfaceId: string, name: string): HostFunction => {
-  const implementation = hostInterfaces.get(interfaceId);
-  if (implementation === undefined) {
-    throw new CompactError(
-      `no implementation of host interface ${interfaceId} is registered (registerHostInterface supplies one)`,
-    );
-  }
-  const fn = implementation[name];
-  if (typeof fn !== 'function') {
-    throw new CompactError(`the implementation of host interface ${interfaceId} has no function ${name}`);
-  }
-  return fn;
-};
-
-/**
- * The requirements the registry does not meet, in the requirements' order. A module's
- * requirements and the registry are both known before anything runs, therefore a gap is a
- * property of the (module, environment) pair and not of a call: a cross-contract call checks
- * this at resolution rather than failing at the first host call on some path, and an application
- * can check its own root module, which has no resolution step, the same way. The lookup in
- * {@link hostFunction} at the call stays as the backstop for both.
- */
-export const missingHostFunctions = (requirements: HostInterfaceRequirements): HostInterfaceGap[] => {
+export const missingHostFunctions = (
+  requirements: HostInterfaceRequirements,
+  provider: HostInterfaceProvider | undefined,
+): HostInterfaceGap[] => {
   const gaps: HostInterfaceGap[] = [];
   for (const [interfaceId, names] of Object.entries(requirements)) {
-    const implementation = hostInterfaces.get(interfaceId);
+    const implementation = provider?.resolve(interfaceId);
     const missing = names.filter((name) => typeof implementation?.[name] !== 'function');
     if (missing.length !== 0) {
-      gaps.push({ interfaceId, registered: implementation !== undefined, missing });
+      gaps.push({ interfaceId, resolved: implementation !== undefined, missing });
     }
   }
   return gaps;
 };
 
+/** How a gap reads, for the root's entry check and the call-time backstop. */
+const describeGap = (gap: HostInterfaceGap): string =>
+  gap.resolved
+    ? `the implementation the host interface provider resolves for '${gap.interfaceId}' has no function ${gap.missing.join(', ')}`
+    : `the host interface provider resolves no '${gap.interfaceId}', of which ${gap.missing.join(', ')} ${gap.missing.length === 1 ? 'is' : 'are'} required`;
+
+const NO_PROVIDER = 'the circuit context carries no host interface provider (pass hostInterfaceProvider to createCircuitContext)';
+
 /**
- * Calls a host function on behalf of the generated code, which type-checks the result against
- * the contract's declared type and records it with {@link recordHostOutput}.
+ * The root's gate, run by the generated wrapper at the entry of every exported impure circuit of a
+ * contract that declares host functions: the first point where the module's requirements and the
+ * context's provider meet without the application's help, before the prologue and before anything
+ * is recorded. A root has no resolution step, so this is a plain error rather than a
+ * `ModuleResolutionError`; a callee reaching it has already passed the same check at resolution.
  */
-export const callHostFunction = (context: CircuitContext, interfaceId: string, name: string, args: readonly any[]): any =>
-  hostFunction(interfaceId, name)(context, ...args);
+export const assertHostInterfaces = (
+  context: CircuitContext,
+  requirements: HostInterfaceRequirements,
+  circuitName: string,
+): void => {
+  if (Object.keys(requirements).length === 0) {
+    return;
+  }
+  const provider = context.hostInterfaceProvider;
+  if (provider === undefined) {
+    throw new CompactError(`${circuitName}: the contract declares host functions but ${NO_PROVIDER}`);
+  }
+  const gap = missingHostFunctions(requirements, provider)[0];
+  if (gap !== undefined) {
+    throw new CompactError(`${circuitName}: ${describeGap(gap)}`);
+  }
+};
+
+/**
+ * Calls a host function on behalf of the generated code, resolving it through the context's
+ * {@link HostInterfaceProvider}; the generated code type-checks the result against the contract's
+ * declared type and records it with {@link recordHostOutput}. The gates above make a miss here
+ * unreachable from generated code unless the provider's answers change between entry and call.
+ */
+export const callHostFunction = (context: CircuitContext, interfaceId: string, name: string, args: readonly any[]): any => {
+  const provider = context.hostInterfaceProvider;
+  if (provider === undefined) {
+    throw new CompactError(`cannot call host function ${name} of ${interfaceId}: ${NO_PROVIDER}`);
+  }
+  const implementation = provider.resolve(interfaceId);
+  const fn = implementation?.[name];
+  if (typeof fn !== 'function') {
+    throw new CompactError(
+      `cannot call host function ${name} of ${interfaceId}: ${describeGap({ interfaceId, resolved: implementation !== undefined, missing: [name] })}`,
+    );
+  }
+  return fn(context, ...args);
+};
 
 /**
  * Records a host function's result in the call's proof data. Every host result is pinned
@@ -122,14 +135,16 @@ export const recordHostOutput = (partialProofData: PartialProofData, output: ocr
   (partialProofData.hostOutputs ??= []).push(output);
 };
 
-// The interfaces compact-runtime implements. The zswap functions are the wallet's coin
-// operations, which the standard library declares as a host block and which are served from
-// the context's Zswap local state. The capsule secret (`midnight:capsule/keys@1.0.0`,
-// `secretKey(): Bytes<32>`) has no source in compact-runtime and its derivation is open
-// (plan §6.12), therefore nothing implements it here: a call fails until a capsule runtime
-// registers it.
-registerHostInterface('midnight:capsule/zswap@1.0.0', {
+/** The id under which the standard library declares the wallet's coin operations. */
+export const ZSWAP_HOST_INTERFACE_ID = 'midnight:capsule/zswap@1.0.0';
+
+/**
+ * An implementation of the standard library's coin operations, served from the context's Zswap
+ * local state, which this package owns. An ordinary {@link HostInterface} for a provider to serve
+ * under {@link ZSWAP_HOST_INTERFACE_ID}: the runtime resolves it no more than any other interface.
+ */
+export const zswapHostInterface: HostInterface = {
   ownPublicKey: (context) => ownPublicKey(context),
   createZswapInput: (context, coin) => createZswapInput(context, coin),
   createZswapOutput: (context, coin, recipient) => createZswapOutput(context, coin, recipient),
-});
+};

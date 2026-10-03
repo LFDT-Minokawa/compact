@@ -23,7 +23,11 @@ import {
   ConstructorContext,
   CircuitResults,
   ConstructorResult,
-  Module as RuntimeModule
+  HostInterface,
+  HostInterfaceProvider,
+  Module as RuntimeModule,
+  ZSWAP_HOST_INTERFACE_ID,
+  zswapHostInterface,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 
@@ -57,6 +61,22 @@ export type Module<C, W> = Omit<RuntimeModule, 'Contract'> & {
   Contract: new (witnesses: W) => C;
   contractDir: string;
 };
+
+/**
+ * The harness's wallet. The runtime resolves no host interface by itself, the standard library's
+ * coin operations included, so the harness serves those (the DApp's job) plus whatever a test adds;
+ * one provider per context, so two participants in one test can carry different answers.
+ */
+export const hostInterfaceProviderOf = (interfaces: Record<string, HostInterface> = {}): HostInterfaceProvider => {
+  const served: Record<string, HostInterface> = { [ZSWAP_HOST_INTERFACE_ID]: zswapHostInterface, ...interfaces };
+  return { resolve: (id) => served[id] };
+};
+
+/** `context` with its host calls answered by the harness wallet extended with `interfaces`. */
+export const withHostInterfaces = <PS>(
+  context: CircuitContext<PS>,
+  interfaces: Record<string, HostInterface>,
+): CircuitContext<PS> => ({ ...context, hostInterfaceProvider: hostInterfaceProviderOf(interfaces) });
 
 /** Pending proof validations scheduled by circuit calls (module-singleton). */
 const pending = new Set<Promise<void>>();
@@ -130,6 +150,7 @@ export const startContract = async <
     privateState: constructorResult.currentPrivateState,
     // a fresh capsule holds the declaration defaults; the join constructor runs at the first call
     localState: module.initialLocalState?.(),
+    hostInterfaceProvider: hostInterfaceProviderOf(),
   });
 
   const wrappedImpureCircuits = {} as C['impureCircuits'];

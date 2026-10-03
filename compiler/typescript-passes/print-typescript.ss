@@ -1493,6 +1493,16 @@
                                         (argument-type-checks src external-name 1 (map arg->id arg*) (map arg->type arg*)
                                           (cons*
                                             2 (format "const context = __compactRuntime.copyCircuitContext(~a);" contextOrig)
+                                            (append
+                                              ;; the root has no resolution step, therefore its host requirements are
+                                              ;; checked here, where the module and the context's provider first meet,
+                                              ;; before the prologue records anything; a callee passed the same check
+                                              ;; at resolution
+                                              (if (has-host-functions? xpelt*)
+                                                  (list 2 (format "__compactRuntime.assertHostInterfaces(context, hostInterfaces, ~a);"
+                                                                  (format-javascript-string external-name)))
+                                                  '())
+                                              (cons*
                                             2 "const partialProofData = {"
                                             4 (make-Qconcat
                                                 "input: {"
@@ -1568,7 +1578,7 @@
                                                   "context: " "context" ", "
                                                   "gasCost: " "context.callContext.currentGasCost"
                                                   " };"
-                                                0 "}"))))))))
+                                                0 "}"))))))))))
                                 external-name*)
                            q*)))
                      (with-local-unique-names
@@ -2071,6 +2081,13 @@
           (ormap (lambda (xpelt)
                    (XPelt-case xpelt
                      [(XPelt-local-ledger pl-array lconstructor external-names) #t]
+                     [else #f]))
+                 xpelt*))
+
+        (define (has-host-functions? xpelt*)
+          (ormap (lambda (xpelt)
+                   (XPelt-case xpelt
+                     [(XPelt-host src internal-id interface-id host-name arg* type) #t]
                      [else #f]))
                  xpelt*))
 

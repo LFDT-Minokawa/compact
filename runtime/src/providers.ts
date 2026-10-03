@@ -14,6 +14,7 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import type { HostInterface } from './host.js';
 import { Module } from './module.js';
 
 /**
@@ -55,4 +56,22 @@ export interface ContractModuleProvider {
  */
 export interface LocalStateProvider {
   getLocalState(calleeAddress: ocrt.ContractAddress): Promise<ocrt.StateValue | undefined>;
+}
+
+/**
+ * A user-provided resolution of the host interfaces a contract's `host` blocks declare: the
+ * wallet's (eventually the capsule runtime's) answer for the account that is transacting. One per
+ * execution, inherited by every cross-contract callee in the call tree, so a callee's host calls
+ * are answered by the same party as the root's.
+ *
+ * `resolve` is synchronous and total, like {@link ContractModuleProvider.resolve}: an id with no
+ * implementation returns `undefined` rather than throwing, so the runtime classifies the gap
+ * (before a callee is entered, at the entry of a root circuit, or at the call as the backstop).
+ * Synchronous because local functions run as synchronous code, so a host function they call
+ * cannot be awaited; an implementation that must do asynchronous work has to have done it before
+ * the call. The runtime resolves nothing by itself: the coin operations the standard library
+ * declares (`zswapHostInterface`) are an implementation a provider may serve, not a default.
+ */
+export interface HostInterfaceProvider {
+  resolve(interfaceId: string): HostInterface | undefined;
 }

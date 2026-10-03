@@ -24,7 +24,7 @@ import {
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
 import { createLocalQueryContext } from './local-state.js';
-import { ContractModuleProvider, ContractStateProvider, LocalStateProvider } from './providers.js';
+import { ContractModuleProvider, ContractStateProvider, HostInterfaceProvider, LocalStateProvider } from './providers.js';
 
 export type CircuitId = string;
 
@@ -196,6 +196,12 @@ export interface CircuitContext<PS = any> {
    */
   localStateProvider?: LocalStateProvider;
   /**
+   * The {@link HostInterfaceProvider} answering every host call in the call tree, the root's and
+   * its callees'. Absent unless some contract in the tree declares host functions: a root that
+   * does fails at entry without one, a callee at resolution (`HostInterfaceProviderAbsent`).
+   */
+  hostInterfaceProvider?: HostInterfaceProvider;
+  /**
    * The contract addresses currently executing: the entry contract, plus every callee whose call
    * has not returned. Shared by reference across the call tree, so {@link crossContractCall} can
    * reject re-entry (`A -> A`, `A -> B -> A`) from any depth.
@@ -256,6 +262,12 @@ export type CircuitContextOptions<PS = any> = {
    * the block a cross-contract callee's state is fetched at.
    */
   readonly parentBlockHash?: string;
+  /**
+   * Resolves the host interfaces the contracts in the call tree declare — the wallet's answer for
+   * the account that is transacting. Required when any of them declares host functions, the
+   * standard library's coin operations included.
+   */
+  readonly hostInterfaceProvider?: HostInterfaceProvider;
   /** Present exactly when this execution may make cross-contract calls. */
   readonly crossContract?: CrossContractInputs;
 };
@@ -275,6 +287,7 @@ export const createCircuitContext = <PS>({
   costModel,
   time,
   parentBlockHash,
+  hostInterfaceProvider,
   crossContract,
 }: CircuitContextOptions<PS>): CircuitContext<PS> => {
   const callContext = createCallContext(
@@ -306,6 +319,7 @@ export const createCircuitContext = <PS>({
     stateProvider: crossContract?.stateProvider,
     moduleProvider: crossContract?.moduleProvider,
     localStateProvider: crossContract?.localStateProvider,
+    hostInterfaceProvider,
     activeContracts: new Set([contractAddress]),
     events: [],
   };

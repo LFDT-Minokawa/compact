@@ -22,30 +22,28 @@ const AGE = 'identus:verification/age@1.2.0';
 const ISSUER = new Uint8Array(32).fill(0xaa);
 const SIGNATURE = new Uint8Array(64).fill(1);
 
-/** One participant: a wallet (the host functions answer from it) and an account (the capsules). */
+// The block time every transaction here is built at, and the public time bound a signup proves
+// its credential against.
+const NOW = BigInt(Math.floor(Date.now() / 1_000));
+
+/**
+ * One participant: a wallet answering the two host interfaces the ballot declares, and an account
+ * holding the capsules. Each call carries its own participant's wallet, so nothing is shared.
+ */
 class Participant {
   readonly account = new Account();
+  readonly wallet: Record<string, runtime.HostInterface>;
   constructor(
     readonly secret: Uint8Array,
     readonly birth: bigint = 0n,
     readonly issuer: Uint8Array = ISSUER,
-  ) {}
+  ) {
+    this.wallet = {
+      [KEYS]: { secretKey: () => this.secret },
+      [AGE]: { ageCredential: () => ({ date: this.birth, issuer: this.issuer, signature: SIGNATURE }) },
+    };
+  }
 }
-
-// The host interfaces are process-wide, so they answer for whoever is transacting. Registered
-// per test rather than at load, since other tests in this file pin what an unregistered
-// interface does.
-let transacting: Participant | undefined;
-const wallet = (): Participant => {
-  if (transacting === undefined) throw new Error('no participant is transacting');
-  return transacting;
-};
-const installWallet = (): void => {
-  runtime.registerHostInterface(KEYS, { secretKey: () => wallet().secret });
-  runtime.registerHostInterface(AGE, {
-    ageCredential: () => ({ date: wallet().birth, issuer: wallet().issuer, signature: SIGNATURE }),
-  });
-};
 
 const deployBoth = async (chain: TestChain) => {
   const registry = await chain.deploy({ module: registryCode, args: [], initialPrivateState: 0 });
@@ -53,44 +51,21 @@ const deployBoth = async (chain: TestChain) => {
   return { registry, ballot };
 };
 
-const as = async <T>(participant: Participant, run: () => Promise<T>): Promise<T> => {
-  transacting = participant;
-  try {
-    return await run();
-  } finally {
-    transacting = undefined;
-  }
-};
+const callBallot = (chain: TestChain, ballot: any, p: Participant, circuitId: string, args: unknown[], wallet = p.wallet) =>
+  chain.call({
+    module: ballotCode,
+    address: ballot.address,
+    witnesses: {},
+    privateState: 0,
+    circuitId,
+    args,
+    time: Number(NOW),
+    account: p.account,
+    hostInterfaces: wallet,
+  });
 
-// The block time every transaction here is built at, and the public time bound a signup proves
-// its credential against.
-const NOW = BigInt(Math.floor(Date.now() / 1_000));
-
-const signup = (chain: TestChain, ballot: any, p: Participant) =>
-  as(p, () =>
-    chain.call({
-      module: ballotCode,
-      address: ballot.address,
-      witnesses: {},
-      privateState: 0,
-      circuitId: 'signup',
-      args: [NOW],
-      time: Number(NOW),
-      account: p.account,
-    }));
-
-const vote = (chain: TestChain, ballot: any, p: Participant, choice: boolean) =>
-  as(p, () =>
-    chain.call({
-      module: ballotCode,
-      address: ballot.address,
-      witnesses: {},
-      privateState: 0,
-      circuitId: 'vote',
-      args: [choice],
-      time: Number(NOW),
-      account: p.account,
-    }));
+const signup = (chain: TestChain, ballot: any, p: Participant) => callBallot(chain, ballot, p, 'signup', [NOW]);
+const vote = (chain: TestChain, ballot: any, p: Participant, choice: boolean) => callBallot(chain, ballot, p, 'vote', [choice]);
 
 const ballotLedger = (chain: TestChain, ballot: any) => ballotCode.ledger(chain.getContractStateOrThrow(ballot.address).data);
 const registryLedger = (chain: TestChain, registry: any) => registryCode.ledger(chain.getContractStateOrThrow(registry.address).data);
@@ -99,14 +74,26 @@ const registryBooks = (p: Participant, registry: any) => registryCode.localState
 
 describe('the registry and the ballot', () => {
   test('both modules declare their host requirements, and the registry has none', () => {
-    installWallet();
     expect(ballotCode.hostInterfaces).toEqual({ [AGE]: ['ageCredential'], [KEYS]: ['secretKey'] });
     expect(registryCode.hostInterfaces).toEqual({});
-    expect(runtime.missingHostFunctions(ballotCode.hostInterfaces)).toEqual([]);
+    // A participant's wallet satisfies the ballot; a wallet knowing neither interface does not.
+    const alice = new Participant(new Uint8Array(32).fill(1));
+    expect(runtime.missingHostFunctions(ballotCode.hostInterfaces, { resolve: (id) => alice.wallet[id] })).toEqual([]);
+    expect(runtime.missingHostFunctions(ballotCode.hostInterfaces, { resolve: () => undefined })).toHaveLength(2);
+  });
+
+  test('a participant whose wallet lacks the credential interface is refused at entry, before any effect', async () => {
+    const chain = new TestChain();
+    const { registry, ballot } = await deployBoth(chain);
+    const alice = new Participant(new Uint8Array(32).fill(1));
+    await expect(callBallot(chain, ballot, alice, 'signup', [NOW], { [KEYS]: alice.wallet[KEYS] })).rejects.toThrow(
+      /^signup: the host interface provider resolves no 'identus:verification\/age@1.2.0', of which ageCredential is required/,
+    );
+    expect(alice.account.localState(ballot.address)).toBeUndefined();
+    expect(registryLedger(chain, registry).members.firstFree()).toEqual(0n);
   });
 
   test('two participants enroll and vote, each from their own capsules, and every capsule folds back from its records', async () => {
-    installWallet();
     const chain = new TestChain();
     const { registry, ballot } = await deployBoth(chain);
     const alice = new Participant(new Uint8Array(32).fill(1));
@@ -172,16 +159,16 @@ describe('the registry and the ballot', () => {
     // The books are per account: Bob's registry capsule knows nothing of Alice's enrollment,
     // although the public tree holds it.
     await expect(
-      as(bob, () =>
-        chain.call({
-          module: registryCode,
-          address: registry.address,
-          witnesses: {},
-          privateState: 0,
-          circuitId: 'proveMembership',
-          args: [aliceCommitment],
-          account: bob.account,
-        })),
+      chain.call({
+        module: registryCode,
+        address: registry.address,
+        witnesses: {},
+        privateState: 0,
+        circuitId: 'proveMembership',
+        args: [aliceCommitment],
+        account: bob.account,
+        hostInterfaces: bob.wallet,
+      }),
     ).rejects.toThrow(/not enrolled here/);
 
     // Recovery: each capsule refolded from the declaration defaults over its records is the state
@@ -198,7 +185,6 @@ describe('the registry and the ballot', () => {
   });
 
   test('the credential is checked in-circuit, and a participant who never signed up cannot vote', async () => {
-    installWallet();
     const chain = new TestChain();
     const { registry, ballot } = await deployBoth(chain);
 
