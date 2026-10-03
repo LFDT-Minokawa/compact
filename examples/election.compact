@@ -31,13 +31,13 @@ ledger eligible_voters: MerkleTree<10, Bytes<32>>;
 ledger committed: Set<Bytes<32>>;
 ledger revealed: Set<Bytes<32>>;
 
-witness private$secret_key(): Bytes<32>;
-witness private$state(): PrivateState;
-witness private$state$advance(): [];
-witness private$vote$record(ballot: PermissibleVotes): [];
-witness private$vote(): PermissibleVotes;
-witness context$eligible_voters$path_of(pk: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>;
-witness context$committed_votes$path_of(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>;
+host test:oracle/private-secret-key@1.0.0 { private$secret_key(): Bytes<32>; }
+host test:oracle/private-state@1.0.0 { private$state(): PrivateState; }
+host test:oracle/private-state-advance@1.0.0 { private$state$advance(): []; }
+host test:oracle/private-vote-record@1.0.0 { private$vote$record(ballot: PermissibleVotes): []; }
+host test:oracle/private-vote@1.0.0 { private$vote(): PermissibleVotes; }
+host test:oracle/context-eligible-voters-path-of@1.0.0 { context$eligible_voters$path_of(pk: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; }
+host test:oracle/context-committed-votes-path-of@1.0.0 { context$committed_votes$path_of(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; }
 
 // Should probably be replaced with a builtin...
 circuit ballot_repr(ballot: PermissibleVotes): Bytes<32> {

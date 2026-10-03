@@ -292,7 +292,7 @@ export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
 // Test 17: witness with custom param and return type
 new type t17_boolean = Boolean;
 type t17_field = Field;
-witness t17_witness(vara: t17_boolean): t17_field;
+host test:oracle/t17-witness@1.0.0 { t17_witness(vara: t17_boolean): t17_field; }
 
 export circuit test17(vara: t17_boolean): t17_field {
   return disclose(t17_witness(disclose(vara)));

@@ -15,7 +15,7 @@
 
 import CompactStandardLibrary;
 
-witness vector_witness(): Vector<4, Field>;
+host test:oracle/vector-witness@1.0.0 { vector_witness(): Vector<4, Field>; }
 
 // A witness may return a vector; the returned vector slices and indexes like any
 // other vector. Its values stay private (used only in constraints, not disclosed).

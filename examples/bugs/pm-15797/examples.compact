@@ -52,7 +52,7 @@ export circuit test7b(x: Uint<0..8>): Uint<0..4096> {
 // generics: module generic with ledger, witness, and range arithmetic
 module Test8<#N> {
   export ledger a: Uint<0b0..N>;
-  witness test(): Uint<0x00..N>;
+  host test:oracle/test@1.0.0 { test(): Uint<0x00..N>; }
 
   export circuit test(b: Uint<0..N>): [Uint<0..N>, Uint<0..N>]  {
     a = disclose(b) * 2 as Uint<0..N>;

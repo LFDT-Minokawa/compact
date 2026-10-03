@@ -56,12 +56,12 @@ constructor(organizer_secret_key: Bytes<32>, costs_param: Costs) {
   costs = disclose(costs_param);
 }
 
-witness local_secret_key(): Bytes<32>; // Secret key used to identify participant when performing an action
-witness local_state(): LocalState; // Current voter state
-witness local_advance_state(): []; // Function to advance local state after commiting or revealing a vote
-witness local_record_vote(vote: Boolean): [];
-witness local_vote_cast(): Maybe<Boolean>; // Returns vote for current round
-witness local_path_of_cm(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; // Returns Merkle proof of committed vote
+host test:oracle/local-secret-key@1.0.0 { local_secret_key(): Bytes<32>; } // Secret key used to identify participant when performing an action
+host test:oracle/local-state@1.0.0 { local_state(): LocalState; } // Current voter state
+host test:oracle/local-advance-state@1.0.0 { local_advance_state(): []; } // Function to advance local state after commiting or revealing a vote
+host test:oracle/local-record-vote@1.0.0 { local_record_vote(vote: Boolean): []; }
+host test:oracle/local-vote-cast@1.0.0 { local_vote_cast(): Maybe<Boolean>; } // Returns vote for current round
+host test:oracle/local-path-of-cm@1.0.0 { local_path_of_cm(cm: Bytes<32>): Maybe<MerkleTreePath<10, Bytes<32>>>; } // Returns Merkle proof of committed vote
 
 /**
  * Commits to a vote without revealing its contents

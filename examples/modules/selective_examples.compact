@@ -336,7 +336,7 @@ export circuit test9(): Boolean {
 
 // Test10: witness functions in modules
 module Test10 {
-  witness get_secret(): Field;
+  host test:oracle/get-secret@1.0.0 { get_secret(): Field; }
 
   export circuit use_secret(): Field {
     const secret = disclose(get_secret());

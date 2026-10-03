@@ -17,7 +17,7 @@ import CompactStandardLibrary;
 
 export ledger round: Counter;
 
-witness private_increment(): [];
+host test:oracle/private-increment@1.0.0 { private_increment(): []; }
 
 export circuit increment(): [] {
   round.increment(1);

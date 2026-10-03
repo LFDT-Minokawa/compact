@@ -30,7 +30,7 @@ constructor() {
     instance.increment(1);
 }
 
-witness local_secret_key(): Bytes<32>;
+host test:oracle/local-secret-key@1.0.0 { local_secret_key(): Bytes<32>; }
 
 export circuit post(new_message: Opaque<"string">): [] {
     assert(state == STATE.vacant, "Attempted to post to an occupied board");

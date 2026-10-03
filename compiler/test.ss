@@ -1701,13 +1701,12 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
-             (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
-             (ttuple))
+        (host #f "test:oracle/c@1.0.0"
+          (C ([a (tboolean)] [b (tbytes 10)]) (tbytes 20)))
+        (host #f "test:oracle/w@1.0.0"
+          (W ([a (tvector 7 (tvector 9 (tfield (field-native))))]
+              [b (topaque "bogeytype")])
+               (ttuple)))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
           (block (return (disclose (cast (tunsigned 10) b)))))
@@ -4817,13 +4816,12 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
-             (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
-             (ttuple))
+        (host #f "test:oracle/c@1.0.0"
+          (C ([a (tboolean)] [b (tbytes 10)]) (tbytes 20)))
+        (host #f "test:oracle/w@1.0.0"
+          (W ([a (tvector 7 (tvector 9 (tfield (field-native))))]
+              [b (topaque "bogeytype")])
+               (ttuple)))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
           (block (return (disclose (cast (tunsigned 10) b)))))
@@ -8105,7 +8103,7 @@ groups than for single tests.
   ; interfaces exist is the runtime's business, so any well-formed id passes
   (test
     '(
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export host midnight:capsule/keys@1.0.0 {"
       "  secretKey(): Bytes<32>;"
       "}"
@@ -8121,12 +8119,17 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness #f w () () (tfield (field-native)))
-        (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
-        (host #f "vendor:thing/api@2.0.0-rc.1" thing () (tfield (field-native)))
-        (host #f "vendor:thing/api@2.0.0-rc.1" doThing ([x (tfield (field-native))]) (ttuple))
+        (host #f "test:oracle/w@1.0.0" w () (tfield (field-native)))
+        (host #t "midnight:capsule/keys@1.0.0" secretKey ()
+             (tbytes 32))
+        (host #f "vendor:thing/api@2.0.0-rc.1" thing ()
+             (tfield (field-native)))
+        (host #f "vendor:thing/api@2.0.0-rc.1" doThing ([x (tfield
+                                                             (field-native))])
+             (ttuple))
         (module #f M ()
-          (host #t "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32)))))
+          (host #t "midnight:capsule/keys@1.0.0" secretKey ()
+               (tbytes 32)))))
     )
 )
 
@@ -9365,12 +9368,15 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -9625,11 +9631,11 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(x: Boolean, x: Field) : Boolean;"
+      "host test:oracle/w@1.0.0 { W(x: Boolean, x: Field) : Boolean; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "duplicate ~a ~s" ("parameter name" x))))
+      irritants: '("testfile.compact line 1 char 28" "duplicate ~a ~s" ("parameter name" x))))
 
   (test
     '(
@@ -9964,12 +9970,15 @@ groups than for single tests.
                         (== (elt-call kernel self) (elt-call kernel2 self))
                         "oops")
                       (new (type-ref M$frob) (elt-call x0 read)))))))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -10256,12 +10265,15 @@ groups than for single tests.
                         (== (elt-call kernel self) (elt-call kernel2 self))
                         "oops")
                       (new (type-ref M$frob) (elt-call x0 read)))))))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -10521,7 +10533,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness private_key(): Bytes<32>;"
+      "host test:oracle/private-key@1.0.0 { private_key(): Bytes<32>; }"
       "circuit set(val: Field): [] {"
       "  const sk = private_key();"
       "  const apk = public_key(sk);"
@@ -11303,7 +11315,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "module M {"
       "  circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11313,7 +11325,7 @@ groups than for single tests.
       )
     (returns
       (program ((T %T.3))
-        (witness %S.0 () (ttuple))
+        (host %S.0 "test:oracle/s@1.0.0" S () (ttuple))
         (circuit %S.1 ([%q.2 (tfield (field-native))]) (tfield (field-native)) %q.2)
         (circuit %T.3 ([%q.4 (tfield (field-native))])
              (tfield (field-native))
@@ -11322,7 +11334,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "module M {"
       "  export circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11332,54 +11344,54 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 7 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
       "circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
       )
     (returns
       (program ((S %S.0) (T %T.1))
-        (witness %S.2 () (ttuple))
+        (host %S.2 "test:oracle/s@1.0.0" S () (ttuple))
         (circuit %S.0 ([%q.3 (tfield (field-native))]) (tfield (field-native)) %q.3)
         (circuit %T.1 ([%q.4 (tfield (field-native))])
              (tfield (field-native))
@@ -11388,7 +11400,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(d: Field): Field;"
+      "host test:oracle/s@1.0.0 { S(d: Field): Field; }"
       "module M {"
       "  circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11398,7 +11410,7 @@ groups than for single tests.
       )
     (returns
       (program ((T %T.0))
-        (witness %S.1 ([%d.2 (tfield (field-native))]) (tfield (field-native)))
+        (host %S.1 "test:oracle/s@1.0.0" S ([%d.2 (tfield (field-native))]) (tfield (field-native)))
         (circuit %S.3 ([%q.4 (tfield (field-native))]) (tfield (field-native)) %q.4)
         (circuit %T.0 ([%q.5 (tfield (field-native))])
              (tfield (field-native))
@@ -11425,7 +11437,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness C(): [];"
+      "host test:oracle/c@1.0.0 { C(): []; }"
       "export circuit D(q: Field): Field {"
       "  C();"
       "  const C = 5;"
@@ -11438,14 +11450,16 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<#D, E>(x: E): Vector<D, E>;"
+      "circuit P<#D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field>(n);"
       "}"
       )
     (returns
       (program ((foo %foo.0))
-        (witness %P.1 ([%x.2 (tfield (field-native))]) (tvector 2 (tfield (field-native))))
+        (circuit %P.1 ([%x.2 (tfield (field-native))])
+             (tvector 2 (tfield (field-native)))
+          (default (tvector 2 (tfield (field-native)))))
         (circuit %foo.0 ([%n.3 (tfield (field-native))])
              (tvector 2 (tfield (field-native)))
           (call (fref ((%P.1))) %n.3))))
@@ -11518,7 +11532,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<D, E>(x: E): Vector<D, E>;"
+      "circuit P<D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field, Boolean>(n);"
       "}"
@@ -11534,7 +11548,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -11550,12 +11564,22 @@ groups than for single tests.
                 (foo2 %foo2.1)
                 (foo3 %foo3.2)
                 (foo4 %foo4.3))
-        (witness %W.4 ([%x.5 (tboolean)]) (tboolean))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tboolean))
-        (witness %W.8 ([%x.9 (tboolean)]) (tfield (field-native)))
-        (witness %W.10 ([%x.11 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.8 ([%x.9 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.10 ([%x.11 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.12 ([%q.13 (tboolean)]) (tboolean) %q.13)
-        (circuit %S.14 ([%q.15 (tfield (field-native))]) (tfield (field-native)) %q.15)
+        (circuit %S.14 ([%q.15 (tfield (field-native))])
+             (tfield (field-native))
+          %q.15)
         (circuit %T.16 ([%q.17 (tboolean)])
              (tboolean)
           (call (fref ((%W.4))) (call (fref ((%S.12))) %q.17)))
@@ -11586,8 +11610,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S, B, C>(x: S<B, C>): A;"
-      "  export witness P<#D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<#D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11603,8 +11627,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S, B, C>(x: S<B, C>): A;"
-      "  export witness P<#D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<#D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11620,8 +11644,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S<B, C>, B, C>(x: S<B, C>): A;"
-      "  export witness P<D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S<B, C>, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11681,27 +11705,31 @@ groups than for single tests.
   (test
     '(
       "struct S<X, Y> { x: X; y: Y; }"
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "export circuit foo(b: Boolean, n: Field): Field {"
       "  return bar<S<Boolean, Field>>(S<Boolean, Field>{x: b, y: n});"
       "}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tstruct S
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tstruct S
                                  (x (tboolean))
                                  (y (tfield (field-native))))])
-             (tfield (field-native)))
-        (circuit %foo.2 ([%b.3 (tboolean)] [%n.4 (tfield (field-native))])
              (tfield (field-native))
-          (call (fref ((%bar.0)))
-            (new (tstruct S (x (tboolean)) (y (tfield (field-native)))) (x %b.3) (y %n.4))))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%b.3 (tboolean)]
+                         [%n.4 (tfield (field-native))])
+             (tfield (field-native))
+          (call (fref ((%bar.1)))
+            (new (tstruct S (x (tboolean)) (y (tfield (field-native))))
+              (x %b.3)
+              (y %n.4))))))
     )
 
   (test
     '(
       "struct S<X, Y> { x: X; y: Y; }"
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "export circuit foo(b: Boolean, n: Field): Field {"
       "  return bar<S<Boolean>>(S<Boolean, Field>{ x: b, y: n });"
       "}"
@@ -11713,7 +11741,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(b: Boolean, n: Field): Field {"
       "    return bar<A<>>(b);"
@@ -11723,16 +11751,19 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tboolean)]) (tfield (field-native)))
-        (circuit %foo.2 ([%b.3 (tboolean)] [%n.4 (tfield (field-native))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tboolean)])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %b.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%b.3 (tboolean)]
+                         [%n.4 (tfield (field-native))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %b.3))))
     )
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(b: Boolean, n: Field): Field {"
       "    return bar<A<3>>(b);"
@@ -11818,7 +11849,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<#Q>(x: Vector<Q, Field>): Field;"
+      "circuit bar<#Q>(x: Vector<Q, Field>): Field { return default<Field>; }"
       "module M<#A> {"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<A>(v);"
@@ -11828,16 +11859,18 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
     '(
-      "witness bar<Q>(x: Vector<Q, Field>): Field;"
+      "circuit bar<Q>(x: Vector<Q, Field>): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<A<Boolean>>(v);"
@@ -11854,7 +11887,7 @@ groups than for single tests.
   (test
     '(
       "module M<#A> {"
-      "  witness bar<Q>(x: Vector<A, Field>): Field;"
+      "  circuit bar<Q>(x: Vector<A, Field>): Field { return default<Field>; }"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<Field>(v);"
       "  }"
@@ -11863,17 +11896,19 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
     '(
       "module M<A> {"
-      "  witness bar<Q>(x: Vector<A, Field>): Field;"
+      "  circuit bar<Q>(x: Vector<A, Field>): Field { return default<Field>; }"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<Field<3>>(v);"
       "  }"
@@ -11888,18 +11923,20 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "circuit foo(v: Vector<3, Field>): Field {"
       "  return bar<Vector<3, Field>>(v);"
       "}"
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
@@ -14237,7 +14274,7 @@ groups than for single tests.
          "module M {"
          "  export circuit foo(x: Field): Field { return x * 2; }"
          "}"
-         "witness W(): [];"
+         "host test:oracle/w@1.0.0 { W(): []; }"
          ))
      (succeeds))
     ((create-file "testfile.compact"
@@ -15279,16 +15316,16 @@ groups than for single tests.
   (test
     '(
        "module A {"
-       "  export witness w(a: Field): Boolean;"
+       "  export host test:oracle/w@1.0.0 { w(a: Field): Boolean; }"
        "}"
        "import A;"
-       "witness w(a: Field, b: Field): Boolean;"
+       "host test:oracle/w@1.0.0 { w(a: Field, b: Field): Boolean; }"
        "export circuit foo(a : Field) : Boolean { return w(a); }"
        )
     (returns
       (program
-        (witness %w.0 ([%a.1 (tfield (field-native))]) (tboolean))
-        (witness %w.2 ([%a.3 (tfield (field-native))] [%b.4 (tfield (field-native))]) (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w ([%a.1 (tfield (field-native))]) (tboolean))
+        (host %w.2 "test:oracle/w@1.0.0" w ([%a.3 (tfield (field-native))] [%b.4 (tfield (field-native))]) (tboolean))
         (circuit %foo.5 ([%a.6 (tfield (field-native))])
              (tboolean)
           (call %w.0 %a.6)))))
@@ -16731,7 +16768,7 @@ groups than for single tests.
   (test
     '(
       "// test w/all three overloading faiures for fold"
-      "witness foo(a: Field, n: Field): Field;"
+      "host test:oracle/foo@1.0.0 { foo(a: Field, n: Field): Field; }"
       "circuit foo(a: Boolean, n: Field): Field { return a ? n : n - 1; }"
       "circuit foo<t>(a: t, n: Field): t { return t; }"
       "circuit foo(v: Vector<7, Field>, n: Field): Field { return n + v[3]; }"
@@ -16741,7 +16778,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 30:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
     )
 
   (test
@@ -17039,7 +17076,7 @@ groups than for single tests.
   (test
     '(
       "module M<#n> {"
-      "  export witness foo(v: Vector<n, Field>) : Field;"
+      "  export host test:oracle/foo@1.0.0 { foo(v: Vector<n, Field>) : Field; }"
       "}"
       "import M<10>;"
       "import M<20>;"
@@ -17048,8 +17085,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
-        (witness %foo.2 ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.2 "test:oracle/foo@1.0.0" foo ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
         (circuit %bar10.4 ([%u.5 (tvector 10 (tfield (field-native)))])
              (tfield (field-native))
           (call %foo.2 %u.5))
@@ -17197,7 +17234,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
       "    return fold(foo, true, v);"
@@ -17210,7 +17247,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%b.1 (tboolean)] [%x.2 (tfield (field-native))])
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%b.1 (tboolean)] [%x.2 (tfield (field-native))])
              (tboolean))
         (circuit %X$C.3 ([%v.4 (tvector 0 (tfield (field-native)))])
              (tboolean)
@@ -17276,7 +17313,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -17289,7 +17326,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map %foo.0 %v.3))
@@ -17303,7 +17340,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x: Field): Boolean => foo(x + 1),"
@@ -17317,7 +17354,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
@@ -17354,7 +17391,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -17367,12 +17404,22 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (witness %W.2 ([%x.3 (tfield (field-native))]) (tboolean))
-        (witness %W.4 ([%x.5 (tboolean)]) (tfield (field-native)))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.0 ([%x.1 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.2 ([%x.3 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.8 ([%q.9 (tboolean)]) (tboolean) %q.9)
-        (circuit %S.10 ([%q.11 (tfield (field-native))]) (tfield (field-native)) %q.11)
+        (circuit %S.10 ([%q.11 (tfield (field-native))])
+             (tfield (field-native))
+          %q.11)
         (circuit %T.12 ([%q.13 (tboolean)])
              (tboolean)
           (call %W.0 (call %S.8 %q.13)))
@@ -17663,14 +17710,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo1(): [];"
-      "witness foo2(): [];"
+      "host test:oracle/foo1@1.0.0 { foo1(): []; }"
+      "host test:oracle/foo2@1.0.0 { foo2(): []; }"
       "export circuit bar() : Boolean { return foo1() == foo2(); }"
       )
     (returns
       (program
-        (witness %foo1.0 () (ttuple))
-        (witness %foo2.1 () (ttuple))
+        (host %foo1.0 "test:oracle/foo1@1.0.0" foo1 () (ttuple))
+        (host %foo2.1 "test:oracle/foo2@1.0.0" foo2 () (ttuple))
         (circuit %bar.2 ()
              (tboolean)
           (== (call %foo1.0) (call %foo2.1)))))
@@ -17704,7 +17751,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -17720,21 +17767,23 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (witness %merklePathRoot.1 ([%foo.2 (tstruct Foo
-                                                (bar (tbytes 32))
-                                                (baz (tboolean)))])
+        (host %merkle_path_root.1 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.2 (tstruct Foo
+                                                                                                   (bar (tbytes
+                                                                                                          32))
+                                                                                                   (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
         (public-ledger-declaration
           %field1.3
-          (Map
-            (tfield (field-native))
-            (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
+          (Map (tfield (field-native))
+               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
           %field2.4
           (HistoricMerkleTree
             10
             (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
-        (public-ledger-declaration %field3.5 (__compact_Cell (tboolean)))
+        (public-ledger-declaration
+          %field3.5
+          (__compact_Cell (tboolean)))
         (circuit %foo.6 ([%n.7 (tfield (field-native))]
                          [%foo.8 (tstruct Foo
                                    (bar (tbytes 32))
@@ -17758,7 +17807,7 @@ groups than for single tests.
                   "entry not found")
                 (ledger-call checkRoot
                   %field2.4
-                  (call %merklePathRoot.1 %q.9))))))))
+                  (call %merkle_path_root.1 %q.9))))))))
     )
 
   (test
@@ -18573,14 +18622,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(x: Uint<5>): [];"
+      "host test:oracle/foo@1.0.0 { foo(x: Uint<5>): []; }"
       "export circuit bar(a: Uint<4>, b: Uint<4>): [] {"
       "foo(a + b);"
       "}"
       )
     (returns
       (program
-        (witness %foo.0 ([%x.1 (tunsigned 31)]) (ttuple))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%x.1 (tunsigned 31)]) (ttuple))
         (circuit %bar.2 ([%a.3 (tunsigned 15)]
                          [%b.4 (tunsigned 15)])
              (ttuple)
@@ -19484,7 +19533,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<D, E>(x: E): Vector<D, E>;"
+      "circuit P<D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field, Boolean>(n);"
       "}"
@@ -22317,21 +22366,21 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(a: List<Vector<3, Field>>): [];"
+      "host test:oracle/w@1.0.0 { W(a: List<Vector<3, Field>>): []; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 11" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'a'" "List<Vector<3, Field>>")))
+      irritants: '("testfile.compact line 2 char 30" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'a'" "List<Vector<3, Field>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): List<Vector<3, Field>>;"
+      "host test:oracle/w@1.0.0 { W(): List<Vector<3, Field>>; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("witness return" "List<Vector<3, Field>>")))
+      irritants: '("testfile.compact line 2 char 28" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("host function return" "List<Vector<3, Field>>")))
     )
 
   (test
@@ -22451,7 +22500,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness get_balance(): Uint<64>;"
+      "host test:oracle/get-balance@1.0.0 { get_balance(): Uint<64>; }"
       ""
       "export circuit balance_exceeds(n: Uint<64>): Boolean {"
       "  return disclose(get_balance() as Map<Field, Field> as Field as Uint<32> as Boolean) != n;"
@@ -27394,7 +27443,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -27418,7 +27467,7 @@ groups than for single tests.
               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
           (%field3.3 (__compact_Cell (tboolean)))
           (constructor () (tuple)))
-        (witness %merkle_path_root.4 ([%foo.5 (tstruct Foo
+        (host %merkle_path_root.4 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.5 (tstruct Foo
                                                 (bar (tbytes 32))
                                                 (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
@@ -28128,16 +28177,16 @@ groups than for single tests.
   (test
     '(
       "module A {"
-      "  export witness w(a: Field): Boolean;"
+      "  export host test:oracle/w@1.0.0 { w(a: Field): Boolean; }"
       "}"
       "import A;"
-      "witness w(a: Field, b: Field): Boolean;"
+      "host test:oracle/w@1.0.0 { w(a: Field, b: Field): Boolean; }"
       "export circuit foo(a : Field) : Boolean { return w(a); }"
       )
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %w.0 ([%a.1 (tfield (field-native))]) (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w ([%a.1 (tfield (field-native))]) (tboolean))
         (circuit %foo.2 ([%a.3 (tfield (field-native))])
              (tboolean)
           (call %w.0 %a.3)))))
@@ -28628,7 +28677,7 @@ groups than for single tests.
   (test
     '(
       "module M<#n> {"
-      "  export witness foo(v: Vector<n, Field>) : Field;"
+      "  export host test:oracle/foo@1.0.0 { foo(v: Vector<n, Field>) : Field; }"
       "}"
       "import M<10>;"
       "import M<20>;"
@@ -28638,8 +28687,8 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
-        (witness %foo.2 ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.2 "test:oracle/foo@1.0.0" foo ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
         (circuit %bar10.4 ([%u.5 (tvector 10 (tfield (field-native)))])
              (tfield (field-native))
           (call %foo.2 %u.5))
@@ -28851,7 +28900,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -28865,7 +28914,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map %foo.0 %v.3))
@@ -28879,7 +28928,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x) => foo(x + 1),"
@@ -28894,7 +28943,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
@@ -28931,7 +28980,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -28945,12 +28994,22 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (witness %W.2 ([%x.3 (tfield (field-native))]) (tboolean))
-        (witness %W.4 ([%x.5 (tboolean)]) (tfield (field-native)))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.0 ([%x.1 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.2 ([%x.3 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.8 ([%q.9 (tboolean)]) (tboolean) %q.9)
-        (circuit %S.10 ([%q.11 (tfield (field-native))]) (tfield (field-native)) %q.11)
+        (circuit %S.10 ([%q.11 (tfield (field-native))])
+             (tfield (field-native))
+          %q.11)
         (circuit %T.12 ([%q.13 (tboolean)])
              (tboolean)
           (call %W.0 (call %S.8 %q.13)))
@@ -29169,7 +29228,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -29195,9 +29254,10 @@ groups than for single tests.
               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
           (%field3.3 (__compact_Cell (tboolean)))
           (constructor () (tuple)))
-        (witness %merklePathRoot.4 ([%foo.5 (tstruct Foo
-                                                (bar (tbytes 32))
-                                                (baz (tboolean)))])
+        (host %merkle_path_root.4 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.5 (tstruct Foo
+                                                                                                   (bar (tbytes
+                                                                                                          32))
+                                                                                                   (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
         (circuit %foo.6 ([%n.7 (tfield (field-native))]
                          [%foo.8 (tstruct Foo
@@ -29221,7 +29281,7 @@ groups than for single tests.
                       #t)
                   "entry not found")
                 (public-ledger %field2.2
-                  (checkRoot (call %merklePathRoot.4 %q.9)))))))))
+                  (checkRoot (call %merkle_path_root.4 %q.9)))))))))
     )
 
   (test
@@ -30197,7 +30257,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(): [];"
+      "host test:oracle/w@1.0.0 { W(): []; }"
       "circuit bar(x: Vector<0, Field>): Field {"
       "  return 7 as Field;"
       "}"
@@ -30208,7 +30268,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %W.0 () (ttuple))
+        (host %W.0 "test:oracle/w@1.0.0" W () (ttuple))
         (circuit %bar.1 ([%x.2 (tvector 0 (tfield (field-native)))])
              (tfield (field-native))
           (safe-cast (tfield (field-native)) (tunsigned 7) 7))
@@ -30968,84 +31028,95 @@ groups than for single tests.
     "examples/tiny.compact"
     (returns
       (program
-        (kernel-declaration (%kernel.1 (Kernel)))
+        (kernel-declaration (%kernel.0 (Kernel)))
         (public-ledger-declaration
-          (%authority.2 (__compact_Cell (tbytes 32)))
-          (%value.3 (__compact_Cell (tfield (field-native))))
-          (%state.4 (__compact_Cell (tenum STATE unset set)))
-          (constructor ([%v.0 (tfield (field-native))])
+          (%authority.1 (__compact_Cell (tbytes 32)))
+          (%value.2 (__compact_Cell (tfield (field-native))))
+          (%state.3 (__compact_Cell (tenum STATE unset set)))
+          (constructor ([%v.4 (tfield (field-native))]
+                        [%sk.5 (tbytes 32)])
             (seq
-              (let* ([[%sk.5 (tbytes 32)] (call %private$secretKey.6)])
-                (seq
-                  (public-ledger %authority.2
-                    (write (call %publicKey.7 %sk.5)))
-                  (public-ledger %value.3 (write (disclose %v.0)))
-                  (public-ledger %state.4
-                    (write (enum-ref (tenum STATE unset set) set)))))
+              (public-ledger %authority.1
+                (write (call %public_key.6 %sk.5)))
+              (public-ledger %value.2 (write (disclose %v.4)))
+              (public-ledger %state.3
+                (write (enum-ref (tenum STATE unset set) set)))
               (tuple))))
         (export-typedef Maybe (T)
           (tstruct Maybe (is_some (tboolean)) (value T)))
-        (circuit %some.8 ([%value.9 (tfield (field-native))])
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
+        (circuit %some.7 ([%value.8 (tfield (field-native))])
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (new (tstruct Maybe
+                 (is_some (tboolean))
+                 (value (tfield (field-native))))
             #t
-            %value.9))
-        (circuit %none.10 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
+            %value.8))
+        (circuit %none.9 ()
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (new (tstruct Maybe
+                 (is_some (tboolean))
+                 (value (tfield (field-native))))
             #f
             (default (tfield (field-native)))))
-        (native %persistentHash<.11 ([%value.12 (tvector
-                                                    2
-                                                    (tbytes 32))])
+        (native %persistentHash.10 ([%value.11 (tvector
+                                                 2
+                                                 (tbytes 32))])
              (tbytes 32))
-        (witness %private$secretKey.6 () (tbytes 32))
-        (circuit %inState.13 ([%s.14 (tenum STATE unset set)])
+        (host %private$secret_key.12 "test:oracle/private-secret-key@1.0.0" private$secret_key ()
+             (tbytes 32))
+        (circuit %in_state.13 ([%s.14 (tenum STATE unset set)])
              (tboolean)
-          (== (public-ledger %state.4 (read)) %s.14))
+          (== (public-ledger %state.3 (read)) %s.14))
         (circuit %set.15 ([%v.16 (tfield (field-native))])
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) unset))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) unset))
                 "set: attempted to overwrite recorded value")
-              (let* ([[%sk.17 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.18 (tbytes 32)] (call %publicKey.7 %sk.17)])
+              (let* ([[%sk.17 (tbytes 32)] (call %private$secret_key.12)])
+                (let* ([[%apk.18 (tbytes 32)] (call %public_key.6 %sk.17)])
                   (seq
-                    (public-ledger %authority.2 (write %apk.18))
-                    (public-ledger %value.3 (write (disclose %v.16)))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write %apk.18))
+                    (public-ledger %value.2 (write (disclose %v.16)))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) set)))))))
             (tuple)))
         (circuit %get.19 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (if (call %inState.13
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (if (call %in_state.13
                 (enum-ref (tenum STATE unset set) set))
-              (call %some.8 (public-ledger %value.3 (read)))
-              (call %none.10)))
+              (call %some.7 (public-ledger %value.2 (read)))
+              (call %none.9)))
         (circuit %clear.20 ()
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) set))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) set))
                 "clear: no value is currently recorded")
-              (let* ([[%sk.21 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.22 (tbytes 32)] (call %publicKey.7 %sk.21)])
+              (let* ([[%sk.21 (tbytes 32)] (call %private$secret_key.12)])
+                (let* ([[%apk.22 (tbytes 32)] (call %public_key.6 %sk.21)])
                   (seq
                     (assert
-                      (== %apk.22 (public-ledger %authority.2 (read)))
+                      (== %apk.22 (public-ledger %authority.1 (read)))
                       "clear: attempted clear without proper authorization")
-                    (public-ledger %authority.2 (write (default (tbytes 32))))
-                    (public-ledger %value.3 (write (default (tfield (field-native)))))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write (default (tbytes 32))))
+                    (public-ledger %value.2
+                      (write (default (tfield (field-native)))))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) unset)))))))
             (tuple)))
-        (circuit %publicKey.7 ([%sk.23 (tbytes 32)])
+        (circuit %public_key.6 ([%sk.23 (tbytes 32)])
              (tbytes 32)
           (disclose
-            (call %persistentHash<.11
+            (call %persistentHash.10
               (tuple
                 #vu8(108 97 114 101 115 58 116 105 110 121 58 112 107 58 0 0
                      0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -31474,14 +31545,14 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export pure circuit foo (): [] {"
       "  emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 35")))
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls host function bar" "line 4 char 35")))
     )
 
   ; a host function is runtime-provided nondeterminism, therefore calling one makes a
@@ -31559,18 +31630,17 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 1" "constructor cannot run local code but ~a at ~a" ("operates on local field credits" "line 4 char 3")))
     )
 
-  ; the constructor keeps its public half: ledger writes, pure circuits, and witnesses
+  ; the constructor keeps its public half: ledger writes, pure circuits, and its arguments
   (test
     '(
       "import CompactStandardLibrary;"
       "export ledger total: Counter;"
       "local credits: Counter;"
-      "witness seed(): Uint<8>;"
       "pure circuit twice(n: Uint<8>): Uint<16> {"
       "  return n * 2;"
       "}"
-      "constructor() {"
-      "  total.increment(disclose(twice(seed())));"
+      "constructor(seed: Uint<8>) {"
+      "  total.increment(disclose(twice(seed)));"
       "}"
       "export circuit tick(): [] {"
       "  credits.increment(1);"
@@ -31838,7 +31908,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "local credits: Field;"
       "local constructor {"
       "  credits = w();"
@@ -31849,7 +31919,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 13" "~a cannot call witness ~a" ("the local constructor" w)))
+      irritants: '("testfile.compact line 4 char 13" "the local constructor cannot call host function ~a" (w)))
     )
 
   (test
@@ -32056,10 +32126,10 @@ groups than for single tests.
       ""
       "export enum E { a, b, c }"
       ""
-      "witness flip(): Boolean;"
-      "witness flop(): Field;"
-      "witness clip(): E;"
-      "witness clop(): Uint<16>;"
+      "host test:oracle/flip@1.0.0 { flip(): Boolean; }"
+      "host test:oracle/flop@1.0.0 { flop(): Field; }"
+      "host test:oracle/clip@1.0.0 { clip(): E; }"
+      "host test:oracle/clop@1.0.0 { clop(): Uint<16>; }"
       ""
       "ledger x: Map<Field, Boolean>;"
       "ledger y: Map<Uint<16>, E>;"
@@ -32086,10 +32156,10 @@ groups than for single tests.
            (%y.2 (1) (Map (tunsigned 65535) (tenum E a b c))))
           (constructor () (tuple)))
         (export-typedef E () (tenum E a b c))
-        (witness %flip.3 () (tboolean))
-        (witness %flop.4 () (tfield (field-native)))
-        (witness %clip.5 () (tenum E a b c))
-        (witness %clop.6 () (tunsigned 65535))
+        (host %flip.3 "test:oracle/flip@1.0.0" flip () (tboolean))
+        (host %flop.4 "test:oracle/flop@1.0.0" flop () (tfield (field-native)))
+        (host %clip.5 "test:oracle/clip@1.0.0" clip () (tenum E a b c))
+        (host %clop.6 "test:oracle/clop@1.0.0" clop () (tunsigned 65535))
         (circuit %foo.7 ()
              (ttuple)
           (seq
@@ -32130,7 +32200,7 @@ groups than for single tests.
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): Field {"
       "  return X;"
       "}"
@@ -32147,20 +32217,20 @@ groups than for single tests.
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  X = w();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
+      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
     )
 
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w();"
       "  X = x;"
@@ -32168,13 +32238,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = x;"
@@ -32182,13 +32252,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = x != true;"
@@ -32196,13 +32266,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: [Field, Boolean];"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = [w(), x != true];"
@@ -32210,13 +32280,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 13\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 13\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = !x;"
@@ -32224,14 +32294,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the conditional expression at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the conditional expression at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Boolean, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(): S {"
       "  return S{true, w()};"
       "}"
@@ -32242,14 +32312,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Boolean, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Boolean; }"
       "circuit bar(): S {"
       "  return S{w(), 'c7c7c7c7c7c7c7c7'};"
       "}"
@@ -32264,7 +32334,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w.2 () (tboolean))
+        (host %w.2 "test:oracle/w@1.0.0" w () (tboolean))
         (circuit %bar.3 ()
              (tstruct S (a (tboolean)) (b (tbytes 16)))
           (new (tstruct S (a (tboolean)) (b (tbytes 16)))
@@ -32284,8 +32354,8 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w1(): Bytes<16>;"
-      "witness w2(): Bytes<16>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<16>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Bytes<16>; }"
       "export circuit bar(b: Boolean, s: S): [] {"
       "  X = disclose(b ? s.a : s.b);"
       "}"
@@ -32300,8 +32370,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w1.2 () (tbytes 16))
-        (witness %w2.3 () (tbytes 16))
+        (host %w1.2 "test:oracle/w1@1.0.0" w1 () (tbytes 16))
+        (host %w2.3 "test:oracle/w2@1.0.0" w2 () (tbytes 16))
         (circuit %bar.4 ([%b.5 (tboolean)]
                          [%s.6 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -32331,8 +32401,8 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w1(): Bytes<16>;"
-      "witness w2(): Bytes<16>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<16>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Bytes<16>; }"
       "circuit bar(b: Boolean, s: S): [] {"
       "  if (b)"
       "    X = s.a;"
@@ -32350,8 +32420,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.5 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w1.1 () (tbytes 16))
-        (witness %w2.3 () (tbytes 16))
+        (host %w1.1 "test:oracle/w1@1.0.0" w1 () (tbytes 16))
+        (host %w2.3 "test:oracle/w2@1.0.0" w2 () (tbytes 16))
         (circuit %bar.2 ([%b.6 (tboolean)]
                          [%s.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -32382,7 +32452,7 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b: Boolean, s1: S, s2: S): [] {"
       "  const s = b ? s1 : s2;"
       "  X = s.b;"
@@ -32397,7 +32467,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.2 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w.3 () (tbytes 16))
+        (host %w.3 "test:oracle/w@1.0.0" w () (tbytes 16))
         (circuit %bar.4 ([%b.5 (tboolean)]
                          [%s1.6 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                          [%s2.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
@@ -32425,31 +32495,31 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w(): S;"
+      "host test:oracle/w@1.0.0 { w(): S; }"
       "export circuit foo(): [] {"
       "  X = w();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w1(): S;"
-      "witness w2(): S;"
+      "host test:oracle/w1@1.0.0 { w1(): S; }"
+      "host test:oracle/w2@1.0.0 { w2(): S; }"
       "export circuit foo(b: Boolean): [] {"
       "  X = b ? w1() : w2();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 5 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 6 char 7\n      the right-hand side of = at line 6 char 5"))))
     )
@@ -32458,46 +32528,44 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w(): S;"
-      "constructor() {"
-      "  X = w();"
+      "constructor(w: S) {"
+      "  X = w;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter w of the constructor at line 3 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
       "circuit bar(b: Boolean, s1: S, s2: S): [] {"
       "  const s = b ? s1 : s2;"
       "  X = s.b;"
       "}"
-      "constructor(b: Boolean, s: S) {"
-      "  bar(disclose(b), disclose(s), S{w(), 'c7c7c7c7c7c7c7c7'});"
+      "constructor(b: Boolean, s: S, w: Bytes<16>) {"
+      "  bar(disclose(b), disclose(s), S{w, 'c7c7c7c7c7c7c7c7'});"
       "}"
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%X.2 (0) (__compact_Cell (tbytes 16))))
-          (constructor ([%b.0 (tboolean)]
-                        [%s.3 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
+          ((%X.1 (0) (__compact_Cell (tbytes 16))))
+          (constructor ([%b.2 (tboolean)]
+                        [%s.3 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
+                        [%w.4 (tbytes 16)])
             (seq
-              (call %bar.4
-                (disclose %b.0)
+              (call %bar.5
+                (disclose %b.2)
                 (disclose %s.3)
                 (new (tstruct S (a (tbytes 16)) (b (tbytes 16)))
-                  (call %w.5)
+                  %w.4
                   #vu8(99 55 99 55 99 55 99 55 99 55 99 55 99 55 99 55)))
               (tuple))))
-        (witness %w.5 () (tbytes 16))
-        (circuit %bar.4 ([%b.6 (tboolean)]
+        (circuit %bar.5 ([%b.6 (tboolean)]
                          [%s1.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                          [%s2.8 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -32505,7 +32573,7 @@ groups than for single tests.
             (let* ([[%s.9 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                     (if %b.6 %s1.7 %s2.8)])
               (let* ([[%tmp.10 (tbytes 16)] (elt-ref %s.9 b 1)])
-                (public-ledger %X.2 (0) write %tmp.10)))
+                (public-ledger %X.1 (0) write %tmp.10)))
             (tuple)))))
     )
 
@@ -32514,7 +32582,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32535,7 +32603,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32556,7 +32624,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32578,7 +32646,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32600,7 +32668,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32621,7 +32689,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
@@ -32636,7 +32704,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 14 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 7 char 9\n      the right-hand side of = at line 8 char 5"))))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 14 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 7 char 9\n      the right-hand side of = at line 8 char 5"))))
     )
 
   ; pm-17201
@@ -32645,7 +32713,7 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>, i: Uint<1>, j: Uint<1>): [] {"
       "  const t = b1 ? v[i] : v[j];"
       "  const z = 0;"
@@ -32658,14 +32726,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 12 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 12 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32680,7 +32748,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32695,7 +32763,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32705,16 +32773,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32729,7 +32797,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32739,16 +32807,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32758,16 +32826,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32777,16 +32845,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32802,7 +32870,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32813,14 +32881,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32832,14 +32900,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 7\n      the computation at line 9 char 7\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 7\n      the computation at line 9 char 7\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32850,14 +32918,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32868,14 +32936,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32890,7 +32958,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32905,7 +32973,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32915,16 +32983,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32938,7 +33006,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tunsigned 65535))))
           (constructor () (tuple)))
-        (witness %w.2 () (tunsigned 65535))
+        (host %w.2 "test:oracle/w@1.0.0" w () (tunsigned 65535))
         (circuit %bar.3 ([%b.4 (tboolean)]
                          [%v.5 (tvector
                                  3
@@ -32992,7 +33060,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -33002,16 +33070,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -33021,16 +33089,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -33040,16 +33108,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -33065,7 +33133,7 @@ groups than for single tests.
   (test
     '(
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(v: Vector<10, Uint<16>>): Uint<32> {"
       "  return fold((a, n) => a + n as Uint<32>, 0 as Uint<32>, v);"
       "}"
@@ -33110,7 +33178,7 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, x: Uint<16>): Uint<16> {"
       "  if (b) S { w(), w() };"
       "  return x;"
@@ -33122,7 +33190,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tunsigned 65535))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tunsigned 65535))
         (circuit %bar.1 ([%b.2 (tboolean)] [%x.3 (tunsigned 65535)])
              (tunsigned 65535)
           (seq
@@ -33139,7 +33207,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Boolean; }"
       "circuit bar(v: Vector<5, Boolean>): Boolean {"
       "  return fold((a, b) => a && b, true, v);"
       "}"
@@ -33150,7 +33218,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tboolean))
         (circuit %bar.1 ([%v.2 (tvector 5 (tboolean))])
              (tboolean)
           (fold
@@ -33168,8 +33236,8 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
-      "witness b(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(x: Uint<16>): Uint<16> {"
       "  if (b()) S { w(), w() };"
       "  return x;"
@@ -33181,8 +33249,8 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tunsigned 65535))
-        (witness %b.1 () (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tunsigned 65535))
+        (host %b.1 "test:oracle/b@1.0.0" b () (tboolean))
         (circuit %bar.2 ([%x.3 (tunsigned 65535)])
              (tunsigned 65535)
           (seq
@@ -33234,8 +33302,8 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
-      "witness b(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(x: Uint<16>): S {"
       " return b() ? S { w(), w() } : S { w(), w() };"
       "}"
@@ -33245,9 +33313,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness b at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 5 char 9"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function b at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 5 char 9"))))
     )
 
   (test
@@ -33287,7 +33355,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness b(): Boolean;"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(): Field {"
       " return b() ? 1 as Field : 2 as Field;"
       "}"
@@ -33297,7 +33365,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness b at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 9"))))
+      irritants: '("testfile.compact line 6 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function b at line 1 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 9"))))
     )
 
   (test
@@ -33834,22 +33902,22 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): Field {"
       "  if (W()) return 5 as Field; else return 6 as Field;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 36" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+      irritants: '("testfile.compact line 4 char 36" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): Field {"
       "  if (W()) return 5 as Field;"
       "  return 6 as Field;"
@@ -33857,9 +33925,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
     )
 
   (test
@@ -34049,7 +34117,7 @@ groups than for single tests.
   (test
     '(
       "ledger F: Field;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       ""
       "export circuit foo(x: Field): [] {"
       "  const w = W();"
@@ -34063,13 +34131,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of w at line 5 char 9\n      the comparison at line 7 char 7\n      the conditional branch at line 7 char 3"))))
+      irritants: '("testfile.compact line 11 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of w at line 5 char 9\n      the comparison at line 7 char 7\n      the conditional branch at line 7 char 3"))))
     )
 
   (test
     '(
       "ledger F: Field;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       ""
       "export circuit foo(x: Field): [] {"
       "  const w = W();"
@@ -34087,7 +34155,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%F.1 (0) (__compact_Cell (tfield (field-native)))))
           (constructor () (tuple)))
-        (witness %W.2 () (tfield (field-native)))
+        (host %W.2 "test:oracle/w@1.0.0" W () (tfield (field-native)))
         (circuit %foo.3 ([%x.4 (tfield (field-native))])
              (ttuple)
           (seq
@@ -34136,7 +34204,7 @@ groups than for single tests.
       "module M<#K> {"
       "  export ledger F: MerkleTree<K, ZswapCoinPublicKey>;"
       ""
-      "  witness W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>;"
+      "  host test:oracle/w@1.0.0 { W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>; }"
       ""
       "  export circuit foo(pk: ZswapCoinPublicKey): [] {"
       "    const path = W(pk);"
@@ -34153,7 +34221,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 6 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
+      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 6 char 30" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
     )
 
   (test
@@ -34187,8 +34255,8 @@ groups than for single tests.
 
   (test
     '(
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: Vector<9, Field>;"
       "export circuit foo(): Vector<9, Field> {"
       "  X = [w1() + 3,"
@@ -34206,15 +34274,15 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 1 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
-      "witness w1(): Uint<32>;"
-      "witness w2(): Uint<32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Uint<32>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Uint<32>; }"
       "ledger X: Vector<18, Boolean>;"
       "export circuit foo(): Vector<18, Boolean> {"
       "  X = [w1() < 37,"
@@ -34241,16 +34309,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 1 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { x: Field, y: Field };"
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: S;"
       "export circuit foo(): S {"
       "  X = S { w1(), w2() };"
@@ -34259,17 +34327,17 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
     )
 
   (test
     '(
       "struct T { x: Uint<8>, y: Boolean };"
       "struct S { x: Field, y: Field, z: T };"
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: S;"
       "export circuit foo(t: T): S {"
       "  X = S { z: t, y: w1(), x: w2() };"
@@ -34278,9 +34346,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 6 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5"))))
     )
@@ -34290,8 +34358,8 @@ groups than for single tests.
       "type U8 = Uint<8>;"
       "type U16 = Uint<16>;"
       "type U32 = Uint<32>;"
-      "witness w1(): Bytes<8>;"
-      "witness w2(): Vector<8, U32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<8>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Vector<8, U32>; }"
       "ledger X: [U32, U8, U16];"
       "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16]): [U32, U8, U16] {"
       "  X = [w2()[i+3], w1()[i+4], t[i]];"
@@ -34300,9 +34368,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 5 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 5 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the witness value\n    via this path through the program:\n      the vector or tuple reference at line 8 char 30\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 13\n      the vector or tuple reference at line 8 char 8\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 24\n      the bytes-value reference at line 8 char 19\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
@@ -34314,8 +34382,8 @@ groups than for single tests.
       "type U8 = Uint<8>;"
       "type U16 = Uint<16>;"
       "type U32 = Uint<32>;"
-      "witness w1(): Bytes<8>;"
-      "witness w2(): Vector<8, U32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<8>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Vector<8, U32>; }"
       "ledger X: Vector<6, U32>;"
       "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16, U16, U16]): Vector<6, U32> {"
       "  X = [...slice<2>(disclose(w2()), i+3), ...slice<2>(disclose(w1()), i+4), ...slice<2>(disclose(t), i)];"
@@ -34332,7 +34400,7 @@ groups than for single tests.
       "struct T { x: Field, y: Field }"
       "struct S { a: T, b: T }"
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const s = S{a: T{x: w(), y: 3 as Field}, b: T{x: 4 as Field, y: 5 as Field}};"
       "  X = s.a.x;"
@@ -34342,7 +34410,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
     )
 
   (test
@@ -34499,7 +34567,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return emit ( ShieldedSpend {disclose(bar())} );"
       "}"
@@ -34508,7 +34576,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
           (emit
@@ -34519,7 +34587,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
@@ -34528,7 +34596,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
           (emit
@@ -34540,20 +34608,20 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return disclose( emit ( ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 20"))))
+      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 20"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
       "}"
@@ -34577,7 +34645,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
       "}"
@@ -34590,7 +34658,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
       "}"
@@ -34599,7 +34667,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
           (emit
@@ -34614,37 +34682,37 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
       "}"
@@ -34653,7 +34721,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
           (emit
@@ -34824,13 +34892,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X()) + (disclose(W(b)) ? 3 : 4);"
       "  }"
@@ -34844,13 +34912,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X()) + disclose(W(b) ? 3 : 4);"
       "  }"
@@ -34864,7 +34932,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return x + disclose(transientHash(true)) + transientHash<Field>(x) != 107 as Field; }"
       )
     (succeeds)
@@ -34873,7 +34941,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return disclose(x + transientHash(true) + transientHash<Field>(x) != 107 as Field); }"
       )
     (succeeds)
@@ -34881,7 +34949,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map(disclose((x) => foo(x)), v);"
       "}"
@@ -34893,7 +34961,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return disclose(map((x) => foo(x), v));"
       "}"
@@ -34903,7 +34971,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => disclose(b && foo(x + 1)),"
       "             v);"
@@ -34914,7 +34982,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => b && disclose(foo(x + 1)),"
       "             v);"
@@ -34926,7 +34994,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  return disclose(foo()).d;"
       "}"
@@ -34937,7 +35005,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  return disclose(foo().d);"
       "}"
@@ -34947,7 +35015,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -34970,7 +35038,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -34992,9 +35060,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d == 19 as Field ? p.a : b);"
@@ -35005,9 +35073,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d == 19 as Field) ? disclose(p.a) : b;"
@@ -35018,9 +35086,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p).d == 19 as Field ? disclose(p.a) : b;"
@@ -35031,9 +35099,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d) == 19 as Field ? disclose(p.a) : b;"
@@ -35044,9 +35112,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return p.d == 19 as Field ? disclose(p.a) : b;"
@@ -35054,26 +35122,26 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W1 at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10")))
+      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W1 at line 2 char 29" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W2 at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10"))))
+      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W2 at line 3 char 29" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10"))))
     )
 
   (test
     '(
-      "witness Y(x: Boolean) : Boolean;"
+      "host test:oracle/y@1.0.0 { Y(x: Boolean) : Boolean; }"
       "export circuit foo(b: Boolean): Field {"
       "  return Y(b) ? 3 as Field : 4 as Field;"
       "}"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness Y at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 10"))))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function Y at line 1 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 10"))))
     )
 
   (test
     '(
-      "witness Y(x: Boolean) : Boolean;"
+      "host test:oracle/y@1.0.0 { Y(x: Boolean) : Boolean; }"
       "export circuit foo(b: Boolean): Field {"
       "  return disclose(Y(b)) ? 3 as Field : 4 as Field;"
       "}"
@@ -35083,7 +35151,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M {"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
@@ -35094,14 +35162,14 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M {"
-      "  witness S() : Field;"
+      "  host test:oracle/s@1.0.0 { S() : Field; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(S());"
       "  }"
@@ -35111,13 +35179,13 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
       "  }"
@@ -35127,13 +35195,13 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return disclose(foo(v));"
       "  }"
@@ -35147,7 +35215,7 @@ groups than for single tests.
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
       "  }"
@@ -35162,7 +35230,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Field): Boolean {"
       "  return disclose(foo(v) == true);"
       "}"
@@ -35172,7 +35240,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -35184,7 +35252,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -35193,12 +35261,12 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C3 might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 3 char 10"))))
+      irritants: '("testfile.compact line 6 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C3 might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 3 char 10"))))
     )
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -35212,7 +35280,7 @@ groups than for single tests.
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "  return foo(v);"
          "  }"
@@ -35226,14 +35294,14 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("M.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+       irritants: '("M.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "    return foo(v);"
          "  }"
@@ -35243,21 +35311,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(W());"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "    return foo(v);"
          "  }"
@@ -35267,21 +35335,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(disclose(W()));"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == foo(v);"
          "  }"
@@ -35291,21 +35359,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(W(), true);"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at M.compact line 4 char 10"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at M.compact line 4 char 10"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == disclose(foo(v));"
          "  }"
@@ -35315,21 +35383,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, W());"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to C at line 4 char 10\n      the comparison at M.compact line 4 char 10"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to C at line 4 char 10\n      the comparison at M.compact line 4 char 10"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == disclose(foo(v));"
          "  }"
@@ -35339,7 +35407,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, disclose(W()));"
          "}"
@@ -35351,7 +35419,7 @@ groups than for single tests.
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "    return disclose(b == foo(v));"
          "  }"
@@ -35361,7 +35429,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, W());"
          "}"
@@ -35372,7 +35440,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness qcoin(): QualifiedShieldedCoinInfo;"
+      "host test:oracle/qcoin@1.0.0 { qcoin(): QualifiedShieldedCoinInfo; }"
       "export circuit foo(coin: ShieldedCoinInfo): [] {"
       "  return createZswapInput(qcoin());"
       "}"
@@ -35383,20 +35451,20 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): JubjubPoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose a hash of the witness value\n    via this path through the program:\n      the argument to hashToCurve at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose a hash of the witness value\n    via this path through the program:\n      the argument to hashToCurve at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): JubjubPoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
@@ -36446,10 +36514,10 @@ groups than for single tests.
          "}"
          "ledger value: StructExample;"
          "sealed ledger authorized_pk: Bytes<32>;"
-         "witness sk(): Bytes<32>;"
-         "constructor(value_param: StructExample) {"
+         "host test:oracle/sk@1.0.0 { sk(): Bytes<32>; }"
+         "constructor(value_param: StructExample, owner_sk: Bytes<32>) {"
          "  value = disclose(value_param);"
-         "  authorized_pk = disclose(public_key(sk()));"
+         "  authorized_pk = disclose(public_key(owner_sk));"
          "}"
          "export circuit get(): StructExample {"
          "  assert(public_key(sk()) == authorized_pk, 'msg');"
@@ -36473,7 +36541,7 @@ groups than for single tests.
          "  circuit set(new_value: StructExample): [];"
          "}"
          "sealed ledger auth_cell: AuthCell;"
-         "witness foo(): Bytes<32>;"
+         "host test:oracle/foo@1.0.0 { foo(): Bytes<32>; }"
          "constructor (auth_cell_param: AuthCell) {"
          "  auth_cell = disclose(auth_cell_param);"
          "}"
@@ -37606,7 +37674,7 @@ groups than for single tests.
          "  pure circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
-         "witness check(x: C): [];"
+         "host test:oracle/check@1.0.0 { check(x: C): []; }"
          "export circuit hello() : [] {return check(contract_c);}"
          ))
      (returns
@@ -37618,7 +37686,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
            (constructor () (tuple)))
-         (witness %check.2 ([%x.3 (tcontract C
+         (host %check.2 "test:oracle/check@1.0.0" check ([%x.3 (tcontract C
                                     (foo #f () (ttuple))
                                     (bar #t () (tfield (field-native))))])
               (ttuple))
@@ -38217,7 +38285,7 @@ groups than for single tests.
        '(
          "export circuit foo(): [] { return; }"
          "export pure circuit bar(): Field { return 1 as Field; }"
-         "witness sk(): Boolean;"
+         "host test:oracle/sk@1.0.0 { sk(): Boolean; }"
          "export circuit dummy(): Boolean{"
          "  return disclose(sk() == true);"
          "}"
@@ -38266,18 +38334,25 @@ groups than for single tests.
          "    }"
          "  ],"
          "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"sk\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Boolean\""
-         "      }"
-         "    }"
          "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/sk@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"sk\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Boolean\""
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
          "  ]"
          "}"))
      ))
@@ -38287,9 +38362,9 @@ groups than for single tests.
        '(
          "export circuit foo(): [] { return; }"
          "export pure circuit bar(): Field { return 1 as Field; }"
-         "witness sk(): Boolean;"
+         "host test:oracle/sk@1.0.0 { sk(): Boolean; }"
          ))
-     ; the witnesses field is empty if the witness is unused.
+     ; the host section lists only functions a circuit reaches.
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
      ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
@@ -38419,15 +38494,6 @@ groups than for single tests.
          "    }"
          "  ],"
          "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"private$secret_key\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Bytes\","
-         "        \"length\": 32"
-         "      }"
-         "    }"
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -38464,6 +38530,22 @@ groups than for single tests.
          "          \"set\""
          "        ]"
          "      }"
+         "    }"
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/private-secret-key@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"private$secret_key\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
          "    }"
          "  ]"
          "}"))
@@ -39059,7 +39141,7 @@ groups than for single tests.
          "  authorized_pk = disclose(pk);"
          "}"
          ""
-         "witness sk(): Bytes<32>;"
+         "host test:oracle/sk@1.0.0 { sk(): Bytes<32>; }"
          ""
          "export circuit get(): Field {"
          "  assert(public_key(sk()) == authorized_pk, 'not authorized');"
@@ -39857,7 +39939,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -39875,7 +39957,7 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 8 char 14" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 14")))
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 1 char 1" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
+       irritants: '("testfile.compact line 11 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 1 char 28" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
      ))
 
   (test-group
@@ -39887,7 +39969,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -39915,7 +39997,7 @@ groups than for single tests.
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
-         (witness %W.3 () (tbytes 32))
+         (host %W.3 "test:oracle/w@1.0.0" W () (tbytes 32))
          (circuit %foo.4 ()
               (tbytes 32)
            (seq
@@ -39941,7 +40023,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -39959,7 +40041,7 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 8 char 14" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 14")))
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 22" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 1 char 1" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
+       irritants: '("testfile.compact line 11 char 22" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 1 char 28" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
      ))
 
   (test-group
@@ -40446,7 +40528,7 @@ groups than for single tests.
          "  pure circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
-         "witness W(): C1;"
+         "host test:oracle/w@1.0.0 { W(): C1; }"
          "ledger contract_c: C;"
          ))
      (succeeds)))
@@ -40465,7 +40547,7 @@ groups than for single tests.
          "  pure circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
-         "witness W(): C1;"
+         "host test:oracle/w@1.0.0 { W(): C1; }"
          "ledger contract_c: C;"
          ))
      (succeeds)))
@@ -40798,7 +40880,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import CompactStandardLibrary;"
-         "witness bar(): Bytes<32>;"
+         "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
          "export circuit foo (): [] {"
          "  return emit ( disclose (ShieldedSpend {bar()} ));"
          "}"
@@ -40827,19 +40909,26 @@ groups than for single tests.
          "    }"
          "  ],"
          "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"bar\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Bytes\","
-         "        \"length\": 32"
-         "      }"
-         "    }"
          "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/bar@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"bar\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
          "  ]"
          "}"))
      ))
@@ -41127,7 +41216,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map((x) => disclose(foo(x)), v);"
       "}"
@@ -41148,7 +41237,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x) => disclose(foo(x)), v);"
@@ -41187,7 +41276,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -41258,7 +41347,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Boolean {"
       "    return fold((b, n, s) => disclose(foo(b, n, s)), true, v, w);"
@@ -41328,7 +41417,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Vector<n, Boolean> {"
       "    return map((n, s) => disclose(foo(n, s)), v, w);"
@@ -41754,7 +41843,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
       "    return fold((b, x) => disclose(foo(b, x)), true, v);"
@@ -41928,7 +42017,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -41966,7 +42055,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -42015,7 +42104,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Boolean {"
       "    return fold((b, n, s) => disclose(foo(b, n, s)), true, v, w);"
@@ -42068,7 +42157,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Vector<n, Boolean> {"
       "    return map((n, s) => disclose(foo(n, s)), v, w);"
@@ -42115,7 +42204,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => b && disclose(foo(x + 1)),"
       "             v);"
@@ -42157,7 +42246,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -42171,18 +42260,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tfield (field-native))]) (tboolean))
-        (circuit %foo1.2 ([%x.3 (tfield (field-native))])
+        (circuit %foo1.0 ([%x.1 (tfield (field-native))])
              (tboolean)
-          (let* ([[%q.4 (tfield (field-native))] %x.3])
-            (call %W.0 (let* ([[%q.5 (tfield (field-native))] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tfield (field-native))] %x.1])
+            (let* ([[%x.3 (tfield (field-native))]
+                    (let* ([[%q.4 (tfield (field-native))] %q.2]) %q.4)])
+              (default (tboolean)))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -42196,18 +42286,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tfield (field-native))]) (tfield (field-native)))
-        (circuit %foo2.2 ([%x.3 (tfield (field-native))])
+        (circuit %foo2.0 ([%x.1 (tfield (field-native))])
              (tfield (field-native))
-          (let* ([[%q.4 (tfield (field-native))] %x.3])
-            (call %W.0 (let* ([[%q.5 (tfield (field-native))] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tfield (field-native))] %x.1])
+            (let* ([[%x.3 (tfield (field-native))]
+                    (let* ([[%q.4 (tfield (field-native))] %q.2]) %q.4)])
+              (default (tfield (field-native))))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -42221,18 +42312,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (circuit %foo3.2 ([%x.3 (tboolean)])
+        (circuit %foo3.0 ([%x.1 (tboolean)])
              (tboolean)
-          (let* ([[%q.4 (tboolean)] %x.3])
-            (call %W.0 (let* ([[%q.5 (tboolean)] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tboolean)] %x.1])
+            (let* ([[%x.3 (tboolean)]
+                    (let* ([[%q.4 (tboolean)] %q.2]) %q.4)])
+              (default (tboolean)))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -42246,11 +42338,12 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tfield (field-native)))
-        (circuit %foo4.2 ([%x.3 (tboolean)])
+        (circuit %foo4.0 ([%x.1 (tboolean)])
              (tfield (field-native))
-          (let* ([[%q.4 (tboolean)] %x.3])
-            (call %W.0 (let* ([[%q.5 (tboolean)] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tboolean)] %x.1])
+            (let* ([[%x.3 (tboolean)]
+                    (let* ([[%q.4 (tboolean)] %q.2]) %q.4)])
+              (default (tfield (field-native))))))))
     )
 
   (test
@@ -42516,7 +42609,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness w(x: Field): Field;"
+      "host test:oracle/w@1.0.0 { w(x: Field): Field; }"
       "circuit bar(v: Vector<2, Field>): Field {"
       "  const k1 = w(v[0]);"
       "  const k2 = w(v[1]);"
@@ -42555,7 +42648,7 @@ groups than for single tests.
   (test
     `(
       "ledger X: Field;"
-      "witness w(x: Field): Field;"
+      "host test:oracle/w@1.0.0 { w(x: Field): Field; }"
       "export circuit foo(v: Vector<2, Field>): Field {"
       "  for (const k1 of v) {"
       "    const k2 = disclose(w(k1));"
@@ -43834,7 +43927,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { W(): Uint<16>; }"
       "export circuit foo(): Uint<16> {"
       "  forceProof();"
       "  return disclose(W());"
@@ -45166,7 +45259,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar(x: Bytes<50>) : [];"
+      "host test:oracle/bar@1.0.0 { bar(x: Bytes<50>) : []; }"
       "export circuit foo() : [] {"
       "  forceProof();"
       "  bar(pad(50, 'hello!'));"
@@ -45197,7 +45290,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  return disclose(bar());"
@@ -45287,7 +45380,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  const x : Bytes<50> = disclose(bar());"
@@ -45327,7 +45420,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  const x : Bytes<50> = disclose(bar());"
@@ -45602,7 +45695,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness foo(x: Uint<5>): [];"
+      "host test:oracle/foo@1.0.0 { foo(x: Uint<5>): []; }"
       "export circuit bar(a: Uint<4>, b: Uint<4>): [] {"
       "  forceProof();"
       "  foo(a + b);"
@@ -46329,7 +46422,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness W() : Field;"
+      "host test:oracle/w@1.0.0 { W() : Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -46379,8 +46472,8 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w@1.0.0 { W(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -46421,8 +46514,8 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w@1.0.0 { W(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -46466,9 +46559,9 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -46524,7 +46617,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
@@ -46619,7 +46712,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -46660,7 +46753,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "struct pr { a: Boolean; d: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(v: Vector<1, Field>, b: Boolean): Vector<1, Boolean> {"
@@ -46688,7 +46781,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  forceProof();"
@@ -46903,7 +46996,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(): Field {"
       "  forceProof();"
@@ -46953,7 +47046,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  const p = foo();"
       "  return disclose(p.d);"
@@ -47085,7 +47178,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -47473,7 +47566,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -47490,16 +47583,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument (%x.3) (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 1)) ((tunsigned 1))))
-        (circuit %foo1.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo1.2 ((argument
+                            (%x.3)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((abytes 1)) ((tunsigned 1)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -47507,7 +47598,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -47524,16 +47615,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument (%x.3) (ty ((afield)) ((tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (circuit %foo2.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo2.2 ((argument
+                            (%x.3)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -47541,7 +47630,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -47558,18 +47647,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument
-                         (%x.3)
-                         (ty ((abytes 1)) ((tunsigned 1)))))
-             (ty ((abytes 1)) ((tunsigned 1))))
-        (circuit %foo3.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo3.2 ((argument
+                            (%x.3)
                             (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((abytes 1)) ((tunsigned 1)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -47577,7 +47662,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -47594,18 +47679,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument
-                         (%x.3)
-                         (ty ((abytes 1)) ((tunsigned 1)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (circuit %foo4.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo4.2 ((argument
+                            (%x.3)
                             (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -47638,7 +47719,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(s1: Bytes<10>, s2: Bytes<10>): Boolean;"
+      "host test:oracle/bar@1.0.0 { bar(s1: Bytes<10>, s2: Bytes<10>): Boolean; }"
       "export circuit foo(b: Boolean): [] {"
       "  const x = 'abcdefghij';"
       "  const y = 'abcdefghij';"
@@ -47697,7 +47778,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : [];"
+      "host test:oracle/bar@1.0.0 { bar() : []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -47720,7 +47801,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : Vector<3, Field>;"
+      "host test:oracle/bar@1.0.0 { bar() : Vector<3, Field>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -47771,7 +47852,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(x: Bytes<50>) : [];"
+      "host test:oracle/bar@1.0.0 { bar(x: Bytes<50>) : []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo() : [] {"
       "  forceProof();"
@@ -47802,7 +47883,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
@@ -48047,7 +48128,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(bv1: Bytes<80>, bv2: Bytes<80>): Bytes<160>;"
+      "host test:oracle/bar@1.0.0 { bar(bv1: Bytes<80>, bv2: Bytes<80>): Bytes<160>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(arg: Field) : Bytes<160> { forceProof(); return disclose(bar(arg as Bytes<80>, arg as Bytes<80>)); }"
       )
@@ -48214,7 +48295,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -49587,7 +49668,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "circuit foo(x: Field, y: Field): Bytes<32> {"
       "  if (x == y) {"
       "    return x as Bytes<32>;"
@@ -49654,7 +49735,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(): Uint<8>;"
+      "host test:oracle/w@1.0.0 { W(): Uint<8>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean): Uint<16> {"
       "  forceProof();"
@@ -49986,7 +50067,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -50026,7 +50107,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -50053,7 +50134,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -51184,7 +51265,7 @@ groups than for single tests.
   (test
     '(
       "ledger F: Field;"
-      "witness w(): Vector<3, Opaque<'string'>>;"
+      "host test:oracle/w@1.0.0 { w(): Vector<3, Opaque<'string'>>; }"
       "export circuit foo(b: Boolean, s: Opaque<'string'>): [] {"
       "  F = 37 as Field;"
       "  if (b) {"
@@ -53820,7 +53901,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  forceProof();"
       "  return disclose(spam()) as Field;"
@@ -54182,7 +54263,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(W(x));"
@@ -54228,7 +54309,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(state(x));"
@@ -55950,7 +56031,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -56094,7 +56175,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -57785,7 +57866,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness bar(x: Field): Uint<0..36>;"
+      "host test:oracle/bar@1.0.0 { bar(x: Field): Uint<0..36>; }"
       "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  impure = true;"
       "  return x - x as Uint<0..36>;"
@@ -58374,7 +58455,7 @@ groups than for single tests.
       "export { Maybe }"
       "ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -60863,7 +60944,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
       "    forceProof();"
@@ -63517,11 +63598,11 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness w(): Secp256k1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256k1Scalar; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "unbound identifier ~s" (Secp256k1Scalar)))
+      irritants: '("testfile.compact line 2 char 33" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
@@ -63630,7 +63711,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -65209,7 +65290,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  forceProof();"
       "  return disclose(spam()) as Field;"
@@ -65440,7 +65521,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(W(x));"
@@ -65474,7 +65555,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(state(x));"
@@ -66711,7 +66792,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -66788,7 +66869,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -67646,7 +67727,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness point(): JubjubPoint;"
+      "host test:oracle/point@1.0.0 { point(): JubjubPoint; }"
       "export circuit foo(): JubjubPoint {"
       "  impure = true;"
       "  const c = point();"
@@ -68174,7 +68255,7 @@ groups than for single tests.
       "export { Maybe }"
       "ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -69679,7 +69760,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
       "    forceProof();"
@@ -71408,7 +71489,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness point(): JubjubPoint;"
+      "host test:oracle/point@1.0.0 { point(): JubjubPoint; }"
       "export circuit gris(scalar: JubjubScalar): JubjubPoint {"
       "  impure = true;"
       "  return disclose(ecMul(point(), scalar));"
@@ -71704,7 +71785,7 @@ groups than for single tests.
   (test
     '(
       "import { Secp256k1Scalar } from CompactStandardLibrary;"
-      "witness w(): Secp256k1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256k1Scalar; }"
       )
     (succeeds))
 
@@ -71869,7 +71950,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -71902,10 +71983,10 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       ""
       "export ledger n: Uint<64>;"
-      "witness pk0(): Secp256k1Point;"
-      "witness sig0(): Secp256k1EcdsaSignature;"
-      "witness pk1(): Secp256k1Point;"
-      "witness sig1(): Secp256k1EcdsaSignature;"
+      "host test:oracle/pk0@1.0.0 { pk0(): Secp256k1Point; }"
+      "host test:oracle/sig0@1.0.0 { sig0(): Secp256k1EcdsaSignature; }"
+      "host test:oracle/pk1@1.0.0 { pk1(): Secp256k1Point; }"
+      "host test:oracle/sig1@1.0.0 { sig1(): Secp256k1EcdsaSignature; }"
       ""
       "export circuit bump(d: Bytes<32>): [] {"
       "  assert(secp256k1EcdsaVerify(d, sig0(), pk0()), 'b0');"
@@ -72354,7 +72435,7 @@ groups than for single tests.
   (test
     '(
       "import { Secp256r1Scalar } from CompactStandardLibrary;"
-      "witness w(): Secp256r1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256r1Scalar; }"
       )
     (succeeds))
 
@@ -73129,7 +73210,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(x: Uint<16>): Bytes<32>;"
+      "host test:oracle/w@1.0.0 { W(x: Uint<16>): Bytes<32>; }"
       )
     (succeeds)
     )
@@ -73372,7 +73453,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y]: [Boolean, [Uint<64>, Uint<64>]] = w();"
       "  return x ? y : [0, 0];"
@@ -73383,7 +73464,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y] = w();"
       "  return x ? y : [0, 0];"
@@ -73394,7 +73475,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y] = w();"
       "  return x ? y : [0, 0];"
@@ -75191,49 +75272,27 @@ groups than for single tests.
 
   (test
     '(
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  return disclose(spam()) as Field;"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses1 = { spam({privateState}: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [privateState, new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) ]; } };"
-        "const contract1 = () => new contractCode.Contract(witnesses1);"
+        "const SPAM = 'test:oracle/spam@1.0.0';"
+        "const serving = (ctx: runtime.CircuitContext<any>, spam: () => any) => withHostInterfaces(ctx, { [SPAM]: { spam } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses1, 0);"
-        "  expect((await contract1().circuits.foo(Ctxt)).result).toEqual(0x030201n);"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const bytes = new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);"
+        "  expect((await C.circuits.foo(serving(Ctxt, () => bytes))).result).toEqual(0x030201n);"
         "});"
-        "const witnesses2 = { spam({privateState}: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [privateState, <any>72n]; } };"
-        "const contract2 = () => new contractCode.Contract(witnesses2);"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
-        "  await expect(contract2().circuits.foo(Ctxt)).rejects.toThrow(runtime.CompactError);"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
-        "  await expect(contract2().circuits.foo(Ctxt)).rejects.toThrow('type error: spam return value at testfile.compact line 1 char 1; expected value of type Bytes<32> but received 72n');"
-        "});"
-        "const witnesses3 = <any>{};"
-        "test('check 3a', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses3, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 3b', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses3, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor does not contain a function-valued field named spam');"
-        "});"
-        "const witnesses4 = <any>'oops';"
-        "test('check 4a', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses4, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 4b', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses4, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor is not an object');"
-        "});"
-        "const witnesses5 = <any>{ spam: 'oops' };"
-        "test('check 5a', async () => {"
-        "  await expect(startContract(contractCode, witnesses5, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 5b', async () => {"
-        "  await expect(startContract(contractCode, witnesses5, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor does not contain a function-valued field named spam');"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow('type error: host function spam of test:oracle/spam@1.0.0 return value at testfile.compact line 1 char 31; expected value of type Bytes<32> but received 72n');"
         "});"
         ))
     )
@@ -75308,24 +75367,27 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  return disclose(W(x));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { W(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
@@ -75334,24 +75396,27 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  return disclose(state(x));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { state(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const oracle = { 'test:oracle/state@1.0.0': { state: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
@@ -76371,7 +76436,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -76386,13 +76451,15 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = { merkle_path_root(foo: any): any { return { field: 0n }; } };"
+        "const oracle = { 'test:oracle/merkle-path-root@1.0.0': { merkle_path_root: (_ctx: any, foo: any) => ({ field: 0n }) } };"
         "test('check 1a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow('expected a cell');"
         "});"
         ))
@@ -76943,16 +77010,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness next_fib(): Field;"
+      "host test:oracle/next-fib@1.0.0 { next_fib(): Field; }"
       "export circuit fib() : Field{"
       "  return disclose(next_fib());"
       "}")
     (stage-javascript
       '(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
-        "const witnesses = { next_fib: w };"
+        "// the oracle keeps the sequence in its own state, as a wallet would"
+        "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result).toEqual(2n);"
         "  expect(x.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(1);"
@@ -76960,7 +77028,6 @@ groups than for single tests.
         "  expect(x2.result).toEqual(3n);"
         "  const x3 = await C.circuits.fib(x2.context);"
         "  expect(x3.result).toEqual(5n);"
-        "  expect((await C.circuits.fib(Ctxt)).result).toEqual(2n);"
         "})"
          )))
 
@@ -76984,16 +77051,17 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "struct S { x: Field, y: ZswapCoinPublicKey }"
-      "witness next_fib(): Field;"
+      "host test:oracle/next-fib@1.0.0 { next_fib(): Field; }"
       "export circuit fib() : S {"
       "  return S{ x: disclose(next_fib()), y: disclose(ownPublicKey()) };"
       "}")
     (stage-javascript
       '(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
-        "const witnesses = { next_fib: w };"
+        "// the oracle keeps the sequence in its own state, as a wallet would"
+        "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result.x).toEqual(2n);"
         "  expect(x.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(2);"
@@ -77151,7 +77219,6 @@ groups than for single tests.
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
         "export type Witnesses<PS> = {"
-        "  private$secret_key(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
@@ -77187,7 +77254,9 @@ groups than for single tests.
         "  impureCircuits: ImpureCircuits<PS>;"
         "  provableCircuits: ProvableCircuits<PS>;"
         "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
+        "               v_0: bigint,"
+        "               sk_0: Uint8Array): Promise<__compactRuntime.ConstructorResult<PS>>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
@@ -77333,9 +77402,6 @@ groups than for single tests.
         "    if (typeof(witnesses_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
         "    }"
-        "    if (typeof(witnesses_0.private$secret_key) !== 'function') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named private$secret_key');"
-        "    }"
         "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      set: async (...args_1) => {"
@@ -77347,18 +77413,19 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('set',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 82 char 1',"
+        "                                     'tiny.compact line 83 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        if (!(typeof(v_0) === 'bigint' && v_0 >= 0 && v_0 <= __compactRuntime.MAX_FIELD)) {"
         "          __compactRuntime.typeError('set',"
         "                                     'argument 1 (argument 2 as invoked from Typescript)',"
-        "                                     'tiny.compact line 82 char 1',"
+        "                                     'tiny.compact line 83 char 1',"
         "                                     'Field',"
         "                                     v_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'set');"
         "        const partialProofData = {"
         "          input: {"
         "            value: _descriptor_0.toValue(v_0),"
@@ -77381,11 +77448,12 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('get',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 100 char 1',"
+        "                                     'tiny.compact line 101 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'get');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -77405,11 +77473,12 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('clear',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 111 char 1',"
+        "                                     'tiny.compact line 112 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'clear');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -77437,16 +77506,14 @@ groups than for single tests.
         "    };"
         "  }"
         "  async initialState(...args_0) {"
-        "    if (args_0.length !== 2) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 2 arguments (as invoked from Typescript), received ${args_0.length}`);"
+        "    if (args_0.length !== 3) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 3 arguments (as invoked from Typescript), received ${args_0.length}`);"
         "    }"
         "    const constructorContext_0 = args_0[0];"
         "    const v_0 = args_0[1];"
+        "    const sk_0 = args_0[2];"
         "    if (typeof(constructorContext_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
-        "    }"
-        "    if (!('initialPrivateState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
         "    }"
         "    if (!('initialZswapLocalState' in constructorContext_0)) {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
@@ -77460,6 +77527,13 @@ groups than for single tests.
         "                                 'tiny.compact line 55 char 1',"
         "                                 'Field',"
         "                                 v_0)"
+        "    }"
+        "    if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {"
+        "      __compactRuntime.typeError('Contract state constructor',"
+        "                                 'argument 2 (argument 3 as invoked from Typescript)',"
+        "                                 'tiny.compact line 55 char 1',"
+        "                                 'Bytes<32>',"
+        "                                 sk_0)"
         "    }"
         "    const state_0 = new __compactRuntime.ContractState();"
         "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
@@ -77507,7 +77581,6 @@ groups than for single tests.
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
         "                                       { ins: { cached: false, n: 1 } }]);"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
         "    const tmp_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -77553,17 +77626,15 @@ groups than for single tests.
         "    return result_0;"
         "  }"
         "  _private$secret_key_0(context, partialProofData) {"
-        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);"
-        "    const [nextPrivateState_0, result_0] = this.witnesses.private$secret_key(witnessContext_0);"
-        "    context.callContext.currentPrivateState = nextPrivateState_0;"
+        "    const result_0 = __compactRuntime.callHostFunction(context, 'test:oracle/private-secret-key@1.0.0', 'private$secret_key', []);"
         "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
-        "      __compactRuntime.typeError('private$secret_key',"
+        "      __compactRuntime.typeError('host function private$secret_key of test:oracle/private-secret-key@1.0.0',"
         "                                 'return value',"
-        "                                 'tiny.compact line 70 char 1',"
+        "                                 'tiny.compact line 71 char 45',"
         "                                 'Bytes<32>',"
         "                                 result_0)"
         "    }"
-        "    partialProofData.privateTranscriptOutputs.push({"
+        "    __compactRuntime.recordHostOutput(partialProofData, {"
         "      value: _descriptor_1.toValue(result_0),"
         "      alignment: _descriptor_1.alignment()"
         "    });"
@@ -77588,7 +77659,8 @@ groups than for single tests.
         "  async _set_0(context, partialProofData, v_0) {"
         "    __compactRuntime.assert(await this._in_state_0(context, partialProofData, 0),"
         "                            'set: attempted to overwrite recorded value');"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
+        "    const sk_0 = ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_1.toValue(result_0), alignment: _descriptor_1.alignment() }); return result_0; })(this._private$secret_key_0(context,"
+        "                                                                                                                                                                                                                   partialProofData));"
         "    const apk_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -77643,7 +77715,8 @@ groups than for single tests.
         "  async _clear_0(context, partialProofData) {"
         "    __compactRuntime.assert(await this._in_state_0(context, partialProofData, 1),"
         "                            'clear: no value is currently recorded');"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
+        "    const sk_0 = ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_1.toValue(result_0), alignment: _descriptor_1.alignment() }); return result_0; })(this._private$secret_key_0(context,"
+        "                                                                                                                                                                                                                   partialProofData));"
         "    const apk_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.assert(this._equal_0(apk_0,"
         "                                          _descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,"
@@ -77734,9 +77807,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({"
-        "  private$secret_key: (...args) => undefined"
-        "});"
+        "const _dummyContract = new Contract({ });"
         "export const pureCircuits = {"
         "  public_key: (...args_0) => {"
         "    if (args_0.length !== 1) {"
@@ -77746,7 +77817,7 @@ groups than for single tests.
         "    if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {"
         "      __compactRuntime.typeError('public_key',"
         "                                 'argument 1',"
-        "                                 'tiny.compact line 125 char 1',"
+        "                                 'tiny.compact line 126 char 1',"
         "                                 'Bytes<32>',"
         "                                 sk_0)"
         "    }"
@@ -77764,7 +77835,9 @@ groups than for single tests.
         ""
         "export const declaredInterfaces = {};"
         ""
-        "export const hostInterfaces = {};"
+        "export const hostInterfaces = {"
+        "  'test:oracle/private-secret-key@1.0.0': ['private$secret_key'],"
+        "};"
         ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
@@ -77775,7 +77848,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -77784,17 +77857,8 @@ groups than for single tests.
     "examples/election.compact"
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                  private$secret_key(): any { return; },"
-        "                  private$state(): any { return; },"
-        "                  private$state$advance(): any { return; },"
-        "                  private$vote$record(x: any): any { return; },"
-        "                  private$vote(): any { return; },"
-        "                  context$eligible_voters$path_of(x: any): any { return; },"
-        "                  context$committed_votes$path_of(x: any): any { return; }"
-        "                 };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -77804,17 +77868,8 @@ groups than for single tests.
     "examples/zerocash.compact"
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                    private$zk_secret_key(): any { return; },"
-        "                    private$remove_coin(coin: any): any { return; },"
-        "                    private$zk_public_key(): any { return; },"
-        "                    private$add_coin(coin: any): any { return; },"
-        "                    context$path_of(cm: any): any { return; },"
-        "                    context$new_coin_info(): any { return; },"
-        "                    context$encrypt(pk: any, coin: any): any { return; }"
-        "                   };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -77824,17 +77879,9 @@ groups than for single tests.
    "test-center/test-contracts/micro-dao.compact"
    (stage-javascript
      '(
-       "const witnesses = {"
-       "                   local_secret_key(): any { return; },"
-       "                   local_state(): any { return; },"
-       "                   local_advance_state(): any { return; },"
-       "                   local_record_vote(vote: any): any { return; },"
-       "                   local_vote_cast(): any { return; },"
-       "                   local_path_of_cm(cm: any): any { return; }"
-       "                   };"
        "test('check 1', async () => {"
        "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, sk, {seed_dust: 2n, buy_in_dust: 2n});"
+       "  const [C, Ctxt] = await startContract(contractCode, {}, 0, sk, {seed_dust: 2n, buy_in_dust: 2n});"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77844,11 +77891,8 @@ groups than for single tests.
    "test-center/test-contracts/bboard.compact"
    (stage-javascript
      '(
-       "const witnesses = {"
-       "                  local_secret_key(): any { return; }"
-       "                  };"
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77858,17 +77902,8 @@ groups than for single tests.
    "test-center/test-contracts/coracle.compact"
    (stage-javascript
      '(
-       "const witnesses = {"
-       "                   local_secret_key(): any { return; },"
-       "                   local_board(): any { return; },"
-       "                   local_set_board(board: any): any { return; },"
-       "                   fresh_nonce(): any { return; },"
-       "                   ownPublicKey(): any { return; },"
-       "                   createZswapInput(): any { return; },"
-       "                   createZswapOutput(): any { return; }"
-       "                  };"
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77878,9 +77913,8 @@ groups than for single tests.
     "test-center/test-contracts/counter.compact"
     (stage-javascript
      '(
-       "const witnesses = { private_increment(): any { return; } };"
        "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+       "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        ))
@@ -77890,15 +77924,11 @@ groups than for single tests.
     "test-center/test-contracts/welcome.compact"
     (stage-javascript
      '(
-       "const witnesses = {"
-       "                   set_local_id(participant: any): any { return; },"
-       "                   local_sk(ps: any): any { return [ps, {is_some: true, value: new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}];}"
-       "                  };"
        "test('check 1', async () => {"
        "class Maybe{is_some: boolean; value: string; constructor(is_some: boolean, value: string) { this.is_some = is_some; this.value = value;}}"
        "const p1 = new Maybe( true, 'p1' );"
        "const participants: Maybe[] = new Array(5000).fill(p1);"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, participants);"
+       "  const [C, Ctxt] = await startContract(contractCode, {}, 0, new Uint8Array(32), participants);"
        "  expect(typeof(C.circuits)).toEqual('object');"
        "});"
        )))
@@ -77927,24 +77957,27 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(x: Field): Uint<0..36>;"
+      "host test:oracle/bar@1.0.0 { bar(x: Field): Uint<0..36>; }"
       "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  return x - x as Uint<0..36>;"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { bar(x: bigint): bigint { return 101n; } };"
+        "const oracle = { 'test:oracle/bar@1.0.0': { bar: () => 101n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, 20n)).result).toEqual(0n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type Uint<0..36> but received 37n');"
         "});"
         ))
@@ -78372,7 +78405,7 @@ groups than for single tests.
       "export { Maybe }"
       "export ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -78388,8 +78421,6 @@ groups than for single tests.
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
         "export type Witnesses<PS> = {"
-        "  witnesses(context: __compactRuntime.WitnessContext<Ledger, PS>,"
-        "            witnesses_0: bigint): [PS, bigint];"
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
@@ -78450,13 +78481,15 @@ groups than for single tests.
         "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
-        "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
+        "const oracle = { 'test:oracle/witnesses@1.0.0': { witnesses: (_ctx: any, witnesses: bigint) => witnesses + 11n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0, 73n);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits._arguments(Ctxt, 11n, 7n, 13n)).result).toEqual(132n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0, 73n);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.finalize(Ctxt)).result).toEqual(20n);"
         "});"
         ))
@@ -78832,14 +78865,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export pure circuit itIsntPure(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map(foo, v);"
       "}"
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls witness foo" "line 3 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls host function foo" "line 3 char 14")))
     )
 
   (test
@@ -78885,7 +78918,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export pure circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map("
       "    (x) => {"
@@ -78896,19 +78929,19 @@ groups than for single tests.
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls witness foo" "line 5 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls host function foo" "line 5 char 14")))
     )
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export pure circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map(foo, v);"
       "}"
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls witness foo" "line 3 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls host function foo" "line 3 char 14")))
     )
 
   (test
@@ -78936,7 +78969,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map("
       "    (x) => {"
@@ -78949,7 +78982,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return disclose(map(foo, v));"
       "}"
@@ -80568,13 +80601,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(): Field;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(): Field; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(): Field {"
       "    return disclose(W() + X());"
       "  }"
@@ -80584,12 +80617,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 20n];}"
-        "                  };"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 20n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(37n);"
         "});"
@@ -80599,13 +80630,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness X(): Field;"
+      "host test:oracle/x@1.0.0 { X(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(X());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (W(b) ? 3 : 4));"
       "  }"
@@ -80615,12 +80646,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                   W(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; }"
-        "                   };"
+        "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.bar(Ctxt, false)).result).toEqual(20n);"
@@ -80631,13 +80660,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return W();"
       "}"
       "module M {"
-      "  export witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  export host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return X() + (W(b) ? 3 : 4);"
       "  }"
@@ -80647,19 +80676,19 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 14 char 17" "cannot export ~s (~s) from the top level" (witness M$W)))
+      irritants: '("testfile.compact line 14 char 17" "cannot export ~s (~s) from the top level" (host M$W)))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  export witness Y(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  export host test:oracle/y@1.0.0 { Y(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (Y(b) ? 3 : 4));"
       "  }"
@@ -80669,13 +80698,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    Y(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; },"
-        "                  };"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/y@1.0.0': { Y: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.M$bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.M$bar(Ctxt, false)).result).toEqual(20n);"
@@ -80686,13 +80712,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (W(b) ? 3 : 4));"
       "  }"
@@ -80702,12 +80728,11 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                   W(private_state: any, ...args: unknown[]): [any, any] { return [private_state, args.length == 0 ? 17n : !args[0]];},"
-        "                  };"
+        "// one function serves both declarations of W, as the one witness did"
+        "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, ...args: unknown[]) => args.length == 0 ? 17n : !args[0] } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.bar(Ctxt, false)).result).toEqual(20n);"
@@ -81453,14 +81478,15 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return disclose(x + transientHash(true) + transientHash<Field>(x) != 107 as Field); }"
       )
     (stage-javascript
       '(
-        "const witnesses = { transientHash(private_state: any, x: boolean): [any, bigint] { return [private_state, 101n]; }};"
+        "const oracle = { 'test:oracle/transient-hash@1.0.0': { transientHash: (_ctx: any, x: boolean) => 101n } };"
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, witnesses, 0);"
+        "  var [C, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  expect((await C.circuits.transientHash(context, 7n)).result).toEqual(true);"
         "});"
         ))
@@ -82845,16 +82871,17 @@ groups than for single tests.
   ; was producing an unparenthesized expression sequence between ? and :
   (test
     '(
-      "witness w(x: Boolean): Boolean;"
+      "host test:oracle/w@1.0.0 { w(x: Boolean): Boolean; }"
       "export circuit foo(): Boolean {"
       " return disclose(w(w(true) ? (w(false), w(true)) : w(false)));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { w({privateState}: runtime.WitnessContext<{}, number>, b: boolean): [number, boolean] { return [privateState, true]; } };"
+        "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -82863,16 +82890,17 @@ groups than for single tests.
   ; pm-16064
   (test
     '(
-      "witness w(x: Boolean): Boolean;"
+      "host test:oracle/w@1.0.0 { w(x: Boolean): Boolean; }"
       "export circuit foo(): Boolean {"
       " return disclose(w(w(true) ? w(false) ? w(true) : w(false) : w(false)));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { w({privateState}: runtime.WitnessContext<{}, number>, b: boolean): [number, boolean] { return [privateState, true]; } };"
+        "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -83928,7 +83956,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness getData(): Field;"
+      "host test:oracle/get-data@1.0.0 { getData(): Field; }"
       "ledger hash: Field;"
       ""
       "export circuit test(): Field {"
@@ -83939,15 +83967,15 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness getData at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the argument to transientHash at line 8 char 12\n      the right-hand side of = at line 8 char 10"))))
+      irritants: '("testfile.compact line 8 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function getData at line 3 char 35" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the argument to transientHash at line 8 char 12\n      the right-hand side of = at line 8 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness getData(): Field;"
-      "witness getRandomness(): Field;"
+      "host test:oracle/get-data@1.0.0 { getData(): Field; }"
+      "host test:oracle/get-randomness@1.0.0 { getRandomness(): Field; }"
       "ledger hash: Field;"
       ""
       "export circuit test(): Field {"
@@ -83958,12 +83986,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "  getData({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 37n]; },"
-        "  getRandomness({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 59n]; },"
-        "  };"
+        "const oracle = { 'test:oracle/get-data@1.0.0': { getData: () => 37n }, 'test:oracle/get-randomness@1.0.0': { getRandomness: () => 59n } };"
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  var [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  const t = await C.circuits.test(Ctxt);"
         "  expect(typeof(t.result)).toEqual('bigint');"
         "  });"
@@ -89704,8 +89730,8 @@ groups than for single tests.
       ""
       "export ledger count: Counter;"
       ""
-      "witness get_a(): Uint<8>;"
-      "witness get_b(): Uint<8>;"
+      "host test:oracle/get-a@1.0.0 { get_a(): Uint<8>; }"
+      "host test:oracle/get-b@1.0.0 { get_b(): Uint<8>; }"
       ""
       "export circuit test1(): Boolean {"
       "  count.increment(1);"
@@ -89718,15 +89744,16 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
-        "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
+        "const oracle = (a: bigint, b: bigint) => ({ 'test:oracle/get-a@1.0.0': { get_a: () => a }, 'test:oracle/get-b@1.0.0': { get_b: () => b } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses1, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle(3n, 10n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(false);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle(10n, 3n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(true);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(false);"
         "});"
@@ -90942,7 +90969,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -90969,7 +90996,6 @@ groups than for single tests.
         "export type S = { F: bigint };"
         ""
         "export type Witnesses<PS> = {"
-        "  bar(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
         "}"
         ""
         "export type ImpureCircuits<PS> = {"
@@ -91119,9 +91145,6 @@ groups than for single tests.
         "    if (typeof(witnesses_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
         "    }"
-        "    if (typeof(witnesses_0.bar) !== 'function') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named bar');"
-        "    }"
         "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      foo: async (...args_1) => {"
@@ -91137,6 +91160,7 @@ groups than for single tests.
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'foo');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -91159,9 +91183,6 @@ groups than for single tests.
         "    const constructorContext_0 = args_0[0];"
         "    if (typeof(constructorContext_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
-        "    }"
-        "    if (!('initialPrivateState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
         "    }"
         "    if (!('initialZswapLocalState' in constructorContext_0)) {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
@@ -91188,17 +91209,15 @@ groups than for single tests.
         "    }"
         "  }"
         "  _bar_0(context, partialProofData) {"
-        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);"
-        "    const [nextPrivateState_0, result_0] = this.witnesses.bar(witnessContext_0);"
-        "    context.callContext.currentPrivateState = nextPrivateState_0;"
+        "    const result_0 = __compactRuntime.callHostFunction(context, 'test:oracle/bar@1.0.0', 'bar', []);"
         "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
-        "      __compactRuntime.typeError('bar',"
+        "      __compactRuntime.typeError('host function bar of test:oracle/bar@1.0.0',"
         "                                 'return value',"
-        "                                 'testfile.compact line 2 char 1',"
+        "                                 'testfile.compact line 2 char 30',"
         "                                 'Bytes<32>',"
         "                                 result_0)"
         "    }"
-        "    partialProofData.privateTranscriptOutputs.push({"
+        "    __compactRuntime.recordHostOutput(partialProofData, {"
         "      value: _descriptor_0.toValue(result_0),"
         "      alignment: _descriptor_0.alignment()"
         "    });"
@@ -91213,8 +91232,8 @@ groups than for single tests.
         "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
         "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
         "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                                                      ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_0.toValue(result_0), alignment: _descriptor_0.alignment() }); return result_0; })(this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         partialProofData)) }.nullifier),"
         "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
@@ -91239,7 +91258,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({ bar: (...args) => undefined });"
+        "const _dummyContract = new Contract({ });"
         "export const pureCircuits = {};"
         "export const expectedVk = {};"
         ""
@@ -91249,7 +91268,9 @@ groups than for single tests.
         ""
         "export const declaredInterfaces = {};"
         ""
-        "export const hostInterfaces = {};"
+        "export const hostInterfaces = {"
+        "  'test:oracle/bar@1.0.0': ['bar'],"
+        "};"
         ""
         "//# sourceMappingURL=index.js.map"))
     )
@@ -92679,7 +92700,7 @@ groups than for single tests.
   (test
     '(
       "ledger flag: Boolean;"
-      "witness touch(arr: Opaque<'Uint8Array'>): [];"
+      "host test:oracle/touch@1.0.0 { touch(arr: Opaque<'Uint8Array'>): []; }"
       "export circuit mutateBefore(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
       "  touch(arr0);"
       "  const result = arr0 == arr1;"
@@ -92689,16 +92710,15 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "test('witness mutation of an opaque argument before comparison', async () => {"
+        "test('host mutation of an opaque argument before comparison', async () => {"
         "  // The Opaque<'Uint8Array'> descriptor's toValue captures the Uint8Array by"
         "  // reference and the encoding happens at proof finalization, so a mutation"
-        "  // performed by a witness is visible both to the JS comparison and to the"
-        "  // circuit's input.  The two targets must agree that the mutated arr0 equals"
-        "  // arr1."
-        "  const witnesses = {"
-        "    touch: (context: any, arr: Uint8Array): [number, []] => { arr[0] = 99; return [context.privateState, []]; }"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  // performed by a host function is visible both to the JS comparison and to"
+        "  // the circuit's input.  The two targets must agree that the mutated arr0"
+        "  // equals arr1."
+        "  const oracle = { 'test:oracle/touch@1.0.0': { touch: (_ctx: any, arr: Uint8Array): [] => { arr[0] = 99; return []; } } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
         "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
         "  expect((await contract.circuits.mutateBefore(context, arr0, arr1)).result).toEqual(true);"
@@ -93292,7 +93312,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
-      "witness add1(b: Secp256k1Base): Secp256k1Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Secp256k1Base): Secp256k1Base; }"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -93314,13 +93334,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256k1Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -93382,7 +93399,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
-      "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Secp256k1Scalar): Secp256k1Scalar; }"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -93404,13 +93421,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256k1Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -93495,8 +93509,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Secp256k1Point;"
-      "witness point0(): Secp256k1Point;"
-      "witness point1(): Secp256k1Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Secp256k1Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Secp256k1Point; }"
       "export circuit test0(): Secp256k1Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -93539,30 +93553,21 @@ groups than for single tests.
             %fld.23)
           (output %t.18))))
     (stage-javascript
-      '("test('Secp256k1Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 1n,"
-        "          y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
-        "          y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Secp256k1Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Secp256k1Point => ({"
+        "      x: 1n,"
+        "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "      identity: false,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Secp256k1Point => ({"
+        "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "      identity: false,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
@@ -94131,9 +94136,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger owner: Bytes<20>;"
-      "witness recoverKey(digest: Bytes<32>,"
+      "host test:oracle/recover-key@1.0.0 { recoverKey(digest: Bytes<32>,"
       "                   sig: Secp256k1EcdsaSignature,"
-      "                   recoveryId: Uint<2>): Secp256k1Point;"
+      "                   recoveryId: Uint<2>): Secp256k1Point; }"
       "export circuit setOwner(addr: Bytes<20>): [] {"
       "  owner = disclose(addr);"
       "}"
@@ -94179,21 +94184,22 @@ groups than for single tests.
         "// recover the same key -- and therefore the same Ethereum address."
         "const n = secp256k1.Point.Fn.ORDER;"
         "const twinSig = { r: sig.r, s: n - sig.s };"
-        "// The witness takes the digest, the signature and the recovery id as"
+        "// The host function takes the digest, the signature and the recovery id as"
         "// arguments, so one implementation serves every case below.  A dApp would"
         "// take the recovery id from the signature's v byte.  Uint<2> arrives as a"
         "// bigint, while the runtime's recover expects a number."
-        "const witnesses = {"
-        "  recoverKey(wc: runtime.WitnessContext<{}, number>,"
-        "             digest: Uint8Array,"
-        "             sig: { r: bigint, s: bigint },"
-        "             recoveryId: bigint): [number, runtime.Secp256k1Point] {"
-        "    return [wc.privateState,"
-        "            runtime.secp256k1EcdsaRecover(digest, sig, Number(recoveryId))];"
+        "const oracle = {"
+        "  'test:oracle/recover-key@1.0.0': {"
+        "    recoverKey: (_ctx: any,"
+        "                 digest: Uint8Array,"
+        "                 sig: { r: bigint, s: bigint },"
+        "                 recoveryId: bigint): runtime.Secp256k1Point =>"
+        "      runtime.secp256k1EcdsaRecover(digest, sig, Number(recoveryId)),"
         "  },"
         "};"
         "const withOwner = async (addr: Uint8Array) => {"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  const r = await contract.circuits.setOwner(context, addr);"
         "  return [contract, r.context] as const;"
         "};"
@@ -94657,7 +94663,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger n: Uint<64>;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit impureProvable(b: Boolean, f: Field, u: Uint<128>, y: Bytes<32>): [] {"
       "  n = disclose(1 as Uint<64>);"
       "}"
@@ -94927,7 +94933,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Secp256r1Base;"
-      "witness add1(b: Secp256r1Base): Secp256r1Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Secp256r1Base): Secp256r1Base; }"
       "export circuit test(b: Secp256r1Base): Secp256r1Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -94949,13 +94955,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256r1Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256r1Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -95017,7 +95020,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Secp256r1Scalar;"
-      "witness add1(s: Secp256r1Scalar): Secp256r1Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Secp256r1Scalar): Secp256r1Scalar; }"
       "export circuit test(s: Secp256r1Scalar): Secp256r1Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -95039,13 +95042,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256r1Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256r1Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -95130,8 +95130,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Secp256r1Point;"
-      "witness point0(): Secp256r1Point;"
-      "witness point1(): Secp256r1Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Secp256r1Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Secp256r1Point; }"
       "export circuit test0(): Secp256r1Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -95174,30 +95174,21 @@ groups than for single tests.
             %fld.23)
           (output %t.18))))
     (stage-javascript
-      '("test('Secp256r1Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 0x0n,"
-        "          y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
-        "          y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Secp256r1Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Secp256r1Point => ({"
+        "      x: 0x0n,"
+        "      y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
+        "      identity: false,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Secp256r1Point => ({"
+        "      x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "      y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "      identity: false,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 0x0n,"
@@ -96136,7 +96127,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Curve25519Base;"
-      "witness add1(b: Curve25519Base): Curve25519Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Curve25519Base): Curve25519Base; }"
       "export circuit test(b: Curve25519Base): Curve25519Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -96158,13 +96149,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Curve25519Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Curve25519Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -96226,7 +96214,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Curve25519Scalar;"
-      "witness add1(s: Curve25519Scalar): Curve25519Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Curve25519Scalar): Curve25519Scalar; }"
       "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -96248,13 +96236,10 @@ groups than for single tests.
           (impact 1 12 2 26 7 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Curve25519Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Curve25519Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -96334,8 +96319,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Curve25519Point;"
-      "witness point0(): Curve25519Point;"
-      "witness point1(): Curve25519Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Curve25519Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Curve25519Point; }"
       "export circuit test0(): Curve25519Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -96374,28 +96359,19 @@ groups than for single tests.
           (impact 1 12 4 24 8 24 8 %fld.16 %fld.17 %fld.18 %fld.19)
           (output %t.15))))
     (stage-javascript
-      '("test('Curve25519Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
-        "          y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
-        "          y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Curve25519Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Curve25519Point => ({"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Curve25519Point => ({"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
@@ -97539,12 +97515,12 @@ groups than for single tests.
         ))
     )
 
-  ; witnesses and local state coexist, a witness result flows into the local store with no
+  ; host functions and local state coexist, a host result flows into the local store with no
   ; disclose, and a persisted local StateValue restores through CircuitContextOptions
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness secret(): Uint<64>;"
+      "host test:oracle/secret@1.0.0 { secret(): Uint<64>; }"
       "local stash: Uint<64>;"
       "export circuit save(): [] {"
       "  stash = secret();"
@@ -97555,24 +97531,17 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "test('a witness result enters local state without disclose', async () => {"
-        "  const witnesses = {"
-        "    secret(wc: runtime.WitnessContext<{}, number>): [number, bigint] {"
-        "      return [wc.privateState, 42n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "const secretOracle = (v: bigint) => ({ 'test:oracle/secret@1.0.0': { secret: () => v } });"
+        "test('a host result enters local state without disclose', async () => {"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, secretOracle(42n));"
         "  const r1 = await contract.circuits.save(context);"
         "  const r2 = await contract.circuits.reveal(r1.context);"
         "  expect(r2.result).toEqual(42n);"
         "});"
         "test('local state round-trips through CircuitContextOptions', async () => {"
-        "  const witnesses = {"
-        "    secret(wc: runtime.WitnessContext<{}, number>): [number, bigint] {"
-        "      return [wc.privateState, 7n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, secretOracle(7n));"
         "  const r1 = await contract.circuits.save(context);"
         "  const persisted = r1.context.callContext.currentLocalQueryContext!.state.state;"
         "  const context2 = runtime.createCircuitContext({"
@@ -97582,6 +97551,7 @@ groups than for single tests.
         "    contractState: r1.context.callContext.currentQueryContext.state,"
         "    privateState: r1.context.callContext.currentPrivateState!,"
         "    localState: persisted,"
+        "    hostInterfaceProvider: r1.context.hostInterfaceProvider,"
         "  });"
         "  const r2 = await contract.circuits.reveal(context2);"
         "  expect(r2.result).toEqual(7n);"
@@ -98093,7 +98063,7 @@ groups than for single tests.
       "export ledger prices: Map<Uint<8>, Uint<16>>;"
       "export ledger registry: HistoricMerkleTree<4, Bytes<8>>;"
       "local sum: Counter;"
-      "witness pick(): Uint<8>;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
       "local priceOf(k: Uint<8>): Uint<16> {"
       "  if (prices.member(k)) {"
       "    return prices.lookup(k);"
@@ -98132,12 +98102,8 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('local functions read the ledger from the snapshot', async () => {"
-        "  const witnesses = {"
-        "    pick(wc: runtime.WitnessContext<{}, number>): [number, bigint] {"
-        "      return [wc.privateState, 3n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode, {}, 0);"
+        "  const context = withHostInterfaces(context0, { 'test:oracle/pick@1.0.0': { pick: () => 3n } });"
         "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
         "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
         "  const r3 = await contract.circuits.total(r2.context);"
@@ -98545,7 +98511,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger prices: Map<Uint<8>, Uint<16>>;"
-      "witness pick(): Uint<8>;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
       "local priceOf(k: Uint<8>): Uint<16> {"
       "  return prices.lookup(k);"
       "}"
@@ -98555,7 +98521,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness pick at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function pick at line 3 char 31" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
     )
 
   ; a local operation's result is witness data: returning it from an exported circuit

@@ -22,17 +22,17 @@ export { Maybe }
 // demonstration of a Midnight decentralized application.
 
 // Stores the identity the participant used to check in
-witness set_local_id(participant: Opaque<"string">): [];
+host test:oracle/set-local-id@1.0.0 { set_local_id(participant: Opaque<"string">): []; }
 
 // Secret key of the current user (only defined for organizers)
-witness local_sk(): Maybe<Bytes<32>>;
+host test:oracle/local-sk@1.0.0 { local_sk(): Maybe<Bytes<32>>; }
 
 export ledger organizer_pks: Set<Bytes<32>>;
 export ledger eligible_participants: Set<Opaque<"string">>;
 export ledger checked_in_participants: Set<Opaque<"string">>;
 
-constructor(initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
-  organizer_pks.insert(public_key(local_sk_or_error()));
+constructor(organizer_sk: Bytes<32>, initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
+  organizer_pks.insert(disclose(public_key(organizer_sk)));
   for (const maybe_participant of disclose(initial_eligible_participants)) {
     if (maybe_participant.is_some) {
       eligible_participants.insert(maybe_participant.value);

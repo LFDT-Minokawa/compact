@@ -33,13 +33,13 @@ struct public_key {
   encryption: Opaque<"Uint8Array">;
 }
 
-witness private$zk_secret_key(): zk_secret_key;
-witness private$remove_coin(coin: coin_info): [];
-witness private$zk_public_key(): zk_public_key;
-witness private$add_coin(coin: coin_info): [];
-witness context$path_of(cm: commitment): MerkleTreePath<32, commitment>;
-witness context$new_coin_info(): coin_info;
-witness context$encrypt(pk: Opaque<"Uint8Array">, coin: coin_info): Opaque<"Uint8Array">;
+host test:oracle/private-zk-secret-key@1.0.0 { private$zk_secret_key(): zk_secret_key; }
+host test:oracle/private-remove-coin@1.0.0 { private$remove_coin(coin: coin_info): []; }
+host test:oracle/private-zk-public-key@1.0.0 { private$zk_public_key(): zk_public_key; }
+host test:oracle/private-add-coin@1.0.0 { private$add_coin(coin: coin_info): []; }
+host test:oracle/context-path-of@1.0.0 { context$path_of(cm: commitment): MerkleTreePath<32, commitment>; }
+host test:oracle/context-new-coin-info@1.0.0 { context$new_coin_info(): coin_info; }
+host test:oracle/context-encrypt@1.0.0 { context$encrypt(pk: Opaque<"Uint8Array">, coin: coin_info): Opaque<"Uint8Array">; }
 
 ledger nullifiers: Set<nullifier>;
 ledger commitments: HistoricMerkleTree<32, commitment>;

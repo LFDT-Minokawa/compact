@@ -76,9 +76,9 @@ export circuit bar (a: Boolean, b: Boolean): M$frob
   return M$frob{ x0.read() };
 }
 
-witness C (a: Boolean, b: Bytes<10>): Bytes<20>;
+host test:oracle/c@1.0.0 { C(a: Boolean, b: Bytes<10>): Bytes<20>; }
 
-witness W (a: Vector<7, Vector<9, Field>>, b: Opaque<"bogeytype">): [];
+host test:oracle/w@1.0.0 { W(a: Vector<7, Vector<9, Field>>, b: Opaque<"bogeytype">): []; }
 
 export circuit baz(b: Boolean): Uint<10> {
   return disclose(b as Uint<10>);
