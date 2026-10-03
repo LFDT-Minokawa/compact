@@ -92713,6 +92713,1371 @@ groups than for single tests.
     )
 )
 
+; local state, host functions and cross-contract capsules, end to end; these ran under zkir v3
+; only until the v2 emitter learned local operations, therefore both versions run them now
+(run-tests print-typescript
+  ; local state end to end: join constructor seeds it, a circuit body operates on it directly,
+  ; a local function evolves it, and the result crosses into the proof as a disclosed value
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "local constructor {"
+      "  credits.increment(3);"
+      "}"
+      "local spend(n: Uint<16>): Uint<64> {"
+      "  credits.decrement(1);"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(n: Uint<16>): Uint<64> {"
+      "  total.increment(1);"
+      "  credits.increment(n);"
+      "  return disclose(spend(n));"
+      "}"
+      "export circuit staged(n: Uint<16>): [] {"
+      "  credits.increment(n);"
+      "  kernel.checkpoint();"
+      "  credits.increment(n);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local state evolves across chained calls', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.tick(context, 2n);"
+        "  expect(r1.result).toEqual(4n);"
+        "  const r2 = await contract.circuits.tick(r1.context, 4n);"
+        "  expect(r2.result).toEqual(7n);"
+        "  const L = contractCode.ledger(r2.context.callContext.currentQueryContext.state);"
+        "  expect(L.total).toEqual(2n);"
+        "});"
+        "test('initialLocalState is deterministic', async () => {"
+        "  const a = contractCode.initialLocalState();"
+        "  const b = contractCode.initialLocalState();"
+        "  expect(a.toString()).toEqual(b.toString());"
+        "});"
+        "test('the recorded local transcript folds to the live state', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r = await contract.circuits.tick(context, 2n);"
+        "  const pd = r.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
+        "  const live = r.context.callContext.currentLocalQueryContext!.state.state;"
+        "  expect(folded.toString()).toEqual(live.toString());"
+        "});"
+        "test('a checkpoint splits the local fold', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r = await contract.circuits.staged(context, 5n);"
+        "  const pd = r.context.callProofDataTrace.at(-1)!;"
+        "  const c = pd.publicTranscript.findIndex((op) => (op as unknown) === 'ckpt' || (typeof op === 'object' && op !== null && 'ckpt' in (op as object)));"
+        "  expect(c).toBeGreaterThanOrEqual(0);"
+        "  // the local constructor's guard cell holds index 0 of the local root, so credits is index 1"
+        "  const dec = (sv: runtime.StateValue) => { let v = 0n; const b = sv.asArray()![1].asCell().value[0]; for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) | BigInt(b[i]); return v; };"
+        "  const partial = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: c });"
+        "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
+        "  expect(dec(partial)).toEqual(8n);"
+        "  expect(dec(whole)).toEqual(13n);"
+        "  expect(whole.toString()).toEqual(r.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "});"
+        ))
+    )
+
+  ; guarded consumption: conditionally executed local operations and local calls, driven
+  ; through both branch polarities and validated against the generated zkir
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local bank: Counter;"
+      "local constructor {"
+      "  bank.increment(1);"
+      "}"
+      "local sample(): Uint<64> {"
+      "  return bank.read();"
+      "}"
+      "export circuit maybeBump(b: Boolean, n: Uint<16>): Uint<64> {"
+      "  if (b) {"
+      "    bank.increment(n);"
+      "  }"
+      "  return disclose(b ? sample() : 0);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('guarded local operations align with the circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.maybeBump(context, true, 5n);"
+        "  expect(r1.result).toEqual(6n);"
+        "  const r2 = await contract.circuits.maybeBump(r1.context, false, 5n);"
+        "  expect(r2.result).toEqual(0n);"
+        "  const r3 = await contract.circuits.maybeBump(r2.context, true, 1n);"
+        "  expect(r3.result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  ; the rest of the callable surface: a local map with computed keys, a nested ADT reached
+  ; through a path element, local-to-local calls, a pure circuit called from local code, and
+  ; a join constructor that seeds state through a local function
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local balances: Map<Bytes<1>, Uint<64>>;"
+      "local marks: Map<Bytes<1>, Counter>;"
+      "local tag: Counter;"
+      "local constructor {"
+      "  seedTag();"
+      "}"
+      "local seedTag(): [] {"
+      "  tag.increment(7);"
+      "}"
+      "pure circuit floorTen(v: Uint<64>): Uint<64> {"
+      "  return v < 10 ? 10 : v;"
+      "}"
+      "local put(k: Bytes<1>, v: Uint<64>): [] {"
+      "  balances.insert(k, floorTen(v));"
+      "}"
+      "local getOr(k: Bytes<1>): Uint<64> {"
+      "  if (balances.member(k)) {"
+      "    return balances.lookup(k);"
+      "  }"
+      "  return tag.read();"
+      "}"
+      "local mark(k: Bytes<1>): Uint<64> {"
+      "  if (!marks.member(k)) {"
+      "    marks.insertDefault(k);"
+      "  }"
+      "  marks.lookup(k).increment(1);"
+      "  return marks.lookup(k).read();"
+      "}"
+      "export circuit store(k: Bytes<1>, v: Uint<64>): [] {"
+      "  put(k, v);"
+      "}"
+      "export circuit fetch(k: Bytes<1>): Uint<64> {"
+      "  return disclose(getOr(k));"
+      "}"
+      "export circuit stamp(k: Bytes<1>): Uint<64> {"
+      "  return disclose(mark(k));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local maps, nested ADTs, and the local call graph', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const k = new Uint8Array([1]);"
+        "  const k2 = new Uint8Array([2]);"
+        "  const r1 = await contract.circuits.fetch(context, k);"
+        "  expect(r1.result).toEqual(7n);"
+        "  const r2 = await contract.circuits.store(r1.context, k, 3n);"
+        "  const r3 = await contract.circuits.fetch(r2.context, k);"
+        "  expect(r3.result).toEqual(10n);"
+        "  const r4 = await contract.circuits.stamp(r3.context, k2);"
+        "  expect(r4.result).toEqual(1n);"
+        "  const r5 = await contract.circuits.stamp(r4.context, k2);"
+        "  expect(r5.result).toEqual(2n);"
+        "});"
+        ))
+    )
+
+  ; compound types across the circuit-to-local boundary: a struct result is several private
+  ; inputs, so this is the multi-primitive flattening the Counter tests never touch
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Point { x: Field, y: Field, tag: Boolean };"
+      "local last: Point;"
+      "local remember(p: Point): Point {"
+      "  last = p;"
+      "  return last;"
+      "}"
+      "export circuit roundTrip(p: Point): Point {"
+      "  return disclose(remember(p));"
+      "}"
+      "export circuit lastTag(): Boolean {"
+      "  return disclose(last.tag);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a struct crosses the local boundary intact', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const p = { x: 3n, y: 5n, tag: true };"
+        "  const r1 = await contract.circuits.roundTrip(context, p);"
+        "  expect(r1.result).toEqual(p);"
+        "  const r2 = await contract.circuits.lastTag(r1.context);"
+        "  expect(r2.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; enum and vector cells in the local store, written through the assignment sugar
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Phase { setup, live, done };"
+      "local phase: Phase;"
+      "local grid: Vector<3, Uint<8>>;"
+      "export circuit start(): [] {"
+      "  phase = Phase.live;"
+      "  grid = [1, 2, 3];"
+      "}"
+      "export circuit started(): Boolean {"
+      "  return disclose(phase == Phase.live);"
+      "}"
+      "export circuit snapshot(): Vector<3, Uint<8>> {"
+      "  return disclose(grid);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('enum and vector local cells', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r0 = await contract.circuits.started(context);"
+        "  expect(r0.result).toEqual(false);"
+        "  const r1 = await contract.circuits.start(r0.context);"
+        "  const r2 = await contract.circuits.started(r1.context);"
+        "  expect(r2.result).toEqual(true);"
+        "  const r3 = await contract.circuits.snapshot(r2.context);"
+        "  expect(r3.result).toEqual([1n, 2n, 3n]);"
+        "});"
+        ))
+    )
+
+  ; a public and a local twin in one circuit: the public insert demands disclose, the
+  ; local one does not, and both stores answer membership independently
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pubSet: Set<Uint<8>>;"
+      "local locSet: Set<Uint<8>>;"
+      "local locList: List<Uint<16>>;"
+      "export circuit addBoth(v: Uint<8>): Boolean {"
+      "  pubSet.insert(disclose(v));"
+      "  locSet.insert(v);"
+      "  return disclose(locSet.member(v));"
+      "}"
+      "export circuit pushTwice(v: Uint<16>): Uint<64> {"
+      "  locList.pushFront(v);"
+      "  locList.pushFront(v);"
+      "  return disclose(locList.length());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('set and list twins across the two stores', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.addBoth(context, 4n);"
+        "  expect(r1.result).toEqual(true);"
+        "  const L = contractCode.ledger(r1.context.callContext.currentQueryContext.state);"
+        "  expect(L.pubSet.member(4n)).toEqual(true);"
+        "  expect(L.pubSet.member(5n)).toEqual(false);"
+        "  const r2 = await contract.circuits.pushTwice(r1.context, 9n);"
+        "  expect(r2.result).toEqual(2n);"
+        "  const r3 = await contract.circuits.pushTwice(r2.context, 9n);"
+        "  expect(r3.result).toEqual(4n);"
+        "});"
+        ))
+    )
+
+  ; a VM fault in local code surfaces as an error, not a wrong answer
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export circuit burn(n: Uint<16>): [] {"
+      "  credits.decrement(n);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('decrementing a local counter below zero faults', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  await expect(contract.circuits.burn(context, 5n)).rejects.toThrow();"
+        "});"
+        ))
+    )
+
+  ; more than 15 local fields forces a nested array on the local root, so the batched
+  ; path machinery runs for the local store
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local c00: Counter;"
+      "local c01: Counter;"
+      "local c02: Counter;"
+      "local c03: Counter;"
+      "local c04: Counter;"
+      "local c05: Counter;"
+      "local c06: Counter;"
+      "local c07: Counter;"
+      "local c08: Counter;"
+      "local c09: Counter;"
+      "local c10: Counter;"
+      "local c11: Counter;"
+      "local c12: Counter;"
+      "local c13: Counter;"
+      "local c14: Counter;"
+      "local c15: Counter;"
+      "local c16: Counter;"
+      "export circuit poke(): Uint<64> {"
+      "  c00.increment(1);"
+      "  c16.increment(2);"
+      "  return disclose(c16.read());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a batched local layout addresses its leaves', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.poke(context);"
+        "  expect(r1.result).toEqual(2n);"
+        "  const r2 = await contract.circuits.poke(r1.context);"
+        "  expect(r2.result).toEqual(4n);"
+        "});"
+        ))
+    )
+
+  ; host functions and local state coexist, a host result flows into the local store with no
+  ; disclose, and a persisted local StateValue restores through CircuitContextOptions
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "host test:oracle/secret@1.0.0 { secret(): Uint<64>; }"
+      "local stash: Uint<64>;"
+      "export circuit save(): [] {"
+      "  stash = secret();"
+      "}"
+      "export circuit reveal(): Uint<64> {"
+      "  return disclose(stash);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const secretOracle = (v: bigint) => ({ 'test:oracle/secret@1.0.0': { secret: () => v } });"
+        "test('a host result enters local state without disclose', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, secretOracle(42n));"
+        "  const r1 = await contract.circuits.save(context);"
+        "  const r2 = await contract.circuits.reveal(r1.context);"
+        "  expect(r2.result).toEqual(42n);"
+        "});"
+        "test('local state round-trips through CircuitContextOptions', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, secretOracle(7n));"
+        "  const r1 = await contract.circuits.save(context);"
+        "  const persisted = r1.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const context2 = runtime.createCircuitContext({"
+        "    circuitId: 'reveal',"
+        "    contractAddress: r1.context.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: r1.context.callContext.currentQueryContext.state,"
+        "    localState: persisted,"
+        "    hostInterfaceProvider: r1.context.hostInterfaceProvider,"
+        "  });"
+        "  const r2 = await contract.circuits.reveal(context2);"
+        "  expect(r2.result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  ; a local Merkle tree end to end: inserts, the local-read operations (a plain pinned
+  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof,
+  ; and the root pin letting the fold catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tree: MerkleTree<4, Bytes<8>>;"
+      "local prove(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const m = tree.findPathForLeaf(item);"
+      "  assert(m.is_some, 'leaf not found');"
+      "  return m.value;"
+      "}"
+      "local rootMatches(rt: MerkleTreeDigest): Boolean {"
+      "  return tree.checkRoot(rt) && tree.checkRoot(tree.root());"
+      "}"
+      "local slots(): Uint<64> {"
+      "  return tree.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  tree.insert(item);"
+      "}"
+      "export circuit member(item: Bytes<8>): Boolean {"
+      "  const p = prove(item);"
+      "  return disclose(rootMatches(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(slots());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local Merkle tree proves membership and the fold pins it', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const missing = new Uint8Array([9, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.add(r1.context, b);"
+        "  const r3 = await contract.circuits.count(r2.context);"
+        "  expect(r3.result).toEqual(2n);"
+        "  const prior = r3.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r4 = await contract.circuits.member(r3.context, a);"
+        "  expect(r4.result).toEqual(true);"
+        "  await expect(contract.circuits.member(r4.context, missing)).rejects.toThrow(/leaf not found/);"
+        "  const pd = r4.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r4.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
+        "      .toThrow(/re-executed/);"
+        "});"
+        ))
+    )
+
+  ; a local body is synchronous, therefore the lambdas, mappers, and folders printed inside one
+  ; are too (an `await` in a plain method is a syntax error); from a circuit, a local function
+  ; passed by name to map or fold crosses into the proof like any other local call
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tags: Set<Bytes<8>>;"
+      "local isTagged(x: Bytes<8>): Boolean {"
+      "  return tags.member(x);"
+      "}"
+      "local tagged(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return map((x) => tags.member(x), xs);"
+      "}"
+      "local countTagged(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs);"
+      "}"
+      "export circuit tag(x: Bytes<8>): [] {"
+      "  tags.insert(x);"
+      "}"
+      "export circuit which(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(tagged(xs));"
+      "}"
+      "export circuit howMany(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(countTagged(xs));"
+      "}"
+      "export circuit whichByName(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyByLambda(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs));"
+      "}"
+      "export ledger queries: Counter;"
+      "local countIfTagged(acc: Uint<8>, x: Bytes<8>): Uint<8> {"
+      "  return isTagged(x) ? (acc + 1) as Uint<8> : acc;"
+      "}"
+      "export circuit whichOnChain(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  queries.increment(1);"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyOnChain(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  queries.increment(1);"
+      "  return disclose(fold(countIfTagged, 0 as Uint<8>, xs));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('map and fold run synchronously in local functions and cross into the proof from circuits', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const c = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.tag(context, a);"
+        "  const r2 = await contract.circuits.tag(r1.context, b);"
+        "  const r3 = await contract.circuits.which(r2.context, [a, b, c]);"
+        "  expect(r3.result).toEqual([true, true, false]);"
+        "  const r4 = await contract.circuits.howMany(r3.context, [a, b, c]);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const r5 = await contract.circuits.whichByName(r4.context, [a, c, b]);"
+        "  expect(r5.result).toEqual([true, false, true]);"
+        "  const r6 = await contract.circuits.howManyByLambda(r5.context, [c, c, a]);"
+        "  expect(r6.result).toEqual(1n);"
+        "  // with a public op in the body the circuit is proved, so the local calls by name must"
+        "  // push their results as private inputs"
+        "  const r7 = await contract.circuits.whichOnChain(r6.context, [b, a, c]);"
+        "  expect(r7.result).toEqual([true, true, false]);"
+        "  expect(r7.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "  const r8 = await contract.circuits.howManyOnChain(r7.context, [a, b, c]);"
+        "  expect(r8.result).toEqual(2n);"
+        "  expect(r8.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "});"
+        ))
+    )
+
+  ; the tree reads that run in JavaScript rehash the stored tree on every read, which is cheap
+  ; because the VM keeps a tree hashed; a cache for the rehash was measured and not built, and
+  ; this pins what one would have to keep: a read sees every earlier write in the same call,
+  ; on the local store and on the public one
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "export ledger published: MerkleTree<4, Bytes<8>>;"
+      "local noted(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [notes.findPathForLeaf(a).is_some, notes.findPathForLeaf(b).is_some];"
+      "}"
+      "local grow(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  notes.insert(a);"
+      "  const r1 = notes.root();"
+      "  const before = noted(a, b);"
+      "  notes.insert(b);"
+      "  const after = noted(a, b);"
+      "  return [before[0], before[1], after[0], after[1], r1.field != notes.root().field];"
+      "}"
+      "export circuit record(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  return disclose(grow(a, b));"
+      "}"
+      "local seen(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [published.findPathForLeaf(a).is_some, published.findPathForLeaf(b).is_some];"
+      "}"
+      "export circuit publish(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean] {"
+      "  published.insert(disclose(a));"
+      "  const before = seen(a, b);"
+      "  published.insert(disclose(b));"
+      "  const after = seen(a, b);"
+      "  return disclose([before[0], before[1], after[0], after[1]]);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('tree reads see every write to their store within one call', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const prior = context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r1 = await contract.circuits.record(context, a, b);"
+        "  expect(r1.result).toEqual([true, false, true, true, true]);"
+        "  const pd = r1.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const r2 = await contract.circuits.publish(r1.context, a, b);"
+        "  expect(r2.result).toEqual([true, false, true, true]);"
+        "});"
+        ))
+    )
+
+  ; host functions end to end: the runtime registry resolves the implementation (none is
+  ; built in for the keys interface, so the seam is named until one is registered), every
+  ; result is recorded, a circuit's call crosses into the proof as a private input while a
+  ; local function's does not, and the declared result type is checked at run time
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local notes: Set<Bytes<32>>;"
+      "export ledger commitments: Set<Bytes<32>>;"
+      "local mine(): Bytes<32> {"
+      "  return persistentHash<Bytes<32>>(secretKey());"
+      "}"
+      "export circuit commit(): [] {"
+      "  const k = secretKey();"
+      "  commitments.insert(disclose(persistentHash<Bytes<32>>(k)));"
+      "  notes.insert(mine());"
+      "}"
+      "export circuit reveal(): Bytes<32> {"
+      "  return disclose(secretKey());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('host functions resolve through the context\\'s provider and cross into the proof from circuits', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  // the module declares what it requires, so a gate can check it against a provider before a run"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/keys@1.0.0': ['secretKey'] });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, bare.hostInterfaceProvider)).toEqual(["
+        "    { interfaceId: 'midnight:capsule/keys@1.0.0', resolved: false, missing: ['secretKey'] },"
+        "  ]);"
+        "  // the root's entry check, before anything runs"
+        "  await expect(contract.circuits.reveal(bare))"
+        "      .rejects.toThrow(/^reveal: the host interface provider resolves no 'midnight:capsule\\/keys@1.0.0', of which secretKey is required/);"
+        "  const key = new Uint8Array(32).fill(7);"
+        "  const context = withHostInterfaces(bare, { 'midnight:capsule/keys@1.0.0': { secretKey: () => key } });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, context.hostInterfaceProvider)).toEqual([]);"
+        "  const r1 = await contract.circuits.reveal(context);"
+        "  expect(r1.result).toEqual(key);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.commit(r1.context);"
+        "  const pd = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the circuit's own call and the local function's are both recorded, in call order"
+        "  expect(pd.hostOutputs).toHaveLength(2);"
+        "  expect(pd.hostOutputs![0]).toEqual(pd.hostOutputs![1]);"
+        "  // the circuit's host call, the local call's result, and the local op cross into the proof;"
+        "  // the local function's host call does not"
+        "  expect(pd.privateTranscriptOutputs).toHaveLength(3);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).commitments.size()).toEqual(1n);"
+        "  const shortKey = withHostInterfaces(r2.context, { 'midnight:capsule/keys@1.0.0': { secretKey: () => new Uint8Array(16) } });"
+        "  await expect(contract.circuits.reveal(shortKey))"
+        "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; a local-only circuit gets no zkir and is not provable, but it runs and its local effect
+  ; shows; the circuit with an on-chain effect is proved as before
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger counter: Counter;"
+      "export local notes: Counter;"
+      "export circuit noteLocally(): [] {"
+      "  notes.increment(1);"
+      "}"
+      "export circuit noteBoth(): [] {"
+      "  notes.increment(1);"
+      "  counter.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a circuit without an on-chain effect is not proved', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  expect(Object.keys(contract.provableCircuits)).toEqual(['noteBoth']);"
+        "  expect(Object.keys(contract.impureCircuits).sort()).toEqual(['noteBoth', 'noteLocally']);"
+        "  const r1 = await contract.circuits.noteLocally(context);"
+        "  const r2 = await contract.circuits.noteBoth(r1.context);"
+        "  expect(contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state).notes).toEqual(2n);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).counter).toEqual(1n);"
+        "});"
+        ))
+    )
+
+  ; the direction document's vendor module: any interface id compiles, and the registry
+  ; decides at call time whether an implementation exists
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "module identus_verification {"
+      "  export struct SignedDate {"
+      "    date: Uint<64>;"
+      "    issuer: Bytes<32>;"
+      "    signature: Bytes<64>;"
+      "  }"
+      "  export host identus:verification/age@1.2.0 {"
+      "    ageCredential(): SignedDate;"
+      "  }"
+      "}"
+      "import identus_verification;"
+      "export ledger issuers: Set<Bytes<32>>;"
+      "export circuit present(): Uint<64> {"
+      "  const credential = ageCredential();"
+      "  issuers.insert(disclose(credential.issuer));"
+      "  return disclose(credential.date);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a vendor-published host interface resolves through the provider', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  await expect(contract.circuits.present(bare))"
+        "      .rejects.toThrow(/^present: the host interface provider resolves no 'identus:verification\\/age@1.2.0'/);"
+        "  const issuer = new Uint8Array(32).fill(9);"
+        "  const context = withHostInterfaces(bare, {"
+        "    'identus:verification/age@1.2.0': {"
+        "      ageCredential: () => ({ date: 20010101n, issuer, signature: new Uint8Array(64).fill(1) }),"
+        "    },"
+        "  });"
+        "  const r = await contract.circuits.present(context);"
+        "  expect(r.result).toEqual(20010101n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).issuers.member(issuer)).toEqual(true);"
+        "  expect(r.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
+        "});"
+        ))
+    )
+
+  ; the standard library declares the wallet's coin operations as the zswap host interface,
+  ; which compact-runtime implements from the context, so a contract gets them with nothing
+  ; supplied by the DApp, from circuits and from local functions alike
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger owner: ZswapCoinPublicKey;"
+      "export circuit claim(): [] {"
+      "  owner = disclose(ownPublicKey());"
+      "}"
+      "local who(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+      "export circuit claimLocally(): [] {"
+      "  owner = disclose(who());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the standard library\\'s zswap host interface is served by the provider like any other', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  // of the interface's three functions only the reachable one is a requirement"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey'] });"
+        "  // the runtime resolves nothing by itself: without a provider the coin operations are unavailable"
+        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: undefined }))"
+        "      .rejects.toThrow(/^claim: the contract declares host functions but the circuit context carries no host interface provider/);"
+        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: { resolve: () => undefined } }))"
+        "      .rejects.toThrow(/^claim: the host interface provider resolves no 'midnight:capsule\\/zswap@1.0.0', of which ownPublicKey is required/);"
+        "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
+        "  const r1 = await contract.circuits.claim(context);"
+        "  expect(contractCode.ledger(r1.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd1.hostOutputs).toHaveLength(1);"
+        "  expect(pd1.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.claimLocally(r1.context);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd2 = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the local function's host call is recorded but only its own result crosses into the proof"
+        "  expect(pd2.hostOutputs).toHaveLength(1);"
+        "  expect(pd2.privateTranscriptOutputs).toHaveLength(1);"
+        "});"
+        ))
+    )
+
+  ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
+  ; check rather than a proof, so the negative case is a false answer, not a fault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local hist: HistoricMerkleTree<4, Bytes<8>>;"
+      "local pathAt(index: Field, item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  return hist.pathForLeaf(index, item);"
+      "}"
+      "local free(): Uint<64> {"
+      "  return hist.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  hist.insert(item);"
+      "}"
+      "export circuit proveAt(index: Field, item: Bytes<8>): Boolean {"
+      "  const p = pathAt(index, item);"
+      "  return disclose(hist.checkRoot(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(free());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local historic tree serves indexed paths', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.count(r1.context);"
+        "  expect(r2.result).toEqual(1n);"
+        "  const r3 = await contract.circuits.add(r2.context, b);"
+        "  const r4 = await contract.circuits.count(r3.context);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const prior = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r5 = await contract.circuits.proveAt(r4.context, 0n, a);"
+        "  expect(r5.result).toEqual(true);"
+        "  const r6 = await contract.circuits.proveAt(r5.context, 1n, b);"
+        "  expect(r6.result).toEqual(true);"
+        "  const r7 = await contract.circuits.proveAt(r6.context, 0n, b);"
+        "  expect(r7.result).toEqual(false);"
+        "  const pd = r5.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r5.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "});"
+        ))
+    )
+
+  ; data-bounded iteration over local containers: a Set and a Map fold into an accumulator
+  ; through local state, and the container pin lets the fold catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local seen: Set<Uint<8>>;"
+      "local weights: Map<Uint<8>, Uint<16>>;"
+      "local tally: Counter;"
+      "local sumWeights(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const kv of weights) {"
+      "    tally.increment(kv[1]);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "local sumSeen(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const v of seen) {"
+      "    tally.increment(v);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "export circuit note(k: Uint<8>, w: Uint<16>): [] {"
+      "  seen.insert(k);"
+      "  weights.insert(k, w);"
+      "}"
+      "export circuit sum(): Uint<64> {"
+      "  return disclose(sumWeights());"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumSeen());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('iteration folds local containers and pins them', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.note(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.sum(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const r4 = await contract.circuits.total(r3.context);"
+        "  expect(r4.result).toEqual(8n);"
+        "  const r5 = await contract.circuits.note(r4.context, 3n, 10n);"
+        "  const prior = r5.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r6 = await contract.circuits.sum(r5.context);"
+        "  expect(r6.result).toEqual(30n);"
+        "  const pd = r6.context.callProofDataTrace.at(-1)!;"
+        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
+        "  expect(folded.toString()).toEqual(r6.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
+        "      .toThrow(/re-executed/);"
+        "});"
+        ))
+    )
+
+  ; the localState accessor: export local mirrors export ledger, so the DApp reads the
+  ; exported fields of a persisted local state without running any circuit
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export local credits: Counter;"
+      "export local owners: Map<Uint<8>, Bytes<4>>;"
+      "export local seen: Set<Uint<8>>;"
+      "local hidden: Counter;"
+      "export circuit note(k: Uint<8>, v: Bytes<4>): [] {"
+      "  credits.increment(1);"
+      "  hidden.increment(2);"
+      "  owners.insert(k, v);"
+      "  seen.insert(k);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the localState accessor reads exported local fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.note(context, 3n, new Uint8Array([1, 2, 3, 4]));"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, new Uint8Array([5, 6, 7, 8]));"
+        "  const L = contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.owners.size()).toEqual(2n);"
+        "  expect(L.owners.member(3n)).toEqual(true);"
+        "  expect(L.owners.lookup(3n)).toEqual(new Uint8Array([1, 2, 3, 4]));"
+        "  expect(L.seen.member(5n)).toEqual(true);"
+        "  expect([...L.seen].sort()).toEqual([3n, 5n]);"
+        "  expect((L as any).hidden).toBeUndefined();"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState());"
+        "  expect(L0.credits).toEqual(0n);"
+        "  expect(L0.owners.isEmpty()).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; ledger reads from local functions are snapshot quotes: nothing reaches the public
+  ; transcript or the local one, the js-only tree reads work on public trees, and a
+  ; public container iterates without a pin
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: HistoricMerkleTree<4, Bytes<8>>;"
+      "local sum: Counter;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  if (prices.member(k)) {"
+      "    return prices.lookup(k);"
+      "  }"
+      "  return 0;"
+      "}"
+      "local sumPrices(): Uint<64> {"
+      "  sum.resetToDefault();"
+      "  for (const kv of prices) {"
+      "    sum.increment(kv[1]);"
+      "  }"
+      "  return sum.read();"
+      "}"
+      "local proveItem(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const p = registry.findPathForLeaf(item);"
+      "  assert(p.is_some, 'unknown item');"
+      "  return p.value;"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(item: Bytes<8>): [] {"
+      "  registry.insert(disclose(item));"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumPrices());"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return disclose(priceOf(pick()));"
+      "}"
+      "export circuit prove(item: Bytes<8>): Boolean {"
+      "  const p = proveItem(item);"
+      "  return disclose(registry.checkRoot(disclose(merkleTreePathRoot<4, Bytes<8>>(p))));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local functions read the ledger from the snapshot', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, { 'test:oracle/pick@1.0.0': { pick: () => 3n } });"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.total(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const pd = r3.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript).toEqual([]);"
+        "  expect(pd.localTranscript!.every((e) => e.tag === 'ops')).toBe(true);"
+        "  const r4 = await contract.circuits.chosen(r3.context);"
+        "  expect(r4.result).toEqual(10n);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r5 = await contract.circuits.register(r4.context, a);"
+        "  const r6 = await contract.circuits.prove(r5.context, a);"
+        "  expect(r6.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; the join constructor is the guarded prologue of the account's first landed circuit call:
+  ; it reads the ledger at that call's basis, records at offset 0, runs once per capsule, and
+  ; a second first call rehearsed against the same empty capsule diverges on the guard
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger members: Set<Uint<8>>;"
+      "export ledger round: Counter;"
+      "export local snapshot: Set<Uint<8>>;"
+      "export local joinedAt: Uint<64>;"
+      "local constructor {"
+      "  for (const m of members) {"
+      "    snapshot.insert(m);"
+      "  }"
+      "  joinedAt = round.read();"
+      "}"
+      "export circuit enroll(m: Uint<8>): [] {"
+      "  members.insert(disclose(m));"
+      "  round.increment(1);"
+      "}"
+      "export circuit sizeAtJoin(): Uint<64> {"
+      "  return disclose(snapshot.size());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const joinerContext = (ledgerContext: runtime.CircuitContext, localState?: runtime.StateValue) =>"
+        "  runtime.createCircuitContext({"
+        "    circuitId: 'join',"
+        "    contractAddress: ledgerContext.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: ledgerContext.callContext.currentQueryContext.state,"
+        "    localState: localState ?? contractCode.initialLocalState(),"
+        "  });"
+        "test('the join constructor runs at the first call against its basis', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  // the deployer joins at their first call, when the membership set is still empty"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const d2 = await contract.circuits.enroll(d1.context, 2n);"
+        "  const d3 = await contract.circuits.sizeAtJoin(d2.context);"
+        "  expect(d3.result).toEqual(0n);"
+        "  const D = contractCode.localState(d3.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(D.joinedAt).toEqual(0n);"
+        "  // a joiner's first call sees the ledger as of that call"
+        "  const j1 = await contract.circuits.enroll(joinerContext(d3.context), 7n);"
+        "  const pd = j1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript.length).toBeGreaterThan(0);"
+        "  const prologue = pd.localTranscript!.filter((e) => e.offset === 0);"
+        "  expect(prologue.length).toBeGreaterThan(1);"
+        "  expect(pd.localTranscript!.indexOf(prologue.at(-1)!)).toEqual(prologue.length - 1);"
+        "  const J = contractCode.localState(j1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect([...J.snapshot].sort()).toEqual([1n, 2n]);"
+        "  expect(J.joinedAt).toEqual(2n);"
+        "  // a later call records the guard read and nothing else of the prologue"
+        "  const j2 = await contract.circuits.enroll(j1.context, 8n);"
+        "  expect(j2.context.callProofDataTrace.at(-1)!.localTranscript!.length).toEqual(1);"
+        "  // the snapshot is as of the join, not the latest call"
+        "  const j3 = await contract.circuits.sizeAtJoin(j2.context);"
+        "  expect(j3.result).toEqual(2n);"
+        "  // the fold reproduces the joiner's state from the defaults, and the prologue survives"
+        "  // a split at the very start of the call"
+        "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
+        "  expect(whole.toString()).toEqual(j1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const guaranteed = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: 0 });"
+        "  expect(contractCode.localState(guaranteed).joinedAt).toEqual(2n);"
+        "});"
+        "test('two first calls in flight: the second diverges on the guard and re-executes', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const a = await contract.circuits.enroll(joinerContext(d1.context), 5n);"
+        "  const b = await contract.circuits.enroll(joinerContext(d1.context), 6n);"
+        "  const afterA = runtime.foldLocalTranscript(contractCode.initialLocalState(), a.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' });"
+        "  expect(() => runtime.foldLocalTranscript(afterA, b.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' }))"
+        "    .toThrow(/re-executed/);"
+        "  const b2 = await contract.circuits.enroll(joinerContext(d1.context, afterA), 6n);"
+        "  const pd = b2.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.localTranscript!.filter((e) => e.offset === 0).length).toEqual(1);"
+        "  const afterB = runtime.foldLocalTranscript(afterA, pd.localTranscript!, { tag: 'success' });"
+        "  expect(afterB.toString()).toEqual(afterA.toString());"
+        "});"
+        ))
+    )
+
+  ; V2: semantics identity. Every ADT operation on a local field emits the program its
+  ; ledger twin emits at the same path, answers the same, and faults the same; the
+  ; local-read tree ops agree with their snapshot twins on results (their programs differ
+  ; by the pin, by design). Twins are declared pairwise so the two stores share a layout.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pCell: Uint<16>;"
+      "local lCell: Uint<16>;"
+      "export ledger pCounter: Counter;"
+      "local lCounter: Counter;"
+      "export ledger pSet: Set<Uint<8>>;"
+      "local lSet: Set<Uint<8>>;"
+      "export ledger pMap: Map<Uint<8>, Uint<16>>;"
+      "local lMap: Map<Uint<8>, Uint<16>>;"
+      "export ledger pNested: Map<Uint<8>, Counter>;"
+      "local lNested: Map<Uint<8>, Counter>;"
+      "export ledger pList: List<Uint<8>>;"
+      "local lList: List<Uint<8>>;"
+      "export ledger pTree: MerkleTree<3, Bytes<4>>;"
+      "local lTree: MerkleTree<3, Bytes<4>>;"
+      "export ledger pHist: HistoricMerkleTree<3, Bytes<4>>;"
+      "local lHist: HistoricMerkleTree<3, Bytes<4>>;"
+      "export circuit cell_write(v: Uint<16>): [] { pCell = disclose(v); lCell = v; }"
+      "export circuit cell_read(): [Uint<16>, Uint<16>] { return [pCell, disclose(lCell)]; }"
+      "export circuit cell_resetToDefault(): [] { pCell.resetToDefault(); lCell.resetToDefault(); }"
+      "export circuit counter_increment(n: Uint<16>): [] { pCounter.increment(disclose(n)); lCounter.increment(n); }"
+      "export circuit counter_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); lCounter.decrement(n); }"
+      "export circuit counter_read(): [Uint<64>, Uint<64>] { return [pCounter.read(), disclose(lCounter.read())]; }"
+      "export circuit counter_lessThan(t: Uint<64>): [Boolean, Boolean] { return [pCounter.lessThan(disclose(t)), disclose(lCounter.lessThan(t))]; }"
+      "export circuit counter_resetToDefault(): [] { pCounter.resetToDefault(); lCounter.resetToDefault(); }"
+      "export circuit set_insert(e: Uint<8>): [] { pSet.insert(disclose(e)); lSet.insert(e); }"
+      "export circuit set_member(e: Uint<8>): [Boolean, Boolean] { return [pSet.member(disclose(e)), disclose(lSet.member(e))]; }"
+      "export circuit set_size(): [Uint<64>, Uint<64>] { return [pSet.size(), disclose(lSet.size())]; }"
+      "export circuit set_isEmpty(): [Boolean, Boolean] { return [pSet.isEmpty(), disclose(lSet.isEmpty())]; }"
+      "export circuit set_remove(e: Uint<8>): [] { pSet.remove(disclose(e)); lSet.remove(e); }"
+      "export circuit set_resetToDefault(): [] { pSet.resetToDefault(); lSet.resetToDefault(); }"
+      "export circuit map_insert(k: Uint<8>, v: Uint<16>): [] { pMap.insert(disclose(k), disclose(v)); lMap.insert(k, v); }"
+      "export circuit map_insertDefault(k: Uint<8>): [] { pMap.insertDefault(disclose(k)); lMap.insertDefault(k); }"
+      "export circuit map_member(k: Uint<8>): [Boolean, Boolean] { return [pMap.member(disclose(k)), disclose(lMap.member(k))]; }"
+      "export circuit map_lookup(k: Uint<8>): [Uint<16>, Uint<16>] { return [pMap.lookup(disclose(k)), disclose(lMap.lookup(k))]; }"
+      "export circuit map_size(): [Uint<64>, Uint<64>] { return [pMap.size(), disclose(lMap.size())]; }"
+      "export circuit map_isEmpty(): [Boolean, Boolean] { return [pMap.isEmpty(), disclose(lMap.isEmpty())]; }"
+      "export circuit map_remove(k: Uint<8>): [] { pMap.remove(disclose(k)); lMap.remove(k); }"
+      "export circuit map_resetToDefault(): [] { pMap.resetToDefault(); lMap.resetToDefault(); }"
+      "export circuit nested_insertDefault(k: Uint<8>): [] { pNested.insertDefault(disclose(k)); lNested.insertDefault(k); }"
+      "export circuit nested_increment(k: Uint<8>, n: Uint<16>): [] { pNested.lookup(disclose(k)).increment(disclose(n)); lNested.lookup(k).increment(n); }"
+      "export circuit nested_read(k: Uint<8>): [Uint<64>, Uint<64>] { return [pNested.lookup(disclose(k)).read(), disclose(lNested.lookup(k).read())]; }"
+      "export circuit list_pushFront(v: Uint<8>): [] { pList.pushFront(disclose(v)); lList.pushFront(v); }"
+      "export circuit list_head(): [Maybe<Uint<8>>, Maybe<Uint<8>>] { return [pList.head(), disclose(lList.head())]; }"
+      "export circuit list_length(): [Uint<64>, Uint<64>] { return [pList.length(), disclose(lList.length())]; }"
+      "export circuit list_isEmpty(): [Boolean, Boolean] { return [pList.isEmpty(), disclose(lList.isEmpty())]; }"
+      "export circuit list_popFront(): [] { pList.popFront(); lList.popFront(); }"
+      "export circuit list_resetToDefault(): [] { pList.resetToDefault(); lList.resetToDefault(); }"
+      "export circuit tree_insert(item: Bytes<4>): [] { pTree.insert(disclose(item)); lTree.insert(item); }"
+      "export circuit tree_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); lTree.insertIndex(item, i); }"
+      "export circuit tree_insertHash(h: Bytes<32>): [] { pTree.insertHash(disclose(h)); lTree.insertHash(h); }"
+      "export circuit tree_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pTree.insertHashIndex(disclose(h), disclose(i)); lTree.insertHashIndex(h, i); }"
+      "export circuit tree_insertIndexDefault(i: Uint<64>): [] { pTree.insertIndexDefault(disclose(i)); lTree.insertIndexDefault(i); }"
+      "export circuit tree_isFull(): [Boolean, Boolean] { return [pTree.isFull(), disclose(lTree.isFull())]; }"
+      "export circuit tree_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pTree.checkRoot(disclose(rt)), disclose(lTree.checkRoot(rt))]; }"
+      "export circuit tree_resetToDefault(): [] { pTree.resetToDefault(); lTree.resetToDefault(); }"
+      "export circuit hist_insert(item: Bytes<4>): [] { pHist.insert(disclose(item)); lHist.insert(item); }"
+      "export circuit hist_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pHist.insertIndex(disclose(item), disclose(i)); lHist.insertIndex(item, i); }"
+      "export circuit hist_insertHash(h: Bytes<32>): [] { pHist.insertHash(disclose(h)); lHist.insertHash(h); }"
+      "export circuit hist_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pHist.insertHashIndex(disclose(h), disclose(i)); lHist.insertHashIndex(h, i); }"
+      "export circuit hist_insertIndexDefault(i: Uint<64>): [] { pHist.insertIndexDefault(disclose(i)); lHist.insertIndexDefault(i); }"
+      "export circuit hist_isFull(): [Boolean, Boolean] { return [pHist.isFull(), disclose(lHist.isFull())]; }"
+      "export circuit hist_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pHist.checkRoot(disclose(rt)), disclose(lHist.checkRoot(rt))]; }"
+      "export circuit hist_resetHistory(): [] { pHist.resetHistory(); lHist.resetHistory(); }"
+      "export circuit hist_resetToDefault(): [] { pHist.resetToDefault(); lHist.resetToDefault(); }"
+      "local tree_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return [pTree.root(), lTree.root(), pTree.firstFree(), lTree.firstFree(),"
+      "          pTree.pathForLeaf(0 as Field, leaf), lTree.pathForLeaf(0 as Field, leaf),"
+      "          pTree.findPathForLeaf(leaf).is_some, lTree.findPathForLeaf(leaf).is_some];"
+      "}"
+      "local hist_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return [pHist.root(), lHist.root(), pHist.firstFree(), lHist.firstFree(),"
+      "          pHist.pathForLeaf(0 as Field, leaf), lHist.pathForLeaf(0 as Field, leaf),"
+      "          pHist.findPathForLeaf(leaf).is_some, lHist.findPathForLeaf(leaf).is_some];"
+      "}"
+      "export circuit tree_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return disclose(tree_reads(leaf));"
+      "}"
+      "export circuit hist_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return disclose(hist_reads(leaf));"
+      "}"
+      "export circuit pub_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); }"
+      "export circuit loc_decrement(n: Uint<16>): [] { lCounter.decrement(n); }"
+      "export circuit pub_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); }"
+      "export circuit loc_insertIndex(item: Bytes<4>, i: Uint<64>): [] { lTree.insertIndex(item, i); }"
+      )
+    (stage-javascript
+      '(
+        "const json = (x: unknown) => JSON.stringify(x, (_, v) => typeof v === 'bigint' ? v.toString() : v);"
+        "const b4 = (n: number) => new Uint8Array([n, 0, 0, 0]);"
+        "const b32 = (n: number) => new Uint8Array(32).fill(n);"
+        "test('every op emits the same program for both stores and agrees on results', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const steps: [string, unknown[]][] = ["
+        "    ['cell_read', []], ['cell_write', [7n]], ['cell_read', []], ['cell_resetToDefault', []], ['cell_read', []],"
+        "    ['counter_read', []], ['counter_increment', [5n]], ['counter_decrement', [2n]], ['counter_read', []],"
+        "    ['counter_lessThan', [3n]], ['counter_lessThan', [4n]], ['counter_resetToDefault', []], ['counter_read', []],"
+        "    ['set_isEmpty', []], ['set_insert', [3n]], ['set_insert', [9n]], ['set_member', [3n]], ['set_member', [4n]],"
+        "    ['set_size', []], ['set_remove', [3n]], ['set_member', [3n]], ['set_isEmpty', []], ['set_resetToDefault', []], ['set_size', []],"
+        "    ['map_isEmpty', []], ['map_insert', [1n, 100n]], ['map_insertDefault', [2n]], ['map_member', [1n]], ['map_member', [5n]],"
+        "    ['map_lookup', [1n]], ['map_lookup', [2n]], ['map_size', []], ['map_remove', [1n]], ['map_member', [1n]],"
+        "    ['map_isEmpty', []], ['map_resetToDefault', []], ['map_size', []],"
+        "    ['nested_insertDefault', [4n]], ['nested_increment', [4n, 6n]], ['nested_increment', [4n, 1n]], ['nested_read', [4n]],"
+        "    ['list_isEmpty', []], ['list_head', []], ['list_pushFront', [1n]], ['list_pushFront', [2n]], ['list_head', []],"
+        "    ['list_length', []], ['list_popFront', []], ['list_head', []], ['list_isEmpty', []], ['list_resetToDefault', []], ['list_length', []],"
+        "    ['tree_isFull', []], ['tree_insert', [b4(1)]], ['tree_insertIndex', [b4(2), 3n]], ['tree_insertHash', [b32(3)]],"
+        "    ['tree_insertHashIndex', [b32(4), 5n]], ['tree_insertIndexDefault', [6n]], ['tree_isFull', []],"
+        "    ['hist_isFull', []], ['hist_insert', [b4(1)]], ['hist_insertIndex', [b4(2), 3n]], ['hist_insertHash', [b32(3)]],"
+        "    ['hist_insertHashIndex', [b32(4), 5n]], ['hist_insertIndexDefault', [6n]], ['hist_isFull', []], ['hist_resetHistory', []],"
+        "  ];"
+        "  let ctx = context;"
+        "  for (const [name, args] of steps) {"
+        "    const r = await contract.circuits[name](ctx, ...args);"
+        "    const pd = r.context.callProofDataTrace.at(-1)!;"
+        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
+        "    expect(json(localOps), `${name}(${json(args)})`).toEqual(json(pd.publicTranscript));"
+        "    if (Array.isArray(r.result)) {"
+        "      expect(r.result[1], `${name}(${json(args)}) result`).toEqual(r.result[0]);"
+        "    }"
+        "    ctx = r.context;"
+        "  }"
+        "  // roots agree, so checkRoot agrees too, through the local-read twins"
+        "  const reads = await contract.circuits.tree_localReads(ctx, b4(1));"
+        "  const [proot, lroot, pfree, lfree, ppath, lpath, pfound, lfound] = reads.result;"
+        "  expect(lroot).toEqual(proot); expect(lfree).toEqual(pfree); expect(lpath).toEqual(ppath); expect(lfound).toEqual(pfound);"
+        "  expect(pfound).toEqual(true);"
+        "  const check = await contract.circuits.tree_checkRoot(reads.context, proot);"
+        "  expect(check.result).toEqual([true, true]);"
+        "  const hreads = await contract.circuits.hist_localReads(check.context, b4(1));"
+        "  expect(hreads.result[1]).toEqual(hreads.result[0]);"
+        "  expect(hreads.result[3]).toEqual(hreads.result[2]);"
+        "  expect(hreads.result[5]).toEqual(hreads.result[4]);"
+        "  const hcheck = await contract.circuits.hist_checkRoot(hreads.context, hreads.result[0]);"
+        "  expect(hcheck.result).toEqual([true, true]);"
+        "  ctx = hcheck.context;"
+        "  // resets"
+        "  for (const name of ['tree_resetToDefault', 'hist_resetToDefault']) {"
+        "    const r = await contract.circuits[name](ctx);"
+        "    const pd = r.context.callProofDataTrace.at(-1)!;"
+        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
+        "    expect(json(localOps), name).toEqual(json(pd.publicTranscript));"
+        "    ctx = r.context;"
+        "  }"
+        "  const after = await contract.circuits.tree_isFull(ctx);"
+        "  expect(after.result).toEqual([false, false]);"
+        "});"
+        "test('faults agree', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const msg = async (p: Promise<unknown>) => { try { await p; return 'no error'; } catch (e) { return String(e); } };"
+        "  const pubDec = await msg(contract.circuits.pub_decrement(context, 1n));"
+        "  const locDec = await msg(contract.circuits.loc_decrement(context, 1n));"
+        "  const pubIdx = await msg(contract.circuits.pub_insertIndex(context, b4(1), 99n));"
+        "  const locIdx = await msg(contract.circuits.loc_insertIndex(context, b4(1), 99n));"
+        "  expect(pubDec).not.toEqual('no error');"
+        "  expect(locDec).toEqual(pubDec);"
+        "  expect(pubIdx).not.toEqual('no error');"
+        "  expect(locIdx).toEqual(pubIdx);"
+        "});"
+        ))
+    )
+
+  ; decision 7: an exported local function is a method of localState(); it stays an ordinary
+  ; local function for circuits, and one that reads the ledger (directly or through the local
+  ; functions it calls) runs only when the accessor is given a ledger state
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: MerkleTree<4, Bytes<8>>;"
+      "export local credits: Counter;"
+      "local seen: Set<Uint<8>>;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "pure circuit twice(n: Uint<64>): Uint<64> {"
+      "  return n * 2 as Uint<64>;"
+      "}"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.member(k) ? prices.lookup(k) : 0;"
+      "}"
+      "export local quote(k: Uint<8>): Uint<64> {"
+      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
+      "}"
+      "export local seenBefore(k: Uint<8>): Boolean {"
+      "  return seen.member(k);"
+      "}"
+      "export local noteProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return notes.findPathForLeaf(leaf);"
+      "}"
+      "export local registryProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return registry.findPathForLeaf(leaf);"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(leaf: Bytes<8>): [] {"
+      "  registry.insert(disclose(leaf));"
+      "}"
+      "export circuit tick(k: Uint<8>, leaf: Bytes<8>): [] {"
+      "  credits.increment(1);"
+      "  seen.insert(k);"
+      "  notes.insert(leaf);"
+      "}"
+      "export circuit check(k: Uint<8>): Uint<64> {"
+      "  return disclose(quote(k));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('exported local functions are methods of localState', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const leaf = new Uint8Array([7, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.register(r1.context, leaf);"
+        "  const r3 = await contract.circuits.tick(r2.context, 3n, leaf);"
+        "  const r4 = await contract.circuits.tick(r3.context, 5n, leaf);"
+        "  const local = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const ledger = r4.context.callContext.currentQueryContext.state;"
+        "  const L = contractCode.localState(local, ledger);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.quote(3n)).toEqual(14n);"
+        "  expect(L.quote(4n)).toEqual(4n);"
+        "  expect(L.seenBefore(5n)).toEqual(true);"
+        "  expect(L.seenBefore(6n)).toEqual(false);"
+        "  expect(L.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(new Uint8Array(8)).is_some).toEqual(false);"
+        "  // the same function is still an ordinary local function for circuits"
+        "  const r5 = await contract.circuits.check(r4.context, 3n);"
+        "  expect(r5.result).toEqual(14n);"
+        "  // before any call, the accessor answers from the declaration defaults"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState(), ledger);"
+        "  expect(L0.quote(3n)).toEqual(10n);"
+        "  // a function that reads the ledger refuses to run without a ledger state; one that"
+        "  // does not runs with the local state alone"
+        "  const Lno = (contractCode as any).localState(local);"
+        "  expect(Lno.seenBefore(3n)).toEqual(true);"
+        "  expect(Lno.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(() => Lno.quote(3n)).toThrow(/needs a ledger state/);"
+        "  expect(() => (L as any).quote(300n)).toThrow();"
+        "  expect(() => (L as any).seenBefore()).toThrow(/expected 1 argument/);"
+        "});"
+        ))
+    )
+
+  ; the ledger-state parameter is optional exactly when no exported local function reads the
+  ; ledger; the .d.ts is exercised by the type-checker, so the one-argument call must type
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "export local balance(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(): [] {"
+      "  total.increment(1);"
+      "  credits.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('no exported local function reads the ledger, so localState takes the local state alone', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.tick(context);"
+        "  const L = contractCode.localState(r1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.balance()).toEqual(1n);"
+        "  expect(contractCode.localState(contractCode.initialLocalState()).balance()).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  ; a program with exported local functions but no local declarations still gets a local store,
+  ; empty, so the accessor and initialLocalState() exist
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "export local snapshotTotal(): Uint<64> {"
+      "  return total.read();"
+      "}"
+      "export circuit bump(): [] {"
+      "  total.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an exported local function with no local fields still has a store to hang on', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.bump(context);"
+        "  const L = contractCode.localState(contractCode.initialLocalState(), r1.context.callContext.currentQueryContext.state);"
+        "  expect(L.snapshotTotal()).toEqual(1n);"
+        "});"
+        ))
+    )
+
+  ; a snapshot read's result carries its arguments' taint: witness data cannot launder
+  ; through a public lookup in a local function
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.lookup(k);"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return priceOf(pick());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function pick at line 3 char 31" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
+    )
+
+  ; a local operation's result is witness data: returning it from an exported circuit
+  ; without disclose is an error
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export circuit peek(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the result of an operation on local field credits at line 4 char 10" ("\n    nature of the disclosure:\n      the value returned from exported circuit peek might disclose the witness value"))))
+    )
+
+  ; phase 2, cross-contract local state: a callee's capsule is installed before its wrapper runs
+  ; (the account's folded state, or the declaration defaults at first touch, when its local
+  ; constructor runs inside the caller's transaction), its host interfaces are checked at
+  ; resolution, each capsule gets its own record, and the caller's record pins the callee's return
+  (test-group
+    ((source-file "test-center/composable/Capsule/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Capsule/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/capsule.ts")))
+
+  ; the direction document's worked example: the vendor module, the registry with its own private
+  ; books as a callee, and the ballot as the root, with two participants folding from scratch
+  (test-group
+    ((source-file "test-center/composable/Ballot/Registry.compact")
+     (stage-javascript registryCode '()))
+    ((source-file "test-center/composable/Ballot/Ballot.compact")
+     (stage-javascript ballotCode "test-center/ts/composable/ballot.ts")))
+
+)
+
 (run-javascript)
 )
 
@@ -97033,1369 +98398,6 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
     )
-)
-
-(run-tests print-typescript
-  ; local state end to end: join constructor seeds it, a circuit body operates on it directly,
-  ; a local function evolves it, and the result crosses into the proof as a disclosed value
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger total: Counter;"
-      "local credits: Counter;"
-      "local constructor {"
-      "  credits.increment(3);"
-      "}"
-      "local spend(n: Uint<16>): Uint<64> {"
-      "  credits.decrement(1);"
-      "  return credits.read();"
-      "}"
-      "export circuit tick(n: Uint<16>): Uint<64> {"
-      "  total.increment(1);"
-      "  credits.increment(n);"
-      "  return disclose(spend(n));"
-      "}"
-      "export circuit staged(n: Uint<16>): [] {"
-      "  credits.increment(n);"
-      "  kernel.checkpoint();"
-      "  credits.increment(n);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('local state evolves across chained calls', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.tick(context, 2n);"
-        "  expect(r1.result).toEqual(4n);"
-        "  const r2 = await contract.circuits.tick(r1.context, 4n);"
-        "  expect(r2.result).toEqual(7n);"
-        "  const L = contractCode.ledger(r2.context.callContext.currentQueryContext.state);"
-        "  expect(L.total).toEqual(2n);"
-        "});"
-        "test('initialLocalState is deterministic', async () => {"
-        "  const a = contractCode.initialLocalState();"
-        "  const b = contractCode.initialLocalState();"
-        "  expect(a.toString()).toEqual(b.toString());"
-        "});"
-        "test('the recorded local transcript folds to the live state', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r = await contract.circuits.tick(context, 2n);"
-        "  const pd = r.context.callProofDataTrace.at(-1)!;"
-        "  const folded = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
-        "  const live = r.context.callContext.currentLocalQueryContext!.state.state;"
-        "  expect(folded.toString()).toEqual(live.toString());"
-        "});"
-        "test('a checkpoint splits the local fold', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r = await contract.circuits.staged(context, 5n);"
-        "  const pd = r.context.callProofDataTrace.at(-1)!;"
-        "  const c = pd.publicTranscript.findIndex((op) => (op as unknown) === 'ckpt' || (typeof op === 'object' && op !== null && 'ckpt' in (op as object)));"
-        "  expect(c).toBeGreaterThanOrEqual(0);"
-        "  // the local constructor's guard cell holds index 0 of the local root, so credits is index 1"
-        "  const dec = (sv: runtime.StateValue) => { let v = 0n; const b = sv.asArray()![1].asCell().value[0]; for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) | BigInt(b[i]); return v; };"
-        "  const partial = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: c });"
-        "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
-        "  expect(dec(partial)).toEqual(8n);"
-        "  expect(dec(whole)).toEqual(13n);"
-        "  expect(whole.toString()).toEqual(r.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "});"
-        ))
-    )
-
-  ; guarded consumption: conditionally executed local operations and local calls, driven
-  ; through both branch polarities and validated against the generated zkir
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local bank: Counter;"
-      "local constructor {"
-      "  bank.increment(1);"
-      "}"
-      "local sample(): Uint<64> {"
-      "  return bank.read();"
-      "}"
-      "export circuit maybeBump(b: Boolean, n: Uint<16>): Uint<64> {"
-      "  if (b) {"
-      "    bank.increment(n);"
-      "  }"
-      "  return disclose(b ? sample() : 0);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('guarded local operations align with the circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.maybeBump(context, true, 5n);"
-        "  expect(r1.result).toEqual(6n);"
-        "  const r2 = await contract.circuits.maybeBump(r1.context, false, 5n);"
-        "  expect(r2.result).toEqual(0n);"
-        "  const r3 = await contract.circuits.maybeBump(r2.context, true, 1n);"
-        "  expect(r3.result).toEqual(7n);"
-        "});"
-        ))
-    )
-
-  ; the rest of the callable surface: a local map with computed keys, a nested ADT reached
-  ; through a path element, local-to-local calls, a pure circuit called from local code, and
-  ; a join constructor that seeds state through a local function
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local balances: Map<Bytes<1>, Uint<64>>;"
-      "local marks: Map<Bytes<1>, Counter>;"
-      "local tag: Counter;"
-      "local constructor {"
-      "  seedTag();"
-      "}"
-      "local seedTag(): [] {"
-      "  tag.increment(7);"
-      "}"
-      "pure circuit floorTen(v: Uint<64>): Uint<64> {"
-      "  return v < 10 ? 10 : v;"
-      "}"
-      "local put(k: Bytes<1>, v: Uint<64>): [] {"
-      "  balances.insert(k, floorTen(v));"
-      "}"
-      "local getOr(k: Bytes<1>): Uint<64> {"
-      "  if (balances.member(k)) {"
-      "    return balances.lookup(k);"
-      "  }"
-      "  return tag.read();"
-      "}"
-      "local mark(k: Bytes<1>): Uint<64> {"
-      "  if (!marks.member(k)) {"
-      "    marks.insertDefault(k);"
-      "  }"
-      "  marks.lookup(k).increment(1);"
-      "  return marks.lookup(k).read();"
-      "}"
-      "export circuit store(k: Bytes<1>, v: Uint<64>): [] {"
-      "  put(k, v);"
-      "}"
-      "export circuit fetch(k: Bytes<1>): Uint<64> {"
-      "  return disclose(getOr(k));"
-      "}"
-      "export circuit stamp(k: Bytes<1>): Uint<64> {"
-      "  return disclose(mark(k));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('local maps, nested ADTs, and the local call graph', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const k = new Uint8Array([1]);"
-        "  const k2 = new Uint8Array([2]);"
-        "  const r1 = await contract.circuits.fetch(context, k);"
-        "  expect(r1.result).toEqual(7n);"
-        "  const r2 = await contract.circuits.store(r1.context, k, 3n);"
-        "  const r3 = await contract.circuits.fetch(r2.context, k);"
-        "  expect(r3.result).toEqual(10n);"
-        "  const r4 = await contract.circuits.stamp(r3.context, k2);"
-        "  expect(r4.result).toEqual(1n);"
-        "  const r5 = await contract.circuits.stamp(r4.context, k2);"
-        "  expect(r5.result).toEqual(2n);"
-        "});"
-        ))
-    )
-
-  ; compound types across the circuit-to-local boundary: a struct result is several private
-  ; inputs, so this is the multi-primitive flattening the Counter tests never touch
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "struct Point { x: Field, y: Field, tag: Boolean };"
-      "local last: Point;"
-      "local remember(p: Point): Point {"
-      "  last = p;"
-      "  return last;"
-      "}"
-      "export circuit roundTrip(p: Point): Point {"
-      "  return disclose(remember(p));"
-      "}"
-      "export circuit lastTag(): Boolean {"
-      "  return disclose(last.tag);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a struct crosses the local boundary intact', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const p = { x: 3n, y: 5n, tag: true };"
-        "  const r1 = await contract.circuits.roundTrip(context, p);"
-        "  expect(r1.result).toEqual(p);"
-        "  const r2 = await contract.circuits.lastTag(r1.context);"
-        "  expect(r2.result).toEqual(true);"
-        "});"
-        ))
-    )
-
-  ; enum and vector cells in the local store, written through the assignment sugar
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "enum Phase { setup, live, done };"
-      "local phase: Phase;"
-      "local grid: Vector<3, Uint<8>>;"
-      "export circuit start(): [] {"
-      "  phase = Phase.live;"
-      "  grid = [1, 2, 3];"
-      "}"
-      "export circuit started(): Boolean {"
-      "  return disclose(phase == Phase.live);"
-      "}"
-      "export circuit snapshot(): Vector<3, Uint<8>> {"
-      "  return disclose(grid);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('enum and vector local cells', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r0 = await contract.circuits.started(context);"
-        "  expect(r0.result).toEqual(false);"
-        "  const r1 = await contract.circuits.start(r0.context);"
-        "  const r2 = await contract.circuits.started(r1.context);"
-        "  expect(r2.result).toEqual(true);"
-        "  const r3 = await contract.circuits.snapshot(r2.context);"
-        "  expect(r3.result).toEqual([1n, 2n, 3n]);"
-        "});"
-        ))
-    )
-
-  ; a public and a local twin in one circuit: the public insert demands disclose, the
-  ; local one does not, and both stores answer membership independently
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger pubSet: Set<Uint<8>>;"
-      "local locSet: Set<Uint<8>>;"
-      "local locList: List<Uint<16>>;"
-      "export circuit addBoth(v: Uint<8>): Boolean {"
-      "  pubSet.insert(disclose(v));"
-      "  locSet.insert(v);"
-      "  return disclose(locSet.member(v));"
-      "}"
-      "export circuit pushTwice(v: Uint<16>): Uint<64> {"
-      "  locList.pushFront(v);"
-      "  locList.pushFront(v);"
-      "  return disclose(locList.length());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('set and list twins across the two stores', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.addBoth(context, 4n);"
-        "  expect(r1.result).toEqual(true);"
-        "  const L = contractCode.ledger(r1.context.callContext.currentQueryContext.state);"
-        "  expect(L.pubSet.member(4n)).toEqual(true);"
-        "  expect(L.pubSet.member(5n)).toEqual(false);"
-        "  const r2 = await contract.circuits.pushTwice(r1.context, 9n);"
-        "  expect(r2.result).toEqual(2n);"
-        "  const r3 = await contract.circuits.pushTwice(r2.context, 9n);"
-        "  expect(r3.result).toEqual(4n);"
-        "});"
-        ))
-    )
-
-  ; a VM fault in local code surfaces as an error, not a wrong answer
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local credits: Counter;"
-      "export circuit burn(n: Uint<16>): [] {"
-      "  credits.decrement(n);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('decrementing a local counter below zero faults', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  await expect(contract.circuits.burn(context, 5n)).rejects.toThrow();"
-        "});"
-        ))
-    )
-
-  ; more than 15 local fields forces a nested array on the local root, so the batched
-  ; path machinery runs for the local store
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local c00: Counter;"
-      "local c01: Counter;"
-      "local c02: Counter;"
-      "local c03: Counter;"
-      "local c04: Counter;"
-      "local c05: Counter;"
-      "local c06: Counter;"
-      "local c07: Counter;"
-      "local c08: Counter;"
-      "local c09: Counter;"
-      "local c10: Counter;"
-      "local c11: Counter;"
-      "local c12: Counter;"
-      "local c13: Counter;"
-      "local c14: Counter;"
-      "local c15: Counter;"
-      "local c16: Counter;"
-      "export circuit poke(): Uint<64> {"
-      "  c00.increment(1);"
-      "  c16.increment(2);"
-      "  return disclose(c16.read());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a batched local layout addresses its leaves', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.poke(context);"
-        "  expect(r1.result).toEqual(2n);"
-        "  const r2 = await contract.circuits.poke(r1.context);"
-        "  expect(r2.result).toEqual(4n);"
-        "});"
-        ))
-    )
-
-  ; host functions and local state coexist, a host result flows into the local store with no
-  ; disclose, and a persisted local StateValue restores through CircuitContextOptions
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "host test:oracle/secret@1.0.0 { secret(): Uint<64>; }"
-      "local stash: Uint<64>;"
-      "export circuit save(): [] {"
-      "  stash = secret();"
-      "}"
-      "export circuit reveal(): Uint<64> {"
-      "  return disclose(stash);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "const secretOracle = (v: bigint) => ({ 'test:oracle/secret@1.0.0': { secret: () => v } });"
-        "test('a host result enters local state without disclose', async () => {"
-        "  const [contract, context0] = await startContract(contractCode);"
-        "  const context = withHostInterfaces(context0, secretOracle(42n));"
-        "  const r1 = await contract.circuits.save(context);"
-        "  const r2 = await contract.circuits.reveal(r1.context);"
-        "  expect(r2.result).toEqual(42n);"
-        "});"
-        "test('local state round-trips through CircuitContextOptions', async () => {"
-        "  const [contract, context0] = await startContract(contractCode);"
-        "  const context = withHostInterfaces(context0, secretOracle(7n));"
-        "  const r1 = await contract.circuits.save(context);"
-        "  const persisted = r1.context.callContext.currentLocalQueryContext!.state.state;"
-        "  const context2 = runtime.createCircuitContext({"
-        "    circuitId: 'reveal',"
-        "    contractAddress: r1.context.callContext.contractAddress,"
-        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
-        "    contractState: r1.context.callContext.currentQueryContext.state,"
-        "    localState: persisted,"
-        "    hostInterfaceProvider: r1.context.hostInterfaceProvider,"
-        "  });"
-        "  const r2 = await contract.circuits.reveal(context2);"
-        "  expect(r2.result).toEqual(7n);"
-        "});"
-        ))
-    )
-
-  ; a local Merkle tree end to end: inserts, the local-read operations (a plain pinned
-  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof,
-  ; and the root pin letting the fold catch a divergent prior
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local tree: MerkleTree<4, Bytes<8>>;"
-      "local prove(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
-      "  const m = tree.findPathForLeaf(item);"
-      "  assert(m.is_some, 'leaf not found');"
-      "  return m.value;"
-      "}"
-      "local rootMatches(rt: MerkleTreeDigest): Boolean {"
-      "  return tree.checkRoot(rt) && tree.checkRoot(tree.root());"
-      "}"
-      "local slots(): Uint<64> {"
-      "  return tree.firstFree();"
-      "}"
-      "export circuit add(item: Bytes<8>): [] {"
-      "  tree.insert(item);"
-      "}"
-      "export circuit member(item: Bytes<8>): Boolean {"
-      "  const p = prove(item);"
-      "  return disclose(rootMatches(merkleTreePathRoot<4, Bytes<8>>(p)));"
-      "}"
-      "export circuit count(): Uint<64> {"
-      "  return disclose(slots());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a local Merkle tree proves membership and the fold pins it', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const missing = new Uint8Array([9, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const r1 = await contract.circuits.add(context, a);"
-        "  const r2 = await contract.circuits.add(r1.context, b);"
-        "  const r3 = await contract.circuits.count(r2.context);"
-        "  expect(r3.result).toEqual(2n);"
-        "  const prior = r3.context.callContext.currentLocalQueryContext!.state.state;"
-        "  const r4 = await contract.circuits.member(r3.context, a);"
-        "  expect(r4.result).toEqual(true);"
-        "  await expect(contract.circuits.member(r4.context, missing)).rejects.toThrow(/leaf not found/);"
-        "  const pd = r4.context.callProofDataTrace.at(-1)!;"
-        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
-        "  expect(folded.toString()).toEqual(r4.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
-        "      .toThrow(/re-executed/);"
-        "});"
-        ))
-    )
-
-  ; a local body is synchronous, therefore the lambdas, mappers, and folders printed inside one
-  ; are too (an `await` in a plain method is a syntax error); from a circuit, a local function
-  ; passed by name to map or fold crosses into the proof like any other local call
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local tags: Set<Bytes<8>>;"
-      "local isTagged(x: Bytes<8>): Boolean {"
-      "  return tags.member(x);"
-      "}"
-      "local tagged(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
-      "  return map((x) => tags.member(x), xs);"
-      "}"
-      "local countTagged(xs: Vector<3, Bytes<8>>): Uint<8> {"
-      "  return fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs);"
-      "}"
-      "export circuit tag(x: Bytes<8>): [] {"
-      "  tags.insert(x);"
-      "}"
-      "export circuit which(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
-      "  return disclose(tagged(xs));"
-      "}"
-      "export circuit howMany(xs: Vector<3, Bytes<8>>): Uint<8> {"
-      "  return disclose(countTagged(xs));"
-      "}"
-      "export circuit whichByName(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
-      "  return disclose(map(isTagged, xs));"
-      "}"
-      "export circuit howManyByLambda(xs: Vector<3, Bytes<8>>): Uint<8> {"
-      "  return disclose(fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs));"
-      "}"
-      "export ledger queries: Counter;"
-      "local countIfTagged(acc: Uint<8>, x: Bytes<8>): Uint<8> {"
-      "  return isTagged(x) ? (acc + 1) as Uint<8> : acc;"
-      "}"
-      "export circuit whichOnChain(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
-      "  queries.increment(1);"
-      "  return disclose(map(isTagged, xs));"
-      "}"
-      "export circuit howManyOnChain(xs: Vector<3, Bytes<8>>): Uint<8> {"
-      "  queries.increment(1);"
-      "  return disclose(fold(countIfTagged, 0 as Uint<8>, xs));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('map and fold run synchronously in local functions and cross into the proof from circuits', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const c = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const r1 = await contract.circuits.tag(context, a);"
-        "  const r2 = await contract.circuits.tag(r1.context, b);"
-        "  const r3 = await contract.circuits.which(r2.context, [a, b, c]);"
-        "  expect(r3.result).toEqual([true, true, false]);"
-        "  const r4 = await contract.circuits.howMany(r3.context, [a, b, c]);"
-        "  expect(r4.result).toEqual(2n);"
-        "  const r5 = await contract.circuits.whichByName(r4.context, [a, c, b]);"
-        "  expect(r5.result).toEqual([true, false, true]);"
-        "  const r6 = await contract.circuits.howManyByLambda(r5.context, [c, c, a]);"
-        "  expect(r6.result).toEqual(1n);"
-        "  // with a public op in the body the circuit is proved, so the local calls by name must"
-        "  // push their results as private inputs"
-        "  const r7 = await contract.circuits.whichOnChain(r6.context, [b, a, c]);"
-        "  expect(r7.result).toEqual([true, true, false]);"
-        "  expect(r7.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
-        "  const r8 = await contract.circuits.howManyOnChain(r7.context, [a, b, c]);"
-        "  expect(r8.result).toEqual(2n);"
-        "  expect(r8.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
-        "});"
-        ))
-    )
-
-  ; the tree reads that run in JavaScript rehash the stored tree on every read, which is cheap
-  ; because the VM keeps a tree hashed; a cache for the rehash was measured and not built, and
-  ; this pins what one would have to keep: a read sees every earlier write in the same call,
-  ; on the local store and on the public one
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local notes: MerkleTree<4, Bytes<8>>;"
-      "export ledger published: MerkleTree<4, Bytes<8>>;"
-      "local noted(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
-      "  return [notes.findPathForLeaf(a).is_some, notes.findPathForLeaf(b).is_some];"
-      "}"
-      "local grow(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
-      "  notes.insert(a);"
-      "  const r1 = notes.root();"
-      "  const before = noted(a, b);"
-      "  notes.insert(b);"
-      "  const after = noted(a, b);"
-      "  return [before[0], before[1], after[0], after[1], r1.field != notes.root().field];"
-      "}"
-      "export circuit record(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
-      "  return disclose(grow(a, b));"
-      "}"
-      "local seen(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
-      "  return [published.findPathForLeaf(a).is_some, published.findPathForLeaf(b).is_some];"
-      "}"
-      "export circuit publish(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean] {"
-      "  published.insert(disclose(a));"
-      "  const before = seen(a, b);"
-      "  published.insert(disclose(b));"
-      "  const after = seen(a, b);"
-      "  return disclose([before[0], before[1], after[0], after[1]]);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('tree reads see every write to their store within one call', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const prior = context.callContext.currentLocalQueryContext!.state.state;"
-        "  const r1 = await contract.circuits.record(context, a, b);"
-        "  expect(r1.result).toEqual([true, false, true, true, true]);"
-        "  const pd = r1.context.callProofDataTrace.at(-1)!;"
-        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
-        "  expect(folded.toString()).toEqual(r1.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "  const r2 = await contract.circuits.publish(r1.context, a, b);"
-        "  expect(r2.result).toEqual([true, false, true, true]);"
-        "});"
-        ))
-    )
-
-  ; host functions end to end: the runtime registry resolves the implementation (none is
-  ; built in for the keys interface, so the seam is named until one is registered), every
-  ; result is recorded, a circuit's call crosses into the proof as a private input while a
-  ; local function's does not, and the declared result type is checked at run time
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "host midnight:capsule/keys@1.0.0 {"
-      "  secretKey(): Bytes<32>;"
-      "}"
-      "local notes: Set<Bytes<32>>;"
-      "export ledger commitments: Set<Bytes<32>>;"
-      "local mine(): Bytes<32> {"
-      "  return persistentHash<Bytes<32>>(secretKey());"
-      "}"
-      "export circuit commit(): [] {"
-      "  const k = secretKey();"
-      "  commitments.insert(disclose(persistentHash<Bytes<32>>(k)));"
-      "  notes.insert(mine());"
-      "}"
-      "export circuit reveal(): Bytes<32> {"
-      "  return disclose(secretKey());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('host functions resolve through the context\\'s provider and cross into the proof from circuits', async () => {"
-        "  const [contract, bare] = await startContract(contractCode);"
-        "  // the module declares what it requires, so a gate can check it against a provider before a run"
-        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/keys@1.0.0': ['secretKey'] });"
-        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, bare.hostInterfaceProvider)).toEqual(["
-        "    { interfaceId: 'midnight:capsule/keys@1.0.0', resolved: false, missing: ['secretKey'] },"
-        "  ]);"
-        "  // the root's entry check, before anything runs"
-        "  await expect(contract.circuits.reveal(bare))"
-        "      .rejects.toThrow(/^reveal: the host interface provider resolves no 'midnight:capsule\\/keys@1.0.0', of which secretKey is required/);"
-        "  const key = new Uint8Array(32).fill(7);"
-        "  const context = withHostInterfaces(bare, { 'midnight:capsule/keys@1.0.0': { secretKey: () => key } });"
-        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, context.hostInterfaceProvider)).toEqual([]);"
-        "  const r1 = await contract.circuits.reveal(context);"
-        "  expect(r1.result).toEqual(key);"
-        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
-        "  expect(r1.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(1);"
-        "  const r2 = await contract.circuits.commit(r1.context);"
-        "  const pd = r2.context.callProofDataTrace.at(-1)!;"
-        "  // the circuit's own call and the local function's are both recorded, in call order"
-        "  expect(pd.hostOutputs).toHaveLength(2);"
-        "  expect(pd.hostOutputs![0]).toEqual(pd.hostOutputs![1]);"
-        "  // the circuit's host call, the local call's result, and the local op cross into the proof;"
-        "  // the local function's host call does not"
-        "  expect(pd.privateTranscriptOutputs).toHaveLength(3);"
-        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).commitments.size()).toEqual(1n);"
-        "  const shortKey = withHostInterfaces(r2.context, { 'midnight:capsule/keys@1.0.0': { secretKey: () => new Uint8Array(16) } });"
-        "  await expect(contract.circuits.reveal(shortKey))"
-        "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
-        "});"
-        ))
-    )
-
-  ; a local-only circuit gets no zkir and is not provable, but it runs and its local effect
-  ; shows; the circuit with an on-chain effect is proved as before
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger counter: Counter;"
-      "export local notes: Counter;"
-      "export circuit noteLocally(): [] {"
-      "  notes.increment(1);"
-      "}"
-      "export circuit noteBoth(): [] {"
-      "  notes.increment(1);"
-      "  counter.increment(1);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a circuit without an on-chain effect is not proved', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  expect(Object.keys(contract.provableCircuits)).toEqual(['noteBoth']);"
-        "  expect(Object.keys(contract.impureCircuits).sort()).toEqual(['noteBoth', 'noteLocally']);"
-        "  const r1 = await contract.circuits.noteLocally(context);"
-        "  const r2 = await contract.circuits.noteBoth(r1.context);"
-        "  expect(contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state).notes).toEqual(2n);"
-        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).counter).toEqual(1n);"
-        "});"
-        ))
-    )
-
-  ; the direction document's vendor module: any interface id compiles, and the registry
-  ; decides at call time whether an implementation exists
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "module identus_verification {"
-      "  export struct SignedDate {"
-      "    date: Uint<64>;"
-      "    issuer: Bytes<32>;"
-      "    signature: Bytes<64>;"
-      "  }"
-      "  export host identus:verification/age@1.2.0 {"
-      "    ageCredential(): SignedDate;"
-      "  }"
-      "}"
-      "import identus_verification;"
-      "export ledger issuers: Set<Bytes<32>>;"
-      "export circuit present(): Uint<64> {"
-      "  const credential = ageCredential();"
-      "  issuers.insert(disclose(credential.issuer));"
-      "  return disclose(credential.date);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a vendor-published host interface resolves through the provider', async () => {"
-        "  const [contract, bare] = await startContract(contractCode);"
-        "  await expect(contract.circuits.present(bare))"
-        "      .rejects.toThrow(/^present: the host interface provider resolves no 'identus:verification\\/age@1.2.0'/);"
-        "  const issuer = new Uint8Array(32).fill(9);"
-        "  const context = withHostInterfaces(bare, {"
-        "    'identus:verification/age@1.2.0': {"
-        "      ageCredential: () => ({ date: 20010101n, issuer, signature: new Uint8Array(64).fill(1) }),"
-        "    },"
-        "  });"
-        "  const r = await contract.circuits.present(context);"
-        "  expect(r.result).toEqual(20010101n);"
-        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).issuers.member(issuer)).toEqual(true);"
-        "  expect(r.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
-        "});"
-        ))
-    )
-
-  ; the standard library declares the wallet's coin operations as the zswap host interface,
-  ; which compact-runtime implements from the context, so a contract gets them with nothing
-  ; supplied by the DApp, from circuits and from local functions alike
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger owner: ZswapCoinPublicKey;"
-      "export circuit claim(): [] {"
-      "  owner = disclose(ownPublicKey());"
-      "}"
-      "local who(): ZswapCoinPublicKey {"
-      "  return ownPublicKey();"
-      "}"
-      "export circuit claimLocally(): [] {"
-      "  owner = disclose(who());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('the standard library\\'s zswap host interface is served by the provider like any other', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  // of the interface's three functions only the reachable one is a requirement"
-        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey'] });"
-        "  // the runtime resolves nothing by itself: without a provider the coin operations are unavailable"
-        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: undefined }))"
-        "      .rejects.toThrow(/^claim: the contract declares host functions but the circuit context carries no host interface provider/);"
-        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: { resolve: () => undefined } }))"
-        "      .rejects.toThrow(/^claim: the host interface provider resolves no 'midnight:capsule\\/zswap@1.0.0', of which ownPublicKey is required/);"
-        "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
-        "  const r1 = await contract.circuits.claim(context);"
-        "  expect(contractCode.ledger(r1.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
-        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
-        "  expect(pd1.hostOutputs).toHaveLength(1);"
-        "  expect(pd1.privateTranscriptOutputs).toHaveLength(1);"
-        "  const r2 = await contract.circuits.claimLocally(r1.context);"
-        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
-        "  const pd2 = r2.context.callProofDataTrace.at(-1)!;"
-        "  // the local function's host call is recorded but only its own result crosses into the proof"
-        "  expect(pd2.hostOutputs).toHaveLength(1);"
-        "  expect(pd2.privateTranscriptOutputs).toHaveLength(1);"
-        "});"
-        ))
-    )
-
-  ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
-  ; check rather than a proof, so the negative case is a false answer, not a fault
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local hist: HistoricMerkleTree<4, Bytes<8>>;"
-      "local pathAt(index: Field, item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
-      "  return hist.pathForLeaf(index, item);"
-      "}"
-      "local free(): Uint<64> {"
-      "  return hist.firstFree();"
-      "}"
-      "export circuit add(item: Bytes<8>): [] {"
-      "  hist.insert(item);"
-      "}"
-      "export circuit proveAt(index: Field, item: Bytes<8>): Boolean {"
-      "  const p = pathAt(index, item);"
-      "  return disclose(hist.checkRoot(merkleTreePathRoot<4, Bytes<8>>(p)));"
-      "}"
-      "export circuit count(): Uint<64> {"
-      "  return disclose(free());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('a local historic tree serves indexed paths', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const r1 = await contract.circuits.add(context, a);"
-        "  const r2 = await contract.circuits.count(r1.context);"
-        "  expect(r2.result).toEqual(1n);"
-        "  const r3 = await contract.circuits.add(r2.context, b);"
-        "  const r4 = await contract.circuits.count(r3.context);"
-        "  expect(r4.result).toEqual(2n);"
-        "  const prior = r4.context.callContext.currentLocalQueryContext!.state.state;"
-        "  const r5 = await contract.circuits.proveAt(r4.context, 0n, a);"
-        "  expect(r5.result).toEqual(true);"
-        "  const r6 = await contract.circuits.proveAt(r5.context, 1n, b);"
-        "  expect(r6.result).toEqual(true);"
-        "  const r7 = await contract.circuits.proveAt(r6.context, 0n, b);"
-        "  expect(r7.result).toEqual(false);"
-        "  const pd = r5.context.callProofDataTrace.at(-1)!;"
-        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
-        "  expect(folded.toString()).toEqual(r5.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "});"
-        ))
-    )
-
-  ; data-bounded iteration over local containers: a Set and a Map fold into an accumulator
-  ; through local state, and the container pin lets the fold catch a divergent prior
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local seen: Set<Uint<8>>;"
-      "local weights: Map<Uint<8>, Uint<16>>;"
-      "local tally: Counter;"
-      "local sumWeights(): Uint<64> {"
-      "  tally.resetToDefault();"
-      "  for (const kv of weights) {"
-      "    tally.increment(kv[1]);"
-      "  }"
-      "  return tally.read();"
-      "}"
-      "local sumSeen(): Uint<64> {"
-      "  tally.resetToDefault();"
-      "  for (const v of seen) {"
-      "    tally.increment(v);"
-      "  }"
-      "  return tally.read();"
-      "}"
-      "export circuit note(k: Uint<8>, w: Uint<16>): [] {"
-      "  seen.insert(k);"
-      "  weights.insert(k, w);"
-      "}"
-      "export circuit sum(): Uint<64> {"
-      "  return disclose(sumWeights());"
-      "}"
-      "export circuit total(): Uint<64> {"
-      "  return disclose(sumSeen());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('iteration folds local containers and pins them', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.note(context, 3n, 10n);"
-        "  const r2 = await contract.circuits.note(r1.context, 5n, 20n);"
-        "  const r3 = await contract.circuits.sum(r2.context);"
-        "  expect(r3.result).toEqual(30n);"
-        "  const r4 = await contract.circuits.total(r3.context);"
-        "  expect(r4.result).toEqual(8n);"
-        "  const r5 = await contract.circuits.note(r4.context, 3n, 10n);"
-        "  const prior = r5.context.callContext.currentLocalQueryContext!.state.state;"
-        "  const r6 = await contract.circuits.sum(r5.context);"
-        "  expect(r6.result).toEqual(30n);"
-        "  const pd = r6.context.callProofDataTrace.at(-1)!;"
-        "  const folded = runtime.foldLocalTranscript(prior, pd.localTranscript!, { tag: 'success' });"
-        "  expect(folded.toString()).toEqual(r6.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "  expect(() => runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' }))"
-        "      .toThrow(/re-executed/);"
-        "});"
-        ))
-    )
-
-  ; the localState accessor: export local mirrors export ledger, so the DApp reads the
-  ; exported fields of a persisted local state without running any circuit
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export local credits: Counter;"
-      "export local owners: Map<Uint<8>, Bytes<4>>;"
-      "export local seen: Set<Uint<8>>;"
-      "local hidden: Counter;"
-      "export circuit note(k: Uint<8>, v: Bytes<4>): [] {"
-      "  credits.increment(1);"
-      "  hidden.increment(2);"
-      "  owners.insert(k, v);"
-      "  seen.insert(k);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('the localState accessor reads exported local fields', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.note(context, 3n, new Uint8Array([1, 2, 3, 4]));"
-        "  const r2 = await contract.circuits.note(r1.context, 5n, new Uint8Array([5, 6, 7, 8]));"
-        "  const L = contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state);"
-        "  expect(L.credits).toEqual(2n);"
-        "  expect(L.owners.size()).toEqual(2n);"
-        "  expect(L.owners.member(3n)).toEqual(true);"
-        "  expect(L.owners.lookup(3n)).toEqual(new Uint8Array([1, 2, 3, 4]));"
-        "  expect(L.seen.member(5n)).toEqual(true);"
-        "  expect([...L.seen].sort()).toEqual([3n, 5n]);"
-        "  expect((L as any).hidden).toBeUndefined();"
-        "  const L0 = contractCode.localState(contractCode.initialLocalState());"
-        "  expect(L0.credits).toEqual(0n);"
-        "  expect(L0.owners.isEmpty()).toEqual(true);"
-        "});"
-        ))
-    )
-
-  ; ledger reads from local functions are snapshot quotes: nothing reaches the public
-  ; transcript or the local one, the js-only tree reads work on public trees, and a
-  ; public container iterates without a pin
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger prices: Map<Uint<8>, Uint<16>>;"
-      "export ledger registry: HistoricMerkleTree<4, Bytes<8>>;"
-      "local sum: Counter;"
-      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
-      "local priceOf(k: Uint<8>): Uint<16> {"
-      "  if (prices.member(k)) {"
-      "    return prices.lookup(k);"
-      "  }"
-      "  return 0;"
-      "}"
-      "local sumPrices(): Uint<64> {"
-      "  sum.resetToDefault();"
-      "  for (const kv of prices) {"
-      "    sum.increment(kv[1]);"
-      "  }"
-      "  return sum.read();"
-      "}"
-      "local proveItem(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
-      "  const p = registry.findPathForLeaf(item);"
-      "  assert(p.is_some, 'unknown item');"
-      "  return p.value;"
-      "}"
-      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
-      "  prices.insert(disclose(k), disclose(w));"
-      "}"
-      "export circuit register(item: Bytes<8>): [] {"
-      "  registry.insert(disclose(item));"
-      "}"
-      "export circuit total(): Uint<64> {"
-      "  return disclose(sumPrices());"
-      "}"
-      "export circuit chosen(): Uint<16> {"
-      "  return disclose(priceOf(pick()));"
-      "}"
-      "export circuit prove(item: Bytes<8>): Boolean {"
-      "  const p = proveItem(item);"
-      "  return disclose(registry.checkRoot(disclose(merkleTreePathRoot<4, Bytes<8>>(p))));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('local functions read the ledger from the snapshot', async () => {"
-        "  const [contract, context0] = await startContract(contractCode);"
-        "  const context = withHostInterfaces(context0, { 'test:oracle/pick@1.0.0': { pick: () => 3n } });"
-        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
-        "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
-        "  const r3 = await contract.circuits.total(r2.context);"
-        "  expect(r3.result).toEqual(30n);"
-        "  const pd = r3.context.callProofDataTrace.at(-1)!;"
-        "  expect(pd.publicTranscript).toEqual([]);"
-        "  expect(pd.localTranscript!.every((e) => e.tag === 'ops')).toBe(true);"
-        "  const r4 = await contract.circuits.chosen(r3.context);"
-        "  expect(r4.result).toEqual(10n);"
-        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const r5 = await contract.circuits.register(r4.context, a);"
-        "  const r6 = await contract.circuits.prove(r5.context, a);"
-        "  expect(r6.result).toEqual(true);"
-        "});"
-        ))
-    )
-
-  ; the join constructor is the guarded prologue of the account's first landed circuit call:
-  ; it reads the ledger at that call's basis, records at offset 0, runs once per capsule, and
-  ; a second first call rehearsed against the same empty capsule diverges on the guard
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger members: Set<Uint<8>>;"
-      "export ledger round: Counter;"
-      "export local snapshot: Set<Uint<8>>;"
-      "export local joinedAt: Uint<64>;"
-      "local constructor {"
-      "  for (const m of members) {"
-      "    snapshot.insert(m);"
-      "  }"
-      "  joinedAt = round.read();"
-      "}"
-      "export circuit enroll(m: Uint<8>): [] {"
-      "  members.insert(disclose(m));"
-      "  round.increment(1);"
-      "}"
-      "export circuit sizeAtJoin(): Uint<64> {"
-      "  return disclose(snapshot.size());"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "const joinerContext = (ledgerContext: runtime.CircuitContext, localState?: runtime.StateValue) =>"
-        "  runtime.createCircuitContext({"
-        "    circuitId: 'join',"
-        "    contractAddress: ledgerContext.callContext.contractAddress,"
-        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
-        "    contractState: ledgerContext.callContext.currentQueryContext.state,"
-        "    localState: localState ?? contractCode.initialLocalState(),"
-        "  });"
-        "test('the join constructor runs at the first call against its basis', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  // the deployer joins at their first call, when the membership set is still empty"
-        "  const d1 = await contract.circuits.enroll(context, 1n);"
-        "  const d2 = await contract.circuits.enroll(d1.context, 2n);"
-        "  const d3 = await contract.circuits.sizeAtJoin(d2.context);"
-        "  expect(d3.result).toEqual(0n);"
-        "  const D = contractCode.localState(d3.context.callContext.currentLocalQueryContext!.state.state);"
-        "  expect(D.joinedAt).toEqual(0n);"
-        "  // a joiner's first call sees the ledger as of that call"
-        "  const j1 = await contract.circuits.enroll(joinerContext(d3.context), 7n);"
-        "  const pd = j1.context.callProofDataTrace.at(-1)!;"
-        "  expect(pd.publicTranscript.length).toBeGreaterThan(0);"
-        "  const prologue = pd.localTranscript!.filter((e) => e.offset === 0);"
-        "  expect(prologue.length).toBeGreaterThan(1);"
-        "  expect(pd.localTranscript!.indexOf(prologue.at(-1)!)).toEqual(prologue.length - 1);"
-        "  const J = contractCode.localState(j1.context.callContext.currentLocalQueryContext!.state.state);"
-        "  expect([...J.snapshot].sort()).toEqual([1n, 2n]);"
-        "  expect(J.joinedAt).toEqual(2n);"
-        "  // a later call records the guard read and nothing else of the prologue"
-        "  const j2 = await contract.circuits.enroll(j1.context, 8n);"
-        "  expect(j2.context.callProofDataTrace.at(-1)!.localTranscript!.length).toEqual(1);"
-        "  // the snapshot is as of the join, not the latest call"
-        "  const j3 = await contract.circuits.sizeAtJoin(j2.context);"
-        "  expect(j3.result).toEqual(2n);"
-        "  // the fold reproduces the joiner's state from the defaults, and the prologue survives"
-        "  // a split at the very start of the call"
-        "  const whole = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'success' });"
-        "  expect(whole.toString()).toEqual(j1.context.callContext.currentLocalQueryContext!.state.state.toString());"
-        "  const guaranteed = runtime.foldLocalTranscript(contractCode.initialLocalState(), pd.localTranscript!, { tag: 'partial', guaranteedLength: 0 });"
-        "  expect(contractCode.localState(guaranteed).joinedAt).toEqual(2n);"
-        "});"
-        "test('two first calls in flight: the second diverges on the guard and re-executes', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const d1 = await contract.circuits.enroll(context, 1n);"
-        "  const a = await contract.circuits.enroll(joinerContext(d1.context), 5n);"
-        "  const b = await contract.circuits.enroll(joinerContext(d1.context), 6n);"
-        "  const afterA = runtime.foldLocalTranscript(contractCode.initialLocalState(), a.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' });"
-        "  expect(() => runtime.foldLocalTranscript(afterA, b.context.callProofDataTrace.at(-1)!.localTranscript!, { tag: 'success' }))"
-        "    .toThrow(/re-executed/);"
-        "  const b2 = await contract.circuits.enroll(joinerContext(d1.context, afterA), 6n);"
-        "  const pd = b2.context.callProofDataTrace.at(-1)!;"
-        "  expect(pd.localTranscript!.filter((e) => e.offset === 0).length).toEqual(1);"
-        "  const afterB = runtime.foldLocalTranscript(afterA, pd.localTranscript!, { tag: 'success' });"
-        "  expect(afterB.toString()).toEqual(afterA.toString());"
-        "});"
-        ))
-    )
-
-  ; V2: semantics identity. Every ADT operation on a local field emits the program its
-  ; ledger twin emits at the same path, answers the same, and faults the same; the
-  ; local-read tree ops agree with their snapshot twins on results (their programs differ
-  ; by the pin, by design). Twins are declared pairwise so the two stores share a layout.
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger pCell: Uint<16>;"
-      "local lCell: Uint<16>;"
-      "export ledger pCounter: Counter;"
-      "local lCounter: Counter;"
-      "export ledger pSet: Set<Uint<8>>;"
-      "local lSet: Set<Uint<8>>;"
-      "export ledger pMap: Map<Uint<8>, Uint<16>>;"
-      "local lMap: Map<Uint<8>, Uint<16>>;"
-      "export ledger pNested: Map<Uint<8>, Counter>;"
-      "local lNested: Map<Uint<8>, Counter>;"
-      "export ledger pList: List<Uint<8>>;"
-      "local lList: List<Uint<8>>;"
-      "export ledger pTree: MerkleTree<3, Bytes<4>>;"
-      "local lTree: MerkleTree<3, Bytes<4>>;"
-      "export ledger pHist: HistoricMerkleTree<3, Bytes<4>>;"
-      "local lHist: HistoricMerkleTree<3, Bytes<4>>;"
-      "export circuit cell_write(v: Uint<16>): [] { pCell = disclose(v); lCell = v; }"
-      "export circuit cell_read(): [Uint<16>, Uint<16>] { return [pCell, disclose(lCell)]; }"
-      "export circuit cell_resetToDefault(): [] { pCell.resetToDefault(); lCell.resetToDefault(); }"
-      "export circuit counter_increment(n: Uint<16>): [] { pCounter.increment(disclose(n)); lCounter.increment(n); }"
-      "export circuit counter_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); lCounter.decrement(n); }"
-      "export circuit counter_read(): [Uint<64>, Uint<64>] { return [pCounter.read(), disclose(lCounter.read())]; }"
-      "export circuit counter_lessThan(t: Uint<64>): [Boolean, Boolean] { return [pCounter.lessThan(disclose(t)), disclose(lCounter.lessThan(t))]; }"
-      "export circuit counter_resetToDefault(): [] { pCounter.resetToDefault(); lCounter.resetToDefault(); }"
-      "export circuit set_insert(e: Uint<8>): [] { pSet.insert(disclose(e)); lSet.insert(e); }"
-      "export circuit set_member(e: Uint<8>): [Boolean, Boolean] { return [pSet.member(disclose(e)), disclose(lSet.member(e))]; }"
-      "export circuit set_size(): [Uint<64>, Uint<64>] { return [pSet.size(), disclose(lSet.size())]; }"
-      "export circuit set_isEmpty(): [Boolean, Boolean] { return [pSet.isEmpty(), disclose(lSet.isEmpty())]; }"
-      "export circuit set_remove(e: Uint<8>): [] { pSet.remove(disclose(e)); lSet.remove(e); }"
-      "export circuit set_resetToDefault(): [] { pSet.resetToDefault(); lSet.resetToDefault(); }"
-      "export circuit map_insert(k: Uint<8>, v: Uint<16>): [] { pMap.insert(disclose(k), disclose(v)); lMap.insert(k, v); }"
-      "export circuit map_insertDefault(k: Uint<8>): [] { pMap.insertDefault(disclose(k)); lMap.insertDefault(k); }"
-      "export circuit map_member(k: Uint<8>): [Boolean, Boolean] { return [pMap.member(disclose(k)), disclose(lMap.member(k))]; }"
-      "export circuit map_lookup(k: Uint<8>): [Uint<16>, Uint<16>] { return [pMap.lookup(disclose(k)), disclose(lMap.lookup(k))]; }"
-      "export circuit map_size(): [Uint<64>, Uint<64>] { return [pMap.size(), disclose(lMap.size())]; }"
-      "export circuit map_isEmpty(): [Boolean, Boolean] { return [pMap.isEmpty(), disclose(lMap.isEmpty())]; }"
-      "export circuit map_remove(k: Uint<8>): [] { pMap.remove(disclose(k)); lMap.remove(k); }"
-      "export circuit map_resetToDefault(): [] { pMap.resetToDefault(); lMap.resetToDefault(); }"
-      "export circuit nested_insertDefault(k: Uint<8>): [] { pNested.insertDefault(disclose(k)); lNested.insertDefault(k); }"
-      "export circuit nested_increment(k: Uint<8>, n: Uint<16>): [] { pNested.lookup(disclose(k)).increment(disclose(n)); lNested.lookup(k).increment(n); }"
-      "export circuit nested_read(k: Uint<8>): [Uint<64>, Uint<64>] { return [pNested.lookup(disclose(k)).read(), disclose(lNested.lookup(k).read())]; }"
-      "export circuit list_pushFront(v: Uint<8>): [] { pList.pushFront(disclose(v)); lList.pushFront(v); }"
-      "export circuit list_head(): [Maybe<Uint<8>>, Maybe<Uint<8>>] { return [pList.head(), disclose(lList.head())]; }"
-      "export circuit list_length(): [Uint<64>, Uint<64>] { return [pList.length(), disclose(lList.length())]; }"
-      "export circuit list_isEmpty(): [Boolean, Boolean] { return [pList.isEmpty(), disclose(lList.isEmpty())]; }"
-      "export circuit list_popFront(): [] { pList.popFront(); lList.popFront(); }"
-      "export circuit list_resetToDefault(): [] { pList.resetToDefault(); lList.resetToDefault(); }"
-      "export circuit tree_insert(item: Bytes<4>): [] { pTree.insert(disclose(item)); lTree.insert(item); }"
-      "export circuit tree_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); lTree.insertIndex(item, i); }"
-      "export circuit tree_insertHash(h: Bytes<32>): [] { pTree.insertHash(disclose(h)); lTree.insertHash(h); }"
-      "export circuit tree_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pTree.insertHashIndex(disclose(h), disclose(i)); lTree.insertHashIndex(h, i); }"
-      "export circuit tree_insertIndexDefault(i: Uint<64>): [] { pTree.insertIndexDefault(disclose(i)); lTree.insertIndexDefault(i); }"
-      "export circuit tree_isFull(): [Boolean, Boolean] { return [pTree.isFull(), disclose(lTree.isFull())]; }"
-      "export circuit tree_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pTree.checkRoot(disclose(rt)), disclose(lTree.checkRoot(rt))]; }"
-      "export circuit tree_resetToDefault(): [] { pTree.resetToDefault(); lTree.resetToDefault(); }"
-      "export circuit hist_insert(item: Bytes<4>): [] { pHist.insert(disclose(item)); lHist.insert(item); }"
-      "export circuit hist_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pHist.insertIndex(disclose(item), disclose(i)); lHist.insertIndex(item, i); }"
-      "export circuit hist_insertHash(h: Bytes<32>): [] { pHist.insertHash(disclose(h)); lHist.insertHash(h); }"
-      "export circuit hist_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pHist.insertHashIndex(disclose(h), disclose(i)); lHist.insertHashIndex(h, i); }"
-      "export circuit hist_insertIndexDefault(i: Uint<64>): [] { pHist.insertIndexDefault(disclose(i)); lHist.insertIndexDefault(i); }"
-      "export circuit hist_isFull(): [Boolean, Boolean] { return [pHist.isFull(), disclose(lHist.isFull())]; }"
-      "export circuit hist_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pHist.checkRoot(disclose(rt)), disclose(lHist.checkRoot(rt))]; }"
-      "export circuit hist_resetHistory(): [] { pHist.resetHistory(); lHist.resetHistory(); }"
-      "export circuit hist_resetToDefault(): [] { pHist.resetToDefault(); lHist.resetToDefault(); }"
-      "local tree_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
-      "  return [pTree.root(), lTree.root(), pTree.firstFree(), lTree.firstFree(),"
-      "          pTree.pathForLeaf(0 as Field, leaf), lTree.pathForLeaf(0 as Field, leaf),"
-      "          pTree.findPathForLeaf(leaf).is_some, lTree.findPathForLeaf(leaf).is_some];"
-      "}"
-      "local hist_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
-      "  return [pHist.root(), lHist.root(), pHist.firstFree(), lHist.firstFree(),"
-      "          pHist.pathForLeaf(0 as Field, leaf), lHist.pathForLeaf(0 as Field, leaf),"
-      "          pHist.findPathForLeaf(leaf).is_some, lHist.findPathForLeaf(leaf).is_some];"
-      "}"
-      "export circuit tree_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
-      "  return disclose(tree_reads(leaf));"
-      "}"
-      "export circuit hist_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
-      "  return disclose(hist_reads(leaf));"
-      "}"
-      "export circuit pub_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); }"
-      "export circuit loc_decrement(n: Uint<16>): [] { lCounter.decrement(n); }"
-      "export circuit pub_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); }"
-      "export circuit loc_insertIndex(item: Bytes<4>, i: Uint<64>): [] { lTree.insertIndex(item, i); }"
-      )
-    (stage-javascript
-      '(
-        "const json = (x: unknown) => JSON.stringify(x, (_, v) => typeof v === 'bigint' ? v.toString() : v);"
-        "const b4 = (n: number) => new Uint8Array([n, 0, 0, 0]);"
-        "const b32 = (n: number) => new Uint8Array(32).fill(n);"
-        "test('every op emits the same program for both stores and agrees on results', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const steps: [string, unknown[]][] = ["
-        "    ['cell_read', []], ['cell_write', [7n]], ['cell_read', []], ['cell_resetToDefault', []], ['cell_read', []],"
-        "    ['counter_read', []], ['counter_increment', [5n]], ['counter_decrement', [2n]], ['counter_read', []],"
-        "    ['counter_lessThan', [3n]], ['counter_lessThan', [4n]], ['counter_resetToDefault', []], ['counter_read', []],"
-        "    ['set_isEmpty', []], ['set_insert', [3n]], ['set_insert', [9n]], ['set_member', [3n]], ['set_member', [4n]],"
-        "    ['set_size', []], ['set_remove', [3n]], ['set_member', [3n]], ['set_isEmpty', []], ['set_resetToDefault', []], ['set_size', []],"
-        "    ['map_isEmpty', []], ['map_insert', [1n, 100n]], ['map_insertDefault', [2n]], ['map_member', [1n]], ['map_member', [5n]],"
-        "    ['map_lookup', [1n]], ['map_lookup', [2n]], ['map_size', []], ['map_remove', [1n]], ['map_member', [1n]],"
-        "    ['map_isEmpty', []], ['map_resetToDefault', []], ['map_size', []],"
-        "    ['nested_insertDefault', [4n]], ['nested_increment', [4n, 6n]], ['nested_increment', [4n, 1n]], ['nested_read', [4n]],"
-        "    ['list_isEmpty', []], ['list_head', []], ['list_pushFront', [1n]], ['list_pushFront', [2n]], ['list_head', []],"
-        "    ['list_length', []], ['list_popFront', []], ['list_head', []], ['list_isEmpty', []], ['list_resetToDefault', []], ['list_length', []],"
-        "    ['tree_isFull', []], ['tree_insert', [b4(1)]], ['tree_insertIndex', [b4(2), 3n]], ['tree_insertHash', [b32(3)]],"
-        "    ['tree_insertHashIndex', [b32(4), 5n]], ['tree_insertIndexDefault', [6n]], ['tree_isFull', []],"
-        "    ['hist_isFull', []], ['hist_insert', [b4(1)]], ['hist_insertIndex', [b4(2), 3n]], ['hist_insertHash', [b32(3)]],"
-        "    ['hist_insertHashIndex', [b32(4), 5n]], ['hist_insertIndexDefault', [6n]], ['hist_isFull', []], ['hist_resetHistory', []],"
-        "  ];"
-        "  let ctx = context;"
-        "  for (const [name, args] of steps) {"
-        "    const r = await contract.circuits[name](ctx, ...args);"
-        "    const pd = r.context.callProofDataTrace.at(-1)!;"
-        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
-        "    expect(json(localOps), `${name}(${json(args)})`).toEqual(json(pd.publicTranscript));"
-        "    if (Array.isArray(r.result)) {"
-        "      expect(r.result[1], `${name}(${json(args)}) result`).toEqual(r.result[0]);"
-        "    }"
-        "    ctx = r.context;"
-        "  }"
-        "  // roots agree, so checkRoot agrees too, through the local-read twins"
-        "  const reads = await contract.circuits.tree_localReads(ctx, b4(1));"
-        "  const [proot, lroot, pfree, lfree, ppath, lpath, pfound, lfound] = reads.result;"
-        "  expect(lroot).toEqual(proot); expect(lfree).toEqual(pfree); expect(lpath).toEqual(ppath); expect(lfound).toEqual(pfound);"
-        "  expect(pfound).toEqual(true);"
-        "  const check = await contract.circuits.tree_checkRoot(reads.context, proot);"
-        "  expect(check.result).toEqual([true, true]);"
-        "  const hreads = await contract.circuits.hist_localReads(check.context, b4(1));"
-        "  expect(hreads.result[1]).toEqual(hreads.result[0]);"
-        "  expect(hreads.result[3]).toEqual(hreads.result[2]);"
-        "  expect(hreads.result[5]).toEqual(hreads.result[4]);"
-        "  const hcheck = await contract.circuits.hist_checkRoot(hreads.context, hreads.result[0]);"
-        "  expect(hcheck.result).toEqual([true, true]);"
-        "  ctx = hcheck.context;"
-        "  // resets"
-        "  for (const name of ['tree_resetToDefault', 'hist_resetToDefault']) {"
-        "    const r = await contract.circuits[name](ctx);"
-        "    const pd = r.context.callProofDataTrace.at(-1)!;"
-        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
-        "    expect(json(localOps), name).toEqual(json(pd.publicTranscript));"
-        "    ctx = r.context;"
-        "  }"
-        "  const after = await contract.circuits.tree_isFull(ctx);"
-        "  expect(after.result).toEqual([false, false]);"
-        "});"
-        "test('faults agree', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const msg = async (p: Promise<unknown>) => { try { await p; return 'no error'; } catch (e) { return String(e); } };"
-        "  const pubDec = await msg(contract.circuits.pub_decrement(context, 1n));"
-        "  const locDec = await msg(contract.circuits.loc_decrement(context, 1n));"
-        "  const pubIdx = await msg(contract.circuits.pub_insertIndex(context, b4(1), 99n));"
-        "  const locIdx = await msg(contract.circuits.loc_insertIndex(context, b4(1), 99n));"
-        "  expect(pubDec).not.toEqual('no error');"
-        "  expect(locDec).toEqual(pubDec);"
-        "  expect(pubIdx).not.toEqual('no error');"
-        "  expect(locIdx).toEqual(pubIdx);"
-        "});"
-        ))
-    )
-
-  ; decision 7: an exported local function is a method of localState(); it stays an ordinary
-  ; local function for circuits, and one that reads the ledger (directly or through the local
-  ; functions it calls) runs only when the accessor is given a ledger state
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger prices: Map<Uint<8>, Uint<16>>;"
-      "export ledger registry: MerkleTree<4, Bytes<8>>;"
-      "export local credits: Counter;"
-      "local seen: Set<Uint<8>>;"
-      "local notes: MerkleTree<4, Bytes<8>>;"
-      "pure circuit twice(n: Uint<64>): Uint<64> {"
-      "  return n * 2 as Uint<64>;"
-      "}"
-      "local priceOf(k: Uint<8>): Uint<16> {"
-      "  return prices.member(k) ? prices.lookup(k) : 0;"
-      "}"
-      "export local quote(k: Uint<8>): Uint<64> {"
-      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
-      "}"
-      "export local seenBefore(k: Uint<8>): Boolean {"
-      "  return seen.member(k);"
-      "}"
-      "export local noteProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
-      "  return notes.findPathForLeaf(leaf);"
-      "}"
-      "export local registryProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
-      "  return registry.findPathForLeaf(leaf);"
-      "}"
-      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
-      "  prices.insert(disclose(k), disclose(w));"
-      "}"
-      "export circuit register(leaf: Bytes<8>): [] {"
-      "  registry.insert(disclose(leaf));"
-      "}"
-      "export circuit tick(k: Uint<8>, leaf: Bytes<8>): [] {"
-      "  credits.increment(1);"
-      "  seen.insert(k);"
-      "  notes.insert(leaf);"
-      "}"
-      "export circuit check(k: Uint<8>): Uint<64> {"
-      "  return disclose(quote(k));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('exported local functions are methods of localState', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const leaf = new Uint8Array([7, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
-        "  const r2 = await contract.circuits.register(r1.context, leaf);"
-        "  const r3 = await contract.circuits.tick(r2.context, 3n, leaf);"
-        "  const r4 = await contract.circuits.tick(r3.context, 5n, leaf);"
-        "  const local = r4.context.callContext.currentLocalQueryContext!.state.state;"
-        "  const ledger = r4.context.callContext.currentQueryContext.state;"
-        "  const L = contractCode.localState(local, ledger);"
-        "  expect(L.credits).toEqual(2n);"
-        "  expect(L.quote(3n)).toEqual(14n);"
-        "  expect(L.quote(4n)).toEqual(4n);"
-        "  expect(L.seenBefore(5n)).toEqual(true);"
-        "  expect(L.seenBefore(6n)).toEqual(false);"
-        "  expect(L.noteProof(leaf).is_some).toEqual(true);"
-        "  expect(L.registryProof(leaf).is_some).toEqual(true);"
-        "  expect(L.registryProof(new Uint8Array(8)).is_some).toEqual(false);"
-        "  // the same function is still an ordinary local function for circuits"
-        "  const r5 = await contract.circuits.check(r4.context, 3n);"
-        "  expect(r5.result).toEqual(14n);"
-        "  // before any call, the accessor answers from the declaration defaults"
-        "  const L0 = contractCode.localState(contractCode.initialLocalState(), ledger);"
-        "  expect(L0.quote(3n)).toEqual(10n);"
-        "  // a function that reads the ledger refuses to run without a ledger state; one that"
-        "  // does not runs with the local state alone"
-        "  const Lno = (contractCode as any).localState(local);"
-        "  expect(Lno.seenBefore(3n)).toEqual(true);"
-        "  expect(Lno.noteProof(leaf).is_some).toEqual(true);"
-        "  expect(() => Lno.quote(3n)).toThrow(/needs a ledger state/);"
-        "  expect(() => (L as any).quote(300n)).toThrow();"
-        "  expect(() => (L as any).seenBefore()).toThrow(/expected 1 argument/);"
-        "});"
-        ))
-    )
-
-  ; the ledger-state parameter is optional exactly when no exported local function reads the
-  ; ledger; the .d.ts is exercised by the type-checker, so the one-argument call must type
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger total: Counter;"
-      "local credits: Counter;"
-      "export local balance(): Uint<64> {"
-      "  return credits.read();"
-      "}"
-      "export circuit tick(): [] {"
-      "  total.increment(1);"
-      "  credits.increment(1);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('no exported local function reads the ledger, so localState takes the local state alone', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.tick(context);"
-        "  const L = contractCode.localState(r1.context.callContext.currentLocalQueryContext!.state.state);"
-        "  expect(L.balance()).toEqual(1n);"
-        "  expect(contractCode.localState(contractCode.initialLocalState()).balance()).toEqual(0n);"
-        "});"
-        ))
-    )
-
-  ; a program with exported local functions but no local declarations still gets a local store,
-  ; empty, so the accessor and initialLocalState() exist
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger total: Counter;"
-      "export local snapshotTotal(): Uint<64> {"
-      "  return total.read();"
-      "}"
-      "export circuit bump(): [] {"
-      "  total.increment(1);"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('an exported local function with no local fields still has a store to hang on', async () => {"
-        "  const [contract, context] = await startContract(contractCode);"
-        "  const r1 = await contract.circuits.bump(context);"
-        "  const L = contractCode.localState(contractCode.initialLocalState(), r1.context.callContext.currentQueryContext.state);"
-        "  expect(L.snapshotTotal()).toEqual(1n);"
-        "});"
-        ))
-    )
-
-  ; a snapshot read's result carries its arguments' taint: witness data cannot launder
-  ; through a public lookup in a local function
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger prices: Map<Uint<8>, Uint<16>>;"
-      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
-      "local priceOf(k: Uint<8>): Uint<16> {"
-      "  return prices.lookup(k);"
-      "}"
-      "export circuit chosen(): Uint<16> {"
-      "  return priceOf(pick());"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function pick at line 3 char 31" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
-    )
-
-  ; a local operation's result is witness data: returning it from an exported circuit
-  ; without disclose is an error
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "local credits: Counter;"
-      "export circuit peek(): Uint<64> {"
-      "  return credits.read();"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the result of an operation on local field credits at line 4 char 10" ("\n    nature of the disclosure:\n      the value returned from exported circuit peek might disclose the witness value"))))
-    )
-
-  ; phase 2, cross-contract local state: a callee's capsule is installed before its wrapper runs
-  ; (the account's folded state, or the declaration defaults at first touch, when its local
-  ; constructor runs inside the caller's transaction), its host interfaces are checked at
-  ; resolution, each capsule gets its own record, and the caller's record pins the callee's return
-  (test-group
-    ((source-file "test-center/composable/Capsule/Inner.compact")
-     (stage-javascript innerCode '()))
-    ((source-file "test-center/composable/Capsule/Outer.compact")
-     (stage-javascript outerCode "test-center/ts/composable/capsule.ts")))
-
-  ; the direction document's worked example: the vendor module, the registry with its own private
-  ; books as a callee, and the ballot as the root, with two participants folding from scratch
-  (test-group
-    ((source-file "test-center/composable/Ballot/Registry.compact")
-     (stage-javascript registryCode '()))
-    ((source-file "test-center/composable/Ballot/Ballot.compact")
-     (stage-javascript ballotCode "test-center/ts/composable/ballot.ts")))
-
 )
 
 (run-javascript)
