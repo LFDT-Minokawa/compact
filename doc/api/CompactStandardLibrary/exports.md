@@ -1149,6 +1149,18 @@ circuit mergeCoinImmediate(
 Returns the [`ZswapCoinPublicKey`](#zswapcoinpublickey) of the end-user
 creating this transaction.
 
+:::danger Never authenticate with `ownPublicKey()`
+`ownPublicKey()` is a witness: the prover chooses its return value, and the
+protocol does not check it against the signing wallet. Do **not** use it for
+authorization or caller identity. Routing shielded tokens to the caller with
+`ownPublicKey()` is fine on its own; protect the *action* with a separate,
+secret-bound auth gate rather than treating this witness as identity.
+
+See [Security best practices](https://docs.midnight.network/guides/security-best-practices)
+and the [MPS-0029](https://github.com/midnightntwrk/midnight-improvement-proposals/blob/main/mps/mps-0029-compact-caller-identity.md)
+proposal (caller identity API is not available yet).
+:::
+
 ```compact
 witness ownPublicKey(): ZswapCoinPublicKey;
 ```
