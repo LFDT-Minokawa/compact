@@ -22,6 +22,7 @@ import {
   PartialProofData,
   pinLocalContainer,
   queryLocalState,
+  stateValueDigest,
 } from '../src/index.js';
 
 const COIN_PUBLIC_KEY = '0'.repeat(64);
@@ -120,7 +121,60 @@ describe('queryLocalState', () => {
   });
 });
 
+describe('stateValueDigest', () => {
+  const b32 = (i: number): ocrt.AlignedValue => {
+    const bytes = new Uint8Array(32);
+    bytes[0] = i & 0xff;
+    bytes[1] = (i >> 8) & 0xff;
+    bytes[31] = 9;
+    return { value: [bytes], alignment: [{ tag: 'atom', value: { tag: 'bytes', length: 32 } }] };
+  };
+  const mapOf = (entries: readonly (readonly [number, number])[]): ocrt.StateMap =>
+    entries.reduce((map, [k, v]) => map.insert(b32(k), ocrt.StateValue.newCell(u64(v))), new ocrt.StateMap());
+  const digestOf = (map: ocrt.StateMap): string => stateValueDigest(ocrt.StateValue.newMap(map));
+  const range = (n: number): number[] => Array.from({ length: n }, (_, i) => i);
+  const contents = range(200).map((i) => [i, i * 3] as const);
+
+  test('depends on the contents alone, not on the history that built them', () => {
+    const ascending = digestOf(mapOf(contents));
+    expect(ascending).toMatch(/^[0-9a-f]{64}$/);
+    expect(digestOf(mapOf([...contents].reverse()))).toBe(ascending);
+    // an earlier value for key 7 overwritten, then 300 keys inserted and the last 100 removed again
+    const overwritten = mapOf([[7, 99], ...range(300).map((i) => [i, i * 3] as const)]);
+    const removed = range(100).reduce((map, i) => map.remove(b32(200 + i)), overwritten);
+    expect(digestOf(removed)).toBe(ascending);
+    // and an encode/decode round trip
+    expect(stateValueDigest(ocrt.StateValue.decode(ocrt.StateValue.newMap(mapOf(contents)).encode()))).toBe(ascending);
+  });
+
+  test('tells apart one key, one value, one alignment, one entry more, and array order', () => {
+    const base = digestOf(mapOf(contents));
+    expect(digestOf(mapOf(contents.map(([k, v]) => [k === 199 ? 4321 : k, v] as const)))).not.toBe(base);
+    expect(digestOf(mapOf(contents.map(([k, v]) => [k, k === 100 ? v + 1 : v] as const)))).not.toBe(base);
+    expect(digestOf(mapOf([...contents, [200, 600]]))).not.toBe(base);
+    // the same byte under two alignments
+    expect(stateValueDigest(ocrt.StateValue.newCell(u8(1)))).not.toBe(stateValueDigest(ocrt.StateValue.newCell(u64(1))));
+    const arrayOf = (...xs: number[]) =>
+      xs.reduce((sv, x) => sv.arrayPush(ocrt.StateValue.newCell(u64(x))), ocrt.StateValue.newArray());
+    expect(stateValueDigest(arrayOf(1, 2))).toBe(stateValueDigest(arrayOf(1, 2)));
+    expect(stateValueDigest(arrayOf(1, 2))).not.toBe(stateValueDigest(arrayOf(2, 1)));
+  });
+});
+
 describe('pinLocalContainer', () => {
+  test('records the container as a digest, not a copy', () => {
+    const ctx = context();
+    const pd = emptyProofData();
+    pinLocalContainer(ctx, pd, [0]);
+    const pin = pd.localTranscript![0];
+    expect(pin).toEqual({
+      tag: 'observe',
+      offset: 0,
+      path: [0],
+      digest: stateValueDigest(initialLocalState().asArray()![0]),
+    });
+  });
+
   test('a matching prior replays, a differing one is caught', () => {
     const ctx = context();
     const pd = emptyProofData();

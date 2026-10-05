@@ -25,7 +25,7 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
  * entry is a batch of Impact operations, replayed in verify mode, its `popeq`s carrying the
  * observed reads (a tree's root pin is such a batch). An `observe` entry pins a whole state
  * value - a container about to be iterated - which no Impact read expresses; the fold checks
- * it against the folding state with the VM's own content equality.
+ * it by recomputing the digest of the folding state's value at the same path.
  */
 export interface LocalOpsEntry {
   readonly tag: 'ops';
@@ -38,8 +38,8 @@ export interface LocalObserveEntry {
   readonly offset: number;
   /** The observed value's indices under the local state root. */
   readonly path: readonly number[];
-  /** The observed value, encoded. */
-  readonly value: ocrt.EncodedStateValue;
+  /** The observed value's `stateValueDigest`. */
+  readonly digest: string;
 }
 
 export type LocalTranscriptEntry = LocalOpsEntry | LocalObserveEntry;

@@ -14,6 +14,8 @@
 // limitations under the License.
 
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex } from '@noble/hashes/utils.js';
 import type { CircuitContext } from './circuit-context.js';
 import { LocalTranscriptEntry, PartialProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
@@ -24,6 +26,18 @@ import { CompactError, assertDefined } from './error.js';
  */
 export const createLocalQueryContext = (localState: ocrt.StateValue): ocrt.QueryContext =>
   new ocrt.QueryContext(new ocrt.ChargedState(localState), ocrt.dummyContractAddress());
+
+/**
+ * The SHA-256 of a state value's canonical serialization, as lowercase hex: equal digests mean equal
+ * contents, whatever history built them. The wasm `StateValue` exposes no equality, serialization or
+ * hash, therefore the value is serialized as the data of an otherwise empty `ContractState`, whose
+ * serialization is the ledger's own.
+ */
+export const stateValueDigest = (value: ocrt.StateValue): string => {
+  const carrier = new ocrt.ContractState();
+  carrier.data = new ocrt.ChargedState(value);
+  return bytesToHex(sha256(carrier.serialize()));
+};
 
 /**
  * The local state of every contract in the call tree that keeps one, by address, as the
@@ -94,10 +108,9 @@ export const queryLocalState = (
 };
 
 /**
- * Pins a local container's entire value in the local transcript. Iteration observes all of
- * a container, therefore the fold must detect any difference in it, and value equality is
- * the exact pin: the fold re-compares the fold-time container against the rehearsal's
- * snapshot.
+ * Pins a local container's entire value in the local transcript, as its {@link stateValueDigest}.
+ * Iteration observes all of a container, therefore the fold must detect any difference in it, and
+ * equality of contents is the exact pin: the fold recomputes the digest of the fold-time container.
  *
  * @param circuitContext The context for the currently executing circuit.
  * @param partialProofData The partial proof data to record the pin into.
@@ -123,7 +136,7 @@ export const pinLocalContainer = (
     tag: 'observe',
     offset: partialProofData.publicTranscript.length,
     path,
-    value: container.encode(),
+    digest: stateValueDigest(container),
   });
 };
 
@@ -171,8 +184,6 @@ export const foldLocalTranscript = (
       continue;
     }
     if (entry.tag === 'observe') {
-      // the VM's `eq` compares cells only, therefore container pins are checked by the VM's
-      // canonical rendering: the decoded snapshot and the fold-time value must print alike
       let matched = true;
       let live = ctx.state.state;
       for (const i of entry.path) {
@@ -184,7 +195,7 @@ export const foldLocalTranscript = (
         live = elems[i];
       }
       if (matched) {
-        matched = live.toString() === ocrt.StateValue.decode(entry.value).toString();
+        matched = stateValueDigest(live) === entry.digest;
       }
       if (!matched) {
         throw new CompactError(

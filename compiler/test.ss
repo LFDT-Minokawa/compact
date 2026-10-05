@@ -93537,8 +93537,8 @@ groups than for single tests.
         ))
     )
 
-  ; V3: iteration canonicality. The same keys inserted in two orders leave containers whose
-  ; canonical renderings agree, per key type; a walk visits them in the same order; and the
+  ; V3: iteration canonicality. The same keys inserted in two orders leave containers with equal
+  ; digests, per key type; a walk visits them in the same order and pins them alike; and the
   ; container pins of a walk over one hold on the capsule the other order built
   (test
     '(
@@ -93610,7 +93610,7 @@ groups than for single tests.
         "  const forward = await fill(contract, context, [0, 1, 2, 3, 4, 5, 6, 7]);"
         "  const backward = await fill(contract, context, [7, 6, 5, 4, 3, 2, 1, 0]);"
         "  ['s8', 'm8', 's128', 'm128', 'sf', 'mf', 'sb', 'mb', 'sk', 'mk'].forEach((name, i) =>"
-        "    expect(stateOf(forward).asArray()![i].toString(), name).toEqual(stateOf(backward).asArray()![i].toString()));"
+        "    expect(runtime.stateValueDigest(stateOf(forward).asArray()![i]), name).toEqual(runtime.stateValueDigest(stateOf(backward).asArray()![i])));"
         "  const wf = await contract.circuits.walk(forward);"
         "  const wb = await contract.circuits.walk(backward);"
         "  // the trail records the visiting order"
@@ -93618,7 +93618,9 @@ groups than for single tests.
         "  expect(stateOf(wf.context).toString()).toEqual(stateOf(wb.context).toString());"
         "  const tf = wf.context.callProofDataTrace.at(-1)!.localTranscript!;"
         "  const tb = wb.context.callProofDataTrace.at(-1)!.localTranscript!;"
-        "  expect(tf.filter((e) => e.tag === 'observe')).toHaveLength(10);"
+        "  const pins = (t: runtime.LocalTranscriptEntry[]) => t.flatMap((e) => (e.tag === 'observe' ? [e.digest] : []));"
+        "  expect(pins(tf)).toHaveLength(10);"
+        "  expect(pins(tf)).toEqual(pins(tb));"
         "  expect(runtime.foldLocalTranscript(stateOf(backward), tf, { tag: 'success' }).toString()).toEqual(stateOf(wb.context).toString());"
         "  expect(runtime.foldLocalTranscript(stateOf(forward), tb, { tag: 'success' }).toString()).toEqual(stateOf(wf.context).toString());"
         "});"
