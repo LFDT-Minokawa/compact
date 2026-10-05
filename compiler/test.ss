@@ -93537,6 +93537,94 @@ groups than for single tests.
         ))
     )
 
+  ; V3: iteration canonicality. The same keys inserted in two orders leave containers whose
+  ; canonical renderings agree, per key type; a walk visits them in the same order; and the
+  ; container pins of a walk over one hold on the capsule the other order built
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export enum Tone { low, mid, high }"
+      "export struct Key { tone: Tone; n: Uint<16>; }"
+      "local s8: Set<Uint<8>>;"
+      "local m8: Map<Uint<8>, Uint<8>>;"
+      "local s128: Set<Uint<128>>;"
+      "local m128: Map<Uint<128>, Uint<8>>;"
+      "local sf: Set<Field>;"
+      "local mf: Map<Field, Uint<8>>;"
+      "local sb: Set<Bytes<32>>;"
+      "local mb: Map<Bytes<32>, Uint<8>>;"
+      "local sk: Set<Key>;"
+      "local mk: Map<Key, Uint<8>>;"
+      "export local trail: List<Field>;"
+      "export circuit add(a: Uint<8>, b: Uint<128>, c: Field, d: Bytes<32>, e: Key, v: Uint<8>): [] {"
+      "  s8.insert(a);"
+      "  m8.insert(a, v);"
+      "  s128.insert(b);"
+      "  m128.insert(b, v);"
+      "  sf.insert(c);"
+      "  mf.insert(c, v);"
+      "  sb.insert(d);"
+      "  mb.insert(d, v);"
+      "  sk.insert(e);"
+      "  mk.insert(e, v);"
+      "}"
+      "local walkAll(): [] {"
+      "  for (const k of s8) { trail.pushFront(k as Field); }"
+      "  for (const kv of m8) { trail.pushFront(kv[0] as Field); }"
+      "  for (const k of s128) { trail.pushFront(k as Field); }"
+      "  for (const kv of m128) { trail.pushFront(kv[0] as Field); }"
+      "  for (const k of sf) { trail.pushFront(k); }"
+      "  for (const kv of mf) { trail.pushFront(kv[0]); }"
+      "  for (const k of sb) { trail.pushFront(degradeToTransient(k)); }"
+      "  for (const kv of mb) { trail.pushFront(degradeToTransient(kv[0])); }"
+      "  for (const k of sk) { trail.pushFront(k.n as Field); }"
+      "  for (const kv of mk) { trail.pushFront(kv[0].n as Field); }"
+      "}"
+      "export circuit walk(): [] {"
+      "  walkAll();"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const bytes = (i: number) => Uint8Array.from({ length: 32 }, (_, j) => (i * 37 + j * 11) % 256);"
+        "const rows = ["
+        "  [3n, 2n ** 127n, 0n, bytes(1), { tone: 0, n: 7n }, 0n],"
+        "  [250n, 5n, 1n, bytes(2), { tone: 2, n: 40000n }, 1n],"
+        "  [17n, 2n ** 64n, 2n ** 200n, bytes(3), { tone: 1, n: 0n }, 2n],"
+        "  [0n, 0n, 42n, bytes(4), { tone: 0, n: 1n }, 3n],"
+        "  [128n, 1n, 2n ** 128n, bytes(5), { tone: 2, n: 2n }, 4n],"
+        "  [64n, 12345678901234567890n, 999n, bytes(6), { tone: 1, n: 65535n }, 5n],"
+        "  [99n, 7n, 2n ** 64n + 1n, bytes(7), { tone: 0, n: 300n }, 6n],"
+        "  [1n, 2n ** 100n, 7n, bytes(8), { tone: 1, n: 12n }, 7n],"
+        "];"
+        "const fill = async (contract: any, context: runtime.CircuitContext, order: number[]) => {"
+        "  let ctx = context;"
+        "  for (const i of order) {"
+        "    ctx = (await contract.circuits.add(ctx, ...rows[i])).context;"
+        "  }"
+        "  return ctx;"
+        "};"
+        "const stateOf = (ctx: runtime.CircuitContext) => ctx.callContext.currentLocalQueryContext!.state.state;"
+        "test('insertion order leaves no trace in a local container, its iteration, or its pin', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const forward = await fill(contract, context, [0, 1, 2, 3, 4, 5, 6, 7]);"
+        "  const backward = await fill(contract, context, [7, 6, 5, 4, 3, 2, 1, 0]);"
+        "  ['s8', 'm8', 's128', 'm128', 'sf', 'mf', 'sb', 'mb', 'sk', 'mk'].forEach((name, i) =>"
+        "    expect(stateOf(forward).asArray()![i].toString(), name).toEqual(stateOf(backward).asArray()![i].toString()));"
+        "  const wf = await contract.circuits.walk(forward);"
+        "  const wb = await contract.circuits.walk(backward);"
+        "  // the trail records the visiting order"
+        "  expect(contractCode.localState(stateOf(wf.context)).trail.length()).toEqual(80n);"
+        "  expect(stateOf(wf.context).toString()).toEqual(stateOf(wb.context).toString());"
+        "  const tf = wf.context.callProofDataTrace.at(-1)!.localTranscript!;"
+        "  const tb = wb.context.callProofDataTrace.at(-1)!.localTranscript!;"
+        "  expect(tf.filter((e) => e.tag === 'observe')).toHaveLength(10);"
+        "  expect(runtime.foldLocalTranscript(stateOf(backward), tf, { tag: 'success' }).toString()).toEqual(stateOf(wb.context).toString());"
+        "  expect(runtime.foldLocalTranscript(stateOf(forward), tb, { tag: 'success' }).toString()).toEqual(stateOf(wf.context).toString());"
+        "});"
+        ))
+    )
+
   ; the localState accessor: export local mirrors export ledger, so the DApp reads the
   ; exported fields of a persisted local state without running any circuit
   (test
@@ -94075,6 +94163,21 @@ groups than for single tests.
      (stage-javascript registryCode '()))
     ((source-file "test-center/composable/Ballot/Ballot.compact")
      (stage-javascript ballotCode "test-center/ts/composable/ballot.ts")))
+
+  ; a callee's capsule across transactions in flight, first touches racing, two calls deep, coin
+  ; operations, a container pin and a checkpoint split in its record, a caught failure, a wallet
+  ; whose answers change, and a callee circuit with nothing to prove
+  (test-group
+    ((source-file "test-center/composable/Capsule/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Capsule/Outer.compact")
+     (stage-javascript outerCode '()))
+    ((source-file "test-center/composable/Vault/Vault.compact")
+     (stage-javascript vaultCode '()))
+    ((source-file "test-center/composable/Vault/Relay.compact")
+     (stage-javascript relayCode '()))
+    ((source-file "test-center/composable/Vault/Entry.compact")
+     (stage-javascript entryCode "test-center/ts/composable/capsule-races.ts")))
 
 )
 

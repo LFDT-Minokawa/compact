@@ -26,6 +26,7 @@ import {
   ContractStateProvider,
   EncodedContractAddress,
   HostInterface,
+  HostInterfaceProvider,
   LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
@@ -166,6 +167,11 @@ export interface CallTransaction<C extends Contract> {
    * harness wallet's coin operations. Different participants pass different ones.
    */
   hostInterfaces?: Record<string, HostInterface>;
+  /**
+   * A provider in place of the harness wallet, for a test about the provider itself;
+   * `hostInterfaces` is then unused.
+   */
+  hostInterfaceProvider?: HostInterfaceProvider;
   coinPublicKey?: ocrt.CoinPublicKey;
   gasLimit?: ocrt.RunningCost;
   costModel?: ocrt.CostModel;
@@ -381,10 +387,27 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
   }
 
   /**
-   * Executes a call transaction: seeds a context from the entry contract's persisted state, runs the
-   * circuit, schedules proof checks for the call tree, then commits every touched contract.
+   * Executes a call transaction: rehearses it, then commits every touched contract and folds the
+   * account's records.
    */
   async call<C extends Contract>(
+    tx: CallTransaction<C>,
+  ): Promise<CircuitResults<unknown>> {
+    const result = await this.rehearse(tx);
+    this.commit(result.context);
+    // The chain lands the public side; the account folds the records of every capsule touched.
+    tx.account?.commit(result, (address) => this.moduleFor(address));
+    return result;
+  }
+
+  /**
+   * Runs a call transaction without landing it: seeds a context from the entry contract's persisted
+   * state, runs the circuit and schedules proof checks for the call tree, and leaves the chain and
+   * the account as they were, as for a transaction still in flight. The chain stores post-call
+   * states rather than replaying transcripts, therefore a test lands only the local side of such a
+   * transaction, by folding its records ({@link Account.commit}).
+   */
+  async rehearse<C extends Contract>(
     tx: CallTransaction<C>,
   ): Promise<CircuitResults<unknown>> {
     const entryState = this.getContractStateOrThrow(tx.address);
@@ -401,7 +424,7 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
       costModel: tx.costModel,
       time: now,
       parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
-      hostInterfaceProvider: hostInterfaceProviderOf(tx.hostInterfaces),
+      hostInterfaceProvider: tx.hostInterfaceProvider ?? hostInterfaceProviderOf(tx.hostInterfaces),
       crossContract: { stateProvider: this, moduleProvider: this, localStateProvider: tx.account },
     });
 
@@ -422,10 +445,6 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
     // The fresh context starts with an empty trace, so every entry the call
     // produced — the root circuit plus every cross-contract sub-call — is checked.
     scheduleProofChecks(result, 0, this.contractDirByAddress);
-
-    this.commit(result.context);
-    // The chain lands the public side; the account folds the records of every capsule touched.
-    tx.account?.commit(result, (address) => this.moduleFor(address));
 
     return result;
   }

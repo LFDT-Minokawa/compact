@@ -1,0 +1,60 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The middle of a depth-two call and the root of the depth-one calls into the vault. It keeps no
+// local state, so the vault's capsule is the only one in play.
+
+import CompactStandardLibrary;
+
+contract Vault {
+  circuit stash(note: Bytes<32>): Uint<64>;
+  circuit audit(): Uint<64>;
+  circuit stage(n: Uint<16>): [];
+  circuit mint(amount: Uint<64>): ShieldedCoinInfo;
+}
+
+// a type of its own: conformance checks every circuit a contract type declares, therefore declaring
+// the unprovable `remember` in `Vault` would refuse every call through it
+contract Recall {
+  circuit remember(note: Bytes<32>): [];
+}
+
+export ledger vault: Vault;
+export ledger recall: Recall;
+
+constructor(v: Vault, r: Recall) {
+  vault = disclose(v);
+  recall = disclose(r);
+}
+
+export circuit stash(note: Bytes<32>): Uint<64> {
+  return vault.stash(disclose(note));
+}
+
+export circuit audit(): Uint<64> {
+  return vault.audit();
+}
+
+export circuit stage(n: Uint<16>): [] {
+  vault.stage(disclose(n));
+}
+
+export circuit mint(amount: Uint<64>): ShieldedCoinInfo {
+  return vault.mint(disclose(amount));
+}
+
+export circuit remember(note: Bytes<32>): [] {
+  recall.remember(disclose(note));
+}
