@@ -93537,6 +93537,75 @@ groups than for single tests.
         ))
     )
 
+  ; a List is walked front to back, an empty one included: a local one pinned for the fold,
+  ; and a public one read from local code as an unpinned snapshot
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger posted: List<Uint<8>>;"
+      "local queue: List<Uint<8>>;"
+      "export local seen: List<Uint<8>>;"
+      "local tally: Counter;"
+      "local walkQueue(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  seen.resetToDefault();"
+      "  for (const q of queue) {"
+      "    tally.increment(q);"
+      "    seen.pushFront(q);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "local walkPosted(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const p of posted) {"
+      "    tally.increment(p);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "export circuit push(x: Uint<8>): [] {"
+      "  queue.pushFront(x);"
+      "}"
+      "export circuit post(x: Uint<8>): [] {"
+      "  posted.pushFront(disclose(x));"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(walkQueue());"
+      "}"
+      "export circuit totalPosted(): Uint<64> {"
+      "  return disclose(walkPosted());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('for-of walks a List front to back', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const localOf = (r: { context: typeof context }) => r.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const recordOf = (r: { context: typeof context }) => r.context.callProofDataTrace.at(-1)!.localTranscript!;"
+        "  const pins = (r: { context: typeof context }) => recordOf(r).filter((e) => e.tag === 'observe');"
+        "  const empty = await contract.circuits.total(context);"
+        "  expect(empty.result).toEqual(0n);"
+        "  let r = empty;"
+        "  for (const x of [3n, 5n, 9n]) r = await contract.circuits.push(r.context, x);"
+        "  const prior = localOf(r);"
+        "  const walked = await contract.circuits.total(r.context);"
+        "  expect(walked.result).toEqual(17n);"
+        "  // the walk pushes each element onto seen as it goes, so seen holds the visiting order reversed"
+        "  expect([...contractCode.localState(localOf(walked)).seen]).toEqual([3n, 5n, 9n]);"
+        "  expect(pins(walked)).toHaveLength(1);"
+        "  const folded = runtime.foldLocalTranscript(prior, recordOf(walked), { tag: 'success' });"
+        "  expect(runtime.stateValueDigest(folded)).toEqual(runtime.stateValueDigest(localOf(walked)));"
+        "  const longer = await contract.circuits.push(r.context, 1n);"
+        "  expect(() => runtime.foldLocalTranscript(localOf(longer), recordOf(walked), { tag: 'success' }))"
+        "      .toThrow(/observation failed .* re-executed/);"
+        "  let p = walked;"
+        "  for (const x of [4n, 6n]) p = await contract.circuits.post(p.context, x);"
+        "  const quoted = await contract.circuits.totalPosted(p.context);"
+        "  expect(quoted.result).toEqual(10n);"
+        "  expect(pins(quoted)).toHaveLength(0);"
+        "});"
+        ))
+    )
+
   ; V3: iteration canonicality. The same keys inserted in two orders leave containers with equal
   ; digests, per key type; a walk visits them in the same order and pins them alike; and the
   ; container pins of a walk over one hold on the capsule the other order built

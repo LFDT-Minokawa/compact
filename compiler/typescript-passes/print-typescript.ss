@@ -2721,7 +2721,11 @@
                      ;; the binder is a bare id, not an Argument, so it registers directly
                      (make-Qconcat/src (id-src var-name)
                        (format-internal-binding unique-local-name var-name))
-                     " of "
+                     ;; `for … of` takes an iterable but the ADT's iteration snippet yields an
+                     ;; iterator, which is iterable for Set and Map (an array iterator) but not
+                     ;; for List (a hand-built one), therefore the loop walks an object whose
+                     ;; iterator the snippet supplies
+                     " of { [Symbol.iterator]: () => ("
                      (apply make-Qconcat
                        (apply runtime-code
                               "__compactRuntime."
@@ -2733,7 +2737,7 @@
                                        [,nat (number->string nat)]
                                        [,type^ (type->descriptor-name type^)]))
                                    adt-arg*)))
-                     ") {"
+                     ") }) {"
                      2 (Stmt stmt #f outer-pure?)
                      0 "}"))]))]
            [else (assert cannot-happen)])))]
