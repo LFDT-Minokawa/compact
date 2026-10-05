@@ -94250,6 +94250,13 @@ groups than for single tests.
     ((source-file "test-center/composable/Vault/Entry.compact")
      (stage-javascript entryCode "test-center/ts/composable/capsule-races.ts")))
 
+  ; the randomized replay test: a call's record folded onto a capsule other than the one it was
+  ; prepared against agrees with re-executing the call there whenever the fold accepts, and
+  ; re-execution records something else whenever the fold refuses
+  (test
+    "test-center/compact/local-replay.compact"
+    (stage-javascript "test-center/ts/local-replay.ts"))
+
 )
 
 (run-javascript)
