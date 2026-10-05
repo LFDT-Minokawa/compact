@@ -13,24 +13,16 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-export {
-    assertCoverage,
-    loadCorpus,
-    runCorpusKat,
-    type Classified,
-    type CorpusRoot,
-    type CorpusTest,
-    type Coverage,
-    type DrivenVector,
-    type Excluded,
-    type Expectation,
-} from './corpus.ts';
+import CompactStandardLibrary;
 
-export {
-    runEcdsaKat,
-    SECP256K1_BITCOIN,
-    SECP256R1,
-    type EcdsaVector,
-} from './ecdsa.ts';
+export ledger stored: Curve25519Scalar;
 
-export { ED25519, runEddsaKat, type EddsaVector } from './eddsa.ts';
+// A Curve25519Scalar survives a round trip through the ledger: the assignment
+// writes the two-atom encoding and the return reads it back.
+//
+// The scalar field is encoded differently from the base field, as 204 low
+// bits then 51 high bits.
+export circuit ed25519_scalar_roundtrip(value: Curve25519Scalar): Curve25519Scalar {
+    stored = disclose(value);
+    return stored;
+}

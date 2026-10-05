@@ -53,16 +53,20 @@ export { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 
 export {
     assertCoverage,
+    ED25519,
     loadCorpus,
     runCorpusKat,
     runEcdsaKat,
+    runEddsaKat,
     SECP256K1_BITCOIN,
+    SECP256R1,
     type Classified,
     type CorpusRoot,
     type CorpusTest,
     type Coverage,
     type DrivenVector,
     type EcdsaVector,
+    type EddsaVector,
     type Excluded,
     type Expectation,
 } from './wycheproof/index.ts';
