@@ -31688,6 +31688,80 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 1" "constructor cannot call host functions but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls host function secretKey" "line 6 char 11")))
     )
+
+  ; a call or a local operation inside a tuple or vector literal, spread or not, or in the
+  ; vector given to map or fold runs at deploy like any other, therefore the rule reaches
+  ; it there too
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "constructor() {"
+      "  const keys = [secretKey()];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call host functions but ~a at ~a" ("calls host function secretKey" "line 5 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "constructor() {"
+      "  const t = [1, credits.read()];"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot run local code but ~a at ~a" ("operates on local field credits" "line 4 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local pair(): Vector<2, Uint<64>> {"
+      "  return [credits.read(), credits.read()];"
+      "}"
+      "circuit setup(): Vector<3, Uint<64>> {"
+      "  return [0, ...pair()];"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 1" "constructor cannot run local code but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls local function pair" "line 7 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local pair(): Vector<2, Uint<64>> {"
+      "  return [credits.read(), credits.read()];"
+      "}"
+      "constructor() {"
+      "  const same = map((x: Uint<64>): Uint<64> => x, pair());"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "constructor cannot run local code but ~a at ~a" ("calls local function pair" "line 7 char 50")))
+    )
 )
 
 (run-tests check-local-callability
@@ -32566,6 +32640,8 @@ groups than for single tests.
             (tuple)))))
     )
 
+  ; the constructor cannot call host functions, therefore the tests from here to pm-17201 call
+  ; bar from an exported circuit
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
@@ -32577,7 +32653,7 @@ groups than for single tests.
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32598,7 +32674,7 @@ groups than for single tests.
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32620,7 +32696,7 @@ groups than for single tests.
       "  X = b2 ? s.a : s.b;"
       "}"
       "circuit id(v: T): T { return v; }"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, map(id, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]));"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32642,7 +32718,7 @@ groups than for single tests.
       "  X = b2 ? s.a : s.b;"
       "}"
       "circuit id(v: Vector<2, T>): Vector<2, T> { return v; }"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, id([T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]));"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32663,7 +32739,7 @@ groups than for single tests.
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32684,7 +32760,7 @@ groups than for single tests.
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -32709,7 +32785,7 @@ groups than for single tests.
       "  const s = t.v[z];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}], 0, 1);"
       "}"
       )

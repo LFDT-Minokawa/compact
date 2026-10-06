@@ -107,6 +107,12 @@
        (raise (make-local-code-condition function-name src "run local code"
                 (format "iterates local field ~a" (id-sym ledger-field-name)))))
      ir])
+  ;; the walk carries function-name, and nanopass leaves unvisited a subform whose
+  ;; nonterminal has no processor taking it, therefore every nonterminal that holds an
+  ;; expression has one here, or a call inside a tuple or vector literal or in the vector
+  ;; given to map or fold would go unchecked
+  (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
+  (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())
   (Ledger-Accessor : Ledger-Accessor (ir function-name) -> Ledger-Accessor ())
   (Function : Function (ir function-name) -> Function ()
     [(fref ,src ,function-name^)
