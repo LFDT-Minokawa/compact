@@ -227,6 +227,22 @@ describe('foldLocalTranscript', () => {
     expect(counterOf(folded)).toBe(7n);
   });
 
+  test('a partial fold checks a container pin recorded before the checkpoint, and skips one recorded after it', () => {
+    const ctx = context();
+    const pd = emptyProofData();
+    pd.publicTranscript.push('noop' as unknown as ocrt.Op<ocrt.AlignedValue>);
+    pinLocalContainer(ctx, pd, [0]); // offset 1 === guaranteedLength: before the ckpt
+    pd.publicTranscript.push('ckpt' as unknown as ocrt.Op<ocrt.AlignedValue>);
+    pinLocalContainer(ctx, pd, [0]); // offset 2: after it
+    queryLocalState(ctx, pd, increment(7));
+    const [guaranteed, fallible, fallibleOp] = pd.localTranscript!;
+    const partial = { tag: 'partial', guaranteedLength: 1 } as const;
+    let differing = ocrt.StateValue.newArray();
+    differing = differing.arrayPush(ocrt.StateValue.newCell(u64(1)));
+    expect(() => foldLocalTranscript(differing, [guaranteed, fallible, fallibleOp], partial)).toThrow(/observation failed/);
+    expect(counterOf(foldLocalTranscript(differing, [fallible, fallibleOp], partial))).toBe(1n);
+  });
+
   test('a mismatch on an observed read reports divergence', () => {
     const ctx = context();
     const pd = emptyProofData();

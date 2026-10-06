@@ -92782,6 +92782,40 @@ groups than for single tests.
         ))
     )
 
+  ; a call works on a copy of the context it is given, therefore that context keeps its capsule
+  ; whether the call succeeds or fails, and a second call prepared from it starts there too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger round: Counter;"
+      "export local tally: Counter;"
+      "export circuit add(n: Uint<16>): [] {"
+      "  tally.increment(n);"
+      "  round.increment(1);"
+      "}"
+      "export circuit addThenRefuse(n: Uint<16>): [] {"
+      "  tally.increment(n);"
+      "  assert(n == 0, 'refused');"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a call leaves the context it was given as it was', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const address = context.callContext.contractAddress;"
+        "  const tallyIn = (c: typeof context) => contractCode.localState(runtime.localStates(c)[address]).tally;"
+        "  const first = await contract.circuits.add(context, 5n);"
+        "  expect(tallyIn(first.context)).toEqual(5n);"
+        "  expect(tallyIn(context)).toEqual(0n);"
+        "  expect(contractCode.localState(context.callContext.currentLocalQueryContext!.state.state).tally).toEqual(0n);"
+        "  const second = await contract.circuits.add(context, 7n);"
+        "  expect(tallyIn(second.context)).toEqual(7n);"
+        "  await expect(contract.circuits.addThenRefuse(context, 3n)).rejects.toThrow(/refused/);"
+        "  expect(tallyIn(context)).toEqual(0n);"
+        "});"
+        ))
+    )
+
   ; guarded consumption: conditionally executed local operations and local calls, driven
   ; through both branch polarities and validated against the generated zkir
   (test

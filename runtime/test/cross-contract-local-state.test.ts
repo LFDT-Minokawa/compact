@@ -273,6 +273,27 @@ describe('a callee with local state', () => {
     expect(h.context.callProofDataTrace.map((record) => record.contractAddress)).toEqual([h.calleeAddress, h.calleeAddress]);
   });
 
+  test('a root call leaves the context it was given without the capsules its callee used, so a second starts afresh', async () => {
+    const provider = localStateProviderFor(counterState(10n));
+    const h = harness({ module: calleeModule({ localState: true }), localStateProvider: provider });
+    // a generated root wrapper runs on a copy of the context it is given
+    const root = (x: bigint): Promise<bigint> =>
+      crossContractCall({
+        context: copyCircuitContext(h.context),
+        interfaceName: 'Inner',
+        declaration: DECLARATION,
+        calleeCircuitId: CIRCUIT_ID,
+        calleeAddress: h.calleeAddress,
+        partialProofData: emptyProofData(),
+        args: [x],
+      });
+
+    expect(await root(1n)).toBe(11n);
+    expect(h.context.localQueryContexts[h.calleeAddress]).toBeUndefined();
+    expect(await root(2n)).toBe(12n);
+    expect(provider.asked).toBe(2);
+  });
+
   test("leaves the caller's own local state alone", async () => {
     const h = harness({
       module: calleeModule({ localState: true }),
