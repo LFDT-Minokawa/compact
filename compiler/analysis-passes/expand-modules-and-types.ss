@@ -981,6 +981,17 @@
                                        [(Info-size src size) size]
                                        [else (assert cannot-happen)])))
                                  info*)])
+        ;; a tree's operations take their types from its depth (a path holds a Vector of that
+        ;; length), therefore the depth is checked before they are expanded, or a depth past the
+        ;; longest vector is reported as that vector's length, in the standard library
+        (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
+          (let ([depth (car generic-value*)])
+            (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
+              (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
+                             adt-name
+                             depth
+                             (min-merkle-tree-depth)
+                             (max-merkle-tree-depth)))))
         (let ([adt-op* (fold-right
                          (lambda (adt-op adt-op*)
                            (nanopass-case (Lpreexpand ADT-Op) adt-op

@@ -24643,10 +24643,11 @@ groups than for single tests.
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
+  ; the inner depth is valid, therefore the nesting is the only error
   (test
     `(
       "import CompactStandardLibrary;"
-      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (max-merkle-tree-depth))
       )
     (oops
       message: "~a:\n  ~?"
@@ -24705,6 +24706,28 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  ; a tree's path operations hold a Vector as long as its depth, but a depth past the longest
+  ; vector is reported as a depth, not as that vector's length (pm-16440)
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-bytes/vector-length) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-bytes/vector-length) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
   (test
@@ -24819,10 +24842,11 @@ groups than for single tests.
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
+  ; the inner depth is valid, therefore the nesting is the only error
   (test
     `(
       "import CompactStandardLibrary;"
-      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (max-merkle-tree-depth))
       )
     (oops
       message: "~a:\n  ~?"

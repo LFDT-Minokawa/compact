@@ -1116,14 +1116,6 @@
     [(talias ,src ,nominal? ,type-name ,[type])
      `(talias ,src ,nominal? ,type-name ,type)]
     [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-     (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
-       (let ([depth (car generic-value*)])
-         (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
-           (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
-                          adt-name
-                          depth
-                          (min-merkle-tree-depth)
-                          (max-merkle-tree-depth)))))
      `(tadt ,src ,adt-name ([,adt-formal* ,(map Generic-Value generic-value*)] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
   (CareNot : Expression (ir) -> Expression ()
     [(if ,src ,[Care : expr0 type0] ,expr1 ,expr2)
