@@ -113,7 +113,7 @@ describe('transactions in flight on one callee capsule', () => {
     land(chain, account, a);
     // b's callee record pins its read of `visits` at 6, but on the capsule a left its increment
     // reaches 9.
-    expect(() => land(chain, account, b)).toThrow(/re-executed/);
+    expect(() => land(chain, account, b)).toThrow(/record 0 for \w+ diverged: ReplayFailed at entry 2: mismatch between expected/);
     expect(innerBooks(account, inner).visits).toEqual(6n);
     expect(account.records.get(inner.address)).toHaveLength(2);
 
@@ -122,6 +122,27 @@ describe('transactions in flight on one callee capsule', () => {
     land(chain, account, b2);
     expect(innerBooks(account, inner).visits).toEqual(9n);
     expect(account.refold(innerCode, inner.address).toString()).toEqual(account.localState(inner.address)!.toString());
+  });
+
+  test('a transaction whose later record on a capsule diverges lands none of its records there', async () => {
+    const chain = new TestChain();
+    const { inner, outer } = await deployPair(chain);
+    const account = new Account();
+    await chain.call(visitOnce(outer, account));
+    const before = account.localState(inner.address)!.toString();
+
+    // The Capsule pair's second visit in a call observes what its first does, so it replays whenever
+    // the first does; the callee records of two calls rehearsed on one capsule, spliced into one
+    // trace, stand in for a transaction whose later record alone diverges.
+    const a = await chain.rehearse(visitOnce(outer, account));
+    const b = await chain.rehearse(visitOnce(outer, account));
+    const spliced = {
+      ...a,
+      context: { ...a.context, callProofDataTrace: [recordOf(a, inner.address), recordOf(b, inner.address)] },
+    };
+    expect(() => land(chain, account, spliced)).toThrow(/record 1 for \w+ diverged: ReplayFailed at entry 2: mismatch between expected/);
+    expect(account.localState(inner.address)!.toString()).toEqual(before);
+    expect(account.records.get(inner.address)).toHaveLength(1);
   });
 
   test('two first touches each run the prologue; the later diverges on the guard, and rehearsed again records only the guard read', async () => {
@@ -136,7 +157,7 @@ describe('transactions in flight on one callee capsule', () => {
     expect(prologueOf(recordOf(b, inner.address))).toHaveLength(3);
 
     land(chain, account, a);
-    expect(() => land(chain, account, b)).toThrow(/re-executed/);
+    expect(() => land(chain, account, b)).toThrow(/record 0 for \w+ diverged: ReplayFailed at entry 0: mismatch between expected/);
 
     const b2 = await chain.rehearse(visitOnce(outer, account));
     expect(prologueOf(recordOf(b2, inner.address))).toHaveLength(1);
@@ -254,7 +275,7 @@ describe("a container pin in a callee's record", () => {
     const stash = await chain.rehearse(relayCall(relay, 'stash', [note(2)], account));
     const audit = await chain.rehearse(relayCall(relay, 'audit', [], account));
     land(chain, account, stash);
-    expect(() => land(chain, account, audit)).toThrow(/observation failed.*re-executed/);
+    expect(() => land(chain, account, audit)).toThrow(/record 0 for \w+ diverged: ObservationMismatch at entry 1, the container at \[1\]/);
 
     const again = await chain.rehearse(relayCall(relay, 'audit', [], account));
     expect(again.result).toEqual(2n);
@@ -279,10 +300,10 @@ describe('a checkpoint in a callee', () => {
     expect(record.localTranscript!.filter((entry) => entry.offset > c)).toHaveLength(1);
 
     const prior = vaultCode.initialLocalState();
-    const partial = vaultCode.localState(runtime.foldLocalTranscript(prior, record.localTranscript!, { tag: 'partial', guaranteedLength: c }));
+    const partial = vaultCode.localState(foldedState(foldCall(prior, record, { tag: 'partial', guaranteedLength: c })));
     expect(partial.staged).toEqual(5n);
     expect(partial.joinedAt.is_some).toEqual(true);
-    const whole = runtime.foldLocalTranscript(prior, record.localTranscript!, { tag: 'success' });
+    const whole = foldedState(foldCall(prior, record));
     expect(vaultCode.localState(whole).staged).toEqual(10n);
     expect(whole.toString()).toEqual(runtime.localStates(r.context)[vault.address].toString());
   });

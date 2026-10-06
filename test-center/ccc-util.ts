@@ -27,13 +27,16 @@ import {
   EncodedContractAddress,
   HostInterface,
   HostInterfaceProvider,
+  LocalFoldDivergence,
+  LocalFoldOutcome,
+  LocalFoldResult,
   LocalRecord,
   LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
   createConstructorContext,
   createCircuitContext,
-  foldLocalTranscript,
+  foldLocalState,
   localRecordsOf,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
@@ -124,6 +127,30 @@ export const checkCallProofData = async (
   contractDir: string,
 ): Promise<void> => {
   await checkProofData(contractDir, entry.circuitId, entry);
+};
+
+/** A fold's divergence in words, kind first, for an error a test matches. */
+export const describeDivergence = (divergence: LocalFoldDivergence): string =>
+  divergence.kind === 'ObservationMismatch'
+    ? `ObservationMismatch at entry ${divergence.entryIndex}, the container at [${divergence.path.join(', ')}]`
+    : `ReplayFailed at entry ${divergence.entryIndex}: ${divergence.message}`;
+
+/**
+ * Folds one call's record onto a prior local state, as the one step of a transaction with the given
+ * outcome. A call that left no local transcript has no record, therefore it folds to the prior.
+ */
+export const foldCall = (
+  prior: ocrt.StateValue,
+  call: CallProofData,
+  outcome: LocalFoldOutcome = { tag: 'success' },
+): LocalFoldResult => foldLocalState(prior, localRecordsOf([call]).map((record) => ({ record, outcome })));
+
+/** The state a fold reached; a divergence throws, saying which step and why. */
+export const foldedState = (result: LocalFoldResult): ocrt.StateValue => {
+  if (result.tag === 'diverged') {
+    throw new Error(`step ${result.stepIndex} diverged: ${describeDivergence(result.divergence)}`);
+  }
+  return result.state;
 };
 
 /** A deployed contract, as returned by {@link TestChain.deploy}. */
@@ -222,21 +249,35 @@ export class Account implements LocalStateProvider {
   }
 
   /**
-   * Folds a landed transaction's records into the capsules they touched: each record replays
-   * against that capsule's prior (the declaration defaults at a first touch), so the fold is the
-   * tier-1 account of the call and not a copy of the rehearsed state.
+   * Folds a landed transaction's records into the capsules they touched: a capsule's records replay
+   * in trace order against its prior (the declaration defaults at a first touch), so the fold is
+   * the tier-1 account of the call and not a copy of the rehearsed state. Every capsule folds
+   * before any is stored, therefore a divergence throws with the account as it was; the harness
+   * has no re-execution, so a test rehearses the call again instead.
    */
   commit(results: CircuitResults<unknown>, moduleFor: (address: ocrt.ContractAddress) => RuntimeModule): void {
+    const recordsByCapsule = new Map<ocrt.ContractAddress, LocalRecord[]>();
     for (const record of localRecordsOf(results.context.callProofDataTrace)) {
-      const initialLocalState = moduleFor(record.contractAddress).initialLocalState;
+      recordsByCapsule.set(record.contractAddress, [...(recordsByCapsule.get(record.contractAddress) ?? []), record]);
+    }
+    const folded = new Map<ocrt.ContractAddress, ocrt.StateValue>();
+    for (const [address, records] of recordsByCapsule) {
+      const initialLocalState = moduleFor(address).initialLocalState;
       if (initialLocalState === undefined) {
-        throw new Error(`a record for ${record.contractAddress} has a local transcript but its module keeps no local state`);
+        throw new Error(`a record for ${address} has a local transcript but its module keeps no local state`);
       }
-      const prior = this.states.get(record.contractAddress) ?? initialLocalState();
-      this.states.set(record.contractAddress, foldLocalTranscript(prior, record.localTranscript, { tag: 'success' }));
-      const records = this.records.get(record.contractAddress) ?? [];
-      records.push(record);
-      this.records.set(record.contractAddress, records);
+      const prior = this.states.get(address) ?? initialLocalState();
+      const result = foldLocalState(prior, records.map((record) => ({ record, outcome: { tag: 'success' } })));
+      if (result.tag === 'diverged') {
+        throw new Error(
+          `the transaction's record ${result.stepIndex} for ${address} diverged: ${describeDivergence(result.divergence)}; its call must be re-executed`,
+        );
+      }
+      folded.set(address, result.state);
+    }
+    for (const [address, state] of folded) {
+      this.states.set(address, state);
+      this.records.set(address, [...(this.records.get(address) ?? []), ...recordsByCapsule.get(address)!]);
     }
   }
 
@@ -249,10 +290,8 @@ export class Account implements LocalStateProvider {
     if (initialLocalState === undefined) {
       throw new Error(`the module for ${address} keeps no local state`);
     }
-    return (this.records.get(address) ?? []).reduce(
-      (state, record) => foldLocalTranscript(state, record.localTranscript, { tag: 'success' }),
-      initialLocalState(),
-    );
+    const records = this.records.get(address) ?? [];
+    return foldedState(foldLocalState(initialLocalState(), records.map((record) => ({ record, outcome: { tag: 'success' } }))));
   }
 }
 

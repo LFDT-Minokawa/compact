@@ -111,16 +111,6 @@ const around = (a: string, b: string): [string, string] => {
 const show = (moves: readonly Move[]): string =>
   moves.map((m) => `${m.circuit}(${m.args.map(String).join(', ')})`).join(' ') || '(none)';
 
-// the fold's verdict: the folded state, or why it refused
-const fold = (prior: runtime.StateValue, record: readonly runtime.LocalTranscriptEntry[]): runtime.StateValue | string => {
-  try {
-    return runtime.foldLocalTranscript(prior, record, { tag: 'success' });
-  } catch (e) {
-    if (e instanceof runtime.CompactError && /re-executed/.test(e.message)) return e.message;
-    throw e;
-  }
-};
-
 const digest = (sv: runtime.StateValue): string => runtime.stateValueDigest(sv);
 
 test('the fold accepts exactly the records re-execution reproduces, and then agrees with it', async () => {
@@ -222,16 +212,16 @@ test('the fold accepts exactly the records re-execution reproduces, and then agr
       `${fate}, seed ${SEED}, trial ${trials}\n  history: ${show(history.landed)}\n  then prepared against: ${show(prepared.landed)}` +
       `\n  then folded onto: ${show(folded.landed)}\n  call: ${show([call])}, host answers ${call.answers.join(', ')}`;
     const record = ran.record.localTranscript ?? [];
-    const verdict = fold(folded.world.local, record);
+    const verdict = foldCall(folded.world.local, ran.record);
     const rerun = await run({ ledger: prepared.world.ledger, local: folded.world.local }, call);
     const tally = stats[call.circuit];
-    if (typeof verdict !== 'string') {
+    if (verdict.tag === 'folded') {
       if (typeof rerun === 'string') {
         violations.push(`the fold accepted a call re-execution fails (${rerun}): ${where()}`);
       } else {
         const differs = (
           [
-            ['local state', digest(verdict), digest(rerun.after.local)],
+            ['local state', digest(verdict.state), digest(rerun.after.local)],
             ['local record', canon(record), canon(rerun.record.localTranscript ?? [])],
             ['public transcript', canon(ran.record.publicTranscript), canon(rerun.record.publicTranscript)],
             ['private inputs', canon(ran.record.privateTranscriptOutputs), canon(rerun.record.privateTranscriptOutputs)],
@@ -255,7 +245,7 @@ test('the fold accepts exactly the records re-execution reproduces, and then agr
       else tally.acceptedChanged++;
     } else {
       if (typeof rerun !== 'string' && canon(rerun.record.localTranscript ?? []) === canon(record)) {
-        violations.push(`the fold refused a record re-execution reproduces (${verdict}): ${where()}`);
+        violations.push(`the fold refused a record re-execution reproduces (${describeDivergence(verdict.divergence)}): ${where()}`);
       }
       tally.refused++;
       // a differing guard is the local constructor's observation; past it, the VM's wording tells
@@ -263,19 +253,19 @@ test('the fold accepts exactly the records re-execution reproduces, and then agr
       refusals[
         guardOf(prepared.world.local) !== guardOf(folded.world.local)
           ? 'guard'
-          : /observation failed/.test(verdict)
+          : verdict.divergence.kind === 'ObservationMismatch'
             ? 'observation'
-            : /mismatch between expected/.test(verdict)
+            : /mismatch between expected/.test(verdict.divergence.message)
               ? 'read'
               : 'fault'
       ]++;
     }
   };
   const replaysOnItsOwn = (history: Reached, prepared: Reached, ran: Ran, call: Move) => {
-    const own = fold(prepared.world.local, ran.record.localTranscript ?? []);
-    if (typeof own === 'string' || digest(own) !== digest(ran.after.local)) {
+    const own = foldCall(prepared.world.local, ran.record);
+    if (own.tag === 'diverged' || digest(own.state) !== digest(ran.after.local)) {
       violations.push(
-        `a record does not replay onto the capsule it was made on (${typeof own === 'string' ? own : 'a different state'}):` +
+        `a record does not replay onto the capsule it was made on (${own.tag === 'diverged' ? describeDivergence(own.divergence) : 'a different state'}):` +
           ` seed ${SEED}\n  history: ${show(history.landed)}\n  then: ${show(prepared.landed)}\n  call: ${show([call])}`,
       );
     }

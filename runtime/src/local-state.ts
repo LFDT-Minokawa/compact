@@ -211,72 +211,141 @@ export type LocalFoldOutcome =
        * back, therefore only local ops recorded before the checkpoint split apply.
        */
       readonly tag: 'partial';
-      /** The length of the landed transaction's guaranteed transcript, which locates the split. */
+      /** The length of the call's guaranteed transcript as the landed transaction carries it, which locates the split. */
       readonly guaranteedLength: number;
-    };
+    }
+  /** The transaction did not land, therefore its record folds nothing. */
+  | { readonly tag: 'failure' };
+
+/** One step of a fold: a record, and the fate of the transaction it belongs to. */
+export interface LocalFoldStep {
+  readonly record: LocalRecord;
+  readonly outcome: LocalFoldOutcome;
+}
 
 /**
- * Tier-1 fold: replays a call's recorded local ops in verify mode against a prior local state. A
- * read mismatch means the prior state differs in a way the rehearsal observed; re-executing the
- * call (tier 2) is then the only correct account, and this function reports the divergence by
- * throwing rather than guessing.
- *
- * A transaction that did not land is discarded whole and never folded; `success` applies every
- * recorded batch and `partial` applies only the batches recorded before the checkpoint split.
+ * Why a step's record did not replay: the prior local state differs in a way the call observed, so
+ * only re-executing the call (tier 2) accounts for it. `entryIndex` is the failing entry of the
+ * record's local transcript.
  */
-export const foldLocalTranscript = (
+export type LocalFoldDivergence =
+  /** An `observe` entry's digest differs from the folding state's value at `path`, or nothing is there. */
+  | { readonly kind: 'ObservationMismatch'; readonly entryIndex: number; readonly path: readonly number[] }
+  /** An `ops` entry did not replay in verify mode, a read seeing another value or an op faulting; `message` is the VM's. */
+  | { readonly kind: 'ReplayFailed'; readonly entryIndex: number; readonly message: string };
+
+/** What a fold reached. */
+export type LocalFoldResult =
+  | { readonly tag: 'folded'; readonly state: ocrt.StateValue }
+  | {
+      readonly tag: 'diverged';
+      /** The step whose record did not replay. */
+      readonly stepIndex: number;
+      /** The state the steps before it reached: where a re-execution of that step starts, and the fold resumes. */
+      readonly prior: ocrt.StateValue;
+      readonly divergence: LocalFoldDivergence;
+    };
+
+// verify-mode replay wants a budget; local execution is unmetered, so it is nominal
+const NOMINAL_GAS: ocrt.RunningCost = {
+  readTime: 10_000_000_000_000n,
+  computeTime: 10_000_000_000_000n,
+  bytesWritten: 1_000_000_000n,
+  bytesDeleted: 1_000_000_000n,
+};
+
+// one record's replay: the state it reached, or why it did not replay
+type LocalReplay =
+  | { readonly tag: 'replayed'; readonly state: ocrt.StateValue }
+  | { readonly tag: 'diverged'; readonly divergence: LocalFoldDivergence };
+
+const replayLocalTranscript = (
   localState: ocrt.StateValue,
   localTranscript: readonly LocalTranscriptEntry[],
-  outcome: LocalFoldOutcome,
-  costModel?: ocrt.CostModel,
-): ocrt.StateValue => {
-  // verify-mode replay wants a budget; local execution is unmetered, so it is nominal
-  const gas: ocrt.RunningCost = {
-    readTime: 10_000_000_000_000n,
-    computeTime: 10_000_000_000_000n,
-    bytesWritten: 1_000_000_000n,
-    bytesDeleted: 1_000_000_000n,
-  };
-  const cost = costModel ?? ocrt.CostModel.initialCostModel();
+  outcome: Exclude<LocalFoldOutcome, { tag: 'failure' }>,
+  cost: ocrt.CostModel,
+): LocalReplay => {
   let ctx = createLocalQueryContext(localState);
-  for (const entry of localTranscript) {
+  for (const [entryIndex, entry] of localTranscript.entries()) {
     // an entry's offset is the public-op count at record time and the fallible transcript
     // begins with Ckpt, therefore offset === guaranteedLength still precedes the checkpoint
     if (outcome.tag === 'partial' && entry.offset > outcome.guaranteedLength) {
       continue;
     }
     if (entry.tag === 'observe') {
-      let matched = true;
-      let live = ctx.state.state;
+      let live: ocrt.StateValue | undefined = ctx.state.state;
       for (const i of entry.path) {
-        const elems = live.asArray();
-        if (elems === undefined || i >= elems.length) {
-          matched = false;
-          break;
-        }
-        live = elems[i];
+        const elems: ocrt.StateValue[] | undefined = live?.asArray();
+        live = elems !== undefined && i < elems.length ? elems[i] : undefined;
       }
-      if (matched) {
-        matched = stateValueDigest(live) === entry.digest;
-      }
-      if (!matched) {
-        throw new CompactError(
-          `local transcript observation failed at [${entry.path.join(', ')}]: the prior local state differs in a way this call observed, so the call must be re-executed`,
-        );
+      if (live === undefined || stateValueDigest(live) !== entry.digest) {
+        return { tag: 'diverged', divergence: { kind: 'ObservationMismatch', entryIndex, path: entry.path } };
       }
       continue;
     }
     try {
       // local ops never touch effects, therefore the declared effects are the context's own
-      ctx = ctx.runTranscript({ gas, effects: ctx.effects, program: entry.ops }, cost);
+      ctx = ctx.runTranscript({ gas: NOMINAL_GAS, effects: ctx.effects, program: entry.ops }, cost);
     } catch (err) {
-      if (err instanceof Error) {
-        throw new CompactError(
-          `local transcript replay failed: ${err.toString()}; the prior local state differs in a way this call observed, so the call must be re-executed`,
-        );
-      }
-      throw err;
+      const message = err instanceof Error ? err.message : String(err);
+      return { tag: 'diverged', divergence: { kind: 'ReplayFailed', entryIndex, message } };
     }
   }
-  return ctx.state.state;
+  return { tag: 'replayed', state: ctx.state.state };
+};
+
+// what is wrong with an outcome a JavaScript caller built, if anything
+const outcomeDefect = (outcome: LocalFoldOutcome): string | undefined => {
+  switch (outcome.tag) {
+    case 'success':
+    case 'failure':
+      return undefined;
+    case 'partial':
+      return Number.isSafeInteger(outcome.guaranteedLength) && outcome.guaranteedLength >= 0
+        ? undefined
+        : `a partial outcome's guaranteed length is a transcript length, not ${String(outcome.guaranteedLength)}`;
+    default:
+      return `an outcome is 'success', 'partial' or 'failure', not '${String((outcome as { tag: unknown }).tag)}'`;
+  }
+};
+
+/**
+ * Tier-1 fold of one capsule's records in chain order: each step's record replays in verify mode
+ * against the state the steps before it reached. `success` applies every recorded entry, `partial`
+ * only those recorded before the checkpoint split, and `failure` nothing. A record that does not
+ * replay means the prior differs in a way its call observed, which concurrency makes an expected
+ * event rather than a defect, therefore it is returned, with what a re-execution of that step
+ * needs to take over, rather than thrown. Steps naming different contracts, or a malformed outcome
+ * (an unknown tag, or a `partial` length that is not a transcript length), are defects and throw,
+ * before any step folds.
+ */
+export const foldLocalState = (
+  prior: ocrt.StateValue,
+  steps: readonly LocalFoldStep[],
+  costModel?: ocrt.CostModel,
+): LocalFoldResult => {
+  for (const [stepIndex, { record, outcome }] of steps.entries()) {
+    if (record.contractAddress !== steps[0].record.contractAddress) {
+      throw new CompactError(
+        `foldLocalState folds one contract's local state, but step ${stepIndex} is a record of ${record.contractAddress} and step 0 one of ${steps[0].record.contractAddress}`,
+      );
+    }
+    const defect = outcomeDefect(outcome);
+    if (defect !== undefined) {
+      throw new CompactError(`foldLocalState: step ${stepIndex}: ${defect}`);
+    }
+  }
+  const cost = costModel ?? ocrt.CostModel.initialCostModel();
+  let state = prior;
+  for (const [stepIndex, { record, outcome }] of steps.entries()) {
+    if (outcome.tag === 'failure') {
+      continue;
+    }
+    const replay = replayLocalTranscript(state, record.localTranscript, outcome, cost);
+    if (replay.tag === 'diverged') {
+      return { tag: 'diverged', stepIndex, prior: state, divergence: replay.divergence };
+    }
+    state = replay.state;
+  }
+  return { tag: 'folded', state };
 };
