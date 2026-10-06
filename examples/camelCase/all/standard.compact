@@ -46,18 +46,9 @@ constructor() {
   const test_35 = default<ZswapCoinPublicKey>;
   const test_36 = default<ShieldedSendResult>;
   const test_37 = nativeToken();
-  const test_38 = ownPublicKey();
-  const test_39 = createZswapInput(default<QualifiedShieldedCoinInfo>);
-  const test_40 = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   const test_41 = tokenType(default<Bytes<32>>, default<ContractAddress>);
-  const test_42 = mintShieldedToken(default<Bytes<32>>, default<Uint<64>>, default<Bytes<32>>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
   const test_43 = evolveNonce(default<Uint<128>>, default<Bytes<32>>);
   const test_44 = shieldedBurnAddress();
-  const test_45 = receiveShielded(default<ShieldedCoinInfo>);
-  const test_46 = sendShielded(default<QualifiedShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
-  const test_47 = sendImmediateShielded(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
-  const test_48 = mergeCoin(default<QualifiedShieldedCoinInfo>, default<QualifiedShieldedCoinInfo>);
-  const test_49 = mergeCoinImmediate(default<QualifiedShieldedCoinInfo>, default<ShieldedCoinInfo>);
   const test_50 = default<UserAddress>;
   const test_52 = mintUnshieldedToken(default<Bytes<32>>, default<Uint<64>>, default<Either<ContractAddress, UserAddress>>);
   const test_53 = sendUnshielded(default<Bytes<32>>, default<Uint<128>>, default<Either<ContractAddress, UserAddress>>);
@@ -67,4 +58,18 @@ constructor() {
   const test_57 = unshieldedBalanceGte(default<Bytes<32>>, default<Uint<128>>);
   const test_58 = unshieldedBalanceGt(default<Bytes<32>>, default<Uint<128>>);
   const test_59 = unshieldedBalanceLte(default<Bytes<32>>, default<Uint<128>>);
+}
+
+// the constructor cannot call host functions, directly or through the circuits it calls,
+// therefore the coin operations, which call the zswap host interface, are called here
+export circuit coinOperations(): [] {
+  const test_38 = ownPublicKey();
+  const test_39 = createZswapInput(default<QualifiedShieldedCoinInfo>);
+  const test_40 = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_42 = mintShieldedToken(default<Bytes<32>>, default<Uint<64>>, default<Bytes<32>>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  const test_45 = receiveShielded(default<ShieldedCoinInfo>);
+  const test_46 = sendShielded(default<QualifiedShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_47 = sendImmediateShielded(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>, default<Uint<128>>);
+  const test_48 = mergeCoin(default<QualifiedShieldedCoinInfo>, default<QualifiedShieldedCoinInfo>);
+  const test_49 = mergeCoinImmediate(default<QualifiedShieldedCoinInfo>, default<ShieldedCoinInfo>);
 }

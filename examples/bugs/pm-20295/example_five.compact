@@ -15,8 +15,9 @@
 
 import CompactStandardLibrary;
 
-constructor([]:[], vara: Field) {
+// the constructor cannot call host functions, therefore the key it slices is passed in
+constructor([]:[], vara: Field, key: ZswapCoinPublicKey) {
    const a = slice<16777215>(default<Bytes<16777215>>, (vara - vara) as Uint<248>);
    const b = slice<1>(default<Vector<1, Vector<1, Vector<1, Field>>>>, 0);
-   const c = slice<1>([...ownPublicKey().bytes, ...ownPublicKey().bytes], 1);
+   const c = slice<1>([...key.bytes, ...key.bytes], 1);
 }
