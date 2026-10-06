@@ -110,7 +110,9 @@ describe('the registry and the ballot', () => {
     // the credential and the key, in call order; the prologue and `myCommitment = some(c)`
     expect(signupRecord.hostOutputs).toHaveLength(2);
     expect(signupRecord.localTranscript).toHaveLength(4);
-    expect(signupRecord.calleeReturns).toEqual([enrollRecord.output]);
+    expect(signupRecord.calleeReturns).toEqual([
+      { contractAddress: registry.address, circuitId: 'enroll', input: enrollRecord.input, output: enrollRecord.output },
+    ]);
     expect(Object.keys(runtime.localStates(s1.context)).sort()).toEqual([ballot.address, registry.address].sort());
     // folded into her capsules
     expect(ballotBooks(alice, ballot).credits).toEqual(1n);

@@ -241,6 +241,7 @@
      (maybe-register-descriptor! type)
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)]
     [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
+     (for-each register-descriptor! (map arg->type arg*))
      (maybe-register-descriptor! type)
      `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])
   (Type : Type (ir) -> Type ()

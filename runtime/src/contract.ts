@@ -743,9 +743,14 @@ export const crossContractCall = async ({
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
     callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
-    // The caller's record pins the result the chain bound it to; the callee's record (the trace
-    // entry above) holds the callee's own local transcript and host outputs.
-    (callerProofData.calleeReturns ??= []).push(calleeCallProofData.output);
+    // The caller's record pins the result the chain bound it to, beside the call it answers; the
+    // callee's record (the trace entry above) holds the callee's own local transcript and host outputs.
+    (callerProofData.calleeReturns ??= []).push({
+      contractAddress: calleeAddress,
+      circuitId: calleeCircuitId,
+      input: calleeCallProofData.input,
+      output: calleeCallProofData.output,
+    });
     kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
     return circuitResult.result;

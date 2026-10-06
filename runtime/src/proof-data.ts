@@ -45,6 +45,30 @@ export interface LocalObserveEntry {
 export type LocalTranscriptEntry = LocalOpsEntry | LocalObserveEntry;
 
 /**
+ * One host function call: the answer beside the question it answers. A re-execution consumes the
+ * answers in call order instead of asking again, therefore it needs the questions to tell whether
+ * it is asking the same ones.
+ */
+export interface HostOutput {
+  readonly interfaceId: string;
+  readonly name: string;
+  /** The arguments as one aligned value, concatenated in order as a circuit's `input` is. */
+  readonly args: ocrt.AlignedValue;
+  readonly result: ocrt.AlignedValue;
+}
+
+/**
+ * One cross-contract call's result, as the caller pinned it: the callee's output beside the circuit
+ * called and the input it was given, so that a re-execution can tell whether it makes the same call.
+ */
+export interface CalleeReturn {
+  readonly contractAddress: ocrt.ContractAddress;
+  readonly circuitId: string;
+  readonly input: ocrt.AlignedValue;
+  readonly output: ocrt.AlignedValue;
+}
+
+/**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
  */
 export interface PartialProofData {
@@ -68,19 +92,18 @@ export interface PartialProofData {
    */
   localTranscript?: LocalTranscriptEntry[];
   /**
-   * Every host function result of the call, in call order: the pinned nondeterminism a
+   * Every host function call of the call, in call order: the pinned nondeterminism a
    * re-execution consumes instead of re-sampling. Absent until the first host call, so proof
    * data built by older generated code is unaffected.
    */
-  hostOutputs?: ocrt.AlignedValue[];
+  hostOutputs?: HostOutput[];
   /**
-   * The value each cross-contract callee returned to this call, in call order. The landed
-   * transaction binds this contract to that value through the communication commitment, therefore
-   * a re-execution consumes it instead of re-running the callee; an external result like a host
-   * output, kept apart from them because its origin is another capsule's record. Absent until the
-   * first cross-contract call.
+   * Each cross-contract call's result, in call order. The landed transaction binds this contract
+   * to that result through the communication commitment, therefore a re-execution consumes it
+   * instead of re-running the callee; an external result like a host output, kept apart from them
+   * because its origin is another capsule's record. Absent until the first cross-contract call.
    */
-  calleeReturns?: ocrt.AlignedValue[];
+  calleeReturns?: CalleeReturn[];
 }
 
 /**

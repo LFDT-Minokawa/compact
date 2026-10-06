@@ -77716,8 +77716,13 @@ groups than for single tests.
         "                                 result_0)"
         "    }"
         "    __compactRuntime.recordHostOutput(partialProofData, {"
-        "      value: _descriptor_1.toValue(result_0),"
-        "      alignment: _descriptor_1.alignment()"
+        "      interfaceId: 'test:oracle/private-secret-key@1.0.0',"
+        "      name: 'private$secret_key',"
+        "      args: { value: [], alignment: [] },"
+        "      result: {"
+        "        value: _descriptor_1.toValue(result_0),"
+        "        alignment: _descriptor_1.alignment()"
+        "      }"
         "    });"
         "    return result_0;"
         "  }"
@@ -77929,7 +77934,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -91177,8 +91182,13 @@ groups than for single tests.
         "                                 result_0)"
         "    }"
         "    __compactRuntime.recordHostOutput(partialProofData, {"
-        "      value: _descriptor_0.toValue(result_0),"
-        "      alignment: _descriptor_0.alignment()"
+        "      interfaceId: 'test:oracle/bar@1.0.0',"
+        "      name: 'bar',"
+        "      args: { value: [], alignment: [] },"
+        "      result: {"
+        "        value: _descriptor_0.toValue(result_0),"
+        "        alignment: _descriptor_0.alignment()"
+        "      }"
         "    });"
         "    return result_0;"
         "  }"
@@ -93407,10 +93417,11 @@ groups than for single tests.
         ))
     )
 
-  ; host functions end to end: the runtime registry resolves the implementation (none is
-  ; built in for the keys interface, so the seam is named until one is registered), every
-  ; result is recorded, a circuit's call crosses into the proof as a private input while a
-  ; local function's does not, and the declared result type is checked at run time
+  ; host functions end to end: the context's provider resolves the implementation (the
+  ; runtime builds in none, so without one the root's entry check names the gap), every call
+  ; is recorded beside its question, a circuit's call crosses into the proof as a private
+  ; input while a local function's does not, and the declared result type is checked at run
+  ; time
   (test
     '(
       "import CompactStandardLibrary;"
@@ -93448,7 +93459,12 @@ groups than for single tests.
         "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, context.hostInterfaceProvider)).toEqual([]);"
         "  const r1 = await contract.circuits.reveal(context);"
         "  expect(r1.result).toEqual(key);"
-        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toEqual([{"
+        "    interfaceId: 'midnight:capsule/keys@1.0.0',"
+        "    name: 'secretKey',"
+        "    args: { value: [], alignment: [] },"
+        "    result: { value: new runtime.CompactTypeBytes(32).toValue(key), alignment: new runtime.CompactTypeBytes(32).alignment() },"
+        "  }]);"
         "  expect(r1.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(1);"
         "  const r2 = await contract.circuits.commit(r1.context);"
         "  const pd = r2.context.callProofDataTrace.at(-1)!;"
@@ -93462,6 +93478,46 @@ groups than for single tests.
         "  const shortKey = withHostInterfaces(r2.context, { 'midnight:capsule/keys@1.0.0': { secretKey: () => new Uint8Array(16) } });"
         "  await expect(contract.circuits.reveal(shortKey))"
         "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; a host call's question is recorded with its answer: the interface, the function, and the
+  ; arguments as one aligned value, encoded as a circuit's input is, from a circuit and from a
+  ; local function alike
+  (test
+    '(
+      "host test:oracle/sum@1.0.0 { add(a: Uint<8>, b: Uint<16>): Uint<32>; }"
+      "export ledger total: Uint<32>;"
+      "export circuit pair(a: Uint<8>, b: Uint<16>): [] {"
+      "  total = disclose(add(a, b));"
+      "}"
+      "local addLocally(a: Uint<8>, b: Uint<16>): Uint<32> {"
+      "  return add(a, b);"
+      "}"
+      "export circuit pairLocally(a: Uint<8>, b: Uint<16>): [] {"
+      "  total = disclose(addLocally(a, b));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a host call is recorded beside its question, its arguments encoded as a circuit\\'s input is', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(bare, { 'test:oracle/sum@1.0.0': { add: (_: unknown, a: bigint, b: bigint) => a + b } });"
+        "  const r1 = await contract.circuits.pair(context, 3n, 300n);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  const uint32 = new runtime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "  expect(pd1.hostOutputs).toEqual([{"
+        "    interfaceId: 'test:oracle/sum@1.0.0',"
+        "    name: 'add',"
+        "    // the same two values, in the same order and encoding, as the circuit's own input"
+        "    args: pd1.input,"
+        "    result: { value: uint32.toValue(303n), alignment: uint32.alignment() },"
+        "  }]);"
+        "  const r2 = await contract.circuits.pairLocally(r1.context, 3n, 300n);"
+        "  expect(r2.context.callProofDataTrace.at(-1)!.hostOutputs).toEqual(pd1.hostOutputs);"
+        "  const r3 = await contract.circuits.pair(r2.context, 4n, 300n);"
+        "  expect(r3.context.callProofDataTrace.at(-1)!.hostOutputs![0].args).not.toEqual(pd1.input);"
         "});"
         ))
     )

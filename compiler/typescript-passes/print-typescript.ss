@@ -1457,46 +1457,7 @@
                                             2 "const partialProofData = {"
                                             4 (make-Qconcat
                                                 "input: {"
-                                                2 ((make-Qsep ",")
-                                                   (make-Qconcat
-                                                     "value: "
-                                                     (if (null? q-formal*)
-                                                         "[]"
-                                                         (let f ([descriptor-name* descriptor-name*]
-                                                                 [q-formal* q-formal*])
-                                                           (let ([descriptor-name (car descriptor-name*)]
-                                                                 [q-formal (car q-formal*)]
-                                                                 [descriptor-name* (cdr descriptor-name*)]
-                                                                 [q-formal* (cdr q-formal*)])
-                                                             (let ([q (make-Qconcat
-                                                                        (format "~a.toValue(" descriptor-name)
-                                                                        q-formal
-                                                                        ")")])
-                                                               (if (null? descriptor-name*)
-                                                                   q
-                                                                   (make-Qconcat
-                                                                     q
-                                                                     ".concat("
-                                                                     (f descriptor-name* q-formal*)
-                                                                     ")")))))))
-                                                   (make-Qconcat
-                                                     "alignment: "
-                                                     (if (null? q-formal*)
-                                                         "[]"
-                                                         (let f ([descriptor-name* descriptor-name*]
-                                                                 [q-formal* q-formal*])
-                                                           (let ([descriptor-name (car descriptor-name*)]
-                                                                 [q-formal (car q-formal*)]
-                                                                 [descriptor-name* (cdr descriptor-name*)]
-                                                                 [q-formal* (cdr q-formal*)])
-                                                             (let ([q (format "~a.alignment()" descriptor-name)])
-                                                               (if (null? descriptor-name*)
-                                                                   q
-                                                                   (make-Qconcat
-                                                                     q
-                                                                     ".concat("
-                                                                     (f descriptor-name* q-formal*)
-                                                                     ")"))))))))
+                                                2 (make-Qaligned-args descriptor-name* q-formal*)
                                                 0 "},")
                                             4 "output: undefined,"
                                             4 "publicTranscript: [],"
@@ -2114,12 +2075,15 @@
           (newline))
 
         ;; a host function is resolved by the runtime, not supplied by the DApp, therefore the
-        ;; wrapper asks the runtime for the implementation by interface id and name; every
-        ;; result is recorded for the fold, and a caller in a circuit pushes it as a private
-        ;; input at the call site, since a caller in a local function must not
+        ;; wrapper asks the runtime for the implementation by interface id and name; a
+        ;; re-execution consumes the recorded answers in order, therefore each is recorded
+        ;; beside the question it answers (interface, function, arguments); a caller in a
+        ;; circuit pushes the answer as a private input at the call site, but a caller in a
+        ;; local function must not
         (define (print-host-function src internal-id uname interface-id host-name arg* type)
           (with-local-unique-names
             (let ([result (format-internal-binding unique-local-name (make-temp-id src 'result))]
+                  [descriptor-name* (map type->descriptor-name (map arg->type arg*))]
                   [descriptor-name? (type->maybe-descriptor-name type)]
                   [what (format "host function ~a of ~a" host-name interface-id)])
               (print-Q 2
@@ -2137,13 +2101,26 @@
                     (result-type-check src what type result
                       (list
                         2 "__compactRuntime.recordHostOutput(partialProofData, {"
-                        4 "value: " (if descriptor-name?
-                                        (format "~a.toValue(~a)" descriptor-name? result)
-                                        "[]")
-                          ","
-                        4 "alignment: " (if descriptor-name?
-                                            (format "~a.alignment()" descriptor-name?)
-                                            "[]")
+                        4 (format "interfaceId: '~a'," interface-id)
+                        4 (format "name: '~a'," host-name)
+                        4 (make-Qconcat
+                            "args: {"
+                            2 (make-Qaligned-args descriptor-name* q-formal*)
+                            0 "},")
+                        4 (make-Qconcat
+                            "result: {"
+                            2 ((make-Qsep ",")
+                               (make-Qconcat
+                                 "value: "
+                                 (if descriptor-name?
+                                     (format "~a.toValue(~a)" descriptor-name? result)
+                                     "[]"))
+                               (make-Qconcat
+                                 "alignment: "
+                                 (if descriptor-name?
+                                     (format "~a.alignment()" descriptor-name?)
+                                     "[]")))
+                            0 "}")
                         2 "});"
                         2 "return "
                         result
@@ -2540,6 +2517,30 @@
       (if pure?
           (apply (make-Qsep ",") q-formal*)
           (apply (make-Qsep ",") (cons* "context" "partialProofData" q-formal*))))
+    ;; arguments encode as one aligned value, their parts concatenated in order, therefore a
+    ;; circuit's input and a host call's arguments share this printer
+    (define (make-Qaligned-args descriptor-name* q-formal*)
+      (define (concat q*)
+        (if (null? (cdr q*))
+            (car q*)
+            (make-Qconcat (car q*) ".concat(" (concat (cdr q*)) ")")))
+      ((make-Qsep ",")
+       (make-Qconcat
+         "value: "
+         (if (null? q-formal*)
+             "[]"
+             (concat
+               (map (lambda (descriptor-name q-formal)
+                      (make-Qconcat (format "~a.toValue(" descriptor-name) q-formal ")"))
+                    descriptor-name*
+                    q-formal*))))
+       (make-Qconcat
+         "alignment: "
+         (if (null? q-formal*)
+             "[]"
+             (concat
+               (map (lambda (descriptor-name) (format "~a.alignment()" descriptor-name))
+                    descriptor-name*))))))
 
     (define (parenthesize required-level inner-level q)
       (if (>= inner-level required-level)

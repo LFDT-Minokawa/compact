@@ -106,8 +106,11 @@ describe('a cross-contract callee with local state and a host function', () => {
     expect(callerRecord.contractAddress).toEqual(outer.address);
     expect(callerRecord.localTranscript).toBeUndefined();
     expect(callerRecord.hostOutputs).toBeUndefined();
-    // The caller's record pins the value the chain binds it to: the callee's output.
-    expect(callerRecord.calleeReturns).toEqual([calleeRecord.output]);
+    // The caller's record pins the value the chain binds it to, the callee's output, beside the call
+    // it answers.
+    expect(callerRecord.calleeReturns).toEqual([
+      { contractAddress: inner.address, circuitId: 'visit', input: calleeRecord.input, output: calleeRecord.output },
+    ]);
     // Only the callee has a capsule in this call tree.
     expect(Object.keys(runtime.localStates(r1.context))).toEqual([inner.address]);
     // The account folded the callee's record.

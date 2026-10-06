@@ -18,6 +18,7 @@ import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import {
   HostInterface,
   HostInterfaceProvider,
+  HostOutput,
   PartialProofData,
   ZSWAP_HOST_INTERFACE_ID,
   assertHostInterfaces,
@@ -116,14 +117,16 @@ describe('host interfaces', () => {
     expect(() => assertHostInterfaces(partial, { 'vendor:thing/partial@1.0.0': ['f'] }, 'claim')).not.toThrow();
   });
 
-  test('host outputs are recorded in call order, created on the first', () => {
+  test('host outputs are recorded in call order, created on the first, each beside its question', () => {
     const pd = emptyProofData();
     expect(pd.hostOutputs).toBeUndefined();
-    const a: ocrt.AlignedValue = {
+    const byte: ocrt.AlignedValue = {
       value: [new Uint8Array([1])],
       alignment: [{ tag: 'atom', value: { tag: 'bytes', length: 1 } }],
     };
-    const b: ocrt.AlignedValue = { value: [], alignment: [] };
+    const none: ocrt.AlignedValue = { value: [], alignment: [] };
+    const a: HostOutput = { interfaceId: 'vendor:thing/partial@1.0.0', name: 'f', args: none, result: byte };
+    const b: HostOutput = { interfaceId: 'vendor:thing/partial@1.0.0', name: 'g', args: byte, result: none };
     recordHostOutput(pd, a);
     recordHostOutput(pd, b);
     expect(pd.hostOutputs).toEqual([a, b]);

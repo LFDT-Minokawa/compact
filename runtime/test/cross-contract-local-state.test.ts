@@ -320,9 +320,14 @@ describe('a callee with local state', () => {
     expect(first.localTranscript).toHaveLength(2);
     expect(second.localTranscript).toHaveLength(2);
     expect(first.calleeReturns).toBeUndefined();
-    // The same values the caller's proof consumes, kept apart as this call's external results.
-    expect(h.callerProofData.calleeReturns).toEqual([first.output, second.output]);
-    expect(h.callerProofData.calleeReturns!.map(toBigint)).toEqual([5n, 11n]);
+    // The same values the caller's proof consumes, kept apart as this call's external results, each
+    // beside the call it answers.
+    expect(h.callerProofData.calleeReturns).toEqual([
+      { contractAddress: h.calleeAddress, circuitId: CIRCUIT_ID, input: first.input, output: first.output },
+      { contractAddress: h.calleeAddress, circuitId: CIRCUIT_ID, input: second.input, output: second.output },
+    ]);
+    expect(h.callerProofData.calleeReturns!.map(({ input }) => toBigint(input))).toEqual([5n, 6n]);
+    expect(h.callerProofData.calleeReturns!.map(({ output }) => toBigint(output))).toEqual([5n, 11n]);
     expect(h.callerProofData.localTranscript).toBeUndefined();
   });
 

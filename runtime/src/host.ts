@@ -13,9 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import type { CircuitContext } from './circuit-context.js';
-import type { PartialProofData } from './proof-data.js';
+import type { HostOutput, PartialProofData } from './proof-data.js';
 import type { HostInterfaceProvider } from './providers.js';
 import { CompactError } from './error.js';
 import { createZswapInput, createZswapOutput, ownPublicKey } from './zswap.js';
@@ -127,11 +126,12 @@ export const callHostFunction = (context: CircuitContext, interfaceId: string, n
 };
 
 /**
- * Records a host function's result in the call's proof data. Every host result is pinned
- * nondeterminism the fold re-executes against (plan §4.2), whoever called the function; a
- * caller in a circuit additionally pushes the result as a private input at its call site.
+ * Records a host function call in the call's proof data. Every host result is pinned
+ * nondeterminism a re-execution consumes instead of re-sampling (plan §4.2), whoever called the
+ * function, therefore it is recorded beside the question it answers; a caller in a circuit
+ * additionally pushes the result as a private input at its call site.
  */
-export const recordHostOutput = (partialProofData: PartialProofData, output: ocrt.AlignedValue): void => {
+export const recordHostOutput = (partialProofData: PartialProofData, output: HostOutput): void => {
   (partialProofData.hostOutputs ??= []).push(output);
 };
 

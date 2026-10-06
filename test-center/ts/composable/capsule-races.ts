@@ -165,8 +165,14 @@ describe('a capsule two calls deep', () => {
     expect(relayRecord.localTranscript).toBeUndefined();
     expect(entryRecord.localTranscript).toBeUndefined();
     expect(vaultRecord.calleeReturns).toBeUndefined();
-    expect(relayRecord.calleeReturns).toEqual([vaultRecord.output]);
-    expect(entryRecord.calleeReturns).toEqual([relayRecord.output]);
+    expect(relayRecord.calleeReturns).toEqual([
+      { contractAddress: vault.address, circuitId: 'stash', input: vaultRecord.input, output: vaultRecord.output },
+    ]);
+    expect(entryRecord.calleeReturns).toEqual([
+      { contractAddress: relay.address, circuitId: 'stash', input: relayRecord.input, output: relayRecord.output },
+    ]);
+    // the note travels as each callee's input, so the two pins carry the same arguments
+    expect(relayRecord.calleeReturns![0].input).toEqual(entryRecord.calleeReturns![0].input);
     expect(Object.keys(runtime.localStates(r.context))).toEqual([vault.address]);
     expect(alice.lookupCount(vault.address)).toEqual(1);
     expect(vaultBooks(alice, vault).notes.member(note(1))).toEqual(true);
@@ -194,11 +200,18 @@ describe("a callee's coin operations", () => {
     const coin = r.result as { value: bigint };
     expect(coin.value).toEqual(5n);
     const [vaultRecord, relayRecord] = r.context.callProofDataTrace;
-    // `ownPublicKey()`, then `createZswapOutput` inside `mintShieldedToken`.
-    expect(vaultRecord.hostOutputs).toHaveLength(2);
+    // `ownPublicKey()`, then `createZswapOutput` inside `mintShieldedToken`, each beside its question:
+    // the second's arguments are the coin and the recipient, its answer nothing.
+    expect(vaultRecord.hostOutputs!.map(({ interfaceId, name }) => [interfaceId, name])).toEqual([
+      [ZSWAP, 'ownPublicKey'],
+      [ZSWAP, 'createZswapOutput'],
+    ]);
+    expect(vaultRecord.hostOutputs![0].args).toEqual({ value: [], alignment: [] });
+    expect(vaultRecord.hostOutputs![1].result).toEqual({ value: [], alignment: [] });
     expect(relayRecord.hostOutputs).toBeUndefined();
     const party = r.context.zswapLocalStates[relay.address].coinPublicKey;
     expect(party.bytes).toEqual(runtime.encodeCoinPublicKey(PARTY));
+    expect(vaultRecord.hostOutputs![1].args.value).toContainEqual(party.bytes);
     const vaultZswap = r.context.zswapLocalStates[vault.address];
     expect(vaultZswap.outputs).toHaveLength(1);
     expect(vaultZswap.outputs[0].coinInfo).toEqual(coin);
