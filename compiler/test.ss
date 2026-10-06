@@ -92817,10 +92817,12 @@ groups than for single tests.
     )
 
   ; guarded consumption: conditionally executed local operations and local calls, driven
-  ; through both branch polarities and validated against the generated zkir
+  ; through both branch polarities and validated against the generated zkir, which a circuit
+  ; has only with a public operation, hence `calls`
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger calls: Counter;"
       "local bank: Counter;"
       "local constructor {"
       "  bank.increment(1);"
@@ -92829,6 +92831,7 @@ groups than for single tests.
       "  return bank.read();"
       "}"
       "export circuit maybeBump(b: Boolean, n: Uint<16>): Uint<64> {"
+      "  calls.increment(1);"
       "  if (b) {"
       "    bank.increment(n);"
       "  }"
@@ -93114,11 +93117,13 @@ groups than for single tests.
     )
 
   ; a local Merkle tree end to end: inserts, the local-read operations (a plain pinned
-  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof,
-  ; and the root pin letting the fold catch a divergent prior
+  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof
+  ; (proved because `member` has a public operation), and the root pin letting the fold
+  ; catch a divergent prior
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger checks: Counter;"
       "local tree: MerkleTree<4, Bytes<8>>;"
       "local prove(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
       "  const m = tree.findPathForLeaf(item);"
@@ -93135,6 +93140,7 @@ groups than for single tests.
       "  tree.insert(item);"
       "}"
       "export circuit member(item: Bytes<8>): Boolean {"
+      "  checks.increment(1);"
       "  const p = prove(item);"
       "  return disclose(rootMatches(merkleTreePathRoot<4, Bytes<8>>(p)));"
       "}"
@@ -94290,6 +94296,12 @@ groups than for single tests.
   (test
     "test-center/compact/local-replay.compact"
     (stage-javascript "test-center/ts/local-replay.ts"))
+
+  ; private-input alignment, path by path: each way a local or host result reaches a proved
+  ; circuit, under each control-flow construct, on each branch, against both zkir versions
+  (test
+    "test-center/compact/local-alignment.compact"
+    (stage-javascript "test-center/ts/local-alignment.ts"))
 
 )
 
