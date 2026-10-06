@@ -109,6 +109,7 @@ ledger tally_yes: Counter;
 ledger committed_votes: MerkleTree<10, Bytes<32>>;
 ledger committed: Set<Bytes<32>>;
 ledger ciphertexts: Opaque<"Uint8Array">;
+local tally: Counter; // cheer up CI tests by using the local keyword
 
 constructor(state: Field) { 
  for (const i of 3 .. 3) state + 1;

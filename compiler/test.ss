@@ -1766,6 +1766,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
@@ -4875,6 +4876,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
@@ -9450,6 +9452,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor
           ((state (tfield (field-native))))
           (block () (for i 3 3 (+ state 1))))
@@ -10050,6 +10053,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
@@ -10345,6 +10349,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
@@ -10797,9 +10802,10 @@ groups than for single tests.
         (public-ledger-declaration
           %ciphertexts.38
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.39 (tfield (field-native))])
+        (local-ledger-declaration %tally.39 (Counter))
+        (constructor ([%state.40 (tfield (field-native))])
           (seq
-            (for %i.40 (tuple) (seq (+ %state.39 1) (tuple)))
+            (for %i.41 (tuple) (seq (+ %state.40 1) (tuple)))
             (tuple)))))
     )
 
@@ -51754,18 +51760,19 @@ groups than for single tests.
         (public-ledger-declaration
           %ciphertexts.50
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.51 (tfield (field-native))])
+        (local-ledger-declaration %tally.51 (Counter))
+        (constructor ([%state.52 (tfield (field-native))])
           (seq
             (fold
-              (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
+              (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
                     (+ (tfield (field-native))
-                       %state.51
+                       %state.52
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                     (tuple))
-                  %t.52))
+                  %t.53))
               (tuple)
               (tuple))
             (tuple)))))
@@ -51816,21 +51823,24 @@ groups than for single tests.
           (%committed_votes.48 (MerkleTree 10 (tbytes 32)))
           (%committed.49 (Set (tbytes 32)))
           (%ciphertexts.50 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.51 (tfield (field-native))])
+          (constructor ([%state.52 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
+                (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ (tfield (field-native))
-                         %state.51
+                         %state.52
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.52))
+                    %t.53))
                 (tuple)
                 (tuple))
               (tuple))))
+        (local-ledger-declaration
+          (%tally.51 (Counter))
+          (local-constructor (tuple)))
         (circuit %foo.13 ([%a.14 (tboolean)]
                           [%b.15 (tfield (field-native))])
              (tboolean)
