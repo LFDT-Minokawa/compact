@@ -244,6 +244,7 @@ const TYPES: TypeRow[] = [
     { kind: 'plain', write: (s) => ['Bytes<', s.bytes, '>'] },
     { kind: 'plain', write: (s) => ['Vector<', s.length, ', ', s.plain, '>'] },
     { kind: 'plain', write: '[]' },
+    { kind: 'plain', write: (s) => ['[', s.plain, ', ', s.plain, ']'] },
 
     /* Native types, from compiler/midnight-natives.ss. */
     { kind: 'plain', write: 'JubjubScalar' },
@@ -252,6 +253,12 @@ const TYPES: TypeRow[] = [
     { kind: 'plain', write: 'Secp256k1Base', feature: 'zkir-v3' },
     { kind: 'plain', write: 'Secp256k1Scalar', feature: 'zkir-v3' },
     { kind: 'plain', write: 'Secp256k1Point', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Secp256r1Base', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Secp256r1Scalar', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Secp256r1Point', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Curve25519Base', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Curve25519Scalar', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Curve25519Point', feature: 'zkir-v3' },
 
     /* Exported from compiler/standard-library.compact. */
     { kind: 'plain', write: (s) => ['Maybe<', s.plain, '>'] },
@@ -265,9 +272,12 @@ const TYPES: TypeRow[] = [
     { kind: 'plain', write: 'ZswapCoinPublicKey' },
     { kind: 'plain', write: 'ShieldedSendResult' },
     { kind: 'plain', write: 'UserAddress' },
+    { kind: 'plain', write: 'PublicAddress' },
     { kind: 'plain', write: 'JubjubSchnorrSignature' },
     /* Exported from compiler/zkir-v3-library.compact, which needs the flag. */
     { kind: 'plain', write: 'Secp256k1EcdsaSignature', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Secp256r1EcdsaSignature', feature: 'zkir-v3' },
+    { kind: 'plain', write: 'Ed25519Signature', feature: 'zkir-v3' },
 
     /*
      * The ledger ADTs, from compiler/midnight-ledger.ss. Cell is missing on

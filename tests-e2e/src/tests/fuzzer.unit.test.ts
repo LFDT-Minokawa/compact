@@ -175,3 +175,40 @@ describe('[UNIT] fuzzer feature-gated calls', () => {
         },
     );
 });
+
+/* A type that needs a flag is written only by the grammar built for that flag. */
+describe('[UNIT] fuzzer feature-gated types', () => {
+    const TYPE_PRODUCTIONS = ['statement_std_types', 'valid_std_types'];
+
+    /* How many of the type productions write a type that starts with this token. */
+    const writers = (features: Feature[], first: string): number => {
+        const table = buildGrammar(features);
+        return TYPE_PRODUCTIONS.filter((production) =>
+            table[production].some((alternative) => Array.isArray(alternative) && alternative[0] === first),
+        ).length;
+    };
+
+    test.each([
+        'Secp256k1Base',
+        'Secp256k1Scalar',
+        'Secp256k1Point',
+        'Secp256k1EcdsaSignature',
+        'Secp256r1Base',
+        'Secp256r1Scalar',
+        'Secp256r1Point',
+        'Secp256r1EcdsaSignature',
+        'Curve25519Base',
+        'Curve25519Scalar',
+        'Curve25519Point',
+        'Ed25519Signature',
+    ])('%s is written only when zkir-v3 is on', (name) => {
+        expect(writers([], name)).toBe(0);
+        expect(writers(['zkir-v3'], name)).toBe(TYPE_PRODUCTIONS.length);
+    });
+
+    /* '[' is a tuple of two types; the empty tuple is the single token '[]'. */
+    test.each(['[', 'PublicAddress'])('%s is written with or without zkir-v3', (name) => {
+        expect(writers([], name)).toBe(TYPE_PRODUCTIONS.length);
+        expect(writers(['zkir-v3'], name)).toBe(TYPE_PRODUCTIONS.length);
+    });
+});
