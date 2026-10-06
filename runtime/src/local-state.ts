@@ -16,8 +16,8 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { sha256 } from '@noble/hashes/sha2.js';
 import { bytesToHex } from '@noble/hashes/utils.js';
-import type { CircuitContext } from './circuit-context.js';
-import { LocalTranscriptEntry, PartialProofData } from './proof-data.js';
+import type { CallProofDataTrace, CircuitContext, CircuitId } from './circuit-context.js';
+import { CalleeReturn, HostOutput, LocalTranscriptEntry, PartialProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
 
 /**
@@ -139,6 +139,68 @@ export const pinLocalContainer = (
     digest: stateValueDigest(container),
   });
 };
+
+/**
+ * What a call read besides its inputs and the local state, therefore what a re-execution must be
+ * given again: the ledger it ran against and the block it ran in.
+ */
+export interface LocalRecordBasis {
+  /**
+   * The VM call context the call started with: the parent block hash, the block time and its
+   * error bound, the last block time, the caller, the balance and the commitment indices.
+   */
+  readonly callContext: ocrt.CallContext;
+  /**
+   * The {@link stateValueDigest} of the contract's public state the call started from. A block hash
+   * alone does not name it, because a callee's second call in a transaction starts from the state
+   * the first call left.
+   */
+  readonly stateDigest: string;
+}
+
+/**
+ * One call's account of its effect on its contract's local state, as a fold consumes it: projected
+ * from the call's proof data, with the basis made explicit and the proof's own data left behind.
+ * It has no byte encoding yet, because the binding serializes neither ops nor state values.
+ */
+export interface LocalRecord {
+  readonly contractAddress: ocrt.ContractAddress;
+  readonly circuitId: CircuitId;
+  readonly input: ocrt.AlignedValue;
+  readonly basis: LocalRecordBasis;
+  readonly localTranscript: readonly LocalTranscriptEntry[];
+  readonly hostOutputs: readonly HostOutput[];
+  readonly calleeReturns: readonly CalleeReturn[];
+  /** Every value that crossed into the proof, in order, local results among them. */
+  readonly privateTranscriptOutputs: readonly ocrt.AlignedValue[];
+}
+
+/**
+ * The records a fold needs from a call's trace, in trace order: one for each call that left a local
+ * transcript. A call that left none read no local state, therefore it takes the same path from any
+ * prior and has nothing to fold. The basis digest is computed here rather than during the call, so
+ * a call that never touches local state does not pay for it.
+ */
+export const localRecordsOf = (trace: CallProofDataTrace): LocalRecord[] =>
+  trace.flatMap((callProofData) =>
+    callProofData.localTranscript === undefined
+      ? []
+      : [
+          {
+            contractAddress: callProofData.contractAddress,
+            circuitId: callProofData.circuitId,
+            input: callProofData.input,
+            basis: {
+              callContext: callProofData.initialQueryContext.block,
+              stateDigest: stateValueDigest(callProofData.initialQueryContext.state.state),
+            },
+            localTranscript: callProofData.localTranscript,
+            hostOutputs: callProofData.hostOutputs ?? [],
+            calleeReturns: callProofData.calleeReturns ?? [],
+            privateTranscriptOutputs: callProofData.privateTranscriptOutputs,
+          },
+        ],
+  );
 
 /** The observed fate of a call's transaction, as the chain reports it. */
 export type LocalFoldOutcome =

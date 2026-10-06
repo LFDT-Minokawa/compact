@@ -14,7 +14,8 @@
 // limitations under the License.
 
 // A cross-contract callee's capsule: where its local state comes from, when the provider is
-// asked, what the checks past key agreement reject, and what the two records carry. The callee is
+// asked, what the checks past key agreement reject, what the two records carry, and the records a
+// fold takes from the trace. The callee is
 // a hand-rolled module shaped like `compactc`'s output — one circuit incrementing a local
 // `Counter` — so the test needs no compiled contract; the generated code's side is `test-center`'s.
 
@@ -38,8 +39,10 @@ import {
   createCircuitContext,
   crossContractCall,
   finalizeCallProofData,
+  localRecordsOf,
   localStates,
   queryLocalState,
+  stateValueDigest,
   verifierKeyHashOf,
 } from '../src/index.js';
 
@@ -329,6 +332,43 @@ describe('a callee with local state', () => {
     expect(h.callerProofData.calleeReturns!.map(({ input }) => toBigint(input))).toEqual([5n, 6n]);
     expect(h.callerProofData.calleeReturns!.map(({ output }) => toBigint(output))).toEqual([5n, 11n]);
     expect(h.callerProofData.localTranscript).toBeUndefined();
+  });
+
+  test('the records a fold needs: one per call that left a local transcript, its basis explicit', async () => {
+    const h = harness({ module: calleeModule({ localState: true }), localStateProvider: localStateProviderFor(undefined) });
+
+    await h.call(5n);
+    await h.call(6n);
+
+    const trace = h.context.callProofDataTrace;
+    expect(localRecordsOf(trace)).toEqual(
+      trace.map((record) => ({
+        contractAddress: h.calleeAddress,
+        circuitId: CIRCUIT_ID,
+        input: record.input,
+        basis: {
+          callContext: record.initialQueryContext.block,
+          stateDigest: stateValueDigest(record.initialQueryContext.state.state),
+        },
+        localTranscript: record.localTranscript,
+        hostOutputs: [],
+        calleeReturns: [],
+        privateTranscriptOutputs: record.privateTranscriptOutputs,
+      })),
+    );
+    // The basis names the block the callee's state was fetched at, and that state.
+    const [first] = localRecordsOf(trace);
+    expect(first.basis.callContext.parentBlockHash).toEqual(PARENT_BLOCK_HASH);
+    expect(first.basis.stateDigest).toEqual(stateValueDigest(kernelOnlyState().data.state));
+  });
+
+  test('a call that left no local transcript has no record', async () => {
+    const h = harness({ module: calleeModule({ localState: false }) });
+
+    await h.call(5n);
+
+    expect(h.context.callProofDataTrace).toHaveLength(1);
+    expect(localRecordsOf(h.context.callProofDataTrace)).toEqual([]);
   });
 
   test('cannot be resolved without a local state provider', async () => {

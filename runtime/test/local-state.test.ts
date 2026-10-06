@@ -17,6 +17,7 @@ import { describe, expect, test } from 'vitest';
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import {
   CircuitContext,
+  copyCircuitContext,
   createCircuitContext,
   foldLocalTranscript,
   PartialProofData,
@@ -118,6 +119,26 @@ describe('queryLocalState', () => {
       contractState: new ocrt.ContractState(),
     });
     expect(() => queryLocalState(ctx, emptyProofData(), increment(1))).toThrow(/local state/);
+  });
+});
+
+describe('copyCircuitContext', () => {
+  test("starts a call from the given context's current ledger state and leaves the given context alone", () => {
+    const given = createCircuitContext({
+      circuitId: 'test',
+      contractAddress: ocrt.dummyContractAddress(),
+      coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+      contractState: new ocrt.ContractState(),
+    });
+    const initial = given.callContext.initialQueryContext;
+    // as an earlier call leaves it: the current state moved on from the initial one
+    given.callContext.currentQueryContext = new ocrt.QueryContext(
+      new ocrt.ChargedState(ocrt.StateValue.newArray().arrayPush(ocrt.StateValue.newNull())),
+      ocrt.dummyContractAddress(),
+    );
+    const copy = copyCircuitContext(given);
+    expect(copy.callContext.initialQueryContext).toBe(given.callContext.currentQueryContext);
+    expect(given.callContext.initialQueryContext).toBe(initial);
   });
 });
 

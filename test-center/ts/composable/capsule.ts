@@ -128,6 +128,14 @@ describe('a cross-contract callee with local state and a host function', () => {
     expect(calleeRecords[0].localTranscript).toHaveLength(3);
     expect(calleeRecords[1].localTranscript).toHaveLength(3);
     expect(r2.context.callProofDataTrace.at(-1)!.calleeReturns!.length).toEqual(2);
+    // The records a fold takes are the callee's two, each with the basis its call started from: the
+    // second starts from the first's public write, a state no block holds.
+    const [first, second] = runtime.localRecordsOf(r2.context.callProofDataTrace);
+    expect([first.contractAddress, second.contractAddress]).toEqual([inner.address, inner.address]);
+    expect(first.basis.stateDigest).toEqual(runtime.stateValueDigest(calleeRecords[0].initialQueryContext.state.state));
+    expect(second.basis.stateDigest).toEqual(runtime.stateValueDigest(calleeRecords[0].finalQueryContext.state.state));
+    expect(second.basis.stateDigest).not.toEqual(first.basis.stateDigest);
+    expect(first.basis.callContext.parentBlockHash).toEqual(second.basis.callContext.parentBlockHash);
     expect(innerBooks(account, inner).visits).toEqual(9n);
     expect(outerCode.ledger(chain.getContractStateOrThrow(outer.address).data).lastCount).toEqual(9n);
 

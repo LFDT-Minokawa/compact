@@ -318,12 +318,17 @@ export const createCircuitContext = ({
 };
 
 /**
+ * The context a circuit call runs with, copied so that the call leaves the given one alone. The call
+ * starts from the given context's current ledger state, which is not its initial one when an
+ * earlier call returned it, therefore the copy's initial state is reset there: a record's basis is
+ * the state its own call started from.
+ *
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
   // `activeContracts` falls through the spread. Shared by reference on purpose — do not copy it.
   ...context,
-  callContext: { ...context.callContext },
+  callContext: { ...context.callContext, initialQueryContext: context.callContext.currentQueryContext },
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
   zswapLocalStates: { ...context.zswapLocalStates },

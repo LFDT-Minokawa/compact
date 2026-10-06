@@ -93522,6 +93522,69 @@ groups than for single tests.
         ))
     )
 
+  ; the record a fold takes from a root call: one per call that left a local transcript, with
+  ; the call context and the public state the call started from, also when the call runs on a
+  ; context an earlier call returned
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local seen: Counter;"
+      "export circuit bump(n: Uint<16>): Uint<64> {"
+      "  total.increment(disclose(n));"
+      "  seen.increment(1);"
+      "  return disclose(seen);"
+      "}"
+      "export circuit peek(): Uint<64> {"
+      "  return total;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a root call\\'s record pins the call context and the public state it started from', async () => {"
+        "  const [contract, start] = await startContract(contractCode);"
+        "  const context = runtime.createCircuitContext({"
+        "    circuitId: 'bump',"
+        "    contractAddress: start.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: start.callContext.currentQueryContext.state,"
+        "    localState: start.callContext.currentLocalQueryContext!.state.state,"
+        "    time: 1234,"
+        "    parentBlockHash: 'ab'.repeat(32),"
+        "  });"
+        "  const r1 = await contract.circuits.bump(context, 3n);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  expect(runtime.localRecordsOf(r1.context.callProofDataTrace)).toEqual([{"
+        "    contractAddress: start.callContext.contractAddress,"
+        "    circuitId: 'bump',"
+        "    input: pd1.input,"
+        "    basis: {"
+        "      callContext: pd1.initialQueryContext.block,"
+        "      stateDigest: runtime.stateValueDigest(start.callContext.currentQueryContext.state.state),"
+        "    },"
+        "    localTranscript: pd1.localTranscript,"
+        "    hostOutputs: [],"
+        "    calleeReturns: [],"
+        "    privateTranscriptOutputs: pd1.privateTranscriptOutputs,"
+        "  }]);"
+        "  const [record1] = runtime.localRecordsOf(r1.context.callProofDataTrace);"
+        "  expect(record1.basis.callContext.secondsSinceEpoch).toEqual(1234n);"
+        "  expect(record1.basis.callContext.parentBlockHash).toEqual('ab'.repeat(32));"
+        "  // both local operations' results crossed into the proof, the write's empty"
+        "  expect(record1.privateTranscriptOutputs).toEqual([{ value: [], alignment: [] }, pd1.privateTranscriptOutputs[1]]);"
+        "  // a second call on the context the first returned starts from the first's public write"
+        "  const r2 = await contract.circuits.bump(r1.context, 4n);"
+        "  const [record2] = runtime.localRecordsOf(r2.context.callProofDataTrace.slice(1));"
+        "  expect(record2.basis.stateDigest).toEqual(runtime.stateValueDigest(r1.context.callContext.currentQueryContext.state.state));"
+        "  expect(record2.basis.stateDigest).not.toEqual(record1.basis.stateDigest);"
+        "  // a call that touches no local state leaves no record"
+        "  const r3 = await contract.circuits.peek(r2.context);"
+        "  expect(r3.result).toEqual(7n);"
+        "  expect(runtime.localRecordsOf(r3.context.callProofDataTrace.slice(2))).toEqual([]);"
+        "});"
+        ))
+    )
+
   ; a local-only circuit gets no zkir and is not provable, but it runs and its local effect
   ; shows; the circuit with an on-chain effect is proved as before
   (test

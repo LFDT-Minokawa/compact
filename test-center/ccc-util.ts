@@ -27,12 +27,14 @@ import {
   EncodedContractAddress,
   HostInterface,
   HostInterfaceProvider,
+  LocalRecord,
   LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
   createConstructorContext,
   createCircuitContext,
   foldLocalTranscript,
+  localRecordsOf,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 import {
@@ -190,7 +192,7 @@ export class Account implements LocalStateProvider {
   private readonly states = new Map<ocrt.ContractAddress, ocrt.StateValue>();
 
   /** Every record folded so far, in landing order, keyed by the capsule it belongs to. */
-  readonly records = new Map<ocrt.ContractAddress, CallProofData[]>();
+  readonly records = new Map<ocrt.ContractAddress, LocalRecord[]>();
 
   /** Provider lookups served, keyed by callee address, so a test can assert when the runtime asks. */
   private readonly lookups = new Map<ocrt.ContractAddress, number>();
@@ -225,10 +227,7 @@ export class Account implements LocalStateProvider {
    * tier-1 account of the call and not a copy of the rehearsed state.
    */
   commit(results: CircuitResults<unknown>, moduleFor: (address: ocrt.ContractAddress) => RuntimeModule): void {
-    for (const record of results.context.callProofDataTrace) {
-      if (record.localTranscript === undefined) {
-        continue;
-      }
+    for (const record of localRecordsOf(results.context.callProofDataTrace)) {
       const initialLocalState = moduleFor(record.contractAddress).initialLocalState;
       if (initialLocalState === undefined) {
         throw new Error(`a record for ${record.contractAddress} has a local transcript but its module keeps no local state`);
@@ -251,7 +250,7 @@ export class Account implements LocalStateProvider {
       throw new Error(`the module for ${address} keeps no local state`);
     }
     return (this.records.get(address) ?? []).reduce(
-      (state, record) => foldLocalTranscript(state, record.localTranscript!, { tag: 'success' }),
+      (state, record) => foldLocalTranscript(state, record.localTranscript, { tag: 'success' }),
       initialLocalState(),
     );
   }
