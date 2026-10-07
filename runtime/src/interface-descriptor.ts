@@ -31,6 +31,12 @@ export type SignatureType =
   | { readonly tag: 'Secp256k1Base' }
   | { readonly tag: 'Secp256k1Scalar' }
   | { readonly tag: 'Secp256k1Point' }
+  | { readonly tag: 'Secp256r1Base' }
+  | { readonly tag: 'Secp256r1Scalar' }
+  | { readonly tag: 'Secp256r1Point' }
+  | { readonly tag: 'Curve25519Base' }
+  | { readonly tag: 'Curve25519Scalar' }
+  | { readonly tag: 'Curve25519Point' }
   /** `maxval` is the maximum representable value as a decimal string, not a
    *  width. `Uint<128>` carries 2**128-1, which is not exactly representable
    *  as a JavaScript number. */
