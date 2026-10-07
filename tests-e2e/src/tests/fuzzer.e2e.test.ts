@@ -31,7 +31,8 @@ describe.skipIf(isRelease())('[E2E] Fuzzer tests for compiler', () => {
     generatedContracts.forEach(({ file, flags }) => {
         const fileName = path.basename(file);
 
-        test(`should be able to compile synthetic contract: '${fileName}'`, async () => {
+        /* Up to --maxConcurrency compiles run at once; the test:fuzzer script sets it. */
+        test.concurrent(`should be able to compile synthetic contract: '${fileName}'`, async () => {
             const contractContent = getFileContent(file);
             const outputDir = createTempFolder();
 
