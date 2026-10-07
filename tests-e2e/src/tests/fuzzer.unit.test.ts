@@ -166,7 +166,7 @@ describe('[UNIT] fuzzer feature-gated calls', () => {
         expect(writes(['zkir-v3'], name)).toBe(true);
     });
 
-    /* keccak256 is in scope without the flag, so the plain grammar keeps it as a rejected case. */
+    /* keccak256 compiles without the flag in most places, so both grammars write it. */
     test.each(['keccak256', 'ecNeg', 'jubjubPointX', 'jubjubPointY', 'constructJubjubPoint', 'jubjubSchnorrVerify'])(
         '%s is written with or without zkir-v3',
         (name) => {

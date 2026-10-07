@@ -1266,7 +1266,7 @@ const STDLIB_CALLS: StdlibCall[] = [
     { name: 'persistentHash', generics: [T], maxArgs: 1 },
     { name: 'persistentCommit', generics: [T], maxArgs: 2 },
     { name: 'hashToCurve', generics: [T], maxArgs: 1 },
-    /* Always in scope, but it only compiles with --feature-zkir-v3. */
+    /* Without --feature-zkir-v3, it is rejected only in exported circuits that use the ledger or emit events. */
     { name: 'keccak256', generics: [T], maxArgs: 1 },
     { name: 'merkleTreePathRoot', generics: [N, T], maxArgs: 2 },
     { name: 'merkleTreePathRootNoLeafHash', generics: [N], maxArgs: 1 },
