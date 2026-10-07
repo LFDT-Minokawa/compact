@@ -176,10 +176,10 @@ Key ideas:
 1. The ledger format and the event serialization format agree (except maybe: the ledger format does not have a version tag)
 1. Base types use the in-circuit `to_bytes`/`from_bytes` encoding.
 1. `as` casts to `Bytes` exist for all base types and they agree with serialization in the sense that
-  1. casting to `Bytes` produces the ledger encoding of the same value
-  1. round tripping from a type `T` to `Bytes` and back is the identity on `T`
-     (but not necessarily in the opposite directions,
-     e.g., casting from `Bytes` to a foreign field type reduces modulo the field modulus)
+    1. casting to `Bytes` produces the ledger encoding of the same value
+    1. round tripping from a type `T` to `Bytes` and back is the identity on `T`
+       (but not necessarily in the opposite directions,
+       e.g., casting from `Bytes` to a foreign field type reduces modulo the field modulus)
   This allows Compact code to implement serialization and deserialization of parts of structures.
 1. Hashing (`persistentHash` but also the other hashing functions) will be explicitly defined as
    hashing the serialized representation of a Compact value.
