@@ -153,7 +153,7 @@ private inputs including circuit inputs,
 and public inputs including Impact code that was executed.
 The data collected by JavaScript execution is FAB encoded.
 Before sending it to the proof server to construct a proof,
-the Midnight.js library converts it to the FAB field encoding by interpreting the alignment tags.
+the Midnight.js library converts it to the field encoding by interpreting the alignment tags.
 
 This field encoding is under the control of the Compact toolchain, because it emits the alignment tags.
 However, ZKIR is a typed-language,
@@ -180,6 +180,9 @@ Key ideas:
   1. round tripping from a type `T` to `Bytes` and back is the identity on `T`
      (but not necessarily in the opposite directions,
      e.g., casting from `Bytes` to a foreign field type reduces modulo the field modulus)
+  This allows Compact code to implement serialization and deserialization of parts of structures.
+1. Hashing (`persistentHash` but also the other hashing functions) will be explicitly defined as
+   hashing the serialized representation of a Compact value.
 
 This design enables some implementation improvements, not mandated by this CoIP.
 
