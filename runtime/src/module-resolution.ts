@@ -70,7 +70,26 @@ export type ModuleResolutionFailure =
   | { readonly kind: 'ModuleLoadRejected'; readonly cause: unknown }
   /** The thunk resolved to something without the exports resolution reads. A module built before
    *  dynamic resolution has a `Contract` and none of the tables. */
-  | { readonly kind: 'IncompleteModule'; readonly missing: readonly (keyof Module)[] };
+  | { readonly kind: 'IncompleteModule'; readonly missing: readonly (keyof Module)[] }
+  /** The callee declares host functions and the circuit context carries no host interface
+   *  provider to resolve them. */
+  | { readonly kind: 'HostInterfaceProviderAbsent' }
+  /** The callee declares a host interface the provider does not satisfy: it `resolved` nothing
+   *  under the id, or what it resolved lacks the `missing` functions. Checked before the callee is
+   *  entered because both sides are known then, so the call fails whether or not its path would
+   *  have reached the function. */
+  | {
+      readonly kind: 'HostInterfaceAbsent';
+      readonly interfaceId: string;
+      readonly resolved: boolean;
+      readonly missing: readonly string[];
+    }
+  /** The callee keeps local state and the circuit context carries no local state provider, so this
+   *  account's capsule for it cannot be found. */
+  | { readonly kind: 'LocalStateProviderAbsent' }
+  /** `getLocalState` threw or rejected, or returned something that is neither a `StateValue` nor
+   *  `undefined`. A defect in the provider. */
+  | { readonly kind: 'LocalStateProviderThrew'; readonly cause: unknown };
 
 /** Which call failed, and through which contract type. */
 export type ModuleResolutionContext = {
@@ -140,6 +159,18 @@ const describeFailure = (failure: ModuleResolutionFailure): string => {
       return 'loading the resolved module rejected';
     case 'IncompleteModule':
       return `the resolved module does not export ${failure.missing.join(', ')}; it was built before dynamic resolution`;
+    case 'HostInterfaceProviderAbsent':
+      return 'the callee declares host functions and the circuit context carries no host interface provider';
+    case 'HostInterfaceAbsent':
+      return failure.resolved
+        ? `the implementation the host interface provider resolves for '${failure.interfaceId}' has no function ` +
+            `${failure.missing.join(', ')}, which the callee declares`
+        : `the host interface provider resolves no '${failure.interfaceId}', of which the callee declares ` +
+            failure.missing.join(', ');
+    case 'LocalStateProviderAbsent':
+      return 'the callee keeps local state and the circuit context carries no local state provider';
+    case 'LocalStateProviderThrew':
+      return 'the local state provider threw, or returned something that is neither a StateValue nor undefined';
     default: {
       const exhaustive: never = failure;
       throw new CompactError(`unhandled resolution failure ${JSON.stringify(exhaustive)}`);

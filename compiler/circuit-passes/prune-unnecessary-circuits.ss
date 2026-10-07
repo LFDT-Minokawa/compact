@@ -45,7 +45,12 @@
          pelt*)]
     [else (cons ir pelt*)])
   (Expression : Expression (ir) -> Expression ()
-    [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[expr*] ...)
-     (raise 'ledger)]
+    ;; a circuit is necessary only when it has an on-chain effect, and a local field's
+    ;; operations have none, therefore only public fields (the kernel included) count; the
+    ;; arguments and path keys are walked first, since a public read inside them counts
+    [(public-ledger ,src ,ledger-field-name ,sugar? (,[path-elt*] ...) ,src^ ,adt-op ,[expr*] ...)
+     (if (id-local? ledger-field-name)
+         ir
+         (raise 'ledger))]
     [(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
      (raise 'emit)]))

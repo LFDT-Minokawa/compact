@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,23 +13,20 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Exercises contract values flowing through witnesses: a witness can return
-// a contract value, and a witness can accept one as a parameter.
+// The root of a depth-two call: the entry calls the relay, which calls the vault.
 
 import CompactStandardLibrary;
 
-contract Inner {
-  circuit add(value: Field): Field;
+contract Relay {
+  circuit stash(note: Bytes<32>): Uint<64>;
 }
 
-witness chooseInner(): Inner;
+export ledger relay: Relay;
 
-witness inspectInner(i: Inner): Field;
-
-export circuit pickViaWitness(): Inner {
-  return disclose(chooseInner());
+constructor(r: Relay) {
+  relay = disclose(r);
 }
 
-export circuit inspectViaWitness(i: Inner): Field {
-  return disclose(inspectInner(i));
+export circuit stash(note: Bytes<32>): Uint<64> {
+  return relay.stash(disclose(note));
 }

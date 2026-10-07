@@ -16,25 +16,41 @@
 #!chezscheme
 
 (define-pass drop-ledger-runtime : Lloweredemit (ir) -> Lposttypescript ()
+  (definitions
+    (define (local-package? pelt)
+      (and (Lloweredemit-Ledger-Declaration? pelt)
+           (nanopass-case (Lloweredemit Ledger-Declaration) pelt
+             [(local-ledger-declaration ,pl-array ,lconstructor) #t]
+             [else #f]))))
   (Program : Program (ir) -> Program ()
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
      `(program ,src ((,export-name* ,name*) ...)
         ,(fold-right
            (lambda (pelt pelt*)
-             (if (Lloweredemit-Export-Type-Definition? pelt)
+             (if (or (Lloweredemit-Export-Type-Definition? pelt)
+                     (local-package? pelt))
                  pelt*
                  (cons (Program-Element pelt) pelt*)))
            '()
            pelt*)
         ...)])
   (Program-Element : Program-Element (ir) -> Program-Element ()
-    [,export-tdefn (assert cannot-happen)])
+    [,export-tdefn (assert cannot-happen)]
+    ;; the circuit pipeline consumes a local function's or a host function's results as
+    ;; private inputs, therefore both reduce to witness-shaped declarations
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[type] ,expr)
+     `(witness ,src ,function-name (,arg* ...) ,type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[type])
+     `(witness ,src ,function-name (,arg* ...) ,type)])
   (Expression : Expression (ir) -> Expression ()
     (definitions
       (define (do-not src expr)
         (with-output-language (Lposttypescript Expression)
           `(if ,src ,expr (quote ,src #f) (quote ,src #t))))
       )
+    ;; local bodies were dropped with their definitions and check-local-callability keeps
+    ;; foreach out of circuits, therefore unreachable
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr) (assert cannot-happen)]
     [(elt-ref ,src ,[expr] ,elt-name ,nat) `(elt-ref ,src ,expr ,elt-name)]
     [(return ,src ,[expr]) expr]
     [(<= ,src ,bits ,[expr1] ,[expr2]) (do-not src `(< ,src ,bits ,expr2 ,expr1))]

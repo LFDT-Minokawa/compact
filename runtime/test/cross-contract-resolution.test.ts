@@ -73,7 +73,6 @@ const runFailingCall = async (options: {
     contractAddress: ocrt.sampleContractAddress(),
     coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
     contractState: new ocrt.ContractState(),
-    privateState: 0,
     time: 0,
     parentBlockHash: PARENT_BLOCK_HASH,
     crossContract:
@@ -235,7 +234,6 @@ describe('crossContractCall failure classification', () => {
       contractAddress: callerAddress,
       coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
       contractState: new ocrt.ContractState(),
-      privateState: 0,
       time: 0,
       parentBlockHash: PARENT_BLOCK_HASH,
       crossContract: { stateProvider: stateProviderFor(calleeAddress), moduleProvider: { resolve: () => undefined } },
@@ -265,7 +263,6 @@ describe('crossContractCall failure classification', () => {
       contractAddress: self,
       coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
       contractState: new ocrt.ContractState(),
-      privateState: 0,
       time: 0,
       parentBlockHash: PARENT_BLOCK_HASH,
       crossContract: { stateProvider: stateProviderFor(self), moduleProvider: { resolve: () => undefined } },

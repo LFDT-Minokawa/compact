@@ -797,8 +797,8 @@ groups than for single tests.
                       "import { secp256k1 } from '@noble/curves/secp256k1.js';\n"
                       "import { p256 } from '@noble/curves/nist.js';\n"
                       "import { ed25519 } from '@noble/curves/ed25519.js';\n"
-                      "import { startContract, flushProofChecks } from './util.js';\n"
-                      "import { TestChain } from './ccc-util.js';\n"
+                      "import { startContract, flushProofChecks, withHostInterfaces } from './util.js';\n"
+                      "import { Account, TestChain, describeDivergence, foldCall, foldedState } from './ccc-util.js';\n"
                       "import { describe, expect, test, afterEach } from 'vitest';\n"
                       "\n"
                       "afterEach(async () => {\n"
@@ -959,6 +959,82 @@ groups than for single tests.
     (output-file "compiler/testdir/formatter/testfile.compact"
       '(
         "export circuit f(): [] {"
+        "}"))
+    )
+
+  (test
+    '(
+      "local credits: Uint<4>;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "local credits: Uint<4>;"))
+    )
+
+  (test
+    '(
+      "export local myCommitment: Bytes<32>;"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export local myCommitment: Bytes<32>;"))
+    )
+
+  (test
+    '(
+      "local constructor {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "local constructor {"
+        "}"))
+    )
+
+  (test
+    '(
+      "export local f(x: Field): [] {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export local f(x: Field): [] {"
+        "}"))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; derive(label: Bytes<8>, n: Uint<8>): Bytes<32>; }"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "host midnight:capsule/keys@1.0.0 {"
+        "  secretKey(): Bytes<32>;"
+        "  derive(label: Bytes<8>, n: Uint<8>): Bytes<32>;"
+        "}"))
+    )
+
+  (test
+    '(
+      "export host identus:verification/age@1.2.0-rc.1+build.7 {}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "export host identus:verification/age@1.2.0-rc.1+build.7 {"
+        "}"))
+    )
+
+  ; comments between `host` and its id survive the one-token lexer mode
+  (test
+    '(
+      "host // the runtime's key store"
+      "  /* one more */ midnight:capsule/keys {"
+      "  secretKey(): Bytes<32>; // the capsule's"
+      "}"
+      )
+    (output-file "compiler/testdir/formatter/testfile.compact"
+      '(
+        "host // the runtime's key store"
+        "/* one more */ midnight:capsule/keys {"
+        "  secretKey(): Bytes<32>; // the capsule's"
         "}"))
     )
 
@@ -1625,13 +1701,12 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
-             (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
-             (ttuple))
+        (host #f "test:oracle/c@1.0.0"
+          (C ([a (tboolean)] [b (tbytes 10)]) (tbytes 20)))
+        (host #f "test:oracle/w@1.0.0"
+          (W ([a (tvector 7 (tvector 9 (tfield (field-native))))]
+              [b (topaque "bogeytype")])
+               (ttuple)))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
           (block (return (disclose (cast (tunsigned 10) b)))))
@@ -1691,6 +1766,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
@@ -2914,7 +2990,6 @@ groups than for single tests.
       "circuit fairlylongcircuitname2<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA> {"
       "  return (vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>, vector3: Vector<sizeX, typeB>): Vector<sizeX, typeA> => { return vector1; }(vector1, vector2, vector3);"
       "}"
-      "witness fairlylongwitnessname<typeA, typeB, sizeX>(vector1: Vector<sizeX, typeA>, vector2: Vector<sizeX, typeB>): Vector<sizeX, typeA>;"
       )
     (output-file "compiler/testdir/formatter/testfile.compact"
       '(
@@ -2959,12 +3034,7 @@ groups than for single tests.
         "           vector2,"
         "           vector3"
         "           );"
-        "}"
-        ""
-        "witness fairlylongwitnessname<typeA, typeB, sizeX>("
-        "          vector1: Vector<sizeX, typeA>,"
-        "          vector2: Vector<sizeX, typeB>"
-        "          ): Vector<sizeX, typeA>;"))
+        "}"))
     )
 
   (test
@@ -4525,6 +4595,151 @@ groups than for single tests.
           (block (return ,(string->utf8 "Hello world!"))))))
     )
 
+  (test
+    '(
+      "local credits: Uint<4>;"
+      "export local myCommitment: Bytes<32>;"
+      "local constructor {"
+      "  credits = 1;"
+      "}"
+      "local spendCredit(): [] {"
+      "  credits = credits - 1;"
+      "}"
+      )
+    (returns
+      (program
+        (local-ledger-declaration #f credits (tunsigned 4))
+        (local-ledger-declaration #t myCommitment (tbytes 32))
+        (local-constructor (block (= credits 1)))
+        (local-circuit #f spendCredit () () (ttuple)
+          (block (= credits (- credits 1))))))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "  derive(label: Bytes<8>, n: Uint<8>): Bytes<32>;"
+      "}"
+      "export host identus:verification/age {"
+      "  ageCredential(): Bytes<32>;"
+      "}"
+      )
+    (returns
+      (program
+        (host #f "midnight:capsule/keys@1.0.0"
+          (secretKey () (tbytes 32))
+          (derive ([label (tbytes 8)] [n (tunsigned 8)]) (tbytes 32)))
+        (host #t "identus:verification/age"
+          (ageCredential () (tbytes 32)))))
+    )
+
+  ; an interface id is one token: kebab-case labels of lowercase or uppercase words, with an
+  ; optional semantic version
+  (test
+    '(
+      "host MIDNIGHT:capsule-runtime/key-store@0.1.0 {"
+      "}"
+      )
+    (returns
+      (program
+        (host #f "MIDNIGHT:capsule-runtime/key-store@0.1.0")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight:capsule")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0 {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight:capsule/keys@1.0")))
+    )
+
+  ; a word is all lowercase or all uppercase, so a capitalised word is malformed
+  (test
+    '(
+      "host Midnight:capsule/keys {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("Midnight:capsule/keys")))
+    )
+
+  ; an underscore ends the id token, so the id reported is the part before it
+  (test
+    '(
+      "host midnight_io:capsule/keys {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "malformed host interface id ~a: expected namespace:package/name, optionally followed by @major.minor.patch" ("midnight")))
+    )
+
+  (test
+    '(
+      "host 'midnight:capsule/keys' {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "parse error: found ~a looking for~?" ("\"'midnight:capsule/keys'\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host interface id"))))
+    )
+
+  (test
+    '(
+      "host {"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 6" "parse error: found ~a looking for~?" ("\"{\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host interface id"))))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys {"
+      "  secretKey(): Bytes<32>"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "parse error: found ~a looking for~?" ("\"}\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("\";\""))))
+    )
+
+  (test
+    '(
+      "export host midnight:capsule/keys {"
+      "  circuit secretKey(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "parse error: found ~a looking for~?" ("keyword \"circuit\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a host signature" "\"}\""))))
+    )
+
+  ; `host` is a keyword now rather than one reserved for future use
+  (test
+    '(
+      "ledger host: Field;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 8" "parse error: found ~a looking for~?" ("keyword \"host\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
   (test ;; FIXME uncomment composable contract in test.compact
     "test-center/compact/test.compact"
     (returns
@@ -4596,13 +4811,12 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
-             (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
-             (ttuple))
+        (host #f "test:oracle/c@1.0.0"
+          (C ([a (tboolean)] [b (tbytes 10)]) (tbytes 20)))
+        (host #f "test:oracle/w@1.0.0"
+          (W ([a (tvector 7 (tvector 9 (tfield (field-native))))]
+              [b (topaque "bogeytype")])
+               (ttuple)))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
           (block (return (disclose (cast (tunsigned 10) b)))))
@@ -4662,6 +4876,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (block (for i 3 3 (+ state 1))))
         (circuit #f #f foosbar () ()
@@ -7548,11 +7763,30 @@ groups than for single tests.
 
   (test
     '(
+      "circuit witness():[] {}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"witness\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  (test
+    '(
       "circuit yield():[] {}"
       )
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 1 char 9" "parse error: found ~a looking for~?" ("keyword \"yield\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("an identifier"))))
+    )
+
+  ; a witness declaration is a parse error now that host functions supply what it did
+  (test
+    '(
+      "witness w(): Field;"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 1" "parse error: found ~a looking for~?" ("keyword \"witness\" (which is reserved for future use)" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
     )
 )
 
@@ -7877,6 +8111,98 @@ groups than for single tests.
        irritants: '("a.compact line 1 char 1" "parse error: found ~a looking for~?" ("\"oops\"" "~#[ nothing~; ~a~; ~a or ~a~:;~@{~#[~; or~] ~a~^,~}~]" ("a program element" "end of file"))))
      ))
   )
+)
+
+(run-tests flatten-host-declarations
+  ; a host block becomes one declaration per signature, in place, inside modules too; which
+  ; interfaces exist is the runtime's business, so any well-formed id passes
+  (test
+    '(
+      "host test:oracle/w@1.0.0 { w(): Field; }"
+      "export host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "host vendor:thing/api@2.0.0-rc.1 {"
+      "  thing(): Field;"
+      "  doThing(x: Field): [];"
+      "}"
+      "module M {"
+      "  export host midnight:capsule/keys@1.0.0 {"
+      "    secretKey(): Bytes<32>;"
+      "  }"
+      "}"
+      )
+    (returns
+      (program
+        (host #f "test:oracle/w@1.0.0" w () (tfield (field-native)))
+        (host #t "midnight:capsule/keys@1.0.0" secretKey ()
+             (tbytes 32))
+        (host #f "vendor:thing/api@2.0.0-rc.1" thing ()
+             (tfield (field-native)))
+        (host #f "vendor:thing/api@2.0.0-rc.1" doThing ([x (tfield
+                                                             (field-native))])
+             (ttuple))
+        (module #f M ()
+          (host #t "midnight:capsule/keys@1.0.0" secretKey ()
+               (tbytes 32)))))
+    )
+)
+
+(run-tests expand-modules-and-types
+  ; an exported local function is the DApp's read-only view, therefore it is kept and listed
+  ; among the exports like a circuit
+  (test
+    '(
+      "export local f(): [] {"
+      "}"
+      )
+    (returns
+      (program ((f %f.0))
+        (local-circuit %f.0 () (ttuple) (tuple))))
+    )
+
+  ; a host function binds like a circuit: the id is the binding, the name within the
+  ; interface travels with it for the runtime
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (returns
+      (program ((f %f.0))
+        (host %secretKey.1 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (circuit %f.0 () (tbytes 32) (call (fref ((%secretKey.1)))))))
+    )
+
+  ; the direction document's vendor module: a module exports its host block
+  (test
+    '(
+      "module Keys {"
+      "  export host midnight:capsule/keys@1.0.0 {"
+      "    secretKey(): Bytes<32>;"
+      "  }"
+      "}"
+      "import Keys;"
+      "export circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (returns
+      (program ((f %f.0))
+        (host %secretKey.1 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (circuit %f.0 () (tbytes 32) (call (fref ((%secretKey.1)))))))
+    )
+
+  (test
+    '(
+      "export host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 3" "cannot export ~s (~s) from the top level" (host secretKey)))
+    )
 )
 
 (run-tests expand-const
@@ -9057,12 +9383,15 @@ groups than for single tests.
               (== (elt-call kernel self) (elt-call kernel2 self))
               "oops")
             (return (new (type-ref M$frob) (elt-call x0 read)))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -9123,6 +9452,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor
           ((state (tfield (field-native))))
           (block () (for i 3 3 (+ state 1))))
@@ -9317,11 +9647,11 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(x: Boolean, x: Field) : Boolean;"
+      "host test:oracle/w@1.0.0 { W(x: Boolean, x: Field) : Boolean; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "duplicate ~a ~s" ("parameter name" x))))
+      irritants: '("testfile.compact line 1 char 28" "duplicate ~a ~s" ("parameter name" x))))
 
   (test
     '(
@@ -9656,12 +9986,15 @@ groups than for single tests.
                         (== (elt-call kernel self) (elt-call kernel2 self))
                         "oops")
                       (new (type-ref M$frob) (elt-call x0 read)))))))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -9720,6 +10053,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
@@ -9948,12 +10282,15 @@ groups than for single tests.
                         (== (elt-call kernel self) (elt-call kernel2 self))
                         "oops")
                       (new (type-ref M$frob) (elt-call x0 read)))))))))
-        (witness #f C () ([a (tboolean)] [b (tbytes 10)])
+        (host #f "test:oracle/c@1.0.0" C ([a (tboolean)]
+                                          [b (tbytes 10)])
              (tbytes 20))
-        (witness #f W () ([a (tvector
-                               7
-                               (tvector 9 (tfield (field-native))))]
-                          [b (topaque "bogeytype")])
+        (host #f "test:oracle/w@1.0.0" W ([a (tvector
+                                               7
+                                               (tvector
+                                                 9
+                                                 (tfield (field-native))))]
+                                          [b (topaque "bogeytype")])
              (ttuple))
         (circuit #t #f baz () ([b (tboolean)])
              (tunsigned 10)
@@ -10012,6 +10349,7 @@ groups than for single tests.
         (public-ledger-declaration #f #f
           ciphertexts
           (topaque "Uint8Array"))
+        (local-ledger-declaration #f tally (type-ref Counter))
         (constructor ([state (tfield (field-native))])
           (seq (for i 3 3 (seq (+ state 1) (tuple))) (tuple)))
         (circuit #f #f foosbar () ()
@@ -10213,7 +10551,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness private_key(): Bytes<32>;"
+      "host test:oracle/private-key@1.0.0 { private_key(): Bytes<32>; }"
       "circuit set(val: Field): [] {"
       "  const sk = private_key();"
       "  const apk = public_key(sk);"
@@ -10464,9 +10802,10 @@ groups than for single tests.
         (public-ledger-declaration
           %ciphertexts.38
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.39 (tfield (field-native))])
+        (local-ledger-declaration %tally.39 (Counter))
+        (constructor ([%state.40 (tfield (field-native))])
           (seq
-            (for %i.40 (tuple) (seq (+ %state.39 1) (tuple)))
+            (for %i.41 (tuple) (seq (+ %state.40 1) (tuple)))
             (tuple)))))
     )
 
@@ -10995,7 +11334,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "module M {"
       "  circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11005,7 +11344,7 @@ groups than for single tests.
       )
     (returns
       (program ((T %T.3))
-        (witness %S.0 () (ttuple))
+        (host %S.0 "test:oracle/s@1.0.0" S () (ttuple))
         (circuit %S.1 ([%q.2 (tfield (field-native))]) (tfield (field-native)) %q.2)
         (circuit %T.3 ([%q.4 (tfield (field-native))])
              (tfield (field-native))
@@ -11014,7 +11353,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "module M {"
       "  export circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11024,54 +11363,54 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 7 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
       "circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export {S, T}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (witness S)))
+      irritants: '("testfile.compact line 4 char 9" "cannot export ~s (~s) from the top level" (host S)))
   )
 
   (test
     '(
-      "witness S(): [];"
+      "host test:oracle/s@1.0.0 { S(): []; }"
       "export circuit S(q: Field): Field { return q; }"
       "export circuit T(q: Field): Field { return S(q); }"
       )
     (returns
       (program ((S %S.0) (T %T.1))
-        (witness %S.2 () (ttuple))
+        (host %S.2 "test:oracle/s@1.0.0" S () (ttuple))
         (circuit %S.0 ([%q.3 (tfield (field-native))]) (tfield (field-native)) %q.3)
         (circuit %T.1 ([%q.4 (tfield (field-native))])
              (tfield (field-native))
@@ -11080,7 +11419,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness S(d: Field): Field;"
+      "host test:oracle/s@1.0.0 { S(d: Field): Field; }"
       "module M {"
       "  circuit S(q: Field): Field { return q; }"
       "  export circuit T(q: Field): Field { return S(q); }"
@@ -11090,7 +11429,7 @@ groups than for single tests.
       )
     (returns
       (program ((T %T.0))
-        (witness %S.1 ([%d.2 (tfield (field-native))]) (tfield (field-native)))
+        (host %S.1 "test:oracle/s@1.0.0" S ([%d.2 (tfield (field-native))]) (tfield (field-native)))
         (circuit %S.3 ([%q.4 (tfield (field-native))]) (tfield (field-native)) %q.4)
         (circuit %T.0 ([%q.5 (tfield (field-native))])
              (tfield (field-native))
@@ -11117,7 +11456,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness C(): [];"
+      "host test:oracle/c@1.0.0 { C(): []; }"
       "export circuit D(q: Field): Field {"
       "  C();"
       "  const C = 5;"
@@ -11130,14 +11469,16 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<#D, E>(x: E): Vector<D, E>;"
+      "circuit P<#D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field>(n);"
       "}"
       )
     (returns
       (program ((foo %foo.0))
-        (witness %P.1 ([%x.2 (tfield (field-native))]) (tvector 2 (tfield (field-native))))
+        (circuit %P.1 ([%x.2 (tfield (field-native))])
+             (tvector 2 (tfield (field-native)))
+          (default (tvector 2 (tfield (field-native)))))
         (circuit %foo.0 ([%n.3 (tfield (field-native))])
              (tvector 2 (tfield (field-native)))
           (call (fref ((%P.1))) %n.3))))
@@ -11210,7 +11551,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<D, E>(x: E): Vector<D, E>;"
+      "circuit P<D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field, Boolean>(n);"
       "}"
@@ -11226,7 +11567,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -11242,12 +11583,22 @@ groups than for single tests.
                 (foo2 %foo2.1)
                 (foo3 %foo3.2)
                 (foo4 %foo4.3))
-        (witness %W.4 ([%x.5 (tboolean)]) (tboolean))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tboolean))
-        (witness %W.8 ([%x.9 (tboolean)]) (tfield (field-native)))
-        (witness %W.10 ([%x.11 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.8 ([%x.9 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.10 ([%x.11 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.12 ([%q.13 (tboolean)]) (tboolean) %q.13)
-        (circuit %S.14 ([%q.15 (tfield (field-native))]) (tfield (field-native)) %q.15)
+        (circuit %S.14 ([%q.15 (tfield (field-native))])
+             (tfield (field-native))
+          %q.15)
         (circuit %T.16 ([%q.17 (tboolean)])
              (tboolean)
           (call (fref ((%W.4))) (call (fref ((%S.12))) %q.17)))
@@ -11278,8 +11629,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S, B, C>(x: S<B, C>): A;"
-      "  export witness P<#D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<#D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11295,8 +11646,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S, B, C>(x: S<B, C>): A;"
-      "  export witness P<#D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<#D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11312,8 +11663,8 @@ groups than for single tests.
     '(
       "struct S<X, Y> { x: X; y: Y; }"
       "module M<A> {"
-      "  export witness W<S<B, C>, B, C>(x: S<B, C>): A;"
-      "  export witness P<D, E>(x: A) : Vector<D, E>;"
+      "  export circuit W<S<B, C>, B, C>(x: S<B, C>): A { return default<A>; }"
+      "  export circuit P<D, E>(x: A): Vector<D, E> { return default<Vector<D, E>>; }"
       "}"
       "import M<Field>;"
       "export circuit foo(b: Boolean, n: Field): Field {"
@@ -11373,27 +11724,31 @@ groups than for single tests.
   (test
     '(
       "struct S<X, Y> { x: X; y: Y; }"
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "export circuit foo(b: Boolean, n: Field): Field {"
       "  return bar<S<Boolean, Field>>(S<Boolean, Field>{x: b, y: n});"
       "}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tstruct S
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tstruct S
                                  (x (tboolean))
                                  (y (tfield (field-native))))])
-             (tfield (field-native)))
-        (circuit %foo.2 ([%b.3 (tboolean)] [%n.4 (tfield (field-native))])
              (tfield (field-native))
-          (call (fref ((%bar.0)))
-            (new (tstruct S (x (tboolean)) (y (tfield (field-native)))) (x %b.3) (y %n.4))))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%b.3 (tboolean)]
+                         [%n.4 (tfield (field-native))])
+             (tfield (field-native))
+          (call (fref ((%bar.1)))
+            (new (tstruct S (x (tboolean)) (y (tfield (field-native))))
+              (x %b.3)
+              (y %n.4))))))
     )
 
   (test
     '(
       "struct S<X, Y> { x: X; y: Y; }"
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "export circuit foo(b: Boolean, n: Field): Field {"
       "  return bar<S<Boolean>>(S<Boolean, Field>{ x: b, y: n });"
       "}"
@@ -11405,7 +11760,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(b: Boolean, n: Field): Field {"
       "    return bar<A<>>(b);"
@@ -11415,16 +11770,19 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tboolean)]) (tfield (field-native)))
-        (circuit %foo.2 ([%b.3 (tboolean)] [%n.4 (tfield (field-native))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tboolean)])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %b.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%b.3 (tboolean)]
+                         [%n.4 (tfield (field-native))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %b.3))))
     )
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(b: Boolean, n: Field): Field {"
       "    return bar<A<3>>(b);"
@@ -11510,7 +11868,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<#Q>(x: Vector<Q, Field>): Field;"
+      "circuit bar<#Q>(x: Vector<Q, Field>): Field { return default<Field>; }"
       "module M<#A> {"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<A>(v);"
@@ -11520,16 +11878,18 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
     '(
-      "witness bar<Q>(x: Vector<Q, Field>): Field;"
+      "circuit bar<Q>(x: Vector<Q, Field>): Field { return default<Field>; }"
       "module M<A> {"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<A<Boolean>>(v);"
@@ -11546,7 +11906,7 @@ groups than for single tests.
   (test
     '(
       "module M<#A> {"
-      "  witness bar<Q>(x: Vector<A, Field>): Field;"
+      "  circuit bar<Q>(x: Vector<A, Field>): Field { return default<Field>; }"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<Field>(v);"
       "  }"
@@ -11555,17 +11915,19 @@ groups than for single tests.
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
     '(
       "module M<A> {"
-      "  witness bar<Q>(x: Vector<A, Field>): Field;"
+      "  circuit bar<Q>(x: Vector<A, Field>): Field { return default<Field>; }"
       "  export circuit foo(v: Vector<A, Field>): Field {"
       "    return bar<Field<3>>(v);"
       "  }"
@@ -11580,18 +11942,20 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar<Q>(x: Q): Field;"
+      "circuit bar<Q>(x: Q): Field { return default<Field>; }"
       "circuit foo(v: Vector<3, Field>): Field {"
       "  return bar<Vector<3, Field>>(v);"
       "}"
       "export {foo}"
       )
     (returns
-      (program ((foo %foo.2))
-        (witness %bar.0 ([%x.1 (tvector 3 (tfield (field-native)))]) (tfield (field-native)))
-        (circuit %foo.2 ([%v.3 (tvector 3 (tfield (field-native)))])
+      (program ((foo %foo.0))
+        (circuit %bar.1 ([%x.2 (tvector 3 (tfield (field-native)))])
              (tfield (field-native))
-          (call (fref ((%bar.0))) %v.3))))
+          (default (tfield (field-native))))
+        (circuit %foo.0 ([%v.3 (tvector 3 (tfield (field-native)))])
+             (tfield (field-native))
+          (call (fref ((%bar.1))) %v.3))))
     )
 
   (test
@@ -13929,7 +14293,7 @@ groups than for single tests.
          "module M {"
          "  export circuit foo(x: Field): Field { return x * 2; }"
          "}"
-         "witness W(): [];"
+         "host test:oracle/w@1.0.0 { W(): []; }"
          ))
      (succeeds))
     ((create-file "testfile.compact"
@@ -14010,15 +14374,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native degradeToTransient)))
-    )
-
-  (test
-    '(
-      "export witness w(): [];"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "cannot export ~s (~s) from the top level" (witness w)))
     )
 
   (test
@@ -14971,16 +15326,16 @@ groups than for single tests.
   (test
     '(
        "module A {"
-       "  export witness w(a: Field): Boolean;"
+       "  export host test:oracle/w@1.0.0 { w(a: Field): Boolean; }"
        "}"
        "import A;"
-       "witness w(a: Field, b: Field): Boolean;"
+       "host test:oracle/w@1.0.0 { w(a: Field, b: Field): Boolean; }"
        "export circuit foo(a : Field) : Boolean { return w(a); }"
        )
     (returns
       (program
-        (witness %w.0 ([%a.1 (tfield (field-native))]) (tboolean))
-        (witness %w.2 ([%a.3 (tfield (field-native))] [%b.4 (tfield (field-native))]) (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w ([%a.1 (tfield (field-native))]) (tboolean))
+        (host %w.2 "test:oracle/w@1.0.0" w ([%a.3 (tfield (field-native))] [%b.4 (tfield (field-native))]) (tboolean))
         (circuit %foo.5 ([%a.6 (tfield (field-native))])
              (tboolean)
           (call %w.0 %a.6)))))
@@ -16423,7 +16778,7 @@ groups than for single tests.
   (test
     '(
       "// test w/all three overloading faiures for fold"
-      "witness foo(a: Field, n: Field): Field;"
+      "host test:oracle/foo@1.0.0 { foo(a: Field, n: Field): Field; }"
       "circuit foo(a: Boolean, n: Field): Field { return a ? n : n - 1; }"
       "circuit foo<t>(a: t, n: Field): t { return t; }"
       "circuit foo(v: Vector<7, Field>, n: Field): Field { return n + v[3]; }"
@@ -16433,7 +16788,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 1:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
+      irritants: '("testfile.compact line 7 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (foo "\n    one function is incompatible with the supplied generic values\n      supplied generic values:\n        <>\n      declared generics for function at line 4 char 1:\n        <type>" "\n    two functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Boolean, Field)\n      declared argument types for function at line 2 char 30:\n        (Field, Field)\n      declared argument types for function at line 5 char 1:\n        (Vector<7, Field>, Field)" "\n    one function is incompatible because fold requires the return type and the first argument type to be the same\n      declared first-argument and return types for function at line 3 char 1:\n        Boolean\n        Field")))
     )
 
   (test
@@ -16731,7 +17086,7 @@ groups than for single tests.
   (test
     '(
       "module M<#n> {"
-      "  export witness foo(v: Vector<n, Field>) : Field;"
+      "  export host test:oracle/foo@1.0.0 { foo(v: Vector<n, Field>) : Field; }"
       "}"
       "import M<10>;"
       "import M<20>;"
@@ -16740,8 +17095,8 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
-        (witness %foo.2 ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.2 "test:oracle/foo@1.0.0" foo ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
         (circuit %bar10.4 ([%u.5 (tvector 10 (tfield (field-native)))])
              (tfield (field-native))
           (call %foo.2 %u.5))
@@ -16889,7 +17244,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
       "    return fold(foo, true, v);"
@@ -16902,7 +17257,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%b.1 (tboolean)] [%x.2 (tfield (field-native))])
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%b.1 (tboolean)] [%x.2 (tfield (field-native))])
              (tboolean))
         (circuit %X$C.3 ([%v.4 (tvector 0 (tfield (field-native)))])
              (tboolean)
@@ -16968,7 +17323,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -16981,7 +17336,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map %foo.0 %v.3))
@@ -16995,7 +17350,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x: Field): Boolean => foo(x + 1),"
@@ -17009,7 +17364,7 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
@@ -17046,7 +17401,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -17059,12 +17414,22 @@ groups than for single tests.
       )
     (returns
       (program
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (witness %W.2 ([%x.3 (tfield (field-native))]) (tboolean))
-        (witness %W.4 ([%x.5 (tboolean)]) (tfield (field-native)))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.0 ([%x.1 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.2 ([%x.3 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.8 ([%q.9 (tboolean)]) (tboolean) %q.9)
-        (circuit %S.10 ([%q.11 (tfield (field-native))]) (tfield (field-native)) %q.11)
+        (circuit %S.10 ([%q.11 (tfield (field-native))])
+             (tfield (field-native))
+          %q.11)
         (circuit %T.12 ([%q.13 (tboolean)])
              (tboolean)
           (call %W.0 (call %S.8 %q.13)))
@@ -17355,14 +17720,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo1(): [];"
-      "witness foo2(): [];"
+      "host test:oracle/foo1@1.0.0 { foo1(): []; }"
+      "host test:oracle/foo2@1.0.0 { foo2(): []; }"
       "export circuit bar() : Boolean { return foo1() == foo2(); }"
       )
     (returns
       (program
-        (witness %foo1.0 () (ttuple))
-        (witness %foo2.1 () (ttuple))
+        (host %foo1.0 "test:oracle/foo1@1.0.0" foo1 () (ttuple))
+        (host %foo2.1 "test:oracle/foo2@1.0.0" foo2 () (ttuple))
         (circuit %bar.2 ()
              (tboolean)
           (== (call %foo1.0) (call %foo2.1)))))
@@ -17396,7 +17761,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -17412,21 +17777,23 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (witness %merklePathRoot.1 ([%foo.2 (tstruct Foo
-                                                (bar (tbytes 32))
-                                                (baz (tboolean)))])
+        (host %merkle_path_root.1 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.2 (tstruct Foo
+                                                                                                   (bar (tbytes
+                                                                                                          32))
+                                                                                                   (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
         (public-ledger-declaration
           %field1.3
-          (Map
-            (tfield (field-native))
-            (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
+          (Map (tfield (field-native))
+               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
           %field2.4
           (HistoricMerkleTree
             10
             (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
-        (public-ledger-declaration %field3.5 (__compact_Cell (tboolean)))
+        (public-ledger-declaration
+          %field3.5
+          (__compact_Cell (tboolean)))
         (circuit %foo.6 ([%n.7 (tfield (field-native))]
                          [%foo.8 (tstruct Foo
                                    (bar (tbytes 32))
@@ -17450,7 +17817,7 @@ groups than for single tests.
                   "entry not found")
                 (ledger-call checkRoot
                   %field2.4
-                  (call %merklePathRoot.1 %q.9))))))))
+                  (call %merkle_path_root.1 %q.9))))))))
     )
 
   (test
@@ -18265,14 +18632,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(x: Uint<5>): [];"
+      "host test:oracle/foo@1.0.0 { foo(x: Uint<5>): []; }"
       "export circuit bar(a: Uint<4>, b: Uint<4>): [] {"
       "foo(a + b);"
       "}"
       )
     (returns
       (program
-        (witness %foo.0 ([%x.1 (tunsigned 31)]) (ttuple))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%x.1 (tunsigned 31)]) (ttuple))
         (circuit %bar.2 ([%a.3 (tunsigned 15)]
                          [%b.4 (tunsigned 15)])
              (ttuple)
@@ -18364,7 +18731,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (native ownPublicKey)))
+      irritants: '("testfile.compact line 2 char 10" "cannot export ~s (~s) from the top level" (host ownPublicKey)))
     )
 
   (test
@@ -19176,7 +19543,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness P<D, E>(x: E): Vector<D, E>;"
+      "circuit P<D, E>(x: E): Vector<D, E> { return default<Vector<D, E>>; }"
       "export circuit foo(n: Field): Vector<2, Field> {"
       "  return P<2, Field, Boolean>(n);"
       "}"
@@ -22009,21 +22376,21 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(a: List<Vector<3, Field>>): [];"
+      "host test:oracle/w@1.0.0 { W(a: List<Vector<3, Field>>): []; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 11" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'a'" "List<Vector<3, Field>>")))
+      irritants: '("testfile.compact line 2 char 30" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'a'" "List<Vector<3, Field>>")))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): List<Vector<3, Field>>;"
+      "host test:oracle/w@1.0.0 { W(): List<Vector<3, Field>>; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("witness return" "List<Vector<3, Field>>")))
+      irritants: '("testfile.compact line 2 char 28" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("host function return" "List<Vector<3, Field>>")))
     )
 
   (test
@@ -22143,7 +22510,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness get_balance(): Uint<64>;"
+      "host test:oracle/get-balance@1.0.0 { get_balance(): Uint<64>; }"
       ""
       "export circuit balance_exceeds(n: Uint<64>): Boolean {"
       "  return disclose(get_balance() as Map<Field, Field> as Field as Uint<32> as Boolean) != n;"
@@ -24276,10 +24643,11 @@ groups than for single tests.
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
+  ; the inner depth is valid, therefore the nesting is the only error
   (test
     `(
       "import CompactStandardLibrary;"
-      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (max-merkle-tree-depth))
       )
     (oops
       message: "~a:\n  ~?"
@@ -24338,6 +24706,28 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  ; a tree's path operations hold a Vector as long as its depth, but a depth past the longest
+  ; vector is reported as a depth, not as that vector's length (pm-16440)
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: MerkleTree<~d, Boolean>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-bytes/vector-length) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
+    )
+
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      ,(format "ledger field1: HistoricMerkleTree<~d, Boolean>;" (+ (max-bytes/vector-length) 1))
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (HistoricMerkleTree ,(+ (max-bytes/vector-length) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
   (test
@@ -24452,10 +24842,11 @@ groups than for single tests.
       irritants: `("testfile.compact line 2 char 16" "~a depth ~d does not fall in ~d <= depth <= ~d" (MerkleTree ,(+ (max-merkle-tree-depth) 1) ,(min-merkle-tree-depth) ,(max-merkle-tree-depth))))
     )
 
+  ; the inner depth is valid, therefore the nesting is the only error
   (test
     `(
       "import CompactStandardLibrary;"
-      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (+ (max-merkle-tree-depth) 1))
+      ,(format "ledger field1: MerkleTree<5, MerkleTree<~d, Boolean>>;" (max-merkle-tree-depth))
       )
     (oops
       message: "~a:\n  ~?"
@@ -27086,7 +27477,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -27110,7 +27501,7 @@ groups than for single tests.
               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
           (%field3.3 (__compact_Cell (tboolean)))
           (constructor () (tuple)))
-        (witness %merkle_path_root.4 ([%foo.5 (tstruct Foo
+        (host %merkle_path_root.4 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.5 (tstruct Foo
                                                 (bar (tbytes 32))
                                                 (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
@@ -27820,16 +28211,16 @@ groups than for single tests.
   (test
     '(
       "module A {"
-      "  export witness w(a: Field): Boolean;"
+      "  export host test:oracle/w@1.0.0 { w(a: Field): Boolean; }"
       "}"
       "import A;"
-      "witness w(a: Field, b: Field): Boolean;"
+      "host test:oracle/w@1.0.0 { w(a: Field, b: Field): Boolean; }"
       "export circuit foo(a : Field) : Boolean { return w(a); }"
       )
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %w.0 ([%a.1 (tfield (field-native))]) (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w ([%a.1 (tfield (field-native))]) (tboolean))
         (circuit %foo.2 ([%a.3 (tfield (field-native))])
              (tboolean)
           (call %w.0 %a.3)))))
@@ -28320,7 +28711,7 @@ groups than for single tests.
   (test
     '(
       "module M<#n> {"
-      "  export witness foo(v: Vector<n, Field>) : Field;"
+      "  export host test:oracle/foo@1.0.0 { foo(v: Vector<n, Field>) : Field; }"
       "}"
       "import M<10>;"
       "import M<20>;"
@@ -28330,8 +28721,8 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
-        (witness %foo.2 ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%v.1 (tvector 20 (tfield (field-native)))]) (tfield (field-native)))
+        (host %foo.2 "test:oracle/foo@1.0.0" foo ([%v.3 (tvector 10 (tfield (field-native)))]) (tfield (field-native)))
         (circuit %bar10.4 ([%u.5 (tvector 10 (tfield (field-native)))])
              (tfield (field-native))
           (call %foo.2 %u.5))
@@ -28543,7 +28934,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -28557,7 +28948,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %X$C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map %foo.0 %v.3))
@@ -28571,7 +28962,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x) => foo(x + 1),"
@@ -28586,7 +28977,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %foo.0 ([%n.1 (tfield (field-native))]) (tboolean))
+        (host %foo.0 "test:oracle/foo@1.0.0" foo ([%n.1 (tfield (field-native))]) (tboolean))
         (circuit %C.2 ([%v.3 (tvector 0 (tfield (field-native)))])
              (tvector 0 (tboolean))
           (map
@@ -28623,7 +29014,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return W<B>(S(q)); }"
       "}"
@@ -28637,12 +29028,22 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (witness %W.2 ([%x.3 (tfield (field-native))]) (tboolean))
-        (witness %W.4 ([%x.5 (tboolean)]) (tfield (field-native)))
-        (witness %W.6 ([%x.7 (tfield (field-native))]) (tfield (field-native)))
+        (circuit %W.0 ([%x.1 (tboolean)])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.2 ([%x.3 (tfield (field-native))])
+             (tboolean)
+          (default (tboolean)))
+        (circuit %W.4 ([%x.5 (tboolean)])
+             (tfield (field-native))
+          (default (tfield (field-native))))
+        (circuit %W.6 ([%x.7 (tfield (field-native))])
+             (tfield (field-native))
+          (default (tfield (field-native))))
         (circuit %S.8 ([%q.9 (tboolean)]) (tboolean) %q.9)
-        (circuit %S.10 ([%q.11 (tfield (field-native))]) (tfield (field-native)) %q.11)
+        (circuit %S.10 ([%q.11 (tfield (field-native))])
+             (tfield (field-native))
+          %q.11)
         (circuit %T.12 ([%q.13 (tboolean)])
              (tboolean)
           (call %W.0 (call %S.8 %q.13)))
@@ -28861,7 +29262,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -28887,9 +29288,10 @@ groups than for single tests.
               (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
           (%field3.3 (__compact_Cell (tboolean)))
           (constructor () (tuple)))
-        (witness %merklePathRoot.4 ([%foo.5 (tstruct Foo
-                                                (bar (tbytes 32))
-                                                (baz (tboolean)))])
+        (host %merkle_path_root.4 "test:oracle/merkle-path-root@1.0.0" merkle_path_root ([%foo.5 (tstruct Foo
+                                                                                                   (bar (tbytes
+                                                                                                          32))
+                                                                                                   (baz (tboolean)))])
              (tstruct MerkleTreeDigest (field (tfield (field-native)))))
         (circuit %foo.6 ([%n.7 (tfield (field-native))]
                          [%foo.8 (tstruct Foo
@@ -28913,7 +29315,7 @@ groups than for single tests.
                       #t)
                   "entry not found")
                 (public-ledger %field2.2
-                  (checkRoot (call %merklePathRoot.4 %q.9)))))))))
+                  (checkRoot (call %merkle_path_root.4 %q.9)))))))))
     )
 
   (test
@@ -29889,7 +30291,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(): [];"
+      "host test:oracle/w@1.0.0 { W(): []; }"
       "circuit bar(x: Vector<0, Field>): Field {"
       "  return 7 as Field;"
       "}"
@@ -29900,7 +30302,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration (constructor () (tuple)))
-        (witness %W.0 () (ttuple))
+        (host %W.0 "test:oracle/w@1.0.0" W () (ttuple))
         (circuit %bar.1 ([%x.2 (tvector 0 (tfield (field-native)))])
              (tfield (field-native))
           (safe-cast (tfield (field-native)) (tunsigned 7) 7))
@@ -30660,84 +31062,95 @@ groups than for single tests.
     "examples/tiny.compact"
     (returns
       (program
-        (kernel-declaration (%kernel.1 (Kernel)))
+        (kernel-declaration (%kernel.0 (Kernel)))
         (public-ledger-declaration
-          (%authority.2 (__compact_Cell (tbytes 32)))
-          (%value.3 (__compact_Cell (tfield (field-native))))
-          (%state.4 (__compact_Cell (tenum STATE unset set)))
-          (constructor ([%v.0 (tfield (field-native))])
+          (%authority.1 (__compact_Cell (tbytes 32)))
+          (%value.2 (__compact_Cell (tfield (field-native))))
+          (%state.3 (__compact_Cell (tenum STATE unset set)))
+          (constructor ([%v.4 (tfield (field-native))]
+                        [%sk.5 (tbytes 32)])
             (seq
-              (let* ([[%sk.5 (tbytes 32)] (call %private$secretKey.6)])
-                (seq
-                  (public-ledger %authority.2
-                    (write (call %publicKey.7 %sk.5)))
-                  (public-ledger %value.3 (write (disclose %v.0)))
-                  (public-ledger %state.4
-                    (write (enum-ref (tenum STATE unset set) set)))))
+              (public-ledger %authority.1
+                (write (call %public_key.6 %sk.5)))
+              (public-ledger %value.2 (write (disclose %v.4)))
+              (public-ledger %state.3
+                (write (enum-ref (tenum STATE unset set) set)))
               (tuple))))
         (export-typedef Maybe (T)
           (tstruct Maybe (is_some (tboolean)) (value T)))
-        (circuit %some.8 ([%value.9 (tfield (field-native))])
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
+        (circuit %some.7 ([%value.8 (tfield (field-native))])
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (new (tstruct Maybe
+                 (is_some (tboolean))
+                 (value (tfield (field-native))))
             #t
-            %value.9))
-        (circuit %none.10 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (new (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
+            %value.8))
+        (circuit %none.9 ()
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (new (tstruct Maybe
+                 (is_some (tboolean))
+                 (value (tfield (field-native))))
             #f
             (default (tfield (field-native)))))
-        (native %persistentHash<.11 ([%value.12 (tvector
-                                                    2
-                                                    (tbytes 32))])
+        (native %persistentHash.10 ([%value.11 (tvector
+                                                 2
+                                                 (tbytes 32))])
              (tbytes 32))
-        (witness %private$secretKey.6 () (tbytes 32))
-        (circuit %inState.13 ([%s.14 (tenum STATE unset set)])
+        (host %private$secret_key.12 "test:oracle/private-secret-key@1.0.0" private$secret_key ()
+             (tbytes 32))
+        (circuit %in_state.13 ([%s.14 (tenum STATE unset set)])
              (tboolean)
-          (== (public-ledger %state.4 (read)) %s.14))
+          (== (public-ledger %state.3 (read)) %s.14))
         (circuit %set.15 ([%v.16 (tfield (field-native))])
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) unset))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) unset))
                 "set: attempted to overwrite recorded value")
-              (let* ([[%sk.17 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.18 (tbytes 32)] (call %publicKey.7 %sk.17)])
+              (let* ([[%sk.17 (tbytes 32)] (call %private$secret_key.12)])
+                (let* ([[%apk.18 (tbytes 32)] (call %public_key.6 %sk.17)])
                   (seq
-                    (public-ledger %authority.2 (write %apk.18))
-                    (public-ledger %value.3 (write (disclose %v.16)))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write %apk.18))
+                    (public-ledger %value.2 (write (disclose %v.16)))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) set)))))))
             (tuple)))
         (circuit %get.19 ()
-             (tstruct Maybe (is_some (tboolean)) (value (tfield (field-native))))
-          (if (call %inState.13
+             (tstruct Maybe
+               (is_some (tboolean))
+               (value (tfield (field-native))))
+          (if (call %in_state.13
                 (enum-ref (tenum STATE unset set) set))
-              (call %some.8 (public-ledger %value.3 (read)))
-              (call %none.10)))
+              (call %some.7 (public-ledger %value.2 (read)))
+              (call %none.9)))
         (circuit %clear.20 ()
              (ttuple)
           (seq
             (seq
               (assert
-                (call %inState.13 (enum-ref (tenum STATE unset set) set))
+                (call %in_state.13 (enum-ref (tenum STATE unset set) set))
                 "clear: no value is currently recorded")
-              (let* ([[%sk.21 (tbytes 32)] (call %private$secretKey.6)])
-                (let* ([[%apk.22 (tbytes 32)] (call %publicKey.7 %sk.21)])
+              (let* ([[%sk.21 (tbytes 32)] (call %private$secret_key.12)])
+                (let* ([[%apk.22 (tbytes 32)] (call %public_key.6 %sk.21)])
                   (seq
                     (assert
-                      (== %apk.22 (public-ledger %authority.2 (read)))
+                      (== %apk.22 (public-ledger %authority.1 (read)))
                       "clear: attempted clear without proper authorization")
-                    (public-ledger %authority.2 (write (default (tbytes 32))))
-                    (public-ledger %value.3 (write (default (tfield (field-native)))))
-                    (public-ledger %state.4
+                    (public-ledger %authority.1 (write (default (tbytes 32))))
+                    (public-ledger %value.2
+                      (write (default (tfield (field-native)))))
+                    (public-ledger %state.3
                       (write (enum-ref (tenum STATE unset set) unset)))))))
             (tuple)))
-        (circuit %publicKey.7 ([%sk.23 (tbytes 32)])
+        (circuit %public_key.6 ([%sk.23 (tbytes 32)])
              (tbytes 32)
           (disclose
-            (call %persistentHash<.11
+            (call %persistentHash.10
               (tuple
                 #vu8(108 97 114 101 115 58 116 105 110 121 58 112 107 58 0 0
                      0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0)
@@ -31166,14 +31579,541 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export pure circuit foo (): [] {"
       "  emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls witness bar" "line 4 char 35")))
+      irritants: '("testfile.compact line 3 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (foo "calls host function bar" "line 4 char 35")))
+    )
+
+  ; a host function is runtime-provided nondeterminism, therefore calling one makes a
+  ; circuit impure
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export pure circuit f(): Bytes<32> { return secretKey(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (f "calls host function secretKey" "line 4 char 45")))
+    )
+)
+
+(run-tests reject-constructor-local-calls
+  ; the deploy runs no capsule, therefore the constructor runs no local code: no local
+  ; function calls and no local ADT operations, directly or through the circuits it calls
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local seed(): [] {"
+      "  credits.increment(1);"
+      "}"
+      "constructor() {"
+      "  seed();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "constructor cannot run local code but ~a at ~a" ("calls local function seed" "line 7 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local seed(): [] {"
+      "  credits.increment(1);"
+      "}"
+      "circuit setup(): [] {"
+      "  seed();"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 1" "constructor cannot run local code but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls local function seed" "line 7 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "constructor() {"
+      "  credits.increment(1);"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot run local code but ~a at ~a" ("operates on local field credits" "line 4 char 3")))
+    )
+
+  ; the constructor keeps its public half: ledger writes, pure circuits, and its arguments
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "pure circuit twice(n: Uint<8>): Uint<16> {"
+      "  return n * 2;"
+      "}"
+      "constructor(seed: Uint<8>) {"
+      "  total.increment(disclose(twice(seed)));"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; decision 4's other half: the capsule secret cannot exist before the address does, and
+  ; every other host value can be passed in, therefore the constructor calls no host
+  ; function, directly or through the circuits it calls
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "constructor() {"
+      "  owner = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 1" "constructor cannot call host functions but ~a at ~a" ("calls host function secretKey" "line 6 char 11")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "circuit setup(): [] {"
+      "  owner = secretKey();"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 1" "constructor cannot call host functions but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls host function secretKey" "line 6 char 11")))
+    )
+
+  ; a call or a local operation inside a tuple or vector literal, spread or not, or in the
+  ; vector given to map or fold runs at deploy like any other, therefore the rule reaches
+  ; it there too
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "constructor() {"
+      "  const keys = [secretKey()];"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "constructor cannot call host functions but ~a at ~a" ("calls host function secretKey" "line 5 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "constructor() {"
+      "  const t = [1, credits.read()];"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "constructor cannot run local code but ~a at ~a" ("operates on local field credits" "line 4 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local pair(): Vector<2, Uint<64>> {"
+      "  return [credits.read(), credits.read()];"
+      "}"
+      "circuit setup(): Vector<3, Uint<64>> {"
+      "  return [0, ...pair()];"
+      "}"
+      "constructor() {"
+      "  setup();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 9 char 1" "constructor cannot run local code but calls (directly or indirectly) ~a, which ~a at ~a" (setup "calls local function pair" "line 7 char 17")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local pair(): Vector<2, Uint<64>> {"
+      "  return [credits.read(), credits.read()];"
+      "}"
+      "constructor() {"
+      "  const same = map((x: Uint<64>): Uint<64> => x, pair());"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 1" "constructor cannot run local code but ~a at ~a" ("calls local function pair" "line 7 char 50")))
+    )
+)
+
+(run-tests check-local-callability
+  ; a local function calls local functions, pure circuits, and local ADT operations, and
+  ; nothing that reaches the public transcript or the proof
+  (test
+    '(
+      "ledger x: Field;"
+      "circuit bump(): [] {"
+      "  x = 3 as Field;"
+      "}"
+      "local f(): [] {"
+      "  bump();"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 3" "~a cannot call impure circuit ~a" ("local function f" bump)))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "local f(): [] {"
+      "  x = 3 as Field;"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "~a cannot update ledger field ~a" ("local function f" x)))
+    )
+
+  ; ledger reads from local functions are snapshot quotes and pass; writes stay out
+  (test
+    '(
+      "ledger x: Field;"
+      "local f(): [] {"
+      "  x = 3 as Field;"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "~a cannot update ledger field ~a" ("local function f" x)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local f(): [] {"
+      "  emit (ShieldedSpend { pad(32, 'a') });"
+      "}"
+      "export circuit g(): [] {"
+      "  f();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "~a cannot emit an event" ("local function f")))
+    )
+
+  ; a local-read pins observations for the fold, which only local code needs
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tree: MerkleTree<4, Bytes<8>>;"
+      "export circuit peek(): Uint<64> {"
+      "  return disclose(tree.firstFree());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 19" "~a is only callable from local functions" (firstFree)))
+    )
+
+  ; data-bounded iteration is a local-code construct
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local seen: Set<Uint<8>>;"
+      "export circuit go(): [] {"
+      "  for (const v of seen) {"
+      "    assert(v >= 0, 'nope');"
+      "  }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "for-of iteration over a container is only available in local functions" ()))
+    )
+
+  ; the local constructor is the prologue of the first landed call, run against that call's
+  ; basis, therefore it reads the ledger as any local function does, directly or through
+  ; the local call graph
+  (test
+    '(
+      "ledger x: Field;"
+      "local g(): Field {"
+      "  return x;"
+      "}"
+      "local f(): Field {"
+      "  return g();"
+      "}"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = f() + x;"
+      "}"
+      "export circuit h(): Field {"
+      "  return disclose(credits);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "local credits: Field;"
+      "local constructor {"
+      "  x = 3 as Field;"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "~a cannot update ledger field ~a" ("the local constructor" x)))
+    )
+
+  ; an exported local function is the DApp's read-only view: local writes are out, directly
+  ; or through the local functions it calls, while local reads, ledger reads, iteration, and
+  ; pure circuits are in
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "local credits: Counter;"
+      "local seen: Set<Uint<8>>;"
+      "pure circuit twice(n: Uint<64>): Uint<64> {"
+      "  return n * 2 as Uint<64>;"
+      "}"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.member(k) ? prices.lookup(k) : 0;"
+      "}"
+      "export local report(k: Uint<8>): Uint<64> {"
+      "  for (const v of seen) {"
+      "    assert(v >= 0, 'nope');"
+      "  }"
+      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
+      "}"
+      "export circuit tick(k: Uint<8>): [] {"
+      "  credits.increment(1);"
+      "  seen.insert(k);"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export local bump(): Uint<64> {"
+      "  credits.increment(1);"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 1" "exported local function ~a cannot update local state but ~a at ~a" (bump "updates local field credits" "line 4 char 3")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "local touch(): [] {"
+      "  credits.resetToDefault();"
+      "}"
+      "local probe(): Uint<64> {"
+      "  touch();"
+      "  return credits.read();"
+      "}"
+      "export local peek(): Uint<64> {"
+      "  return probe();"
+      "}"
+      "export circuit tick(): [] {"
+      "  credits.increment(1);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 1" "exported local function ~a cannot update local state but calls (directly or indirectly) local function ~a, which ~a at ~a" (peek touch "updates local field credits" "line 4 char 3")))
+    )
+
+  (test
+    '(
+      "host test:oracle/w@1.0.0 { w(): Field; }"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = w();"
+      "}"
+      "export circuit g(): Field {"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 13" "the local constructor cannot call host function ~a" (w)))
+    )
+
+  (test
+    '(
+      "ledger x: Field;"
+      "circuit bump(): Field {"
+      "  x = 3 as Field;"
+      "  return 3 as Field;"
+      "}"
+      "local credits: Field;"
+      "local constructor {"
+      "  credits = bump();"
+      "}"
+      "export circuit g(): Field {"
+      "  bump();"
+      "  return disclose(credits);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 13" "~a cannot call impure circuit ~a" ("the local constructor" bump)))
+    )
+
+  ; a local function may call a host function, and a circuit may too
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local k: Bytes<32>;"
+      "local refresh(): [] {"
+      "  k = secretKey();"
+      "}"
+      "export circuit go(): [] { refresh(); }"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.0 (Kernel)))
+        (public-ledger-declaration (constructor () (tuple)))
+        (local-ledger-declaration
+          (%k.1 (__compact_Cell (tbytes 32)))
+          (local-constructor (tuple)))
+        (host %secretKey.2 "midnight:capsule/keys@1.0.0" secretKey () (tbytes 32))
+        (local-circuit %refresh.3 () (ttuple)
+          (seq
+            (public-ledger %k.1 (write (call %secretKey.2)))
+            (tuple)))
+        (circuit %go.4 () (ttuple) (seq (call %refresh.3) (tuple)))))
+    )
+
+  ; the local constructor runs with no host access in this iteration (plan §5)
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local k: Bytes<32>;"
+      "local constructor {"
+      "  k = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 7" "the local constructor cannot call host function ~a" (secretKey)))
+    )
+
+  ; localState() has no host access, therefore an exported local function calls no host
+  ; function, directly or through the local functions it calls (an implementation decision
+  ; to revisit)
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export local key(): Bytes<32> {"
+      "  return secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 1" "exported local function ~a cannot call host functions but calls host function ~a at ~a" (key secretKey "line 5 char 10")))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local inner(): Bytes<32> {"
+      "  return secretKey();"
+      "}"
+      "local middle(): Bytes<32> {"
+      "  return inner();"
+      "}"
+      "export local key(): Bytes<32> {"
+      "  return middle();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 10 char 1" "exported local function ~a cannot call host functions but calls (directly or indirectly) local function ~a, which calls host function ~a at ~a" (key inner secretKey "line 5 char 10")))
     )
 )
 
@@ -31279,10 +32219,10 @@ groups than for single tests.
       ""
       "export enum E { a, b, c }"
       ""
-      "witness flip(): Boolean;"
-      "witness flop(): Field;"
-      "witness clip(): E;"
-      "witness clop(): Uint<16>;"
+      "host test:oracle/flip@1.0.0 { flip(): Boolean; }"
+      "host test:oracle/flop@1.0.0 { flop(): Field; }"
+      "host test:oracle/clip@1.0.0 { clip(): E; }"
+      "host test:oracle/clop@1.0.0 { clop(): Uint<16>; }"
       ""
       "ledger x: Map<Field, Boolean>;"
       "ledger y: Map<Uint<16>, E>;"
@@ -31309,10 +32249,10 @@ groups than for single tests.
            (%y.2 (1) (Map (tunsigned 65535) (tenum E a b c))))
           (constructor () (tuple)))
         (export-typedef E () (tenum E a b c))
-        (witness %flip.3 () (tboolean))
-        (witness %flop.4 () (tfield (field-native)))
-        (witness %clip.5 () (tenum E a b c))
-        (witness %clop.6 () (tunsigned 65535))
+        (host %flip.3 "test:oracle/flip@1.0.0" flip () (tboolean))
+        (host %flop.4 "test:oracle/flop@1.0.0" flop () (tfield (field-native)))
+        (host %clip.5 "test:oracle/clip@1.0.0" clip () (tenum E a b c))
+        (host %clop.6 "test:oracle/clop@1.0.0" clop () (tunsigned 65535))
         (circuit %foo.7 ()
              (ttuple)
           (seq
@@ -31353,7 +32293,7 @@ groups than for single tests.
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): Field {"
       "  return X;"
       "}"
@@ -31370,20 +32310,20 @@ groups than for single tests.
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  X = w();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
+      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
     )
 
   (test
     '(
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w();"
       "  X = x;"
@@ -31391,13 +32331,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = x;"
@@ -31405,13 +32345,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = x != true;"
@@ -31419,13 +32359,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: [Field, Boolean];"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = [w(), x != true];"
@@ -31433,13 +32373,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 13\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the comparison at line 5 char 13\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "ledger X: Boolean;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const x = w() == 37 as Field;"
       "  X = !x;"
@@ -31447,14 +32387,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the conditional expression at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 4 char 13\n      the binding of x at line 4 char 9\n      the conditional expression at line 5 char 7\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Boolean, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(): S {"
       "  return S{true, w()};"
       "}"
@@ -31465,14 +32405,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of x at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Boolean, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Boolean; }"
       "circuit bar(): S {"
       "  return S{w(), 'c7c7c7c7c7c7c7c7'};"
       "}"
@@ -31487,7 +32427,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w.2 () (tboolean))
+        (host %w.2 "test:oracle/w@1.0.0" w () (tboolean))
         (circuit %bar.3 ()
              (tstruct S (a (tboolean)) (b (tbytes 16)))
           (new (tstruct S (a (tboolean)) (b (tbytes 16)))
@@ -31507,8 +32447,8 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w1(): Bytes<16>;"
-      "witness w2(): Bytes<16>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<16>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Bytes<16>; }"
       "export circuit bar(b: Boolean, s: S): [] {"
       "  X = disclose(b ? s.a : s.b);"
       "}"
@@ -31523,8 +32463,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w1.2 () (tbytes 16))
-        (witness %w2.3 () (tbytes 16))
+        (host %w1.2 "test:oracle/w1@1.0.0" w1 () (tbytes 16))
+        (host %w2.3 "test:oracle/w2@1.0.0" w2 () (tbytes 16))
         (circuit %bar.4 ([%b.5 (tboolean)]
                          [%s.6 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -31554,8 +32494,8 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w1(): Bytes<16>;"
-      "witness w2(): Bytes<16>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<16>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Bytes<16>; }"
       "circuit bar(b: Boolean, s: S): [] {"
       "  if (b)"
       "    X = s.a;"
@@ -31573,8 +32513,8 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.5 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w1.1 () (tbytes 16))
-        (witness %w2.3 () (tbytes 16))
+        (host %w1.1 "test:oracle/w1@1.0.0" w1 () (tbytes 16))
+        (host %w2.3 "test:oracle/w2@1.0.0" w2 () (tbytes 16))
         (circuit %bar.2 ([%b.6 (tboolean)]
                          [%s.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -31605,7 +32545,7 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b: Boolean, s1: S, s2: S): [] {"
       "  const s = b ? s1 : s2;"
       "  X = s.b;"
@@ -31620,7 +32560,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.2 (0) (__compact_Cell (tbytes 16))))
           (constructor () (tuple)))
-        (witness %w.3 () (tbytes 16))
+        (host %w.3 "test:oracle/w@1.0.0" w () (tbytes 16))
         (circuit %bar.4 ([%b.5 (tboolean)]
                          [%s1.6 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                          [%s2.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
@@ -31648,31 +32588,31 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w(): S;"
+      "host test:oracle/w@1.0.0 { w(): S; }"
       "export circuit foo(): [] {"
       "  X = w();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w1(): S;"
-      "witness w2(): S;"
+      "host test:oracle/w1@1.0.0 { w1(): S; }"
+      "host test:oracle/w2@1.0.0 { w2(): S; }"
       "export circuit foo(b: Boolean): [] {"
       "  X = b ? w1() : w2();"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit foo at line 5 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 6 char 7\n      the right-hand side of = at line 6 char 5"))))
     )
@@ -31681,46 +32621,44 @@ groups than for single tests.
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: S;"
-      "witness w(): S;"
-      "constructor() {"
-      "  X = w();"
+      "constructor(w: S) {"
+      "  X = w;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 4 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter w of the constructor at line 3 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 4 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
       "circuit bar(b: Boolean, s1: S, s2: S): [] {"
       "  const s = b ? s1 : s2;"
       "  X = s.b;"
       "}"
-      "constructor(b: Boolean, s: S) {"
-      "  bar(disclose(b), disclose(s), S{w(), 'c7c7c7c7c7c7c7c7'});"
+      "constructor(b: Boolean, s: S, w: Bytes<16>) {"
+      "  bar(disclose(b), disclose(s), S{w, 'c7c7c7c7c7c7c7c7'});"
       "}"
       )
     (returns
       (program
-        (kernel-declaration (%kernel.1 () (Kernel)))
+        (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration
-          ((%X.2 (0) (__compact_Cell (tbytes 16))))
-          (constructor ([%b.0 (tboolean)]
-                        [%s.3 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
+          ((%X.1 (0) (__compact_Cell (tbytes 16))))
+          (constructor ([%b.2 (tboolean)]
+                        [%s.3 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
+                        [%w.4 (tbytes 16)])
             (seq
-              (call %bar.4
-                (disclose %b.0)
+              (call %bar.5
+                (disclose %b.2)
                 (disclose %s.3)
                 (new (tstruct S (a (tbytes 16)) (b (tbytes 16)))
-                  (call %w.5)
+                  %w.4
                   #vu8(99 55 99 55 99 55 99 55 99 55 99 55 99 55 99 55)))
               (tuple))))
-        (witness %w.5 () (tbytes 16))
-        (circuit %bar.4 ([%b.6 (tboolean)]
+        (circuit %bar.5 ([%b.6 (tboolean)]
                          [%s1.7 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                          [%s2.8 (tstruct S (a (tbytes 16)) (b (tbytes 16)))])
              (ttuple)
@@ -31728,22 +32666,24 @@ groups than for single tests.
             (let* ([[%s.9 (tstruct S (a (tbytes 16)) (b (tbytes 16)))]
                     (if %b.6 %s1.7 %s2.8)])
               (let* ([[%tmp.10 (tbytes 16)] (elt-ref %s.9 b 1)])
-                (public-ledger %X.2 (0) write %tmp.10)))
+                (public-ledger %X.1 (0) write %tmp.10)))
             (tuple)))))
     )
 
+  ; the constructor cannot call host functions, therefore the tests from here to pm-17201 call
+  ; bar from an exported circuit
   (test
     '(
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31758,13 +32698,13 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31779,14 +32719,14 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
       "circuit id(v: T): T { return v; }"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, map(id, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]));"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31801,14 +32741,14 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
       "circuit id(v: Vector<2, T>): Vector<2, T> { return v; }"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(false, true, id([T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]));"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31823,13 +32763,13 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31844,13 +32784,13 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>): [] {"
       "  const t = b1 ? v[0] : v[1];"
       "  const s = t.v[0];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "//  bar(false, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
       "//  bar(true, false, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}]);"
@@ -31859,7 +32799,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 14 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 7 char 9\n      the right-hand side of = at line 8 char 5"))))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 14 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 7 char 9\n      the right-hand side of = at line 8 char 5"))))
     )
 
   ; pm-17201
@@ -31868,27 +32808,27 @@ groups than for single tests.
       "struct S { a: Bytes<16>, b: Bytes<16> };"
       "struct T { v: Vector<1, S> };"
       "ledger X: Bytes<16>;"
-      "witness w(): Bytes<16>;"
+      "host test:oracle/w@1.0.0 { w(): Bytes<16>; }"
       "circuit bar(b1: Boolean, b2: Boolean, v: Vector<2, T>, i: Uint<1>, j: Uint<1>): [] {"
       "  const t = b1 ? v[i] : v[j];"
       "  const z = 0;"
       "  const s = t.v[z];"
       "  X = b2 ? s.a : s.b;"
       "}"
-      "constructor() {"
+      "export circuit go(): [] {"
       "  bar(false, true, [T{v: [S{a: w(), b: 'c7c7c7c7c7c7c7c7'}]}, T{v: [S{a: '7c7c7c7c7c7c7c7c', b: 'c7c7c7c7c7c7c7c7'}]}], 0, 1);"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 12 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the third argument to bar at line 12 char 3\n      the binding of t at line 6 char 9\n      the binding of s at line 8 char 9\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31903,7 +32843,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31918,7 +32858,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31928,16 +32868,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31952,7 +32892,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31962,16 +32902,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -31981,16 +32921,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Vector<N, Uint<16>> {"
       "  return map((s) => { const x = X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, v);"
       "}"
@@ -32000,16 +32940,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
+      irritants: '("testfile.compact line 5 char 68" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29\n      the right-hand side of = at line 5 char 68")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 33\n      the binding of x at line 5 char 29"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32025,7 +32965,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32036,14 +32976,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32055,14 +32995,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 7\n      the computation at line 9 char 7\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 7\n      the computation at line 9 char 7\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32073,14 +33013,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, v: Vector<3, S>): Vector<3, Uint<16>> {"
       "  return map((s) => b ? s.a : s.b, v);"
       "}"
@@ -32091,14 +33031,14 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
+      irritants: '("testfile.compact line 9 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 13\n      the binding of v at line 8 char 9\n      the computation at line 9 char 22\n      the right-hand side of = at line 9 char 5"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32113,7 +33053,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32128,7 +33068,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32138,16 +33078,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32161,7 +33101,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%X.1 (0) (__compact_Cell (tunsigned 65535))))
           (constructor () (tuple)))
-        (witness %w.2 () (tunsigned 65535))
+        (host %w.2 "test:oracle/w@1.0.0" w () (tunsigned 65535))
         (circuit %bar.3 ([%b.4 (tboolean)]
                          [%v.5 (tvector
                                  3
@@ -32215,7 +33155,7 @@ groups than for single tests.
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32225,16 +33165,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33" "\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32244,16 +33184,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32263,16 +33203,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
+      irritants: '("testfile.compact line 5 char 76" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the right-hand side of = at line 5 char 76" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37\n      the right-hand side of = at line 5 char 76")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the result of an addition involving the result of an addition involving the witness value\n    via this path through the program:\n      the second argument to bar at line 8 char 10\n      the computation at line 5 char 37\n      the binding of x at line 5 char 33\n      the computation at line 5 char 37"))))
     )
 
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar<#N>(b: Boolean, v: Vector<N, S>): Uint<16> {"
       "  return fold((a, s) => { const x = a + X + (b ? s.a : s.b) as Uint<16>; X = x; return x; }, 0 as Uint<16>, v);"
       "}"
@@ -32288,7 +33228,7 @@ groups than for single tests.
   (test
     '(
       "ledger X: Uint<16>;"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(v: Vector<10, Uint<16>>): Uint<32> {"
       "  return fold((a, n) => a + n as Uint<32>, 0 as Uint<32>, v);"
       "}"
@@ -32333,7 +33273,7 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
       "circuit bar(b: Boolean, x: Uint<16>): Uint<16> {"
       "  if (b) S { w(), w() };"
       "  return x;"
@@ -32345,7 +33285,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tunsigned 65535))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tunsigned 65535))
         (circuit %bar.1 ([%b.2 (tboolean)] [%x.3 (tunsigned 65535)])
              (tunsigned 65535)
           (seq
@@ -32362,7 +33302,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Boolean; }"
       "circuit bar(v: Vector<5, Boolean>): Boolean {"
       "  return fold((a, b) => a && b, true, v);"
       "}"
@@ -32373,7 +33313,7 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tboolean))
         (circuit %bar.1 ([%v.2 (tvector 5 (tboolean))])
              (tboolean)
           (fold
@@ -32391,8 +33331,8 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
-      "witness b(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(x: Uint<16>): Uint<16> {"
       "  if (b()) S { w(), w() };"
       "  return x;"
@@ -32404,8 +33344,8 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %w.0 () (tunsigned 65535))
-        (witness %b.1 () (tboolean))
+        (host %w.0 "test:oracle/w@1.0.0" w () (tunsigned 65535))
+        (host %b.1 "test:oracle/b@1.0.0" b () (tboolean))
         (circuit %bar.2 ([%x.3 (tunsigned 65535)])
              (tunsigned 65535)
           (seq
@@ -32457,8 +33397,8 @@ groups than for single tests.
   (test
     '(
       "struct S { a: Uint<16>, b: Uint<16> };"
-      "witness w(): Uint<16>;"
-      "witness b(): Boolean;"
+      "host test:oracle/w@1.0.0 { w(): Uint<16>; }"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(x: Uint<16>): S {"
       " return b() ? S { w(), w() } : S { w(), w() };"
       "}"
@@ -32468,9 +33408,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness b at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 5 char 9"))))
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function b at line 3 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 5 char 9"))))
     )
 
   (test
@@ -32510,7 +33450,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness b(): Boolean;"
+      "host test:oracle/b@1.0.0 { b(): Boolean; }"
       "circuit bar(): Field {"
       " return b() ? 1 as Field : 2 as Field;"
       "}"
@@ -32520,7 +33460,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness b at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 9"))))
+      irritants: '("testfile.compact line 6 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function b at line 1 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 9"))))
     )
 
   (test
@@ -33057,22 +33997,22 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): Field {"
       "  if (W()) return 5 as Field; else return 6 as Field;"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 36" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+      irritants: '("testfile.compact line 4 char 36" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): Field {"
       "  if (W()) return 5 as Field;"
       "  return 6 as Field;"
@@ -33080,9 +34020,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+      irritants: '("testfile.compact line 4 char 12" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      returning this value from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
     )
 
   (test
@@ -33272,7 +34212,7 @@ groups than for single tests.
   (test
     '(
       "ledger F: Field;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       ""
       "export circuit foo(x: Field): [] {"
       "  const w = W();"
@@ -33286,13 +34226,13 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of w at line 5 char 9\n      the comparison at line 7 char 7\n      the conditional branch at line 7 char 3"))))
+      irritants: '("testfile.compact line 11 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of w at line 5 char 9\n      the comparison at line 7 char 7\n      the conditional branch at line 7 char 3"))))
     )
 
   (test
     '(
       "ledger F: Field;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       ""
       "export circuit foo(x: Field): [] {"
       "  const w = W();"
@@ -33310,7 +34250,7 @@ groups than for single tests.
         (public-ledger-declaration
           ((%F.1 (0) (__compact_Cell (tfield (field-native)))))
           (constructor () (tuple)))
-        (witness %W.2 () (tfield (field-native)))
+        (host %W.2 "test:oracle/w@1.0.0" W () (tfield (field-native)))
         (circuit %foo.3 ([%x.4 (tfield (field-native))])
              (ttuple)
           (seq
@@ -33359,7 +34299,7 @@ groups than for single tests.
       "module M<#K> {"
       "  export ledger F: MerkleTree<K, ZswapCoinPublicKey>;"
       ""
-      "  witness W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>;"
+      "  host test:oracle/w@1.0.0 { W(pk: ZswapCoinPublicKey): MerkleTreePath<K, ZswapCoinPublicKey>; }"
       ""
       "  export circuit foo(pk: ZswapCoinPublicKey): [] {"
       "    const path = W(pk);"
@@ -33376,7 +34316,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 6 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
+      irritants: '("testfile.compact line 11 char 8" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 6 char 30" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of the boolean value of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8" "\n    nature of the disclosure:\n      ledger operation might disclose a hash of a modulus of a hash of the witness value\n    via this path through the program:\n      the binding of path at line 9 char 11\n      the argument to merkleTreePathRoot at line 12 char 9\n      the argument to checkRoot at line 11 char 8"))))
     )
 
   (test
@@ -33410,8 +34350,8 @@ groups than for single tests.
 
   (test
     '(
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: Vector<9, Field>;"
       "export circuit foo(): Vector<9, Field> {"
       "  X = [w1() + 3,"
@@ -33429,15 +34369,15 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 1 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a subtraction involving the witness value\n    via this path through the program:\n      the computation at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a multiplication involving the witness value\n    via this path through the program:\n      the computation at line 13 char 8\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
-      "witness w1(): Uint<32>;"
-      "witness w2(): Uint<32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Uint<32>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Uint<32>; }"
       "ledger X: Vector<18, Boolean>;"
       "export circuit foo(): Vector<18, Boolean> {"
       "  X = [w1() < 37,"
@@ -33464,16 +34404,16 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 1 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 1 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 5 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 6 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 7 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 8 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 9 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 10 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
+      irritants: '("testfile.compact line 5 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 11 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 12 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 13 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 14 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 15 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 16 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 17 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 18 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 19 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 20 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 21 char 8\n      the right-hand side of = at line 5 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 22 char 8\n      the right-hand side of = at line 5 char 5"))))
     )
 
   (test
     '(
       "struct S { x: Field, y: Field };"
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: S;"
       "export circuit foo(): S {"
       "  X = S { w1(), w2() };"
@@ -33482,17 +34422,17 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 2 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 2 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
+      irritants: '("testfile.compact line 6 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 5"))))
     )
 
   (test
     '(
       "struct T { x: Uint<8>, y: Boolean };"
       "struct S { x: Field, y: Field, z: T };"
-      "witness w1(): Field;"
-      "witness w2(): Field;"
+      "host test:oracle/w1@1.0.0 { w1(): Field; }"
+      "host test:oracle/w2@1.0.0 { w2(): Field; }"
       "ledger X: S;"
       "export circuit foo(t: T): S {"
       "  X = S { z: t, y: w1(), x: w2() };"
@@ -33501,9 +34441,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 3 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter t of exported circuit foo at line 6 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 7 char 5"))))
     )
@@ -33513,8 +34453,8 @@ groups than for single tests.
       "type U8 = Uint<8>;"
       "type U16 = Uint<16>;"
       "type U32 = Uint<32>;"
-      "witness w1(): Bytes<8>;"
-      "witness w2(): Vector<8, U32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<8>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Vector<8, U32>; }"
       "ledger X: [U32, U8, U16];"
       "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16]): [U32, U8, U16] {"
       "  X = [w2()[i+3], w1()[i+4], t[i]];"
@@ -33523,9 +34463,9 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w1 at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w1 at line 4 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w2 at line 5 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
+      irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w2 at line 5 char 29" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 8 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter i of exported circuit foo at line 7 char 20" ("\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the witness value\n    via this path through the program:\n      the vector or tuple reference at line 8 char 30\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 13\n      the vector or tuple reference at line 8 char 8\n      the right-hand side of = at line 8 char 5" "\n    nature of the disclosure:\n      ledger operation might disclose the element selected by the result of an addition involving the witness value\n    via this path through the program:\n      the computation at line 8 char 24\n      the bytes-value reference at line 8 char 19\n      the right-hand side of = at line 8 char 5")))
       message: "~a:\n  ~?"
@@ -33537,8 +34477,8 @@ groups than for single tests.
       "type U8 = Uint<8>;"
       "type U16 = Uint<16>;"
       "type U32 = Uint<32>;"
-      "witness w1(): Bytes<8>;"
-      "witness w2(): Vector<8, U32>;"
+      "host test:oracle/w1@1.0.0 { w1(): Bytes<8>; }"
+      "host test:oracle/w2@1.0.0 { w2(): Vector<8, U32>; }"
       "ledger X: Vector<6, U32>;"
       "export circuit foo(i: Uint<0..2>, t: [U16, U16, U16, U16, U16]): Vector<6, U32> {"
       "  X = [...slice<2>(disclose(w2()), i+3), ...slice<2>(disclose(w1()), i+4), ...slice<2>(disclose(t), i)];"
@@ -33555,7 +34495,7 @@ groups than for single tests.
       "struct T { x: Field, y: Field }"
       "struct S { a: T, b: T }"
       "ledger X: Field;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit foo(): [] {"
       "  const s = S{a: T{x: w(), y: 3 as Field}, b: T{x: 4 as Field, y: 5 as Field}};"
       "  X = s.a.x;"
@@ -33565,7 +34505,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness w at line 4 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
+      irritants: '("testfile.compact line 7 char 5" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function w at line 4 char 28" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the binding of s at line 6 char 9\n      the right-hand side of = at line 7 char 5"))))
     )
 
   (test
@@ -33722,7 +34662,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return emit ( ShieldedSpend {disclose(bar())} );"
       "}"
@@ -33731,7 +34671,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
           (emit
@@ -33742,7 +34682,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
       "}"
@@ -33751,7 +34691,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ()
              (ttuple)
           (emit
@@ -33763,20 +34703,20 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (): [] {"
       "  return disclose( emit ( ShieldedSpend {bar()} ));"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 20"))))
+      irritants: '("testfile.compact line 4 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 20"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( disclose(ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} ));"
       "}"
@@ -33800,7 +34740,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { b ? pad(32, 'a') : pad(32, 'b')} );"
       "}"
@@ -33813,7 +34753,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( disclose(ShieldedSpend { b ? bar() : pad(32, 'b')} ));"
       "}"
@@ -33822,7 +34762,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
           (emit
@@ -33837,37 +34777,37 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? bar() : pad(32, 'b')} );"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness bar at line 2 char 1" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function bar at line 2 char 30" ("\n    nature of the disclosure:\n      emit operation might disclose the witness value\n    via this path through the program:\n      the argument to emit at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export circuit foo (b: Boolean): [] {"
       "  return emit ( ShieldedSpend { disclose(b) ? disclose(bar()) : pad(32, 'b')} );"
       "}"
@@ -33876,7 +34816,7 @@ groups than for single tests.
       (program
         (kernel-declaration (%kernel.0 () (Kernel)))
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %bar.1 () (tbytes 32))
+        (host %bar.1 "test:oracle/bar@1.0.0" bar () (tbytes 32))
         (circuit %foo.2 ([%b.3 (tboolean)])
              (ttuple)
           (emit
@@ -33997,6 +34937,49 @@ groups than for single tests.
       )
     (succeeds)
     )
+
+  ; a host result is witness data, therefore publishing it demands disclose
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "export circuit claim(): [] {"
+      "  owner = secretKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 6 char 9" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function secretKey at line 2 char 3" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 6 char 9"))))
+    )
+
+  (test
+    '(
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "export ledger owner: Bytes<32>;"
+      "export circuit claim(): [] {"
+      "  owner = disclose(secretKey());"
+      "}"
+      )
+    (succeeds)
+    )
+
+  ; the standard library's coin public key is a host result, therefore publishing it needs
+  ; disclose like any other witness value (it was exempt as a native witness)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function ownPublicKey at <standard library>" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the witness value"))))
+    )
 )
 
 ; examples of where disclose can be placed
@@ -34004,13 +34987,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X()) + (disclose(W(b)) ? 3 : 4);"
       "  }"
@@ -34024,13 +35007,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X()) + disclose(W(b) ? 3 : 4);"
       "  }"
@@ -34044,7 +35027,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return x + disclose(transientHash(true)) + transientHash<Field>(x) != 107 as Field; }"
       )
     (succeeds)
@@ -34053,7 +35036,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return disclose(x + transientHash(true) + transientHash<Field>(x) != 107 as Field); }"
       )
     (succeeds)
@@ -34061,7 +35044,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map(disclose((x) => foo(x)), v);"
       "}"
@@ -34073,7 +35056,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return disclose(map((x) => foo(x), v));"
       "}"
@@ -34083,7 +35066,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => disclose(b && foo(x + 1)),"
       "             v);"
@@ -34094,7 +35077,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => b && disclose(foo(x + 1)),"
       "             v);"
@@ -34106,7 +35089,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  return disclose(foo()).d;"
       "}"
@@ -34117,7 +35100,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  return disclose(foo().d);"
       "}"
@@ -34127,7 +35110,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -34150,7 +35133,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -34172,9 +35155,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d == 19 as Field ? p.a : b);"
@@ -34185,9 +35168,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d == 19 as Field) ? disclose(p.a) : b;"
@@ -34198,9 +35181,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p).d == 19 as Field ? disclose(p.a) : b;"
@@ -34211,9 +35194,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return disclose(p.d) == 19 as Field ? disclose(p.a) : b;"
@@ -34224,9 +35207,9 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  const p = b ? W1(S()) : W2(S());"
       "  return p.d == 19 as Field ? disclose(p.a) : b;"
@@ -34234,26 +35217,26 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W1 at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10")))
+      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W1 at line 2 char 29" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W2 at line 3 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10"))))
+      irritants: '("testfile.compact line 7 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W2 at line 3 char 29" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the binding of p at line 6 char 9\n      the comparison at line 7 char 10\n      the conditional expression at line 7 char 10"))))
     )
 
   (test
     '(
-      "witness Y(x: Boolean) : Boolean;"
+      "host test:oracle/y@1.0.0 { Y(x: Boolean) : Boolean; }"
       "export circuit foo(b: Boolean): Field {"
       "  return Y(b) ? 3 as Field : 4 as Field;"
       "}"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness Y at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 10"))))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function Y at line 1 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional expression at line 3 char 10"))))
     )
 
   (test
     '(
-      "witness Y(x: Boolean) : Boolean;"
+      "host test:oracle/y@1.0.0 { Y(x: Boolean) : Boolean; }"
       "export circuit foo(b: Boolean): Field {"
       "  return disclose(Y(b)) ? 3 as Field : 4 as Field;"
       "}"
@@ -34263,7 +35246,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M {"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
@@ -34274,14 +35257,14 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M {"
-      "  witness S() : Field;"
+      "  host test:oracle/s@1.0.0 { S() : Field; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(S());"
       "  }"
@@ -34291,13 +35274,13 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 5 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
       "  }"
@@ -34307,13 +35290,13 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      )
 
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return disclose(foo(v));"
       "  }"
@@ -34327,7 +35310,7 @@ groups than for single tests.
   (test
     '(
       "module M {"
-      "  export witness foo(n: Field) : Boolean;"
+      "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "  export circuit C(v: Field): Boolean {"
       "  return foo(v);"
       "  }"
@@ -34342,7 +35325,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Field): Boolean {"
       "  return disclose(foo(v) == true);"
       "}"
@@ -34352,7 +35335,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -34364,7 +35347,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -34373,12 +35356,12 @@ groups than for single tests.
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit C3 might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 3 char 10"))))
+      irritants: '("testfile.compact line 6 char 32" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 1 char 30" ("\n    nature of the disclosure:\n      the value returned from exported circuit C3 might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at line 3 char 10"))))
     )
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "circuit C(v: Field): Boolean {"
       "  return foo(v) == true;"
       "}"
@@ -34392,7 +35375,7 @@ groups than for single tests.
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "  return foo(v);"
          "  }"
@@ -34406,14 +35389,14 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("M.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
+       irritants: '("M.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit C might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "    return foo(v);"
          "  }"
@@ -34423,21 +35406,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(W());"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field): Boolean {"
          "    return foo(v);"
          "  }"
@@ -34447,21 +35430,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(disclose(W()));"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the witness value"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == foo(v);"
          "  }"
@@ -34471,21 +35454,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Field;"
+         "host test:oracle/w@1.0.0 { W(): Field; }"
          "export circuit bar(): Boolean {"
          "  return C(W(), true);"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness foo at M.compact line 2 char 3" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at M.compact line 4 char 10"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function foo at M.compact line 2 char 39" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the comparison at M.compact line 4 char 10"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == disclose(foo(v));"
          "  }"
@@ -34495,21 +35478,21 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, W());"
          "}"
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to C at line 4 char 10\n      the comparison at M.compact line 4 char 10"))))
+       irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit bar might disclose the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to C at line 4 char 10\n      the comparison at M.compact line 4 char 10"))))
      ))
 
   (test-group
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "  return b == disclose(foo(v));"
          "  }"
@@ -34519,7 +35502,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, disclose(W()));"
          "}"
@@ -34531,7 +35514,7 @@ groups than for single tests.
     ((create-file "M.compact"
        '(
          "module M {"
-         "  export witness foo(n: Field) : Boolean;"
+         "  export host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
          "  export circuit C(v: Field, b: Boolean): Boolean {"
          "    return disclose(b == foo(v));"
          "  }"
@@ -34541,7 +35524,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import M;"
-         "witness W(): Boolean;"
+         "host test:oracle/w@1.0.0 { W(): Boolean; }"
          "export circuit bar(): Boolean {"
          "  return C(3 as Field, W());"
          "}"
@@ -34552,7 +35535,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness qcoin(): QualifiedShieldedCoinInfo;"
+      "host test:oracle/qcoin@1.0.0 { qcoin(): QualifiedShieldedCoinInfo; }"
       "export circuit foo(coin: ShieldedCoinInfo): [] {"
       "  return createZswapInput(qcoin());"
       "}"
@@ -34563,20 +35546,20 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): JubjubPoint {"
       "  return hashToCurve<Boolean>(W());"
       "}"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 2 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose a hash of the witness value\n    via this path through the program:\n      the argument to hashToCurve at line 4 char 10"))))
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 2 char 28" ("\n    nature of the disclosure:\n      the value returned from exported circuit foo might disclose a hash of the witness value\n    via this path through the program:\n      the argument to hashToCurve at line 4 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Boolean;"
+      "host test:oracle/w@1.0.0 { W(): Boolean; }"
       "export circuit foo(): JubjubPoint {"
       "  return disclose(hashToCurve<Boolean>(W()));"
       "}"
@@ -35626,10 +36609,10 @@ groups than for single tests.
          "}"
          "ledger value: StructExample;"
          "sealed ledger authorized_pk: Bytes<32>;"
-         "witness sk(): Bytes<32>;"
-         "constructor(value_param: StructExample) {"
+         "host test:oracle/sk@1.0.0 { sk(): Bytes<32>; }"
+         "constructor(value_param: StructExample, owner_sk: Bytes<32>) {"
          "  value = disclose(value_param);"
-         "  authorized_pk = disclose(public_key(sk()));"
+         "  authorized_pk = disclose(public_key(owner_sk));"
          "}"
          "export circuit get(): StructExample {"
          "  assert(public_key(sk()) == authorized_pk, 'msg');"
@@ -35653,7 +36636,7 @@ groups than for single tests.
          "  circuit set(new_value: StructExample): [];"
          "}"
          "sealed ledger auth_cell: AuthCell;"
-         "witness foo(): Bytes<32>;"
+         "host test:oracle/foo@1.0.0 { foo(): Bytes<32>; }"
          "constructor (auth_cell_param: AuthCell) {"
          "  auth_cell = disclose(auth_cell_param);"
          "}"
@@ -36786,7 +37769,7 @@ groups than for single tests.
          "  pure circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
-         "witness check(x: C): [];"
+         "host test:oracle/check@1.0.0 { check(x: C): []; }"
          "export circuit hello() : [] {return check(contract_c);}"
          ))
      (returns
@@ -36798,7 +37781,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
            (constructor () (tuple)))
-         (witness %check.2 ([%x.3 (tcontract C
+         (host %check.2 "test:oracle/check@1.0.0" check ([%x.3 (tcontract C
                                     (foo #f () (ttuple))
                                     (bar #t () (tfield (field-native))))])
               (ttuple))
@@ -37397,7 +38380,7 @@ groups than for single tests.
        '(
          "export circuit foo(): [] { return; }"
          "export pure circuit bar(): Field { return 1 as Field; }"
-         "witness sk(): Boolean;"
+         "host test:oracle/sk@1.0.0 { sk(): Boolean; }"
          "export circuit dummy(): Boolean{"
          "  return disclose(sk() == true);"
          "}"
@@ -37445,19 +38428,24 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"sk\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Boolean\""
-         "      }"
-         "    }"
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/sk@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"sk\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Boolean\""
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
          "  ]"
          "}"))
      ))
@@ -37467,9 +38455,9 @@ groups than for single tests.
        '(
          "export circuit foo(): [] { return; }"
          "export pure circuit bar(): Field { return 1 as Field; }"
-         "witness sk(): Boolean;"
+         "host test:oracle/sk@1.0.0 { sk(): Boolean; }"
          ))
-     ; the witnesses field is empty if the witness is unused.
+     ; the host section lists only functions a circuit reaches.
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
      ; lines to avoid hard-coding specific version strings into the test
      (output-file "compiler/testdir/testfile/compiler/contract-info.json"
@@ -37502,8 +38490,6 @@ groups than for single tests.
          "        \"type-name\": \"Field\""
          "      }"
          "    }"
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -37598,17 +38584,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"private$secret_key\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Bytes\","
-         "        \"length\": 32"
-         "      }"
-         "    }"
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
@@ -37645,6 +38620,22 @@ groups than for single tests.
          "        ]"
          "      }"
          "    }"
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/private-secret-key@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"private$secret_key\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
          "  ]"
          "}"))
      )
@@ -37671,8 +38662,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -37740,6 +38729,208 @@ groups than for single tests.
      )
     )
 
+  ; the local store has its own section; the local constructor's guard cell holds index 0 of
+  ; the store but is compiler-owned, therefore the declared fields start at 1 and the guard
+  ; is not listed
+  (test-group
+    ((create-file "local-fields.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger c: Counter;"
+         "export local credits: Counter;"
+         "local seen: Set<Bytes<32>>;"
+         "local constructor {"
+         "  credits.increment(1);"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/local-fields/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"c\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ],"
+         "  \"local\": ["
+         "    {"
+         "      \"name\": \"credits\","
+         "      \"index\": 1,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    },"
+         "    {"
+         "      \"name\": \"seen\","
+         "      \"index\": 2,"
+         "      \"exported\": false,"
+         "      \"storage\": \"Set\","
+         "      \"type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  ; the host section lists the interfaces the contract requires and the functions it
+  ; declares of each, which is what a resolution gate needs; it appears only when there are
+  ; any
+  (test-group
+    ((create-file "host-requirements.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "host midnight:capsule/keys@1.0.0 {"
+         "  secretKey(): Bytes<32>;"
+         "}"
+         "export ledger owner: Bytes<32>;"
+         "export circuit claim(): [] {"
+         "  owner = disclose(secretKey());"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/host-requirements/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"claim\","
+         "      \"pure\": false,"
+         "      \"proof\": true,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"owner\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Cell\","
+         "      \"type\": {"
+         "        \"type-name\": \"Bytes\","
+         "        \"length\": 32"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"midnight:capsule/keys@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"secretKey\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
+  ; a circuit is proved only when it has an on-chain effect; local operations are none, so a
+  ; circuit that only writes local state has no proof, like a circuit that only calls host functions
+  (test-group
+    ((create-file "local-only-circuits.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export ledger counter: Counter;"
+         "export local notes: Counter;"
+         "export circuit noteLocally(): [] {"
+         "  notes.increment(1);"
+         "}"
+         "export circuit noteBoth(): [] {"
+         "  notes.increment(1);"
+         "  counter.increment(1);"
+         "}"
+         ))
+     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
+     ; lines to avoid hard-coding specific version strings into the test
+     (output-file "compiler/testdir/local-only-circuits/compiler/contract-info.json"
+       `(
+         "{"
+         ,(format "  \"compiler-version\": \"~a\"," compiler-version-string)
+         ,(format "  \"compiler-commit\": \"~a\"," compiler-version-commit)
+         ,(format "  \"language-version\": \"~a\"," language-version-string)
+         ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
+         "  \"circuits\": ["
+         "    {"
+         "      \"name\": \"noteLocally\","
+         "      \"pure\": false,"
+         "      \"proof\": false,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    },"
+         "    {"
+         "      \"name\": \"noteBoth\","
+         "      \"pure\": false,"
+         "      \"proof\": true,"
+         "      \"arguments\": ["
+         "      ],"
+         "      \"result-type\": {"
+         "        \"type-name\": \"Tuple\","
+         "        \"types\": ["
+         "        ]"
+         "      }"
+         "    }"
+         "  ],"
+         "  \"contracts\": ["
+         "  ],"
+         "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"counter\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ],"
+         "  \"local\": ["
+         "    {"
+         "      \"name\": \"notes\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
+         "  ]"
+         "}"))
+     )
+    )
+
   (test-group
     ((create-file "nested-ledger-adt.compact"
        '(
@@ -37756,8 +38947,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -37816,8 +39005,6 @@ groups than for single tests.
          ,(format "  \"language-version\": \"~a\"," language-version-string)
          ,(format "  \"runtime-version\": \"~a\"," runtime-version-string)
          "  \"circuits\": ["
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -38031,7 +39218,7 @@ groups than for single tests.
          "  authorized_pk = disclose(pk);"
          "}"
          ""
-         "witness sk(): Bytes<32>;"
+         "host test:oracle/sk@1.0.0 { sk(): Bytes<32>; }"
          ""
          "export circuit get(): Field {"
          "  assert(public_key(sk()) == authorized_pk, 'not authorized');"
@@ -38829,7 +40016,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -38847,7 +40034,7 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 8 char 14" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 14")))
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 1 char 1" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
+       irritants: '("testfile.compact line 11 char 13" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 1 char 28" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
      ))
 
   (test-group
@@ -38859,7 +40046,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -38887,7 +40074,7 @@ groups than for single tests.
                                  (foo #f ((tbytes 32)) (ttuple))
                                  (bar #t () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
-         (witness %W.3 () (tbytes 32))
+         (host %W.3 "test:oracle/w@1.0.0" W () (tbytes 32))
          (circuit %foo.4 ()
               (tbytes 32)
            (seq
@@ -38913,7 +40100,7 @@ groups than for single tests.
      (succeeds))
     ((create-file "testfile.compact"
        '(
-         "witness W(): Bytes<32>;"
+         "host test:oracle/w@1.0.0 { W(): Bytes<32>; }"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
          "  pure circuit bar(): Bytes<32>;"
@@ -38931,7 +40118,7 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("testfile.compact line 8 char 14" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of the constructor at line 7 char 13" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the right-hand side of = at line 8 char 14")))
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 11 char 22" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness W at line 1 char 1" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
+       irritants: '("testfile.compact line 11 char 22" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function W at line 1 char 28" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value"))))
      ))
 
   (test-group
@@ -39248,8 +40435,6 @@ groups than for single tests.
         "      }"
         "    }"
         "  ],"
-        "  \"witnesses\": ["
-        "  ],"
         "  \"contracts\": ["
         "  ],"
         "  \"ledger\": ["
@@ -39418,7 +40603,7 @@ groups than for single tests.
          "  pure circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
-         "witness W(): C1;"
+         "host test:oracle/w@1.0.0 { W(): C1; }"
          "ledger contract_c: C;"
          ))
      (succeeds)))
@@ -39437,7 +40622,7 @@ groups than for single tests.
          "  pure circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
-         "witness W(): C1;"
+         "host test:oracle/w@1.0.0 { W(): C1; }"
          "ledger contract_c: C;"
          ))
      (succeeds)))
@@ -39770,7 +40955,7 @@ groups than for single tests.
     ((create-file "testfile.compact"
        '(
          "import CompactStandardLibrary;"
-         "witness bar(): Bytes<32>;"
+         "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
          "export circuit foo (): [] {"
          "  return emit ( disclose (ShieldedSpend {bar()} ));"
          "}"
@@ -39798,20 +40983,25 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "    {"
-         "      \"name\": \"bar\","
-         "      \"arguments\": ["
-         "      ],"
-         "      \"result type\": {"
-         "        \"type-name\": \"Bytes\","
-         "        \"length\": 32"
-         "      }"
-         "    }"
-         "  ],"
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "  ],"
+         "  \"host\": ["
+         "    {"
+         "      \"interface\": \"test:oracle/bar@1.0.0\","
+         "      \"functions\": ["
+         "        {"
+         "          \"name\": \"bar\","
+         "          \"arguments\": ["
+         "          ],"
+         "          \"result type\": {"
+         "            \"type-name\": \"Bytes\","
+         "            \"length\": 32"
+         "          }"
+         "        }"
+         "      ]"
+         "    }"
          "  ]"
          "}"))
      ))
@@ -40099,7 +41289,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map((x) => disclose(foo(x)), v);"
       "}"
@@ -40120,7 +41310,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map((x) => disclose(foo(x)), v);"
@@ -40159,7 +41349,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -40230,7 +41420,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Boolean {"
       "    return fold((b, n, s) => disclose(foo(b, n, s)), true, v, w);"
@@ -40300,7 +41490,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Vector<n, Boolean> {"
       "    return map((n, s) => disclose(foo(n, s)), v, w);"
@@ -40726,7 +41916,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
       "    return fold((b, x) => disclose(foo(b, x)), true, v);"
@@ -40900,7 +42090,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -40938,7 +42128,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -40987,7 +42177,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Boolean {"
       "    return fold((b, n, s) => disclose(foo(b, n, s)), true, v, w);"
@@ -41040,7 +42230,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field, s: Bytes<20>) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field, s: Bytes<20>) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>, w: Vector<n, Bytes<20>>): Vector<n, Boolean> {"
       "    return map((n, s) => disclose(foo(n, s)), v, w);"
@@ -41087,7 +42277,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  return map((x) => b && disclose(foo(x + 1)),"
       "             v);"
@@ -41129,7 +42319,7 @@ groups than for single tests.
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -41143,18 +42333,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tfield (field-native))]) (tboolean))
-        (circuit %foo1.2 ([%x.3 (tfield (field-native))])
+        (circuit %foo1.0 ([%x.1 (tfield (field-native))])
              (tboolean)
-          (let* ([[%q.4 (tfield (field-native))] %x.3])
-            (call %W.0 (let* ([[%q.5 (tfield (field-native))] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tfield (field-native))] %x.1])
+            (let* ([[%x.3 (tfield (field-native))]
+                    (let* ([[%q.4 (tfield (field-native))] %q.2]) %q.4)])
+              (default (tboolean)))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -41168,18 +42359,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tfield (field-native))]) (tfield (field-native)))
-        (circuit %foo2.2 ([%x.3 (tfield (field-native))])
+        (circuit %foo2.0 ([%x.1 (tfield (field-native))])
              (tfield (field-native))
-          (let* ([[%q.4 (tfield (field-native))] %x.3])
-            (call %W.0 (let* ([[%q.5 (tfield (field-native))] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tfield (field-native))] %x.1])
+            (let* ([[%x.3 (tfield (field-native))]
+                    (let* ([[%q.4 (tfield (field-native))] %q.2]) %q.4)])
+              (default (tfield (field-native))))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -41193,18 +42385,19 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tboolean))
-        (circuit %foo3.2 ([%x.3 (tboolean)])
+        (circuit %foo3.0 ([%x.1 (tboolean)])
              (tboolean)
-          (let* ([[%q.4 (tboolean)] %x.3])
-            (call %W.0 (let* ([[%q.5 (tboolean)] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tboolean)] %x.1])
+            (let* ([[%x.3 (tboolean)]
+                    (let* ([[%q.4 (tboolean)] %q.2]) %q.4)])
+              (default (tboolean)))))))
     )
 
   (test
     '(
       "struct S { x: Field; y: Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { return disclose(W<B>(S(q))); }"
       "}"
@@ -41218,11 +42411,12 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration () (constructor () (tuple)))
-        (witness %W.0 ([%x.1 (tboolean)]) (tfield (field-native)))
-        (circuit %foo4.2 ([%x.3 (tboolean)])
+        (circuit %foo4.0 ([%x.1 (tboolean)])
              (tfield (field-native))
-          (let* ([[%q.4 (tboolean)] %x.3])
-            (call %W.0 (let* ([[%q.5 (tboolean)] %q.4]) %q.5))))))
+          (let* ([[%q.2 (tboolean)] %x.1])
+            (let* ([[%x.3 (tboolean)]
+                    (let* ([[%q.4 (tboolean)] %q.2]) %q.4)])
+              (default (tfield (field-native))))))))
     )
 
   (test
@@ -41488,7 +42682,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness w(x: Field): Field;"
+      "host test:oracle/w@1.0.0 { w(x: Field): Field; }"
       "circuit bar(v: Vector<2, Field>): Field {"
       "  const k1 = w(v[0]);"
       "  const k2 = w(v[1]);"
@@ -41527,7 +42721,7 @@ groups than for single tests.
   (test
     `(
       "ledger X: Field;"
-      "witness w(x: Field): Field;"
+      "host test:oracle/w@1.0.0 { w(x: Field): Field; }"
       "export circuit foo(v: Vector<2, Field>): Field {"
       "  for (const k1 of v) {"
       "    const k2 = disclose(w(k1));"
@@ -42806,7 +44000,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Uint<16>;"
+      "host test:oracle/w@1.0.0 { W(): Uint<16>; }"
       "export circuit foo(): Uint<16> {"
       "  forceProof();"
       "  return disclose(W());"
@@ -44138,7 +45332,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar(x: Bytes<50>) : [];"
+      "host test:oracle/bar@1.0.0 { bar(x: Bytes<50>) : []; }"
       "export circuit foo() : [] {"
       "  forceProof();"
       "  bar(pad(50, 'hello!'));"
@@ -44169,7 +45363,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  return disclose(bar());"
@@ -44259,7 +45453,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  const x : Bytes<50> = disclose(bar());"
@@ -44299,7 +45493,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
       "  const x : Bytes<50> = disclose(bar());"
@@ -44574,7 +45768,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness foo(x: Uint<5>): [];"
+      "host test:oracle/foo@1.0.0 { foo(x: Uint<5>): []; }"
       "export circuit bar(a: Uint<4>, b: Uint<4>): [] {"
       "  forceProof();"
       "  foo(a + b);"
@@ -45301,7 +46495,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness W() : Field;"
+      "host test:oracle/w@1.0.0 { W() : Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -45351,8 +46545,8 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w@1.0.0 { W(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -45393,8 +46587,8 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w@1.0.0 { W(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -45438,9 +46632,9 @@ groups than for single tests.
   (test
     `(
       "struct pr { a: Boolean; d: Field; }"
-      "witness W1(a: Vector<3, pr>) : pr;"
-      "witness W2(a: Vector<3, pr>) : pr;"
-      "witness S() : Vector<3, pr>;"
+      "host test:oracle/w1@1.0.0 { W1(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/w2@1.0.0 { W2(a: Vector<3, pr>) : pr; }"
+      "host test:oracle/s@1.0.0 { S() : Vector<3, pr>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean, x: Field): Boolean {"
       "  forceProof();"
@@ -45496,7 +46690,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(b: Boolean, x: Field): Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(b: Boolean, x: Field): Boolean; }"
       "module M<#n> {"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "  export circuit C(v: Vector<n, Field>): Boolean {"
@@ -45591,7 +46785,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    return map(foo, v);"
@@ -45632,7 +46826,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "struct pr { a: Boolean; d: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(v: Vector<1, Field>, b: Boolean): Vector<1, Boolean> {"
@@ -45660,7 +46854,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(v: Vector<3, Field>, b: Boolean): Vector<3, Boolean> {"
       "  forceProof();"
@@ -45875,7 +47069,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit C(): Field {"
       "  forceProof();"
@@ -45925,7 +47119,7 @@ groups than for single tests.
   (test
     '(
       "struct pr { a: Boolean; d: Field; }"
-      "witness foo() : pr;"
+      "host test:oracle/foo@1.0.0 { foo() : pr; }"
       "export circuit C(): Field {"
       "  const p = foo();"
       "  return disclose(p.d);"
@@ -46057,7 +47251,7 @@ groups than for single tests.
 
   (test
     `(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "module M<#n> {"
       "  export circuit C(v: Vector<n, Field>): Vector<n, Boolean> {"
       "    const w = v;"
@@ -46445,7 +47639,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -46462,16 +47656,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument (%x.3) (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 1)) ((tunsigned 1))))
-        (circuit %foo1.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo1.2 ((argument
+                            (%x.3)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((abytes 1)) ((tunsigned 1)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -46479,7 +47671,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -46496,16 +47688,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument (%x.3) (ty ((afield)) ((tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (circuit %foo2.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo2.2 ((argument
+                            (%x.3)
                             (ty ((afield)) ((tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -46513,7 +47703,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -46530,18 +47720,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument
-                         (%x.3)
-                         (ty ((abytes 1)) ((tunsigned 1)))))
-             (ty ((abytes 1)) ((tunsigned 1))))
-        (circuit %foo3.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo3.2 ((argument
+                            (%x.3)
                             (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((abytes 1)) ((tunsigned 1)))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -46549,7 +47735,7 @@ groups than for single tests.
       "struct S { x: Field; y: Field; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M<A> {"
-      "  witness W<C>(x: A): C;"
+      "  circuit W<C>(x: A): C { return default<C>; }"
       "  circuit S(q: A): A { return q; }"
       "  export circuit T<B>(q: A): B { forceProof(); return disclose(W<B>(S(q))); }"
       "}"
@@ -46566,18 +47752,14 @@ groups than for single tests.
         (public-ledger-declaration
           ((%forceField.1
              (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (witness %W.2 ((argument
-                         (%x.3)
-                         (ty ((abytes 1)) ((tunsigned 1)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (circuit %foo4.4 ((argument
-                            (%x.5)
+             (__compact_Cell
+               (ty ((afield)) ((tfield (field-native))))))))
+        (circuit %foo4.2 ((argument
+                            (%x.3)
                             (ty ((abytes 1)) ((tunsigned 1)))))
              (ty ((afield)) ((tfield (field-native))))
           (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (= 1 (%t.6) (call %W.2 %x.5))
-          (%t.6))))
+          (0))))
     )
 
   (test
@@ -46610,7 +47792,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(s1: Bytes<10>, s2: Bytes<10>): Boolean;"
+      "host test:oracle/bar@1.0.0 { bar(s1: Bytes<10>, s2: Bytes<10>): Boolean; }"
       "export circuit foo(b: Boolean): [] {"
       "  const x = 'abcdefghij';"
       "  const y = 'abcdefghij';"
@@ -46669,7 +47851,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : [];"
+      "host test:oracle/bar@1.0.0 { bar() : []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -46692,7 +47874,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : Vector<3, Field>;"
+      "host test:oracle/bar@1.0.0 { bar() : Vector<3, Field>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -46743,7 +47925,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(x: Bytes<50>) : [];"
+      "host test:oracle/bar@1.0.0 { bar(x: Bytes<50>) : []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo() : [] {"
       "  forceProof();"
@@ -46774,7 +47956,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar() : Bytes<50>;"
+      "host test:oracle/bar@1.0.0 { bar() : Bytes<50>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo() : Bytes<50> {"
       "  forceProof();"
@@ -47019,7 +48201,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness bar(bv1: Bytes<80>, bv2: Bytes<80>): Bytes<160>;"
+      "host test:oracle/bar@1.0.0 { bar(bv1: Bytes<80>, bv2: Bytes<80>): Bytes<160>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(arg: Field) : Bytes<160> { forceProof(); return disclose(bar(arg as Bytes<80>, arg as Bytes<80>)); }"
       )
@@ -47186,7 +48368,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -48082,57 +49264,35 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
+        (witness %createZswapInput.8 ((argument
+                                        (%coin.9 %coin.10 %coin.11 %coin.12
+                                          %coin.13 %coin.14)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)
+                                              (tunsigned
+                                                18446744073709551615)))))
+             (ty () ()))
+        (witness %createZswapOutput.15 ((argument
+                                          (%coin.16
+                                            %coin.17
+                                            %coin.18
+                                            %coin.19
+                                            %coin.20)
                                           (ty ((abytes 32)
                                                 (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+                                                (abytes 16))
                                               ((tunsigned 255)
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
@@ -48140,46 +49300,69 @@ groups than for single tests.
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
                                                 (tunsigned
-                                                  340282366920938463463374607431768211455)
+                                                  340282366920938463463374607431768211455))))
+                                        (argument
+                                          (%recipient.21
+                                            %recipient.22
+                                            %recipient.23
+                                            %recipient.24
+                                            %recipient.25)
+                                          (ty ((abytes 1)
+                                                (abytes 32)
+                                                (abytes 32))
+                                              ((tunsigned 1)
+                                                (tunsigned 255)
                                                 (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (native %transientHash.26 ((argument
+                                     (%value.27 %value.28)
+                                     (ty ((afield) (afield))
+                                         ((tfield (field-native))
+                                           (tfield (field-native))))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %persistentHash.29 ((argument
+                                      (%value.30 %value.31 %value.32 %value.33 %value.34
+                                        %value.35 %value.36 %value.37
+                                        %value.38)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %degradeToTransient.39 ((argument
+                                          (%x.40 %x.41)
+                                          (ty ((abytes 32))
+                                              ((tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.42 ((argument
+                                            (%x.43)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (circuit %relay.44 ((argument
+                              (%coin.45 %coin.46 %coin.47 %coin.48 %coin.49)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48190,116 +49373,116 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.50 %value.51)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
+               %value.50
+               %value.51))
+          (= 1 (%tmp.52 %tmp.53)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %value.45
-               %value.46))
+               %value.50
+               %value.51))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.52
+               %tmp.53))
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapInput.8
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0))
-          (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
+          (= 1 (%tmp.54 %tmp.55)
+             (call %persistentHash.29
                136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %selfAddr.0
+               %selfAddr.2))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
-               %tmp.51
-               %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.54
+               %tmp.55))
+          (= 1 (%t.56)
+             (call %degradeToTransient.39 %coin.45 %coin.46))
+          (= 1 (%t.57)
+             (call %transientHash.26
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.56))
+          (= 1 (%t.58 %t.59) (call %upgradeFromTransient.42 %t.57))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.60 %tmp.61)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.60
+               %tmp.61))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.62 %tmp.63)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
           ())))
@@ -48316,57 +49499,35 @@ groups than for single tests.
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
+        (witness %createZswapInput.8 ((argument
+                                        (%coin.9 %coin.10 %coin.11 %coin.12
+                                          %coin.13 %coin.14)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16)
+                                              (abytes 8))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)
+                                              (tunsigned
+                                                18446744073709551615)))))
+             (ty () ()))
+        (witness %createZswapOutput.15 ((argument
+                                          (%coin.16
+                                            %coin.17
+                                            %coin.18
+                                            %coin.19
+                                            %coin.20)
                                           (ty ((abytes 32)
                                                 (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+                                                (abytes 16))
                                               ((tunsigned 255)
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
@@ -48374,46 +49535,69 @@ groups than for single tests.
                                                 (tunsigned
                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
                                                 (tunsigned
-                                                  340282366920938463463374607431768211455)
+                                                  340282366920938463463374607431768211455))))
+                                        (argument
+                                          (%recipient.21
+                                            %recipient.22
+                                            %recipient.23
+                                            %recipient.24
+                                            %recipient.25)
+                                          (ty ((abytes 1)
+                                                (abytes 32)
+                                                (abytes 32))
+                                              ((tunsigned 1)
+                                                (tunsigned 255)
                                                 (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                                (tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (native %transientHash.26 ((argument
+                                     (%value.27 %value.28)
+                                     (ty ((afield) (afield))
+                                         ((tfield (field-native))
+                                           (tfield (field-native))))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %persistentHash.29 ((argument
+                                      (%value.30 %value.31 %value.32 %value.33 %value.34
+                                        %value.35 %value.36 %value.37
+                                        %value.38)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %degradeToTransient.39 ((argument
+                                          (%x.40 %x.41)
+                                          (ty ((abytes 32))
+                                              ((tunsigned 255)
+                                                (tunsigned
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.42 ((argument
+                                            (%x.43)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (circuit %relay.44 ((argument
+                              (%coin.45 %coin.46 %coin.47 %coin.48 %coin.49)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48424,7 +49608,7 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48445,119 +49629,119 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tunsigned 340282366920938463463374607431768211455)))
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.50 %value.51)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
+               %value.50
+               %value.51))
+          (= 1 (%tmp.52 %tmp.53)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %value.45
-               %value.46))
+               %value.50
+               %value.51))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.52
+               %tmp.53))
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapInput.8
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0))
-          (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
+          (= 1 (%tmp.54 %tmp.55)
+             (call %persistentHash.29
                136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %selfAddr.0
+               %selfAddr.2))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
-               %tmp.51
-               %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.54
+               %tmp.55))
+          (= 1 (%t.56)
+             (call %degradeToTransient.39 %coin.45 %coin.46))
+          (= 1 (%t.57)
+             (call %transientHash.26
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.56))
+          (= 1 (%t.58 %t.59) (call %upgradeFromTransient.42 %t.57))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.15
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.60 %tmp.61)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.60
+               %tmp.61))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.62 %tmp.63)
+             (call %persistentHash.29
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.58
+               %t.59
+               %coin.47
+               %coin.48
+               %coin.49
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.62
                %tmp.63))
-          (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
+          (0 0 0 0 0 0 %t.58 %t.59 %coin.47 %coin.48 %coin.49))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "circuit foo(x: Field, y: Field): Bytes<32> {"
       "  if (x == y) {"
       "    return x as Bytes<32>;"
@@ -48624,7 +49808,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(): Uint<8>;"
+      "host test:oracle/w@1.0.0 { W(): Uint<8>; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(b: Boolean): Uint<16> {"
       "  forceProof();"
@@ -48956,7 +50140,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -48996,7 +50180,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -49023,7 +50207,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(n: Uint<8>): [];"
+      "host test:oracle/w@1.0.0 { w(n: Uint<8>): []; }"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "export circuit foo(): [] {"
       "  forceProof();"
@@ -50154,7 +51338,7 @@ groups than for single tests.
   (test
     '(
       "ledger F: Field;"
-      "witness w(): Vector<3, Opaque<'string'>>;"
+      "host test:oracle/w@1.0.0 { w(): Vector<3, Opaque<'string'>>; }"
       "export circuit foo(b: Boolean, s: Opaque<'string'>): [] {"
       "  F = 37 as Field;"
       "  if (b) {"
@@ -50600,18 +51784,19 @@ groups than for single tests.
         (public-ledger-declaration
           %ciphertexts.50
           (__compact_Cell (topaque "Uint8Array")))
-        (constructor ([%state.51 (tfield (field-native))])
+        (local-ledger-declaration %tally.51 (Counter))
+        (constructor ([%state.52 (tfield (field-native))])
           (seq
             (fold
-              (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
+              (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                    (ttuple)
                 (seq
                   (seq
                     (+ (tfield (field-native))
-                       %state.51
+                       %state.52
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                     (tuple))
-                  %t.52))
+                  %t.53))
               (tuple)
               (tuple))
             (tuple)))))
@@ -50662,21 +51847,24 @@ groups than for single tests.
           (%committed_votes.48 (MerkleTree 10 (tbytes 32)))
           (%committed.49 (Set (tbytes 32)))
           (%ciphertexts.50 (__compact_Cell (topaque "Uint8Array")))
-          (constructor ([%state.51 (tfield (field-native))])
+          (constructor ([%state.52 (tfield (field-native))])
             (seq
               (fold
-                (circuit ([%t.52 (ttuple)] [%i.53 (tunknown)])
+                (circuit ([%t.53 (ttuple)] [%i.54 (tunknown)])
                      (ttuple)
                   (seq
                     (seq
                       (+ (tfield (field-native))
-                         %state.51
+                         %state.52
                          (safe-cast (tfield (field-native)) (tunsigned 1) 1))
                       (tuple))
-                    %t.52))
+                    %t.53))
                 (tuple)
                 (tuple))
               (tuple))))
+        (local-ledger-declaration
+          (%tally.51 (Counter))
+          (local-constructor (tuple)))
         (circuit %foo.13 ([%a.14 (tboolean)]
                           [%b.15 (tfield (field-native))])
              (tboolean)
@@ -50949,6 +52137,54 @@ groups than for single tests.
 )
 
 (run-tests print-zkir
+  ; a local operation's result is a private input, like a witness call's, and a local operation
+  ; adds no public inputs: the public transcript it is not in has nothing to declare
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger round: Counter;"
+      "export local credits: Counter;"
+      "export circuit tick(bump: Boolean): Uint<64> {"
+      "  round.increment(1);"
+      "  if (bump) {"
+      "    credits.increment(1);"
+      "    return disclose(credits.read());"
+      "  } else {"
+      "    return 0;"
+      "  }"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/tick.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 2, \"minor\": 0 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"num_inputs\": 1,"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
+        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
+        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
+        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
+        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
+        "    { \"op\": \"private_input\", \"guard\": 0 },"
+        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 64 },"
+        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 6, \"b\": 3 },"
+        "    { \"op\": \"output\", \"var\": 7 }"
+        "  ]"
+        "}"))
+    )
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
@@ -52790,7 +54026,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  forceProof();"
       "  return disclose(spam()) as Field;"
@@ -53152,7 +54388,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(W(x));"
@@ -53198,7 +54434,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(state(x));"
@@ -54920,7 +56156,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -55064,7 +56300,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -56755,7 +57991,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness bar(x: Field): Uint<0..36>;"
+      "host test:oracle/bar@1.0.0 { bar(x: Field): Uint<0..36>; }"
       "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  impure = true;"
       "  return x - x as Uint<0..36>;"
@@ -57344,7 +58580,7 @@ groups than for single tests.
       "export { Maybe }"
       "ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -59833,7 +61069,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
       "    forceProof();"
@@ -62487,11 +63723,11 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness w(): Secp256k1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256k1Scalar; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "unbound identifier ~s" (Secp256k1Scalar)))
+      irritants: '("testfile.compact line 2 char 33" "unbound identifier ~s" (Secp256k1Scalar)))
     )
 
   (test
@@ -62600,7 +63836,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -64179,7 +65415,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  forceProof();"
       "  return disclose(spam()) as Field;"
@@ -64410,7 +65646,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(W(x));"
@@ -64444,7 +65680,7 @@ groups than for single tests.
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  forceProof();"
       "  return disclose(state(x));"
@@ -65681,7 +66917,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -65758,7 +66994,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -66616,7 +67852,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness point(): JubjubPoint;"
+      "host test:oracle/point@1.0.0 { point(): JubjubPoint; }"
       "export circuit foo(): JubjubPoint {"
       "  impure = true;"
       "  const c = point();"
@@ -67144,7 +68380,7 @@ groups than for single tests.
       "export { Maybe }"
       "ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -68649,7 +69885,7 @@ groups than for single tests.
   (test
     '(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "module A<#n, t> {"
       "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
       "    forceProof();"
@@ -70378,7 +71614,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger impure: Boolean;"
-      "witness point(): JubjubPoint;"
+      "host test:oracle/point@1.0.0 { point(): JubjubPoint; }"
       "export circuit gris(scalar: JubjubScalar): JubjubPoint {"
       "  impure = true;"
       "  return disclose(ecMul(point(), scalar));"
@@ -70674,7 +71910,7 @@ groups than for single tests.
   (test
     '(
       "import { Secp256k1Scalar } from CompactStandardLibrary;"
-      "witness w(): Secp256k1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256k1Scalar; }"
       )
     (succeeds))
 
@@ -70839,7 +72075,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -70872,10 +72108,10 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       ""
       "export ledger n: Uint<64>;"
-      "witness pk0(): Secp256k1Point;"
-      "witness sig0(): Secp256k1EcdsaSignature;"
-      "witness pk1(): Secp256k1Point;"
-      "witness sig1(): Secp256k1EcdsaSignature;"
+      "host test:oracle/pk0@1.0.0 { pk0(): Secp256k1Point; }"
+      "host test:oracle/sig0@1.0.0 { sig0(): Secp256k1EcdsaSignature; }"
+      "host test:oracle/pk1@1.0.0 { pk1(): Secp256k1Point; }"
+      "host test:oracle/sig1@1.0.0 { sig1(): Secp256k1EcdsaSignature; }"
       ""
       "export circuit bump(d: Bytes<32>): [] {"
       "  assert(secp256k1EcdsaVerify(d, sig0(), pk0()), 'b0');"
@@ -71324,7 +72560,7 @@ groups than for single tests.
   (test
     '(
       "import { Secp256r1Scalar } from CompactStandardLibrary;"
-      "witness w(): Secp256r1Scalar;"
+      "host test:oracle/w@1.0.0 { w(): Secp256r1Scalar; }"
       )
     (succeeds))
 
@@ -71680,7 +72916,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  for (const b of [true, false]) {"
         "    expect((await C.circuits.ternary(Ctxt, b)).result).toEqual([]);"
         "    expect((await C.circuits.ternary_flipped(Ctxt, b)).result).toEqual([]);"
@@ -71714,7 +72950,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
         "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
         "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
@@ -71743,7 +72979,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar1(Ctxt)).result).toEqual([[101n, true], [103n, true], [107n, true]]);"
         "  expect((await C.circuits.bar2(Ctxt)).result).toEqual([[true, false], [false, false], [true, false]]);"
         "});"
@@ -72099,7 +73335,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness W(x: Uint<16>): Bytes<32>;"
+      "host test:oracle/w@1.0.0 { W(x: Uint<16>): Bytes<32>; }"
       )
     (succeeds)
     )
@@ -72342,7 +73578,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y]: [Boolean, [Uint<64>, Uint<64>]] = w();"
       "  return x ? y : [0, 0];"
@@ -72353,7 +73589,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y] = w();"
       "  return x ? y : [0, 0];"
@@ -72364,7 +73600,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness w(): [Boolean, [Uint<16>, Uint<32>]];"
+      "host test:oracle/w@1.0.0 { w(): [Boolean, [Uint<16>, Uint<32>]]; }"
       "circuit foo(): [Uint<64>, Uint<64>] {"
       "  const [x, y] = w();"
       "  return x ? y : [0, 0];"
@@ -72423,7 +73659,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.getMiddle(Ctxt, new Uint8Array([17, 18, 19, 20, 21]))).result).toEqual(new Uint8Array([18, 19, 20]));"
         "});"
         ))
@@ -72439,11 +73675,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Field: true -> 1n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('Boolean to Field: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         )))
@@ -72458,11 +73694,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Uint<0..2>: true -> 1n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('Boolean to Uint<0..2>: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         )))
@@ -72477,11 +73713,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Boolean to Uint<0..1>: false -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(0n);"
         "});"
         "test('Boolean to Uint<0..1>: true throws (1 > 0)', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow();"
         "});"
         )))
@@ -72496,15 +73732,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Boolean: 0n -> false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('Field to Boolean: 1n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(true);"
         "});"
         "test('Field to Boolean: 99n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 99n)).result).toEqual(true);"
         "});"
         )))
@@ -72519,11 +73755,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Boolean: 0n -> false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('Uint to Boolean: 5n -> true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(true);"
         "});"
         )))
@@ -72538,11 +73774,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint downcast: in-range value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 9n)).result).toEqual(9n);"
         "});"
         "test('Uint downcast: out-of-range value throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 10n)).rejects.toThrow();"
         "});"
         )))
@@ -72557,11 +73793,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Uint: in-range value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         "test('Field to Uint: out-of-range value throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 10n)).rejects.toThrow();"
         "});"
         )))
@@ -72576,11 +73812,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Field: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02]))).result).toEqual(0x0201n);"
         "});"
         "test('Bytes to Field: zero bytes -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x00]))).result).toEqual(0n);"
         "});"
         )))
@@ -72595,15 +73831,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Uint: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x03, 0x00]))).result).toEqual(3n);"
         "});"
         "test('Bytes to Uint: exceed maxval', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([0x00, 0x01]))).rejects.toThrow();"
         "});"
         "test('Bytes to Uint: max value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0xFF, 0x00]))).result).toEqual(255n);"
         "});"
         )))
@@ -72618,11 +73854,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Bytes: little-endian conversion', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([0x01, 0x02]));"
         "});"
         "test('Field to Bytes: value too large for target throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x010000n)).rejects.toThrow();"
         "});"
         )))
@@ -72637,11 +73873,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Bytes: value fits', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 42n)).result).toEqual(new Uint8Array([42]));"
         "});"
         "test('Uint to Bytes: value too large for target throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 256n)).rejects.toThrow();"
         "});"
         )))
@@ -72656,7 +73892,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Vector of Uint<0..256> to Bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n, 3n])).result).toEqual(new Uint8Array([1, 2, 3]));"
         "});"
         )))
@@ -72671,7 +73907,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Tuple of Uint subtypes to Bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [10n, 20n])).result).toEqual(new Uint8Array([10, 20]));"
         "});"
         )))
@@ -72686,7 +73922,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Vector of Uint<0..256>', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([10, 20, 30]))).result).toEqual([10n, 20n, 30n]);"
         "});"
         )))
@@ -72701,7 +73937,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Vector of Field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0x01, 0x02]))).result).toEqual([1n, 2n]);"
         "});"
         )))
@@ -72716,7 +73952,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Bytes to Tuple of Uint supertypes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([5, 10]))).result).toEqual([5n, 10n]);"
         "});"
         )))
@@ -72732,11 +73968,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to Field: red -> 0n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "});"
         "test('Enum to Field: blue -> 2n', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
         "});"
         )))
@@ -72752,7 +73988,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to wide Uint: no runtime check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
         "});"
         )))
@@ -72768,11 +74004,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Enum to narrow Uint: in-range succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "});"
         "test('Enum to narrow Uint: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 2)).rejects.toThrow();"
         "});"
         )))
@@ -72788,11 +74024,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Field to Enum: valid value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "});"
         "test('Field to Enum: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 3n)).rejects.toThrow();"
         "});"
         )))
@@ -72808,11 +74044,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Enum: valid value succeeds', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "});"
         "test('Uint to Enum: out-of-range throws', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 3n)).rejects.toThrow();"
         "});"
         )))
@@ -72828,7 +74064,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint to Enum: fits entirely, no check needed', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
         "});"
         )))
@@ -72843,7 +74079,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint upcast: zero cost, value preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 9n)).result).toEqual(9n);"
         "});"
         )))
@@ -72858,7 +74094,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint upcast to Field: zero cost, value preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         )))
@@ -72873,7 +74109,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Vector upcast: zero cost, values preserved', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 7n])).result).toEqual([3n, 7n]);"
         "});"
         )))
@@ -72888,7 +74124,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('Large field literal: compile-time erasure', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(string-append "  expect((await C.circuits.foo(Ctxt)).result).toEqual(52435875175126190479447740508185965837690552500527637822603658699938581184512n);")
         "});"
         )))
@@ -72955,8 +74191,6 @@ groups than for single tests.
          "        \"length\": 32"
          "      }"
          "    }"
-         "  ],"
-         "  \"witnesses\": ["
          "  ],"
          "  \"contracts\": ["
          "  ],"
@@ -73031,8 +74265,6 @@ groups than for single tests.
          "      }"
          "    }"
          "  ],"
-         "  \"witnesses\": ["
-         "  ],"
          "  \"contracts\": ["
          "    {"
          "      \"name\": \"C1\","
@@ -73071,7 +74303,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  });"
          ))
      ))
@@ -73103,11 +74335,11 @@ groups than for single tests.
        '(
          ; each contract should be visible under its contractCode name
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode1, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode1);"
          "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3n);"
          "});"
          "test('check 2', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode2, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode2);"
          "  expect((await C.circuits.foo(Ctxt)).result).toEqual(7n);"
          "});"
          )))
@@ -73275,44 +74507,41 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "  expect(contractCode.pureCircuits.bar(5n)).toEqual(6n);"
         "  });"
@@ -73367,44 +74596,41 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "  });"
         ))
@@ -73468,44 +74694,41 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(3n);"
         "  });"
         ))
@@ -73589,44 +74812,41 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  bar(n_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  bar(context: __compactRuntime.CircuitContext<PS>, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  bar(context: __compactRuntime.CircuitContext, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(3n);"
         "  });"
         ))
@@ -73642,7 +74862,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(false);"
         "  });"
@@ -73659,7 +74879,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(false);"
@@ -73677,7 +74897,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(true);"
@@ -73695,7 +74915,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 14n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 16n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(true);"
@@ -73712,7 +74932,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n], [4n,3n,7n,12n])).result).toEqual([true, false, false, true]);"
         "});"
         ))
@@ -73727,7 +74947,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n], [4n,3n,7n,12n])).result).toEqual([true, false, false, true]);"
         "});"
         ))
@@ -73743,7 +74963,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 5n)).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 4n)).result).toEqual(false);"
         "  });"
@@ -73760,7 +74980,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n])).result).toEqual(true);"
         "  });"
         ))
@@ -73777,7 +74997,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true})).result).toEqual(false);"
         "  });"
         ))
@@ -73793,7 +75013,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 1]), new Uint8Array([0, 0]))).result).toEqual(true);"
         "  });"
         ))
@@ -73809,7 +75029,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 5n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, 4n, 4n)).result).toEqual(true);"
         "  });"
@@ -73826,7 +75046,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 5n])).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, [1n, 2n], [1n, 2n])).result).toEqual(true);"
         "  });"
@@ -73844,7 +75064,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: true})).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 1n, f2: false})).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, {f1: 1n, f2: true}, {f1: 2n, f2: true})).result).toEqual(false);"
@@ -73862,7 +75082,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 1]), new Uint8Array([0, 0]))).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([0, 0]), new Uint8Array([0, 0]))).result).toEqual(true);"
         "  });"
@@ -73889,7 +75109,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('JubjubPoint equality', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const p1 = runtime.ecMulGenerator(5n);"
         "  const p2 = runtime.ecMulGenerator(5n);"
         "  const p3 = runtime.ecMulGenerator(7n);"
@@ -73910,7 +75130,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -73926,7 +75146,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -73943,7 +75163,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -73962,7 +75182,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 10n)).result).toEqual(9n);"
         "});"
         ))
@@ -73981,7 +75201,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 5n)).result).toEqual(6n);"
         "});"
         ))
@@ -74000,7 +75220,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 2n)).result).toEqual(360n);"
         "});"
         ))
@@ -74018,7 +75238,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 2n)).result).toEqual(36n);"
         "});"
         ))
@@ -74066,11 +75286,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 3n)).result).toEqual(6n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 3n)).result).toEqual(4n);"
         "});"
         ))
@@ -74088,7 +75308,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual([ 4n,  4n,  6n, 12n, 12n, 18n, 20n ]);"
         "});"
         ))
@@ -74106,49 +75326,49 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual([ 5n,  3n,  5n, 13n, 11n, 19n, 21n ]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[3n,5n,7n,11n,13n,17,19n], [true, false, false, true, false, true, true])).rejects.toThrow(/type error: bar argument 1 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Field> but received/);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], <any>[true, false, false, true, 13, true, true])).rejects.toThrow(/type error: bar argument 2 at testfile\\.compact line 4 char 1; expected value of type Vector<7, Boolean> but received/);"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n])).rejects.toThrow('bar: expected 2 arguments (as invoked from Typescript), received 1');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((<any>C.circuits.bar)(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true], 'extra!')).rejects.toThrow('bar: expected 2 arguments (as invoked from Typescript), received 3');"
         "});"
         ;; "test('check 6a', async () => {"
-        ;; "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ;; "  const [C, Ctxt] = await startContract(contractCode);"
         ;; ;; FIXME this and following fail. expected: null. received: undefined
         ;; "  // @ts-expect-error"
         ;; "  await expect((<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).rejects.toThrow(runtime.CompactError);"
         ;; "});"
         ;; "test('check 6b', async () => {"
-        ;; "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        ;; "  const [C, Ctxt] = await startContract(contractCode);"
         ;; "  // @ts-expect-error"
         ;; "  await expect((<any>C.circuits.bar)(7773n, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).rejects.toThrow('type error: bar argument 1 (as invoked from Typescript) at testfile.compact line 4 char 1; expected value of type CircuitContext but received 7773n');"
         ;; "});"
@@ -74157,49 +75377,27 @@ groups than for single tests.
 
   (test
     '(
-      "witness spam(): Bytes<32>;"
+      "host test:oracle/spam@1.0.0 { spam(): Bytes<32>; }"
       "export circuit foo(): Field {"
       "  return disclose(spam()) as Field;"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses1 = { spam({privateState}: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [privateState, new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]) ]; } };"
-        "const contract1 = () => new contractCode.Contract(witnesses1);"
+        "const SPAM = 'test:oracle/spam@1.0.0';"
+        "const serving = (ctx: runtime.CircuitContext, spam: () => any) => withHostInterfaces(ctx, { [SPAM]: { spam } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses1, 0);"
-        "  expect((await contract1().circuits.foo(Ctxt)).result).toEqual(0x030201n);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
+        "  const bytes = new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]);"
+        "  expect((await C.circuits.foo(serving(Ctxt, () => bytes))).result).toEqual(0x030201n);"
         "});"
-        "const witnesses2 = { spam({privateState}: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [privateState, <any>72n]; } };"
-        "const contract2 = () => new contractCode.Contract(witnesses2);"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
-        "  await expect(contract2().circuits.foo(Ctxt)).rejects.toThrow(runtime.CompactError);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
+        "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
-        "  await expect(contract2().circuits.foo(Ctxt)).rejects.toThrow('type error: spam return value at testfile.compact line 1 char 1; expected value of type Bytes<32> but received 72n');"
-        "});"
-        "const witnesses3 = <any>{};"
-        "test('check 3a', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses3, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 3b', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses3, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor does not contain a function-valued field named spam');"
-        "});"
-        "const witnesses4 = <any>'oops';"
-        "test('check 4a', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses4, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 4b', async () => {"
-        "  await expect(startContract((contractCode as any), witnesses4, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor is not an object');"
-        "});"
-        "const witnesses5 = <any>{ spam: 'oops' };"
-        "test('check 5a', async () => {"
-        "  await expect(startContract(contractCode, witnesses5, 0)).rejects.toThrow(runtime.CompactError);"
-        "});"
-        "test('check 5b', async () => {"
-        "  await expect(startContract(contractCode, witnesses5, 0)).rejects.toThrow('first (witnesses) argument to Contract constructor does not contain a function-valued field named spam');"
+        "  const [C, Ctxt] = await startContract(contractCode);"
+        "  await expect(C.circuits.foo(serving(Ctxt, () => <any>72n))).rejects.toThrow('type error: host function spam of test:oracle/spam@1.0.0 return value at testfile.compact line 1 char 31; expected value of type Bytes<32> but received 72n');"
         "});"
         ))
     )
@@ -74216,7 +75414,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [3n,5n,7n,11n,13n,17n,19n], [true, false, false, true, false, true, true])).result).toEqual(93n);"
         "});"
         ))
@@ -74232,7 +75430,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([ 104, 101, 108, 108, 111, 33 ]));"
         "});"
         ))
@@ -74248,7 +75446,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([ [ 7n ], [ 11n ], [ 19n ] ]);"
         "});"
         ))
@@ -74265,7 +75463,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ x: 23n, y: 31n });"
         "});"
         ))
@@ -74274,24 +75472,27 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
+      "host test:oracle/w@1.0.0 { W(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  return disclose(W(x));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { W(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
@@ -74300,24 +75501,27 @@ groups than for single tests.
   (test
     '(
       "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
+      "host test:oracle/state@1.0.0 { state(x: S): S; }"
       "export circuit foo(x : S): S {"
       "  return disclose(state(x));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { state(private_state: any, x: {x: bigint, y: bigint}): [any, {x: bigint, y: bigint}] { return [private_state, {x: x.x + 1n, y: x.y + 1n}]; }};"
+        "const oracle = { 'test:oracle/state@1.0.0': { state: (_ctx: any, x: {x: bigint, y: bigint}) => ({x: x.x + 1n, y: x.y + 1n}) } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, {x: 3n, y: 4n})).result).toEqual({ x: 4n, y: 5n });"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, <any>{y: 7n})).rejects.toThrow('type error: foo argument 1 (argument 2 as invoked from Typescript) at testfile.compact line 3 char 1; expected value of type struct S<x: Field, y: Field> but received { y: 7n }');"
         "});"
         ))
@@ -74334,7 +75538,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3);"
         "});"
         ))
@@ -74349,23 +75553,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>'hello')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>'hello')).rejects.toThrow(\"type error: foo argument 1 at testfile.compact line 1 char 1; expected value of type Field but received 'hello'\");"
         "});"
         ))
@@ -74383,23 +75587,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(22n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>'hello')).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>'hello')).rejects.toThrow(\"type error: bar argument 1 at testfile.compact line 4 char 1; expected value of type Field but received 'hello'\");"
         "});"
         ))
@@ -74417,23 +75621,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(220n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 19n)).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>[1, 2, 3])).rejects.toThrow('type error: bar argument 1 at testfile.compact line 4 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
         "});"
         ))
@@ -74455,15 +75659,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 53n)).result).toEqual(53n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>53)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, <any>53)).rejects.toThrow('type error: bar argument 1 at testfile.compact line 2 char 3; expected value of type Field but received 53');"
         "});"
         ))
@@ -74479,7 +75683,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 'Hello, Compact!')).result)"
         "      .toEqual([ 'Hello, Compact!', 'Hello, Compact!' ]);"
         "});"
@@ -74496,52 +75700,52 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1, 'Hello, Compact!', 'Goodbye')).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Goodbye')).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0, 'Hello, Compact!', 'So long')).result).toEqual(0n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, 'Hello, Compact!', 'Hello, Compact!')).result).toEqual(3n);"
         "});"
         "const x = 'Hello, Compact!';"
         "test('check 5', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3, x, x)).result).toEqual(2n);"
         "});"
         "test('check 6', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 2, x, x)).result).toEqual(3n);"
         "});"
         "test('check 7a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>4, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 7b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received 4');"
         "});"
         "test('check 8a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4n, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 8b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 4n, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received 4n');"
         "});"
         "test('check 9a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false, x, x)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 9b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false, x, x)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 2 char 1; expected value of type Enum<Names, karen, katy, kenny, kulta> but received false');"
         "});"
         ))
@@ -74556,19 +75760,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(23n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(23n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, true)).result).toEqual(17n);"
         "});"
         ))
@@ -74600,19 +75804,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar1(Ctxt, 'Hello, Compact!', 73n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar2(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar3(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar4(Ctxt, 'Hello, Compact!')).result).toEqual(false);"
         "});"
         ))
@@ -74628,7 +75832,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(1n);"
         "});"
         ))
@@ -74647,7 +75851,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -74662,19 +75866,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 0n)).result).toEqual([]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 1n)).result).toEqual([]);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.bar(Ctxt, 2n)).rejects.toThrow('failed assert: oops');"
         "});"
         ))
@@ -74689,15 +75893,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abcሴdef');"
         "});"
         ))
@@ -74712,15 +75916,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abcÜdef');"
         "});"
         ))
@@ -74735,15 +75939,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: bob\\'s \\\"fish\\\"\\r\\0\\b\\f\\t\\v\\n');"
         "});"
         ))
@@ -74758,15 +75962,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual([]);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow('failed assert: abc\\x02\\x7f\\x85\\u2028def');"
         "});"
         ))
@@ -74783,19 +75987,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true)).rejects.toThrow('failed assert: abc\\'def');"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, false)).rejects.toThrow(\"failed assert: abc\\\"def\");"
         "});"
         ))
@@ -74808,7 +76012,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(7n);"
         "});"
         ))
@@ -74823,19 +76027,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(170n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(110n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(170n);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, true)).result).toEqual(70n);"
         "});"
         ))
@@ -74850,15 +76054,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 3n, 3n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 4n, 4n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n, 4n, 5n)).result).toEqual(true);"
         "});"
         ))
@@ -74873,19 +76077,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -74900,19 +76104,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -74927,19 +76131,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 2n, 3n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n, 3n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n, 0n, 3n)).result).toEqual(false);"
         "});"
         ))
@@ -74954,19 +76158,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 4n)).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(true);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 6n)).result).toEqual(true);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual(false);"
         "});"
         ))
@@ -74981,7 +76185,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual([ 5n, 15n, 35n ]);"
         "});"
         ))
@@ -74993,7 +76197,7 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode, {}, 0); expect((await C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5]))).result).toEqual(~dn) });" #x0504030201)
+        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode); expect((await C.circuits.baz(Ctxt, new Uint8Array([1, 2, 3, 4, 5]))).result).toEqual(~dn) });" #x0504030201)
         ))
     )
 
@@ -75003,13 +76207,13 @@ groups than for single tests.
       )
     (stage-javascript
       `(
-        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode, {}, 0); expect((await C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn) });" #x09080706)
+        ,(format "test('check 1', async () => { const [C, Ctxt] = await startContract(contractCode); expect((await C.circuits.baz(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn) });" #x09080706)
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.baz(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 1 char 53: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
         "});"
         ))
@@ -75022,11 +76226,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, true)).result).toEqual(1n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, false)).result).toEqual(0n);"
         "});"
         ))
@@ -75040,15 +76244,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 0)).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 1)).result).toEqual(1n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 2)).result).toEqual(2n);"
         "});"
         ))
@@ -75061,15 +76265,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 1n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 0n)).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt, 3n)).result).toEqual(true);"
         "});"
         ))
@@ -75083,11 +76287,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual([ 1n ]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual([ 2n ]);"
         "});"
         ))
@@ -75100,15 +76304,15 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x04030201n)).result).toEqual(new Uint8Array([ 1, 2, 3, 4, 0 ]));"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0x060504030201n)).rejects.toThrow('range error at testfile.compact line 1 char 52: field or Uint value 6618611909121 does not fit into 5 bytes');"
         "});"
         ))
@@ -75122,11 +76326,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual([ 1n ]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 7n)).result).toEqual([ 2n ]);"
         "});"
         ))
@@ -75183,7 +76387,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -75210,17 +76414,17 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, true, false);"
+        "  const [C, Ctxt] = await startContract(contractCode, true, false);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow('Error: expected a cell');"
         "});"
@@ -75247,17 +76451,17 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "  expect((await C.circuits.call_foo(Ctxt, 1n, 2n)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 2n, 7n)).rejects.toThrow('Error: invalid operation for type');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, [true, false]);"
+        "  const [C, Ctxt] = await startContract(contractCode, [true, false]);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.call_foo(Ctxt, 1n, 11n)).rejects.toThrow('Error: expected a cell');"
         "});"
@@ -75322,7 +76526,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 91n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 91n);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]))).result).toEqual(91n);"
         "});"
         ))
@@ -75337,7 +76541,7 @@ groups than for single tests.
       "  baz: Boolean;"
       "}"
       ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
+      "host test:oracle/merkle-path-root@1.0.0 { merkle_path_root(foo: Foo): MerkleTreeDigest; }"
       ""
       "ledger field1: Map<Field, Foo>;"
       "ledger field2: HistoricMerkleTree<10, Foo>;"
@@ -75352,13 +76556,15 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = { merkle_path_root(foo: any): any { return { field: 0n }; } };"
+        "const oracle = { 'test:oracle/merkle-path-root@1.0.0': { merkle_path_root: (_ctx: any, foo: any) => ({ field: 0n }) } };"
         "test('check 1a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 1b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 23n, { bar: new Uint8Array(32), baz: false })).rejects.toThrow('expected a cell');"
         "});"
         ))
@@ -75373,7 +76579,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -75388,7 +76594,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -75403,7 +76609,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0n);"
         "});"
         ))
@@ -75418,7 +76624,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0, 0, 0]));"
         "});"
         ))
@@ -75433,7 +76639,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0, 0]));"
         "});"
         ))
@@ -75449,7 +76655,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(0);"
         "});"
         ))
@@ -75464,7 +76670,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual('');"
         "});"
         ))
@@ -75479,7 +76685,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n, 0n]);"
         "});"
         ))
@@ -75498,7 +76704,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ a: 0n, b: false });"
         "});"
         ))
@@ -75521,7 +76727,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({a: [{a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}, {a: [0n, 0n], b: false}], c: false});"
         "});"
         ))
@@ -75537,7 +76743,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -75553,7 +76759,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(false);"
         "});"
         ))
@@ -75605,27 +76811,27 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_counter(Ctxt)).rejects.toThrow('failed assert: the default is 0');"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_set(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_list(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_map(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 5', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_merkletree(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         "test('check 6', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.resetToDefault_historicmerkletree(Ctxt)).rejects.toThrow('failed assert: the default is empty');"
         "});"
         ))
@@ -75676,7 +76882,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.identity(Ctxt, 73n);"
         "  expect(tmp.result).toEqual(73n);"
@@ -75717,27 +76923,27 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: false})).result).toEqual(false);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: false, value: true})).result).toEqual(false);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: false})).result).toEqual(false);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {is_some: true, value: true})).result).toEqual(true);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, <any>{is_some: true, xalue: true})).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type struct Maybe<is_some: Boolean, value: Boolean> but received { is_some: true, xalue: true }');"
         "});"
         ))
@@ -75752,19 +76958,19 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 0n)).result).toEqual(1023n);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 2046 is greater than 1023');"
         "});"
         ))
@@ -75779,23 +76985,23 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 1023n)).result).toEqual(0n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 0n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 1024 is greater than 1023');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, true, 1023n)).rejects.toThrow('testfile.compact line 2 char 14: cast from Field or Uint value to smaller Uint value failed: 2047 is greater than 1023');"
         "});"
         ))
@@ -75865,7 +77071,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         ))
@@ -75876,16 +77082,15 @@ groups than for single tests.
     "test-center/compact/test.compact"
     (stage-javascript
       '(
-        "const witnesses = { C(a: any, b: any): Uint8Array { return new Uint8Array(10); }, W(a: any, b: any): undefined { return; }};"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 20n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 20n);"
         "  expect(typeof(C.circuits)).toEqual('object');"
         "});"
         "test('check 2a', async () => {"
-        "  await expect(startContract(contractCode, witnesses, 0, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
+        "  await expect(startContract(contractCode, <any>[1, 2, 3])).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  await expect(startContract(contractCode, witnesses, 0, <any>[1, 2, 3])).rejects.toThrow('type error: Contract state constructor argument 1 (argument 2 as invoked from Typescript) at test.compact line 111 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
+        "  await expect(startContract(contractCode, <any>[1, 2, 3])).rejects.toThrow('type error: Contract state constructor argument 1 (argument 2 as invoked from Typescript) at test.compact line 111 char 1; expected value of type Field but received [ 1, 2, 3 ]');"
         "});"
         ))
     )
@@ -75901,7 +77106,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // @ts-expect-error"
         "  expect(() => C.foo()).toThrow('C.foo is not a function');"
         "})")))
@@ -75909,16 +77114,17 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness next_fib(): Field;"
+      "host test:oracle/next-fib@1.0.0 { next_fib(): Field; }"
       "export circuit fib() : Field{"
       "  return disclose(next_fib());"
       "}")
     (stage-javascript
       '(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
-        "const witnesses = { next_fib: w };"
+        "// the oracle keeps the sequence in its own state, as a wallet would"
+        "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result).toEqual(2n);"
         "  expect(x.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(1);"
@@ -75926,7 +77132,6 @@ groups than for single tests.
         "  expect(x2.result).toEqual(3n);"
         "  const x3 = await C.circuits.fib(x2.context);"
         "  expect(x3.result).toEqual(5n);"
-        "  expect((await C.circuits.fib(Ctxt)).result).toEqual(2n);"
         "})"
          )))
 
@@ -75934,13 +77139,13 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export circuit foo(): ZswapCoinPublicKey {"
-      "  return ownPublicKey();"
+      "  return disclose(ownPublicKey());"
       "}"
        )
     (stage-javascript
       '(
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const R = await C.circuits.foo(Ctxt);"
         "  expect(R.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(1);"
         "})"))
@@ -75950,16 +77155,17 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "struct S { x: Field, y: ZswapCoinPublicKey }"
-      "witness next_fib(): Field;"
+      "host test:oracle/next-fib@1.0.0 { next_fib(): Field; }"
       "export circuit fib() : S {"
-      "  return S{ x: disclose(next_fib()), y: ownPublicKey() };"
+      "  return S{ x: disclose(next_fib()), y: disclose(ownPublicKey()) };"
       "}")
     (stage-javascript
       '(
-        "const w = ({privateState}: runtime.WitnessContext<{}, {n1: bigint, n2: bigint}>) : [{n1: bigint, n2: bigint}, bigint] => {const n = privateState.n1 + privateState.n2; return [{n1: privateState.n2, n2: n}, n];}"
-        "const witnesses = { next_fib: w };"
+        "// the oracle keeps the sequence in its own state, as a wallet would"
+        "const fib = () => { let n1 = 1n, n2 = 1n; return () => { const n = n1 + n2; n1 = n2; n2 = n; return n; }; };"
         "test('check', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, {n1 : 1n, n2 : 1n});"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, { 'test:oracle/next-fib@1.0.0': { next_fib: fib() } });"
         "  const x = await C.circuits.fib(Ctxt);"
         "  expect(x.result.x).toEqual(2n);"
         "  expect(x.context.callProofDataTrace.at(-1)?.privateTranscriptOutputs.length).toEqual(2);"
@@ -75990,7 +77196,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('caller defaults to None when no caller is set', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  expect((await c.circuits.testCaller(context)).result).toEqual({"
         "    is_some: false,"
         "    value: {"
@@ -76002,7 +77208,7 @@ groups than for single tests.
         "});"
         ""
         "test('caller returns Some(left(contract)) when called from a contract', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  const rawCallerAddress = runtime.sampleContractAddress();"
         "  context.callContext.currentQueryContext.block = {"
         "    ...context.callContext.currentQueryContext.block,"
@@ -76019,7 +77225,7 @@ groups than for single tests.
         "});"
         ""
         "test('caller returns Some(right(user)) when called from a user', async () => {"
-        "  const [c, context] = await startContract(contractCode, {}, 0);"
+        "  const [c, context] = await startContract(contractCode);"
         "  const rawCallerAddress = runtime.sampleUserAddress();"
         "  context.callContext.currentQueryContext.block = {"
         "    ...context.callContext.currentQueryContext.block,"
@@ -76077,22 +77283,10 @@ groups than for single tests.
      (stage-javascript outerCode "test-center/ts/composable/storage.ts")))
 
   (test-group
-    ((source-file "test-center/composable/Witness/Inner.compact")
-     (stage-javascript innerCode '()))
-    ((source-file "test-center/composable/Witness/Outer.compact")
-     (stage-javascript outerCode "test-center/ts/composable/witness.ts")))
-
-  (test-group
     ((source-file "test-center/composable/Purity/Honest.compact")
      (stage-javascript honestCode '()))
     ((source-file "test-center/composable/Purity/Liar.compact")
      (stage-javascript liarCode "test-center/ts/composable/purity.ts")))
-
-  (test-group
-    ((source-file "test-center/composable/CalleeWitness/Callee.compact")
-     (stage-javascript calleeCode '()))
-    ((source-file "test-center/composable/CalleeWitness/Caller.compact")
-     (stage-javascript callerCode "test-center/ts/composable/callee-witness.ts")))
 
   (test-group
     ((source-file "test-center/composable/Events/Inner.compact")
@@ -76116,51 +77310,49 @@ groups than for single tests.
         ""
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
-        "export type Witnesses<PS> = {"
-        "  private$secret_key(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
+        "export type ImpureCircuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type ProvableCircuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "  public_key(sk_0: Uint8Array): Uint8Array;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  set(context: __compactRuntime.CircuitContext<PS>, v_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Maybe<bigint>>>;"
-        "  clear(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  public_key(context: __compactRuntime.CircuitContext<PS>, sk_0: Uint8Array): Promise<__compactRuntime.CircuitResults<PS, Uint8Array>>;"
+        "export type Circuits = {"
+        "  set(context: __compactRuntime.CircuitContext, v_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Maybe<bigint>>>;"
+        "  clear(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  public_key(context: __compactRuntime.CircuitContext, sk_0: Uint8Array): Promise<__compactRuntime.CircuitResults<Uint8Array>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly value: bigint;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>, v_0: bigint): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext,"
+        "               v_0: bigint,"
+        "               sk_0: Uint8Array): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -76289,19 +77481,10 @@ groups than for single tests.
         "const _descriptor_14 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
-        "  witnesses;"
         "  constructor(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    if (args_0.length !== 0) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 0 arguments, received ${args_0.length}`);"
         "    }"
-        "    const witnesses_0 = args_0[0];"
-        "    if (typeof(witnesses_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
-        "    }"
-        "    if (typeof(witnesses_0.private$secret_key) !== 'function') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named private$secret_key');"
-        "    }"
-        "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      set: async (...args_1) => {"
         "        if (args_1.length !== 2) {"
@@ -76312,18 +77495,19 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('set',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 82 char 1',"
+        "                                     'tiny.compact line 83 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        if (!(typeof(v_0) === 'bigint' && v_0 >= 0 && v_0 <= __compactRuntime.MAX_FIELD)) {"
         "          __compactRuntime.typeError('set',"
         "                                     'argument 1 (argument 2 as invoked from Typescript)',"
-        "                                     'tiny.compact line 82 char 1',"
+        "                                     'tiny.compact line 83 char 1',"
         "                                     'Field',"
         "                                     v_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'set');"
         "        const partialProofData = {"
         "          input: {"
         "            value: _descriptor_0.toValue(v_0),"
@@ -76346,11 +77530,12 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('get',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 100 char 1',"
+        "                                     'tiny.compact line 101 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'get');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -76370,11 +77555,12 @@ groups than for single tests.
         "        if (!(typeof(contextOrig_0) === 'object' && contextOrig_0.callContext.currentQueryContext != undefined)) {"
         "          __compactRuntime.typeError('clear',"
         "                                     'argument 1 (as invoked from Typescript)',"
-        "                                     'tiny.compact line 111 char 1',"
+        "                                     'tiny.compact line 112 char 1',"
         "                                     'CircuitContext',"
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'clear');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -76402,16 +77588,14 @@ groups than for single tests.
         "    };"
         "  }"
         "  async initialState(...args_0) {"
-        "    if (args_0.length !== 2) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 2 arguments (as invoked from Typescript), received ${args_0.length}`);"
+        "    if (args_0.length !== 3) {"
+        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 3 arguments (as invoked from Typescript), received ${args_0.length}`);"
         "    }"
         "    const constructorContext_0 = args_0[0];"
         "    const v_0 = args_0[1];"
+        "    const sk_0 = args_0[2];"
         "    if (typeof(constructorContext_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
-        "    }"
-        "    if (!('initialPrivateState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
         "    }"
         "    if (!('initialZswapLocalState' in constructorContext_0)) {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
@@ -76426,6 +77610,13 @@ groups than for single tests.
         "                                 'Field',"
         "                                 v_0)"
         "    }"
+        "    if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {"
+        "      __compactRuntime.typeError('Contract state constructor',"
+        "                                 'argument 2 (argument 3 as invoked from Typescript)',"
+        "                                 'tiny.compact line 55 char 1',"
+        "                                 'Bytes<32>',"
+        "                                 sk_0)"
+        "    }"
         "    const state_0 = new __compactRuntime.ContractState();"
         "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
         "    stateValue_0 = stateValue_0.arrayPush(__compactRuntime.StateValue.newNull());"
@@ -76435,7 +77626,7 @@ groups than for single tests.
         "    state_0.setOperation('set', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('get', new __compactRuntime.ContractOperation());"
         "    state_0.setOperation('clear', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data, privateState: constructorContext_0.initialPrivateState});"
+        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data});"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
@@ -76472,7 +77663,6 @@ groups than for single tests.
         "                                                 value: __compactRuntime.StateValue.newCell({ value: _descriptor_2.toValue(0),"
         "                                                                                              alignment: _descriptor_2.alignment() }).encode() } },"
         "                                       { ins: { cached: false, n: 1 } }]);"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
         "    const tmp_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -76507,7 +77697,6 @@ groups than for single tests.
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
         "      currentContractState: state_0,"
-        "      currentPrivateState: context.callContext.currentPrivateState,"
         "      currentZswapLocalState: context.callContext.currentZswapLocalState"
         "    }"
         "  }"
@@ -76518,19 +77707,22 @@ groups than for single tests.
         "    return result_0;"
         "  }"
         "  _private$secret_key_0(context, partialProofData) {"
-        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);"
-        "    const [nextPrivateState_0, result_0] = this.witnesses.private$secret_key(witnessContext_0);"
-        "    context.callContext.currentPrivateState = nextPrivateState_0;"
+        "    const result_0 = __compactRuntime.callHostFunction(context, 'test:oracle/private-secret-key@1.0.0', 'private$secret_key', []);"
         "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
-        "      __compactRuntime.typeError('private$secret_key',"
+        "      __compactRuntime.typeError('host function private$secret_key of test:oracle/private-secret-key@1.0.0',"
         "                                 'return value',"
-        "                                 'tiny.compact line 70 char 1',"
+        "                                 'tiny.compact line 71 char 45',"
         "                                 'Bytes<32>',"
         "                                 result_0)"
         "    }"
-        "    partialProofData.privateTranscriptOutputs.push({"
-        "      value: _descriptor_1.toValue(result_0),"
-        "      alignment: _descriptor_1.alignment()"
+        "    __compactRuntime.recordHostOutput(partialProofData, {"
+        "      interfaceId: 'test:oracle/private-secret-key@1.0.0',"
+        "      name: 'private$secret_key',"
+        "      args: { value: [], alignment: [] },"
+        "      result: {"
+        "        value: _descriptor_1.toValue(result_0),"
+        "        alignment: _descriptor_1.alignment()"
+        "      }"
         "    });"
         "    return result_0;"
         "  }"
@@ -76553,7 +77745,8 @@ groups than for single tests.
         "  async _set_0(context, partialProofData, v_0) {"
         "    __compactRuntime.assert(await this._in_state_0(context, partialProofData, 0),"
         "                            'set: attempted to overwrite recorded value');"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
+        "    const sk_0 = ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_1.toValue(result_0), alignment: _descriptor_1.alignment() }); return result_0; })(this._private$secret_key_0(context,"
+        "                                                                                                                                                                                                                   partialProofData));"
         "    const apk_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -76608,7 +77801,8 @@ groups than for single tests.
         "  async _clear_0(context, partialProofData) {"
         "    __compactRuntime.assert(await this._in_state_0(context, partialProofData, 1),"
         "                            'clear: no value is currently recorded');"
-        "    const sk_0 = this._private$secret_key_0(context, partialProofData);"
+        "    const sk_0 = ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_1.toValue(result_0), alignment: _descriptor_1.alignment() }); return result_0; })(this._private$secret_key_0(context,"
+        "                                                                                                                                                                                                                   partialProofData));"
         "    const apk_0 = this._public_key_0(sk_0);"
         "    __compactRuntime.assert(this._equal_0(apk_0,"
         "                                          _descriptor_1.fromValue(__compactRuntime.queryLedgerState(context,"
@@ -76699,9 +77893,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({"
-        "  private$secret_key: (...args) => undefined"
-        "});"
+        "const _dummyContract = new Contract();"
         "export const pureCircuits = {"
         "  public_key: (...args_0) => {"
         "    if (args_0.length !== 1) {"
@@ -76711,7 +77903,7 @@ groups than for single tests.
         "    if (!(sk_0.buffer instanceof ArrayBuffer && sk_0.BYTES_PER_ELEMENT === 1 && sk_0.length === 32)) {"
         "      __compactRuntime.typeError('public_key',"
         "                                 'argument 1',"
-        "                                 'tiny.compact line 125 char 1',"
+        "                                 'tiny.compact line 126 char 1',"
         "                                 'Bytes<32>',"
         "                                 sk_0)"
         "    }"
@@ -76729,6 +77921,10 @@ groups than for single tests.
         ""
         "export const declaredInterfaces = {};"
         ""
+        "export const hostInterfaces = {"
+        "  'test:oracle/private-secret-key@1.0.0': ['private$secret_key'],"
+        "};"
+        ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -76738,133 +77934,40 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
 
+  ; the sample contracts, each with its private state in the account's capsule and its identity
+  ; in the capsule secret, driven by two or more wallets through the test chain
   (test
     "examples/election.compact"
-    (stage-javascript
-      '(
-        "const witnesses = {"
-        "                  private$secret_key(): any { return; },"
-        "                  private$state(): any { return; },"
-        "                  private$state$advance(): any { return; },"
-        "                  private$vote$record(x: any): any { return; },"
-        "                  private$vote(): any { return; },"
-        "                  context$eligible_voters$path_of(x: any): any { return; },"
-        "                  context$committed_votes$path_of(x: any): any { return; }"
-        "                 };"
-        "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
-        "  expect(typeof(C.circuits)).toEqual('object');"
-        "});"
-        ))
-    )
+    (stage-javascript "test-center/ts/samples/election.ts"))
 
   (test
     "examples/zerocash.compact"
-    (stage-javascript
-      '(
-        "const witnesses = {"
-        "                    private$zk_secret_key(): any { return; },"
-        "                    private$remove_coin(coin: any): any { return; },"
-        "                    private$zk_public_key(): any { return; },"
-        "                    private$add_coin(coin: any): any { return; },"
-        "                    context$path_of(cm: any): any { return; },"
-        "                    context$new_coin_info(): any { return; },"
-        "                    context$encrypt(pk: any, coin: any): any { return; }"
-        "                   };"
-        "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
-        "  expect(typeof(C.circuits)).toEqual('object');"
-        "});"
-        ))
-    )
+    (stage-javascript "test-center/ts/samples/zerocash.ts"))
 
   (test
-   "test-center/test-contracts/micro-dao.compact"
-   (stage-javascript
-     '(
-       "const witnesses = {"
-       "                   local_secret_key(): any { return; },"
-       "                   local_state(): any { return; },"
-       "                   local_advance_state(): any { return; },"
-       "                   local_record_vote(vote: any): any { return; },"
-       "                   local_vote_cast(): any { return; },"
-       "                   local_path_of_cm(cm: any): any { return; }"
-       "                   };"
-       "test('check 1', async () => {"
-       "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, sk, {seed_dust: 2n, buy_in_dust: 2n});"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/micro-dao.compact"
+    (stage-javascript "test-center/ts/samples/micro-dao.ts"))
 
   (test
-   "test-center/test-contracts/bboard.compact"
-   (stage-javascript
-     '(
-       "const witnesses = {"
-       "                  local_secret_key(): any { return; }"
-       "                  };"
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/bboard.compact"
+    (stage-javascript "test-center/ts/samples/bboard.ts"))
 
   (test
-   "test-center/test-contracts/coracle.compact"
-   (stage-javascript
-     '(
-       "const witnesses = {"
-       "                   local_secret_key(): any { return; },"
-       "                   local_board(): any { return; },"
-       "                   local_set_board(board: any): any { return; },"
-       "                   fresh_nonce(): any { return; },"
-       "                   ownPublicKey(): any { return; },"
-       "                   createZswapInput(): any { return; },"
-       "                   createZswapOutput(): any { return; }"
-       "                  };"
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-   )
+    "test-center/test-contracts/coracle.compact"
+    (stage-javascript "test-center/ts/samples/coracle.ts"))
 
-  (test ; just see if it succeeds
+  (test
     "test-center/test-contracts/counter.compact"
-    (stage-javascript
-     '(
-       "const witnesses = { private_increment(): any { return; } };"
-       "test('check 1', async () => {"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       ))
-    )
+    (stage-javascript "test-center/ts/samples/counter.ts"))
 
-  (test ; just see if it succeeds
+  (test
     "test-center/test-contracts/welcome.compact"
-    (stage-javascript
-     '(
-       "const witnesses = {"
-       "                   set_local_id(participant: any): any { return; },"
-       "                   local_sk(ps: any): any { return [ps, {is_some: true, value: new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0])}];}"
-       "                  };"
-       "test('check 1', async () => {"
-       "class Maybe{is_some: boolean; value: string; constructor(is_some: boolean, value: string) { this.is_some = is_some; this.value = value;}}"
-       "const p1 = new Maybe( true, 'p1' );"
-       "const participants: Maybe[] = new Array(5000).fill(p1);"
-       "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, participants);"
-       "  expect(typeof(C.circuits)).toEqual('object');"
-       "});"
-       )))
+    (stage-javascript "test-center/ts/samples/welcome.ts"))
 
   (test
     '(
@@ -76879,7 +77982,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 0n)).result).toEqual({ x: 0n, y: 1n });"
         "  expect((await C.circuits.bar(Ctxt, 1n)).result).toEqual({ x: 28336281903124990867587793011069573392383982287722241916350956173377953689573n, y: 39385640392217313770878525135509063452020585410343666726093009378539878503883n });"
         "  expect((await C.circuits.foo(Ctxt, (await C.circuits.bar(Ctxt, 1n)).result)).result).toEqual({x: 52314913592789878805517974153014629220250507019089108027564561641173449264214n, y: 316401541904675051751671509748590036265704531513998184420066319217098126774n });"
@@ -76890,24 +77993,27 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(x: Field): Uint<0..36>;"
+      "host test:oracle/bar@1.0.0 { bar(x: Field): Uint<0..36>; }"
       "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
       "  return x - x as Uint<0..36>;"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { bar(x: bigint): bigint { return 101n; } };"
+        "const oracle = { 'test:oracle/bar@1.0.0': { bar: () => 101n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt, 20n)).result).toEqual(0n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  await expect(C.circuits.foo(Ctxt, 37n)).rejects.toThrow('type error: foo argument 1 at testfile.compact line 3 char 1; expected value of type Uint<0..36> but received 37n');"
         "});"
         ))
@@ -76927,35 +78033,35 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: 3n })).result).toEqual(1);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: false, y: 3n })).result).toEqual(2);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: 5n, y: 3n })).result).toEqual(3);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: 3n, y: 3n })).result).toEqual(0);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Field> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 6 char 1; expected value of type struct Q<x: Field, y: Field> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -76975,35 +78081,35 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: true, y: [3n, 4n, 5n] })).result).toEqual(1);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: false, y: [3n, 4n, 5n] })).result).toEqual(2);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 7n, 5n], y: [3n, 4n, 5n] })).result).toEqual(3);"
         "});"
         "test('check 4', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 4n, 5n], y: [3n, 4n, 5n] })).result).toEqual(0);"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 1; expected value of type struct Q<x: Boolean, y: Vector<3, Uint<0..4294967296>>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 6 char 1; expected value of type struct Q<x: Vector<3, Field>, y: Vector<3, Field>> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -77023,39 +78129,39 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [true, false, true], y: 53n, z: 'hola' })).result).toEqual(54n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [true, false, false], y: 53n, z: 'hola' })).result).toEqual(52n);"
         "});"
         "test('check 3', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [3n, 3n], y: 53n, z: 'hola' })).result).toEqual('hola');"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, { x: [3n, 4n], y: 53n, z: 'hola' })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, { x: [3n, 4n], y: 53n, z: 'hola' })).rejects.toThrow('failed assert: oops');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 2 char 1; expected value of type struct Q<x: Vector<3, Boolean>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 5 char 1; expected value of type struct Q<x: Vector<2, Field>, y: Uint<0..4096>, z: Opaque<\"string\">> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -77088,51 +78194,51 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [true, false], y: true })).result).toEqual(true);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [true, true], y: false })).result).toEqual(true);"
         "});"
         "test('check 2c', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.dos(Ctxt, { x: [false, true], y: false })).result).toEqual(false);"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.tres(Ctxt, { x: [7n, 4n], y: true })).result).toEqual(11n);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.tres(Ctxt, { x: [7n, 4n], y: false })).result).toEqual(28n);"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.uno(Ctxt, <any>{ x: 3n, y: 4n })).rejects.toThrow('type error: uno argument 1 at testfile.compact line 3 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Uint<0..4096>> but received { x: 3n, y: 4n }');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.dos(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: dos argument 1 at testfile.compact line 8 char 3; expected value of type struct Q<x: Vector<2, Boolean>, y: Boolean> but received { x: true, y: 4n }');"
         "});"
         "test('check 6a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.tres(Ctxt, <any>{ x: true, y: 4n })).rejects.toThrow('type error: tres argument 1 at testfile.compact line 14 char 3; expected value of type struct Q<x: Vector<2, Uint<0..4096>>, y: Boolean> but received { x: true, y: 4n }');"
         "});"
         ))
@@ -77160,44 +78266,41 @@ groups than for single tests.
         ""
         "export type Q<a> = { x: a[]; y: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  uno(context: __compactRuntime.CircuitContext<PS>, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  uno(context: __compactRuntime.CircuitContext, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         ))
@@ -77225,44 +78328,41 @@ groups than for single tests.
         ""
         "export type Q<a> = { x: a[]; y: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  uno(q_0: Q<bigint>): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  uno(context: __compactRuntime.CircuitContext<PS>, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  uno(context: __compactRuntime.CircuitContext, q_0: Q<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.uno(Ctxt, { x: [3n, 4n], y: 2n })).result).toEqual(5n);"
         "});"
         ))
@@ -77281,46 +78381,43 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
+        "export type ProvableCircuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  hello(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, string>>;"
+        "export type Circuits = {"
+        "  hello(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<string>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly greeting: string;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>, x_0: string): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext, x_0: string): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 'hola');"
+        "  const [C, Ctxt] = await startContract(contractCode, 'hola');"
         "  expect((await C.circuits.hello(Ctxt)).result).toEqual('hola');"
         "});"
         ))
@@ -77332,7 +78429,7 @@ groups than for single tests.
       "export { Maybe }"
       "export ledger rat: Field;"
       "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
+      "host test:oracle/witnesses@1.0.0 { witnesses(witnesses: Field): Field; }"
       "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
       "export circuit context(x: Field): Field { return state(x + 3); }"
       "export circuit transcript(x: Field): Field { return context(x + 7); }"
@@ -77347,27 +78444,22 @@ groups than for single tests.
         ""
         "export type Maybe<T> = { is_some: boolean; value: T };"
         ""
-        "export type Witnesses<PS> = {"
-        "  witnesses(context: __compactRuntime.WitnessContext<Ledger, PS>,"
-        "            witnesses_0: bigint): [PS, bigint];"
-        "}"
-        ""
-        "export type ImpureCircuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ImpureCircuits = {"
+        "  state(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  context(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  transcript(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  Contract(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ProvableCircuits<PS> = {"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ProvableCircuits = {"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
@@ -77375,47 +78467,48 @@ groups than for single tests.
         "  finalize(): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  state(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  context(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  transcript(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  Contract(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  _arguments(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  state(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  context(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  transcript(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  Contract(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  _arguments(context: __compactRuntime.CircuitContext,"
         "             _eval_0: bigint,"
         "             _arguments_0: bigint,"
-        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  functions(context: __compactRuntime.CircuitContext<PS>, Maybe_0: Maybe<bigint>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  finalize(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "             witnesses_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  functions(context: __compactRuntime.CircuitContext, Maybe_0: Maybe<bigint>): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  finalize(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly rat: bigint;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>,"
-        "               witnesses_0: bigint): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext, witnesses_0: bigint): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
-        "const witnesses = { witnesses(private_state: any, witnesses: bigint): [any, bigint] { return [private_state, witnesses + 11n]; } };"
+        "const oracle = { 'test:oracle/witnesses@1.0.0': { witnesses: (_ctx: any, witnesses: bigint) => witnesses + 11n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, 73n);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits._arguments(Ctxt, 11n, 7n, 13n)).result).toEqual(132n);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0, 73n);"
+        "  const [C, Ctxt0] = await startContract(contractCode, 73n);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.finalize(Ctxt)).result).toEqual(20n);"
         "});"
         ))
@@ -77429,39 +78522,39 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.red_guess(Ctxt, 11n)).result).toEqual(10n);"
         "});"
         "test('check 2a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(<any>(C.circuits.red_guess)(Ctxt, <any>11)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 2b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(<any>(C.circuits.red_guess)(Ctxt, <any>11)).rejects.toThrow('type error: red_guess argument 1 at testfile.compact line 2 char 1; expected value of type Field but received 11');"
         "});"
         "test('check 3a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, <any>11, <any>12); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, <any>11, <any>12); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         "test('check 4a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, <any>12); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, <any>12); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         "test('check 5a', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, 12n); })()).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5b', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect((async () => { let f: any = C.circuits.red_guess; return f(Ctxt, 11n, 12n); })()).rejects.toThrow('red_guess: expected 1 argument (as invoked from Typescript), received 2');"
         "});"
         ))
@@ -77477,7 +78570,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, 23n)).result;"
@@ -77499,7 +78592,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, 17n)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, 23n)).result;"
@@ -77519,7 +78612,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const h1 = (await C.circuits.foo(Ctxt, true)).result;"
         "  const h2 = (await C.circuits.foo(Ctxt, true)).result;"
         "  const h3 = (await C.circuits.foo(Ctxt, false)).result;"
@@ -77550,11 +78643,11 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.rat(Ctxt)).result).toEqual([]);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const L0 = contractCode.ledger(Ctxt0.callContext.currentQueryContext.state);"
         "  expect(L0.foo).toEqual(0n);"
         "  expect(L0.bar.member(17n)).toEqual(false);"
@@ -77610,7 +78703,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(3n);"
         "});"
         )
@@ -77631,7 +78724,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(3n);"
         "});"
         )
@@ -77672,7 +78765,7 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const sk = new Uint8Array([108, 97, 114, 101, 115, 58, 116, 105, 110, 121, 58, 112, 107, 58, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]);"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, sk);"
+        "  const [C, Ctxt] = await startContract(contractCode, sk);"
         "  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.yes).toEqual(0n);"
         "  expect(L.potHasCoin).toEqual(false);"
@@ -77716,7 +78809,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -77742,7 +78835,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -77791,14 +78884,14 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Boolean;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Boolean; }"
       "export pure circuit itIsntPure(v: Vector<2, Field>): Vector<2, Boolean> {"
       "  return map(foo, v);"
       "}"
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls witness foo" "line 3 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls host function foo" "line 3 char 14")))
     )
 
   (test
@@ -77810,7 +78903,7 @@ groups than for single tests.
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls native witness ownPublicKey" "line 3 char 10")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (itIsntPure "calls host function ownPublicKey" "line 3 char 10")))
     )
 
     (test
@@ -77844,7 +78937,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export pure circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map("
       "    (x) => {"
@@ -77855,19 +78948,19 @@ groups than for single tests.
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls witness foo" "line 5 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls host function foo" "line 5 char 14")))
     )
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export pure circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map(foo, v);"
       "}"
      )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls witness foo" "line 3 char 14")))
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (isntPure "calls host function foo" "line 3 char 14")))
     )
 
   (test
@@ -77895,7 +78988,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return map("
       "    (x) => {"
@@ -77908,7 +79001,7 @@ groups than for single tests.
 
   (test
     '(
-      "witness foo(n: Field) : Field;"
+      "host test:oracle/foo@1.0.0 { foo(n: Field) : Field; }"
       "export circuit isntPure(v: Vector<2, Field>): Vector<2, Field> {"
       "  return disclose(map(foo, v));"
       "}"
@@ -77932,7 +79025,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
         "  const Ctxt1 = (await C.circuits.foo(Ctxt0, 17n)).context;"
         "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
         "  expect(contractCode.pureCircuits.root_of(L1.rats.findPathForLeaf(17n)!)).toEqual(L1.rats.root());"
@@ -77958,7 +79051,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.baz(Ctxt)).result).toEqual(1n);"
         "  });"
         ))
@@ -77981,7 +79074,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.callContext.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
@@ -78009,12 +79102,12 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  expect(tmp.result).toEqual({ is_some: true, value: 9n });"
         "  });"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp = await C.circuits.foo(Ctxt);"
         "  let L = contractCode.ledger(tmp.context.callContext.currentQueryContext.state);"
         "  var sum: bigint = 20n;"
@@ -78058,7 +79151,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.identity(Ctxt, 73n);"
         "  expect(tmp.result).toEqual(74n);"
@@ -78097,36 +79190,33 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "  identity(q_0: bigint): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  identity(context: __compactRuntime.CircuitContext<PS>, q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "  init0(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  ismember(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, boolean>>;"
-        "  init1(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  update(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  identity(context: __compactRuntime.CircuitContext, q_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
+        "  init0(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  ismember(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<boolean>>;"
+        "  init1(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  update(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
@@ -78145,20 +79235,20 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -78210,7 +79300,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true, 7n);"
         "  expect(tmp.result).toEqual([]);"
@@ -78324,7 +79414,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true, 7n);"
         "  expect(tmp.result).toEqual([]);"
@@ -78369,7 +79459,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true);"
         "  expect(tmp.result).toEqual([]);"
@@ -78389,7 +79479,7 @@ groups than for single tests.
         "  });"
 
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init(Ctxt, true);"
         "  tmp = await C.circuits.put(tmp.context, true, 7n, 999999999n);"
@@ -78403,37 +79493,34 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
-        "}"
-        ""
-        "export type ImpureCircuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ImpureCircuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ProvableCircuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type ProvableCircuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  init(context: __compactRuntime.CircuitContext<PS>, b_0: boolean): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  put(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  init(context: __compactRuntime.CircuitContext, b_0: boolean): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  put(context: __compactRuntime.CircuitContext,"
         "      b_0: boolean,"
         "      n_0: bigint,"
-        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "  get(context: __compactRuntime.CircuitContext<PS>, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "      q_0: bigint): Promise<__compactRuntime.CircuitResults<[]>>;"
+        "  get(context: __compactRuntime.CircuitContext, b_0: boolean, n_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
@@ -78451,20 +79538,20 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -78497,7 +79584,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_counter(Ctxt, true);"
         "  tmp = await C.circuits.incr_nested_counter(tmp.context, true, 7n);"
@@ -78531,7 +79618,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_map(Ctxt, 3n);"
         "  tmp = await C.circuits.insert_nested_map(tmp.context, 3n, 7n, 11n);"
@@ -78570,7 +79657,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.init_nested_map(Ctxt, false);"
         "  tmp = await C.circuits.init_nested_counter(tmp.context, false, 7n);"
@@ -78614,7 +79701,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check list', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -78664,7 +79751,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check hmt', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.insert(Ctxt, 5n);"
         "  tmp = await C.circuits.isFull(tmp.context);"
@@ -78697,7 +79784,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check cell', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.write(Ctxt, 5n);"
         "  tmp = await C.circuits.read(tmp.context);"
@@ -78733,7 +79820,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check counter', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.increment(Ctxt, 5n);"
         "  tmp = await C.circuits.read(tmp.context);"
@@ -78772,7 +79859,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check hmt', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.insert(Ctxt, 5n);"
         "  tmp = await C.circuits.isFull(tmp.context);"
@@ -78817,7 +79904,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check set', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -78873,7 +79960,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check map', async () => {"
-        "  let [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  let [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.isEmpty(Ctxt);"
         "  expect(tmp.result).toEqual(true);"
@@ -79029,7 +80116,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let tmp;"
         "  tmp = await C.circuits.foo(Ctxt, '');"
         "  expect(tmp.result).toEqual(true);"
@@ -79095,19 +80182,16 @@ groups than for single tests.
         ""
         "export type MerkleTreeDigest = { field: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
@@ -79151,20 +80235,20 @@ groups than for single tests.
         "  };"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -79197,7 +80281,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -79220,7 +80304,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -79243,7 +80327,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const state = (await new contractCode.Contract({}).initialState(runtime.createConstructorContext(undefined, '0'.repeat(64)))).currentContractState;"
+        "  const state = (await new contractCode.Contract().initialState(runtime.createConstructorContext('0'.repeat(64)))).currentContractState;"
         "  const viaSerialization = runtime.ContractState.deserialize(state.serialize());"
         "  expect(state.serialize()).toEqual(viaSerialization.serialize());"
         "})"
@@ -79262,7 +80346,7 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const tmp = new Uint8Array(0);"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, tmp)).result).toEqual([tmp, tmp]);"
         "  });"
         ))
@@ -79287,7 +80371,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  var tmp = await C.circuits.M1_foo(Ctxt, 7n);"
         "  expect(tmp.result).toEqual({x: 8n, y: false});"
         "});"
@@ -79323,7 +80407,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.foo(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(37n);"
@@ -79371,7 +80455,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.foo(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(37n);"
@@ -79403,7 +80487,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var L = contractCode.ledger(context.callContext.currentQueryContext.state);"
         "  expect(L.p).toEqual(18n);"
         "  expect(L.q).toEqual(19n);"
@@ -79474,7 +80558,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var t1 = await C.circuits.M1_foo2(context);"
         "  context = t1.context;"
         "  expect(t1.result).toEqual(1n);"
@@ -79511,26 +80595,26 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 75n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 75n);"
         "  const L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(75n);"
         "})"
         "test('check 2', async () => {"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow('Contract state constructor: expected 2 arguments (as invoked from Typescript), received 1');"
+        "  await expect(startContract(contractCode)).rejects.toThrow(runtime.CompactError);"
+        "  await expect(startContract(contractCode)).rejects.toThrow('Contract state constructor: expected 2 arguments (as invoked from Typescript), received 1');"
         "})"))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(): Field;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(): Field; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(): Field {"
       "    return disclose(W() + X());"
       "  }"
@@ -79540,12 +80624,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 20n];}"
-        "                  };"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 20n } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(37n);"
         "});"
@@ -79555,13 +80637,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness X(): Field;"
+      "host test:oracle/x@1.0.0 { X(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(X());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (W(b) ? 3 : 4));"
       "  }"
@@ -79571,12 +80653,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                   W(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; }"
-        "                   };"
+        "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.bar(Ctxt, false)).result).toEqual(20n);"
@@ -79587,13 +80667,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return W();"
       "}"
       "module M {"
-      "  export witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  export host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return X() + (W(b) ? 3 : 4);"
       "  }"
@@ -79603,19 +80683,19 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 14 char 17" "cannot export ~s (~s) from the top level" (witness M$W)))
+      irritants: '("testfile.compact line 14 char 17" "cannot export ~s (~s) from the top level" (host M$W)))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  export witness Y(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  export host test:oracle/y@1.0.0 { Y(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (Y(b) ? 3 : 4));"
       "  }"
@@ -79625,13 +80705,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                    W(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                    Y(private_state: any, b: boolean): [any, boolean] { return [private_state, !b]; },"
-        "                  };"
+        "const oracle = { 'test:oracle/w@1.0.0': { W: () => 17n }, 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/y@1.0.0': { Y: (_ctx: any, b: boolean) => !b } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.M$bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.M$bar(Ctxt, false)).result).toEqual(20n);"
@@ -79642,13 +80719,13 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness W(): Field;"
+      "host test:oracle/w@1.0.0 { W(): Field; }"
       "export circuit foo(): Field {"
       "  return disclose(W());"
       "}"
       "module M {"
-      "  witness W(b: Boolean): Boolean;"
-      "  witness X(): Field;"
+      "  host test:oracle/w@1.0.0 { W(b: Boolean): Boolean; }"
+      "  host test:oracle/x@1.0.0 { X(): Field; }"
       "  export circuit bar(b: Boolean): Field {"
       "    return disclose(X() + (W(b) ? 3 : 4));"
       "  }"
@@ -79658,12 +80735,11 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "                   X(private_state: any): [any, bigint] { return [private_state, 17n]; },"
-        "                   W(private_state: any, ...args: unknown[]): [any, any] { return [private_state, args.length == 0 ? 17n : !args[0]];},"
-        "                  };"
+        "// one function serves both declarations of W, as the one witness did"
+        "const oracle = { 'test:oracle/x@1.0.0': { X: () => 17n }, 'test:oracle/w@1.0.0': { W: (_ctx: any, ...args: unknown[]) => args.length == 0 ? 17n : !args[0] } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(17n);"
         "  expect((await C.circuits.bar(Ctxt, true)).result).toEqual(21n);"
         "  expect((await C.circuits.bar(Ctxt, false)).result).toEqual(20n);"
@@ -79679,7 +80755,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(16n);"
         "});"
         ))
@@ -79702,7 +80778,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0, 7n);"
+        "  const [C, Ctxt] = await startContract(contractCode, 7n);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(15n);"
         "});"
         ))
@@ -79719,7 +80795,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const qcoin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 57n, mt_index: 3n };"
         "  const coin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 73n };"
         "  const encodedOwnPublicKey = runtime.encodeCoinPublicKey('0'.repeat(64))"
@@ -79746,7 +80822,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 12n, 10n)).result).toEqual(2n);"
         "  expect((await C.circuits.foo(context, 12n, 12n)).result).toEqual(0n);"
         "  await expect(C.circuits.foo(context, 12n, 14n)).rejects.toThrow(runtime.CompactError);"
@@ -79767,7 +80843,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, { x: { x: 29n } })).result).toEqual({ x: 29n });"
         "  await expect(C.circuits.foo(context, { x: { y: 29n } })).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, { x: { y: 29n } })).rejects.toThrow('type error: foo argument 1 at testfile.compact line 4 char 1; expected value of type struct S<x: struct S<x: Field>> but received { x: { y: 29n } }');"
@@ -79790,44 +80866,41 @@ groups than for single tests.
         ""
         "export type Commitment<A> = { value: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  foo(): Commitment<any>;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, Commitment<any>>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<Commitment<any>>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual({ value: 10n });"
         "});"
         ))
@@ -79859,7 +80932,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -79883,7 +80956,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  const s0 = (await C.circuits.make(context, 3n, true)).result;"
         "  expect(s0).toEqual({x: 3n, y: true});"
         "  const s1 = (await C.circuits.update_x(context, s0, 5n)).result;"
@@ -79913,7 +80986,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.make0(context, 3n, true, 7n)).result).toEqual({x: 3n, y: true, z: 7n});"
         "  expect((await C.circuits.make1(context, 11n, false, 13n)).result).toEqual({x: 11n, y: false, z: 13n});"
         "  expect((await C.circuits.make2(context, 11n, false, 13n)).result).toEqual({x: 11n, y: false, z: 13n});"
@@ -79931,7 +81004,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(2n);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -79949,7 +81022,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(2n);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 0n)).rejects.toThrow('failed assert: oops');"
@@ -80000,7 +81073,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(context, 4n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(context, 4n)).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, 3n)).rejects.toThrow(runtime.CompactError);"
@@ -80050,7 +81123,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(context, 2n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 1n)).result).toEqual(~dn);" (max-field))
@@ -80098,7 +81171,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  expect((await C.circuits.foo(context, 2n)).result).toEqual([]);"
         "  expect((await C.circuits.foo(context, 1n)).result).toEqual([]);"
@@ -80119,7 +81192,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual([]);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, 1n)).rejects.toThrow('failed assert: oops');"
@@ -80143,7 +81216,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 4n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(true);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
@@ -80167,7 +81240,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 4n)).result).toEqual(false);"
         "  expect((await C.circuits.foo(context, 3n)).result).toEqual(true);"
         "  await expect(C.circuits.foo(context, 2n)).rejects.toThrow('failed assert: oops');"
@@ -80214,7 +81287,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [3n, 4n])).result).toEqual([3n, 4n]);"
         "  await expect(C.circuits.foo(context, [2n, 3n])).rejects.toThrow('failed assert: oops');"
         "});"
@@ -80271,7 +81344,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [5n, 6n])).result).toEqual([3n, 4n]);"
         "  await expect(C.circuits.foo(context, [2n, 3n])).rejects.toThrow('failed assert: oops');"
         "  await expect(C.circuits.foo(context, [3n, 4n])).rejects.toThrow('failed assert: oops');"
@@ -80302,7 +81375,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -80369,7 +81442,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -80398,7 +81471,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n, [0, 1, 2], [3n, 5n, 7n])).result).toEqual(35n);"
         "  expect((await C.circuits.foo(context, 7n, [2, 1, 0], [7n, 5n, 3n])).result).toEqual(47n);"
         "});"
@@ -80408,14 +81481,15 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness transientHash(x: Boolean): Field;"
+      "host test:oracle/transient-hash@1.0.0 { transientHash(x: Boolean): Field; }"
       "export circuit transientHash(x: Field) : Boolean { return disclose(x + transientHash(true) + transientHash<Field>(x) != 107 as Field); }"
       )
     (stage-javascript
       '(
-        "const witnesses = { transientHash(private_state: any, x: boolean): [any, bigint] { return [private_state, 101n]; }};"
+        "const oracle = { 'test:oracle/transient-hash@1.0.0': { transientHash: (_ctx: any, x: boolean) => 101n } };"
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, witnesses, 0);"
+        "  var [C, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  expect((await C.circuits.transientHash(context, 7n)).result).toEqual(true);"
         "});"
         ))
@@ -80433,7 +81507,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.M$foo(context, 7n)).result).toEqual(8n);"
         "});"
         ))
@@ -80464,7 +81538,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 7n)).result).toEqual([0n, 0n, 0n, 0n, 0n]);"
         "});"
         ))
@@ -80497,7 +81571,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  let t = await C.circuits.foo(context, 93n);"
         "  expect(t.result).toEqual([3n, 3n, 1n, 71n, 1n]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -80530,7 +81604,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -80550,7 +81624,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 19n)).result).toEqual(false);"
         "  });"
@@ -80570,7 +81644,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, [], 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, [], 17n, 19n)).result).toEqual(false);"
         "  await expect(C.circuits.bar(Ctxt, 13n, 17n, 19n)).rejects.toThrow(runtime.CompactError);"
@@ -80597,7 +81671,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 17n)).result).toEqual(true);"
         "  expect((await C.circuits.bar(Ctxt, 17n, 19n)).result).toEqual(false);"
         "  });"
@@ -80615,7 +81689,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 17n, new Uint8Array([1,2,3,4,5,6,7,8]))).result).toEqual([true, [17n, new Uint8Array([1,2,3,4,5,6,7,8])]]);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 19n, new Uint8Array([1,2,3,4,5,6,7,8]))).result).toEqual([false, [19n, new Uint8Array([1,2,3,4,5,6,7,8])]]);"
         "  expect((await C.circuits.oak(Ctxt, [17n, new Uint8Array([1,2,3,4,5,6,7,8])], 17n, new Uint8Array([0,2,3,4,5,6,7,8]))).result).toEqual([false, [17n, new Uint8Array([0,2,3,4,5,6,7,8])]]);"
@@ -80645,7 +81719,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -80670,7 +81744,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -80698,7 +81772,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.willow(Ctxt, 17n, new Uint8Array([1,2,3,4,5,6,7,8]));"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -80728,7 +81802,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow('oops');"
         "  });"
@@ -80747,7 +81821,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false, true, false, true])).result).toEqual([1n, 0n, 5n, 0n, 9n]);"
         "  expect((await C.circuits.foo(Ctxt, [false, true, false, true, false])).result).toEqual([0n, 3n, 0n, 7n, 0n]);"
         "  await expect(C.circuits.foo(Ctxt, [])).rejects.toThrow(runtime.CompactError);"
@@ -80770,7 +81844,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false, true, false, true])).result).toEqual(15n);"
         "  expect((await C.circuits.foo(Ctxt, [false, true, false, true, false])).result).toEqual(10n);"
         "  });"
@@ -80784,7 +81858,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual([2n, 3n, 4n]);"
         "  });"
         ))
@@ -80797,7 +81871,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual([]);"
         "  });"
         ))
@@ -80810,7 +81884,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt,)).result).toEqual(15n);"
         "  });"
         ))
@@ -80826,7 +81900,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [1n, 2n, 3n])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([1n, 2n, 3n]);"
@@ -80844,7 +81918,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [1n, 2n, 3n])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([1n, 2n, 3n]);"
@@ -80862,7 +81936,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -80880,7 +81954,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -80898,7 +81972,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  Ctxt = (await C.circuits.foo(Ctxt, [])).context;"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f1).toEqual([]);"
@@ -80918,7 +81992,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
@@ -80943,7 +82017,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, true]);"
         "  expect(t.result).toEqual(false);"
         "  Ctxt = t.context;"
@@ -81005,7 +82079,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.f17).toEqual(101n);"
         "  expect(L.f32).toEqual(0n);"
@@ -81027,7 +82101,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(34n);"
         "  });"
@@ -81048,7 +82122,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -81069,7 +82143,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -81090,7 +82164,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false)).result).toEqual(47n);"
         "  });"
@@ -81200,7 +82274,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(43n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(47n);"
         "  });"
@@ -81217,7 +82291,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, true, 17n)).result).toEqual([17n, true]);"
         "  });"
         ))
@@ -81238,7 +82312,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, 17n)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, 17n)).result).toEqual(34n);"
         "  });"
@@ -81260,7 +82334,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -81287,7 +82361,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -81311,7 +82385,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, false, true, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([34n, new Uint8Array([97, 100, 105, 111, 115, 33])]);"
         "  expect((await C.circuits.foo(Ctxt, true, false, 17n, new Uint8Array([97, 100, 105, 111, 115, 33]))).result).toEqual([17n, new Uint8Array([104, 101, 108, 108, 111, 33])]);"
@@ -81335,7 +82409,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo1(Ctxt, [false, 17n, true])).result).toEqual([true, false]);"
         "  expect((await C.circuits.foo2(Ctxt, [false, 17n, true])).result).toEqual([true, 17n]);"
         "  expect((await C.circuits.foo3(Ctxt, [false, 17n, true])).result).toEqual([17n, false]);"
@@ -81382,7 +82456,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, context] = await startContract(contractCode, {}, 0);"
+        "  const [C, context] = await startContract(contractCode);"
         "  expect((await C.impureCircuits.foo1(context)).result).toEqual([]);"
         "  expect((await C.impureCircuits.foo2(context)).result).toEqual([]);"
         "  await expect(C.impureCircuits.foo3(context)).rejects.toThrow(runtime.CompactError);"
@@ -81432,7 +82506,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  var { result, context } = await C.circuits.foo1(context);"
         "  expect(result).toEqual([]);"
         "  var { result, context } = await C.circuits.foo2(context);"
@@ -81458,7 +82532,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for lists', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81479,7 +82553,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for lists when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81501,7 +82575,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for maps', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81522,7 +82596,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for maps when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81544,7 +82618,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for sets', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81565,7 +82639,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for sets when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81587,7 +82661,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion succeeds for cells', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81608,7 +82682,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('coin insertion fails informatively for cells when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
+        "  const [C, ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.receiveToken(ctxt, {"
         "    nonce: new Uint8Array(32),"
         "    color: new Uint8Array(32),"
@@ -81628,7 +82702,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, ~dn)).result).toEqual(~:*~dn);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, 1n, ~dn)).result).toEqual(0n);" (max-field))
@@ -81661,7 +82735,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, 1n)).result).toEqual(~dn);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, 0n, 2n)).result).toEqual(~dn-1n);" (max-field))
@@ -81692,7 +82766,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, [0n, 0n, 0n])).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, [5n, 6n, 7n])).result).toEqual(~dn-17n);" (max-field))
         "});"
@@ -81715,8 +82789,8 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow(runtime.CompactError);"
-        ,(format "  await expect(startContract(contractCode, {}, 0)).rejects.toThrow('testfile.compact line 8 char 19: cast from Field or Uint value to smaller Uint value failed: ~d is greater than 65535');" (- (max-field) 17))
+        "  await expect(startContract(contractCode)).rejects.toThrow(runtime.CompactError);"
+        ,(format "  await expect(startContract(contractCode)).rejects.toThrow('testfile.compact line 8 char 19: cast from Field or Uint value to smaller Uint value failed: ~d is greater than 65535');" (- (max-field) 17))
         "});"
         ))
     )
@@ -81731,7 +82805,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, context] = await startContract(contractCode, {}, 0);"
+        "  var [C, context] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(context, 0n, 0n)).result).toEqual(0n);"
         ,(format "  expect((await C.circuits.foo(context, 0n, ~dn)).result).toEqual(0n);" (max-field))
         ,(format "  expect((await C.circuits.foo(context, ~dn, 0n)).result).toEqual(0n);" (max-field))
@@ -81770,7 +82844,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(10n);"
          "  });"
          )))
@@ -81790,7 +82864,7 @@ groups than for single tests.
      (stage-javascript
        '(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(10n);"
          "  });"
          )))
@@ -81800,16 +82874,17 @@ groups than for single tests.
   ; was producing an unparenthesized expression sequence between ? and :
   (test
     '(
-      "witness w(x: Boolean): Boolean;"
+      "host test:oracle/w@1.0.0 { w(x: Boolean): Boolean; }"
       "export circuit foo(): Boolean {"
       " return disclose(w(w(true) ? (w(false), w(true)) : w(false)));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { w({privateState}: runtime.WitnessContext<{}, number>, b: boolean): [number, boolean] { return [privateState, true]; } };"
+        "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -81818,16 +82893,17 @@ groups than for single tests.
   ; pm-16064
   (test
     '(
-      "witness w(x: Boolean): Boolean;"
+      "host test:oracle/w@1.0.0 { w(x: Boolean): Boolean; }"
       "export circuit foo(): Boolean {"
       " return disclose(w(w(true) ? w(false) ? w(true) : w(false) : w(false)));"
       "}"
       )
     (stage-javascript
       '(
-        "const witnesses = { w({privateState}: runtime.WitnessContext<{}, number>, b: boolean): [number, boolean] { return [privateState, true]; } };"
+        "const oracle = { 'test:oracle/w@1.0.0': { w: (_ctx: any, b: boolean) => true } };"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(true);"
         "  });"
         ))
@@ -81855,7 +82931,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "  });"
         ))
@@ -81873,7 +82949,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n, 17n, 19n])).result).toEqual(17n);"
         "  });"
         ))
@@ -81889,7 +82965,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -81906,7 +82982,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [7n, 11n, 13n, 17n, 19n]);"
         "  expect(t.result).toEqual([]);"
         "  Ctxt = t.context;"
@@ -81925,7 +83001,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -81940,7 +83016,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  var a = Array.from({ length: 5 }, (v, i) => i+1);"
         "  expect(a).toEqual([1,2,3,4,5]);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual([1n,2n,3n,4n,5n]);"
@@ -81962,7 +83038,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (field-bytes))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -81983,7 +83059,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (field-bytes) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -82004,7 +83080,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (* (field-bytes) 2) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array(a))).result).toEqual(a.map((t) => BigInt(t)));"
@@ -82023,7 +83099,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -82038,7 +83114,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7,8,9,10]));"
         "  });"
         ))
@@ -82055,7 +83131,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [1n,2n,3n,4n,5n,6n,7n,8n,9n,10n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7,8,9,10]));"
         "  });"
         ))
@@ -82074,7 +83150,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (- (field-bytes) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -82095,7 +83171,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (field-bytes))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -82116,7 +83192,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "const k = ~d\n" (+ (* (field-bytes) 2) 1))
         "  var a = Array.from({ length: k }, (v, i) => i+1);"
         "  expect((await C.circuits.foo(Ctxt, a.map((t) => BigInt(t)))).result).toEqual(new Uint8Array(a));"
@@ -82146,7 +83222,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n])).result).toEqual(3n);"
         "  });"
         ))
@@ -82162,7 +83238,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [])).result).toEqual([]);"
         "  });"
         ))
@@ -82190,7 +83266,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([5n]);"
         "  });"
         ))
@@ -82206,7 +83282,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n, 11n, 13n, 17n])).result).toEqual([7n, 11n]);"
         "  });"
         ))
@@ -82224,7 +83300,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -82246,7 +83322,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -82269,7 +83345,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
@@ -82291,7 +83367,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
@@ -82312,7 +83388,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n, 11n, 13n, 17n])).result).toEqual([3n, 7n, 11n, 17n]);"
         "  });"
         ))
@@ -82330,7 +83406,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -82367,7 +83443,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 15n, 16n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 31n];"
         "  const q3 = [0n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 15n, 16n];"
@@ -82393,7 +83469,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  // TypeScript assigns type bigint[] to q1 then complains that it might not have enough elemenets for foo's tuple argument, so we have to cast it explicitly to a tuple of bigints."
         "  // In other words, to TypeScript, [expr, ..., expr] is always an array, and if the elements have different types, it is an array of some union type."
@@ -82418,7 +83494,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  // stupid semicolon insertion doesn't allow this:"
         "  /*"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n]"
@@ -82451,7 +83527,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -82474,7 +83550,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const q2 = [0n, 4n, 5n, 15n, 16n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
@@ -82495,7 +83571,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, []);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -82514,7 +83590,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, []);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -82535,7 +83611,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([{a: 9n, b: true}, {a: 11n, b: true}, {a: 9999n, b: false}]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -82594,7 +83670,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([{a: 5n, b: true}, {a: 3n, b: true}, {x: new Uint8Array([0x7a, 0x79, 0x78])}]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -82615,7 +83691,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 5n, 7n, 9n, 11n, 7n, 9n, 11n]);"
         "  });"
@@ -82634,7 +83710,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 5n, 7n, 9n, 11n, 7n, 9n, 11n]);"
         "  });"
@@ -82652,7 +83728,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n], [7n, 9n]);"
         "  expect(t.result).toEqual([3n, 5n, 7n, 9n]);"
         "  });"
@@ -82670,7 +83746,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n], [7n, 9n], 11n);"
         "  expect(t.result).toEqual([3n, 5n, 11n, 7n, 9n]);"
         "  });"
@@ -82691,7 +83767,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -82712,7 +83788,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -82733,7 +83809,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -82754,7 +83830,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.test(Ctxt, 2n, 3n);"
         "  expect(t.result).toEqual(1n);"
         "  });"
@@ -82846,7 +83922,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([true, 0n]);"
         "  });"
@@ -82872,7 +83948,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([false, 0n]);"
         "  });"
@@ -82883,7 +83959,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness getData(): Field;"
+      "host test:oracle/get-data@1.0.0 { getData(): Field; }"
       "ledger hash: Field;"
       ""
       "export circuit test(): Field {"
@@ -82894,15 +83970,15 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness getData at line 3 char 1" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the argument to transientHash at line 8 char 12\n      the right-hand side of = at line 8 char 10"))))
+      irritants: '("testfile.compact line 8 char 10" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function getData at line 3 char 35" ("\n    nature of the disclosure:\n      ledger operation might disclose a hash of the witness value\n    via this path through the program:\n      the argument to transientHash at line 8 char 12\n      the right-hand side of = at line 8 char 10"))))
     )
 
   (test
     '(
       "import CompactStandardLibrary;"
       ""
-      "witness getData(): Field;"
-      "witness getRandomness(): Field;"
+      "host test:oracle/get-data@1.0.0 { getData(): Field; }"
+      "host test:oracle/get-randomness@1.0.0 { getRandomness(): Field; }"
       "ledger hash: Field;"
       ""
       "export circuit test(): Field {"
@@ -82913,12 +83989,10 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses = {"
-        "  getData({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 37n]; },"
-        "  getRandomness({privateState}: runtime.WitnessContext<any, number>): [number, bigint] { return [privateState, 59n]; },"
-        "  };"
+        "const oracle = { 'test:oracle/get-data@1.0.0': { getData: () => 37n }, 'test:oracle/get-randomness@1.0.0': { getRandomness: () => 59n } };"
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  var [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle);"
         "  const t = await C.circuits.test(Ctxt);"
         "  expect(typeof(t.result)).toEqual('bigint');"
         "  });"
@@ -82934,7 +84008,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4,5,6,7,8,9,10]))).result).toEqual([1n,2n,3n,4n,5n,6n,7n,8n,9n,10n]);"
         "  });"
         ))
@@ -82949,7 +84023,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([]))).result).toEqual([]);"
         "  });"
         ))
@@ -82964,7 +84038,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1,2,3,4]))).result).toEqual([1n,2n,3n,4n,17n,60000n,1n,2n,3n,4n]);"
         "  });"
         ))
@@ -82981,7 +84055,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -82999,7 +84073,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -83018,7 +84092,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -83037,7 +84111,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -83056,7 +84130,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -83074,7 +84148,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n, [12n, 14n]);"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 12, 14]));"
         "  });"
@@ -83092,7 +84166,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, 5n, 7n, 9n, new Array(1000).fill(37n));"
         "  expect(t.result.length).toEqual(1003);"
         "  });"
@@ -83110,7 +84184,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  });"
@@ -83129,7 +84203,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  let L = contractCode.ledger(t.context.callContext.currentQueryContext.state);"
@@ -83151,7 +84225,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([new Uint8Array([5, 7, 9, 11, 13]), 19n]);"
         "  });"
@@ -83171,7 +84245,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(new Uint8Array([5, 7, 9, 11, 13, 21, 15, 17, 19]));"
         "  });"
@@ -83193,7 +84267,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" ls)
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -83215,7 +84289,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -83237,7 +84311,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -83303,7 +84377,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, [~{~dn~^, ~}]);" (reverse (iota input-size)))
         ,(format "  expect(t.result).toEqual(new Uint8Array([~{~d~^, ~}]));" (list-head (list-tail ls start-index) output-size))
         "  });"
@@ -83333,7 +84407,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10).fill(37));"
         "  expect(t.result).toEqual(new Uint8Array([255, 37, 37, 37, 37, 37, 37, 37, 37, 0]));"
         "  });"
@@ -83351,7 +84425,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  await expect(C.circuits.foo(Ctxt, new Array(10).fill(256n))).rejects.toThrow(runtime.CompactError);"
@@ -83371,7 +84445,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10).fill(255n));"
         "  expect(t.result).toEqual(new Uint8Array([254, 255, 255, 255, 255, 255, 255, 255, 255, 0]));"
         "  await expect(C.circuits.foo(Ctxt, new Array(10).fill(256n))).rejects.toThrow(runtime.CompactError);"
@@ -83481,7 +84555,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -83497,7 +84571,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -83513,7 +84587,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(10000).fill(37n));"
         "  expect(t.result.length).toEqual(7000);"
         "  });"
@@ -83581,7 +84655,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Array(1000).fill(37n));"
         "  expect(t.result.length).toEqual(70);"
         "  });"
@@ -83599,7 +84673,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -83617,7 +84691,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -83648,7 +84722,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83680,7 +84754,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -83699,7 +84773,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -83718,7 +84792,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([4n, 6n, 8n, 10n, 12n, 14n, 16n, 18n, 20n, 22n]);"
         "  });"
@@ -83751,7 +84825,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83783,7 +84857,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -83801,7 +84875,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -83832,7 +84906,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -83876,7 +84950,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83894,7 +84968,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83912,7 +84986,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -83957,7 +85031,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -83976,7 +85050,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -84009,7 +85083,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([8n, 14n, 20n, 26n, 32n, 28n, 34n, 40n, 46n, 52n]);"
         "  });"
@@ -84056,7 +85130,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84075,7 +85149,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84094,7 +85168,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84142,7 +85216,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -84163,7 +85237,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -84181,7 +85255,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -84225,7 +85299,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84243,7 +85317,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array(10000).fill(37), new Array(5000).fill(41n), new Uint8Array(10000).fill(43));"
         "  expect(t.result.length).toEqual(10000);"
         "  });"
@@ -84264,7 +85338,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([11n, 23n, 35n, 47n, 59n, 61n, 73n, 85n, 97n, 109n]);"
         "  });"
@@ -84317,7 +85391,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([]);"
         "  });"
@@ -84335,7 +85409,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -84353,7 +85427,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -84384,7 +85458,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -84416,7 +85490,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -84435,7 +85509,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(137n);"
         "  });"
@@ -84468,7 +85542,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -84513,7 +85587,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84531,7 +85605,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84575,7 +85649,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -84620,7 +85694,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 4, 6, 8, 10]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84639,7 +85713,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84686,7 +85760,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -84721,7 +85795,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -84740,7 +85814,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -84771,7 +85845,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84789,7 +85863,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84833,7 +85907,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]), [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -84878,7 +85952,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [2n, 4n, 6n, 8n, 10n]);"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84897,7 +85971,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(23549n);"
         "  });"
@@ -84944,7 +86018,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n, 13n, 15n, 17n, 19n, 21n], new Uint8Array([1, 3, 5, 7, 9, 11, 13, 15, 17, 19]));"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -84979,7 +86053,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(16738n);"
         "  });"
@@ -84998,7 +86072,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, [3n, 5n, 7n, 9n, 11n, 13n, 15n, 17n, 19n, 21n]);"
         "  expect(t.result).toEqual(7n);"
         "  });"
@@ -85016,7 +86090,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(5095n);"
         "  });"
@@ -85048,7 +86122,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(5095n);"
         "  });"
@@ -85080,7 +86154,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([]));"
         "  expect(t.result).toEqual(0n);"
         "  });"
@@ -85112,7 +86186,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(0n);"
         "  });"
@@ -85148,7 +86222,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([3, 5, 7, 9, 11, 13, 15, 17, 19, 21]));"
         "  expect(t.result).toEqual(59037n);"
         "  });"
@@ -85233,7 +86307,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual(4565826117n);"
         "  });"
@@ -85320,7 +86394,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         ,(format "  expect(t.result).toEqual(~dn);" (+ (field-bytes) 2 (/ (* size (+ size 1)) 2)))
         "  });"
@@ -85343,7 +86417,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (map add1 (iota size)))
         ,(format "  expect(t.result).toEqual(~dn);" (+ (field-bytes) 2 (/ (* size (+ size 1)) 2)))
         "  });"
@@ -85370,7 +86444,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85400,7 +86474,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85430,7 +86504,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85460,7 +86534,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85490,7 +86564,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85520,7 +86594,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));" (iota N))
         ,(let ([ls (iota N)] [f (lambda (ls) (list-head (list-tail ls I) S))])
            (format "  expect(t.result).toEqual([new Uint8Array([~{~d~^, ~}]), new Uint8Array([~{~d~^, ~}])]);"
@@ -85542,7 +86616,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const t = await C.circuits.foo(Ctxt, new Uint8Array([~{~d~^, ~}]));"
            (reverse (iota 20)))
         ,(format "  expect(t.result).toEqual([~{~a~^, ~}]);"
@@ -85567,7 +86641,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         ,(format "  expect(t.result).toEqual([~{~a~^, ~}]);"
            (let f ([ls (reverse (iota 20))])
@@ -85705,7 +86779,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));"
         "  expect(t.result).toEqual(new Uint8Array([5, 6, 37, 37, 8, 9, 10]));"
         "  });"
@@ -85726,7 +86800,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt, new Uint8Array([2, 3, 4, 5, 6, 7, 8, 9, 10, 11]));"
         "  expect(t.result).toEqual(new Uint8Array([0, 0, 0, 0, 0, 0, 0]));"
         "  });"
@@ -85746,7 +86820,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const t = await C.circuits.foo(Ctxt);"
         "  expect(t.result).toEqual([0n, 0n]);"
         "  });"
@@ -85827,7 +86901,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.boolean$foo(Ctxt, true)).result).toEqual(true);"
         "  expect((await C.circuits.field$foo(Ctxt, 37n)).result).toEqual(37n);"
         "  expect((await C.circuits.uint16$foo(Ctxt, 73n)).result).toEqual(73n);"
@@ -85863,7 +86937,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.field$foo(Ctxt, 37n)).result).toEqual(37n);"
         "  expect((await C.circuits.uint16$foo(Ctxt, 73n)).result).toEqual(73n);"
         "  expect((await C.circuits.vector16$foo(Ctxt, [17n, 23n, 29n, 31n, 37n])).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
@@ -85896,26 +86970,26 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const v1 = [[1n, 3n, 5n], [7n, 9n, 11n]];"
         "  expect((await C.circuits.v1$foo(Ctxt, v1)).result).toEqual(v1);"
         "  });"
         "test('check 2', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v2 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
         "  expect((await C.circuits.v2$foo(Ctxt, <any>v2)).result).toEqual(v2);"
         "  });"
         "test('check 3', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v3 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
         "  expect((await C.circuits.v3$foo(Ctxt, <any>v3)).result).toEqual(v3);"
         "  });"
         "test('check 4', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  const e = 1;"
         "  const s = {x: true, y: [37n, 'e=mc^2']};"
         "  const v4 = [[[e, 1n, s], [e, 3n, s], [e, 5n, s]], [[e, 7n, s], [e, 9n, s], [e, 11n, s]]];"
@@ -86064,7 +87138,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -86081,7 +87155,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -86098,7 +87172,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([17, 23, 29, 31, 37]))).result).toEqual([17n, 23n, 29n, 31n, 37n]);"
         "  });"
         ))
@@ -86122,7 +87196,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -86150,7 +87224,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -86179,7 +87253,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -86208,7 +87282,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0n)).result).toEqual(0);"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual(1);"
         "  expect((await C.circuits.foo(Ctxt, 2n)).result).toEqual(2);"
@@ -86232,7 +87306,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1, 3, 0, 2]);"
         "  });"
         ))
@@ -86251,7 +87325,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -86274,7 +87348,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -86297,7 +87371,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -86320,7 +87394,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0)).result).toEqual(0n);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual(1n);"
         "  expect((await C.circuits.foo(Ctxt, 2)).result).toEqual(2n);"
@@ -86345,7 +87419,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -86363,7 +87437,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -86381,7 +87455,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([1n, 0n, 3n, 2n]);"
         "});"
         ))
@@ -86399,7 +87473,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt)).rejects.toThrow('testfile.compact line 4 char 56: cast from enum E to Uint<0..3> failed: enum value 3 is greater than 2');"
         "});"
@@ -86418,7 +87492,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
@@ -86438,7 +87512,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x0201n)).result).toEqual(new Uint8Array([ 1, 2, 0 ]));"
         "  expect((await C.circuits.foo(Ctxt, 0x030201n)).result).toEqual(new Uint8Array([ 1, 2, 3 ]));"
         "  await expect(C.circuits.foo(Ctxt, 0x04030201n)).rejects.toThrow(runtime.CompactError);"
@@ -86459,7 +87533,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn);" #x09080706)
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 52435875175126190479447740508185965837690552500527637822603658699938581184512 of Field type');"
@@ -86478,7 +87552,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, new Uint8Array([6,7,8,9,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]))).result).toEqual(~dn);" #x09080706)
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, new Uint8Array([9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4]))).rejects.toThrow('range error at testfile.compact line 3 char 7: byte vector [9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4,3,2,1,9,8,7,6,5,4] exceeds maximum value 4294967295 of Uint<0..4294967296> type');"
@@ -86497,7 +87571,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -86514,7 +87588,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -86549,7 +87623,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(170n);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual(170n);"
         "});"
@@ -86569,7 +87643,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9a(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -86588,7 +87662,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9b(Ctxt, new Uint8Array([20, 30]))).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -86607,7 +87681,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9c(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -86626,7 +87700,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9d(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -86644,7 +87718,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9e(Ctxt)).result).toEqual(30n);"
         "});"
         ))
@@ -86662,7 +87736,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9f(Ctxt)).result).toEqual(new Uint8Array([20, 30]));"
         "});"
         ))
@@ -86683,7 +87757,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -86704,7 +87778,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(10n);"
         "});"
         ))
@@ -86726,7 +87800,7 @@ groups than for single tests.
    (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(10n);"
         "});"
         ))
@@ -86747,7 +87821,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n, 20n, 30n, 40n]);"
         "});"
         ))
@@ -86769,7 +87843,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n, 20n, 30n, 40n]);"
         "});"
         ))
@@ -86790,7 +87864,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([10n ,20n, 30n, 40n]);"
         "});"
         ))
@@ -86811,7 +87885,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([40n, [10n ,20n, 30n, 40n]]);"
         "});"
         ))
@@ -86832,7 +87906,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -86854,7 +87928,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -86875,7 +87949,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(100n);"
         "});"
         ))
@@ -86895,7 +87969,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([3n]);"
         "});"
         ))
@@ -86915,7 +87989,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, new Uint8Array([9, 8, 7, 6, 5, 4, 3, 2, 1, 0]))).result).toEqual([1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 0n]);"
         "});"
         ))
@@ -86972,7 +88046,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -86994,7 +88068,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -87015,7 +88089,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual(34n);"
         "});"
         ))
@@ -87038,7 +88112,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(34n);"
         "  expect((await C.circuits.peter(Ctxt, 17n)).result).toEqual(34n);"
         "  expect((await C.circuits.paul(Ctxt, 17n)).result).toEqual(34n);"
@@ -87075,7 +88149,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt, 17n)).result).toEqual([51n, 34n]);"
         "});"
         ))
@@ -87092,7 +88166,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(true);"
         "});"
         ))
@@ -87112,7 +88186,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test(Ctxt)).result).toEqual(contractCode.Status.Active);"
         "});"
         ))
@@ -87163,7 +88237,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.test9(Ctxt)).result).toEqual(123456789n);"
         "});"
         ))
@@ -87184,45 +88258,42 @@ groups than for single tests.
       '(
         "import type * as __compactRuntime from '@midnight-ntwrk/compact-runtime';"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: bigint): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: bigint): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -87244,46 +88315,43 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: U32;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -87305,46 +88373,43 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: U32;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -87365,44 +88430,41 @@ groups than for single tests.
         ""
         "export type U32 = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  foo(x_0: U32): bigint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: U32): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: U32): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 101n)).result).toEqual(101n);"
         "});"
         ))
@@ -87427,46 +88489,43 @@ groups than for single tests.
         ""
         "export type T = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, x_0: S): Promise<__compactRuntime.CircuitResults<PS, S>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, x_0: S): Promise<__compactRuntime.CircuitResults<S>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: S;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: 101n })).result).toEqual({ x: 101n });"
         "});"
         ))
@@ -87486,7 +88545,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: 101n })).result).toEqual({ x: 101n });"
         "});"
         ))
@@ -87514,46 +88573,43 @@ groups than for single tests.
         ""
         "export type V3U16 = VU16;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>, v_0: V3U16): Promise<__compactRuntime.CircuitResults<PS, bigint>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext, v_0: V3U16): Promise<__compactRuntime.CircuitResults<bigint>>;"
         "}"
         ""
         "export type Ledger = {"
         "  readonly F: V3U16;"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual(103n);"
         "});"
         ))
@@ -87571,7 +88627,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt)).result).toEqual(~dn);" (max-field))
         "});"
         ))
@@ -87589,7 +88645,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt)).result).toEqual(~dn);" (max-field))
         "});"
         ))
@@ -87639,7 +88695,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, 11n)).result).toEqual([28n, 6n, 187n, false, false]);"
         "  expect((await C.circuits.foo(Ctxt, 11n, 11n)).result).toEqual([22n, 0n, 121n, false, true]);"
         "  await expect(C.circuits.foo(Ctxt, 17n, 19n)).rejects.toThrow(runtime.CompactError);"
@@ -87700,7 +88756,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n, 11n)).result).toEqual([28n, 6n, 187n]);"
         "});"
         ))
@@ -87722,7 +88778,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(13n);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(11n);"
@@ -87747,7 +88803,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, false)).result).toEqual(17n);"
         "  expect((await C.circuits.foo(Ctxt, false, true)).result).toEqual(13n);"
         "  expect((await C.circuits.foo(Ctxt, true, false)).result).toEqual(11n);"
@@ -87767,7 +88823,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {x: 17n})).result).toEqual(19n);"
         "});"
         ))
@@ -87784,7 +88840,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, {x: 17n})).result).toEqual(19n);"
         "});"
         ))
@@ -87801,7 +88857,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1)).result).toEqual([1, 0, 1, 2]);"
         "});"
         ))
@@ -87835,7 +88891,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -87856,7 +88912,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -87878,7 +88934,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -87900,7 +88956,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([true, 7n, 4n]);"
         "});"
         ))
@@ -87921,7 +88977,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -87942,7 +88998,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, 3n], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -87964,7 +89020,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -87986,7 +89042,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [true, false], [5n, 7n, 9n], new Uint8Array([0, 1, 4, 9]))).result).toEqual([[true], [7n], new Uint8Array([4])]);"
         "});"
         ))
@@ -88006,7 +89062,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
         "  await expect(C.circuits.foo(Ctxt, 0x12345678n)).rejects.toThrow(runtime.CompactError);"
         "});"
@@ -88027,7 +89083,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 0x1234n)).result).toEqual({ x: 0x1234n });"
         "  await expect(C.circuits.foo(Ctxt, 0x12345678n)).rejects.toThrow(runtime.CompactError);"
         "});"
@@ -88046,7 +89102,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  await expect(C.circuits.foo(Ctxt, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(C.circuits.foo(Ctxt, 0n)).rejects.toThrow('failed assert: oops');"
         "  expect((await C.circuits.foo(Ctxt, 1n)).result).toEqual([]);"
@@ -88065,7 +89121,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
         "});"
         ))
@@ -88082,7 +89138,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
         "});"
         ))
@@ -88099,7 +89155,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, 5n, 7n])).result).toEqual([3n, 5n, 7n, 3n, 5n, 7n]);"
         "});"
         ))
@@ -88116,7 +89172,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [3n, true, new Uint8Array([1, 2, 3])])).result).toEqual([3n, true, new Uint8Array([1, 2, 3]), 3n, true, new Uint8Array([1, 2, 3])]);"
         "});"
         ))
@@ -88137,7 +89193,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
         "});"
         ))
@@ -88158,7 +89214,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, new Uint8Array([1, 2, 3, 4, 5, 6, 7]))).result).toEqual(new Uint8Array([5, 6, 7, 1, 2, 3, 4]));"
         "});"
         ))
@@ -88179,7 +89235,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 1n, 0n)).result).toEqual([1, 0]);"
         "});"
         ))
@@ -88204,7 +89260,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n])).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n])).result).toEqual(false);"
         "  expect((await C.circuits.mt(Ctxt)).result).toEqual([0n, 0n, 0n]);"
@@ -88231,7 +89287,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 103n, 107n])).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n], [101n, 104n, 107n])).result).toEqual(false);"
         "  expect((await C.circuits.mt(Ctxt)).result).toEqual([0n, 0n, 0n]);"
@@ -88260,7 +89316,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true })).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false })).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true })).result).toEqual(false);"
@@ -88290,7 +89346,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: true })).result).toEqual(true);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 107n], b: false })).result).toEqual(false);"
         "  expect((await C.circuits.foo(Ctxt, { x: [101n, 103n, 107n], b: true }, { x: [101n, 103n, 108n], b: true })).result).toEqual(false);"
@@ -88313,7 +89369,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual([202n, 206n, 214n]);"
         "});"
         ))
@@ -88333,7 +89389,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [101n, 103n, 107n])).result).toEqual([202n, 206n, 214n]);"
         "});"
         ))
@@ -88353,7 +89409,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n])).result).toEqual(35n);"
         "});"
         ))
@@ -88373,7 +89429,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [7n, 11n, 13n])).result).toEqual(35n);"
         "});"
         ))
@@ -88392,7 +89448,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 17n)).result).toEqual(18n);"
         "});"
         ))
@@ -88414,7 +89470,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -88436,7 +89492,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -88458,7 +89514,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 3n)).result).toEqual(7n);"
         "});"
         ))
@@ -88479,7 +89535,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual([0, 1, 2]);"
         "});"
         ))
@@ -88500,7 +89556,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(14n);"
         "});"
         ))
@@ -88522,7 +89578,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  let L = contractCode.ledger(Ctxt.callContext.currentQueryContext.state);"
         "  expect(L.x).toEqual(63n);"
         "});"
@@ -88543,7 +89599,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([]);"
         "});"
         ))
@@ -88563,7 +89619,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect((await C.circuits.foo(Ctxt, p)).result).toEqual([p.y, p.x]);"
@@ -88585,7 +89641,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  // NB: assumes the representation of JubjubPoint current as of the creation of this test"
         "  const p = runtime.ecMulGenerator(1n);"
         "  expect((await C.circuits.foo(Ctxt, p)).result).toEqual({ x: p.x, y: p.y });"
@@ -88612,38 +89668,35 @@ groups than for single tests.
         ""
         "export type SY<T> = { curidx: bigint };"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -88652,8 +89705,8 @@ groups than for single tests.
       ""
       "export ledger count: Counter;"
       ""
-      "witness get_a(): Uint<8>;"
-      "witness get_b(): Uint<8>;"
+      "host test:oracle/get-a@1.0.0 { get_a(): Uint<8>; }"
+      "host test:oracle/get-b@1.0.0 { get_b(): Uint<8>; }"
       ""
       "export circuit test1(): Boolean {"
       "  count.increment(1);"
@@ -88666,15 +89719,16 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "const witnesses1 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; } };"
-        "const witnesses2 = { get_a({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 10n]; }, get_b({privateState}: runtime.WitnessContext<{}, number>): [number, bigint] { return [privateState, 3n]; } };"
+        "const oracle = (a: bigint, b: bigint) => ({ 'test:oracle/get-a@1.0.0': { get_a: () => a }, 'test:oracle/get-b@1.0.0': { get_b: () => b } });"
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses1, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle(3n, 10n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(false);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(true);"
         "});"
         "test('check 2', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, witnesses2, 0);"
+        "  const [C, Ctxt0] = await startContract(contractCode);"
+        "  const Ctxt = withHostInterfaces(Ctxt0, oracle(10n, 3n));"
         "  expect((await C.circuits.test1(Ctxt)).result).toEqual(true);"
         "  expect((await C.circuits.test2(Ctxt)).result).toEqual(false);"
         "});"
@@ -88714,7 +89768,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88725,7 +89779,7 @@ groups than for single tests.
         "  expect(t.result).toEqual(3n);"
         "});"
         "test('check 2', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88736,7 +89790,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter2(t.context, true, 8n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 3', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88745,7 +89799,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter1(t.context, true, 8n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 4', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88753,14 +89807,14 @@ groups than for single tests.
         "  await expect(C.circuits.incrementNestedCounter2(t.context, true, 8n, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 5', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  // increment using an uninitialized Counter"
         "  await expect(C.circuits.incrementNestedCounter1(t.context, true, 8n, 1n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 6', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88771,7 +89825,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter2(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 7', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88780,7 +89834,7 @@ groups than for single tests.
         "  await expect(C.circuits.readNestedCounter1(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 8', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  t = await C.circuits.incrementNestedCounter1(t.context, true, 7n, 1n);"
@@ -88788,14 +89842,14 @@ groups than for single tests.
         "  await expect(C.circuits.incrementNestedCounter2(t.context, false, 7n, 2n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 9', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  t = await C.circuits.initNestedCounter(t.context, true, 7n);"
         "  // insert using an uninitialized Map"
         "  await expect(C.circuits.incrementNestedCounter1(t.context, false, 7n, 1n)).rejects.toThrow(runtime.CompactError);"
         "});"
         "test('check 10', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  var [C, Ctxt] = await startContract(contractCode);"
         "  var t = await C.circuits.initNestedMap(Ctxt, true);"
         "  // insert using an uninitialized Map"
         "  await expect(C.circuits.initNestedCounter(t.context, false, 7n)).rejects.toThrow(runtime.CompactError);"
@@ -88820,7 +89874,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual(3628800n);"
         "});"
         ))
@@ -88851,7 +89905,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt)).result).toEqual([42n, 42n]);"
         "  expect((await C.circuits.bar(Ctxt)).result).toEqual([0n, 0n]);"
         "});"
@@ -88873,7 +89927,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('elliptic curve negation', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const g = runtime.ecMulGenerator(1n);"
         "  const neg = runtime.ecNeg(g);"
         "  expect((await contract.circuits.foo(context, g)).result).toEqual(neg);"
@@ -88898,7 +89952,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, 5n)).result).toEqual(5n);"
         "  expect((await C.circuits.foo(Ctxt, 256n)).result).toEqual(0n);"
         "  });"
@@ -88921,7 +89975,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, false, 0x12345671234567n)).result).toEqual(new Uint8Array([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));"
         "  expect((await C.circuits.foo(Ctxt, false, 0x100000000000000n)).result).toEqual(new Uint8Array([0x0, 0x0, 0x0, 0x0, 0x0, 0x0, 0x0]));"
         "  expect((await C.circuits.foo(Ctxt, true, 0x12345671234567n)).result).toEqual(new Uint8Array([0x67, 0x45, 0x23, 0x71, 0x56, 0x34, 0x12]));"
@@ -88951,7 +90005,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" no zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
@@ -88982,7 +90036,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" no zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
@@ -89012,7 +90066,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
         "  });"
@@ -89040,7 +90094,7 @@ groups than for single tests.
      (stage-javascript
        `(
          "test('check 1', async () => {"
-         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+         "  const [C, Ctxt] = await startContract(contractCode);"
          ,(format "  expect((await C.circuits.foo(Ctxt, false, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes zero*)
          ,(format "  expect((await C.circuits.foo(Ctxt, true, 0x~xn)).result).toEqual(new Uint8Array([~{0x~x~^, ~}]));" yes yes*)
          "  });"
@@ -89063,7 +90117,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
         ))
@@ -89089,7 +90143,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* yes)
         "  });"
@@ -89116,7 +90170,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  expect((await C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* yes)
         "  });"
@@ -89143,7 +90197,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -89170,7 +90224,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -89197,7 +90251,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  expect((await C.circuits.foo(Ctxt, false, new Uint8Array([~{0x~x~^, ~}]))).result).toEqual(0x~xn);" yes* 0)
         ,(format "  await expect(C.circuits.foo(Ctxt, true, new Uint8Array([~{0x~x~^, ~}]))).rejects.toThrow(runtime.CompactError);" yes*)
         "  });"
@@ -89221,7 +90275,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, true, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([0x12, 0x34, 0x56, 0x78, 0x91, 0x23, 0x45]));"
         "  expect((await C.circuits.foo(Ctxt, false, [0x12n, 0x34n, 0x56n, 0x78n, 0x91n, 0x23n, 0x45n])).result).toEqual(new Uint8Array([1,2,3,4,5,6,7]));"
         "  });"
@@ -89263,7 +90317,7 @@ groups than for single tests.
     (stage-javascript
       `(
         "test('JubjubScalar casts', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.testFtoJ(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
         "  expect((await C.circuits.testFtoJ(Ctxt, 1000n)).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
@@ -89346,7 +90400,7 @@ groups than for single tests.
       )
     (stage-javascript
       `("test('JubjubScalar equality', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         ,(format "  const MAX_JUBJUB_SCALAR = ~dn;" (max-jubjub-scalar))
         "  expect((await C.circuits.equals(Ctxt, 0n, 0n)).result).toEqual(true);"
         "  expect((await C.circuits.equals(Ctxt, 0n, 1000n)).result).toEqual(false);"
@@ -89730,7 +90784,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.serialize_vector(Ctxt, [0x31n, 0x43n, 0x7fn, 0xffn])).result).toEqual(new Uint8Array([0x31, 0x43, 0x7f, 0xff]));"
         "  });"
         ))
@@ -89890,7 +90944,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
+      "host test:oracle/bar@1.0.0 { bar(): Bytes<32>; }"
       "export struct S { F: Field };"
       "export circuit foo (): [] {"
       "  return emit ( disclose (ShieldedSpend {bar()} ));"
@@ -89916,42 +90970,38 @@ groups than for single tests.
         ""
         "export type S = { F: bigint };"
         ""
-        "export type Witnesses<PS> = {"
-        "  bar(context: __compactRuntime.WitnessContext<Ledger, PS>): [PS, Uint8Array];"
+        "export type ImpureCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type ProvableCircuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  foo(context: __compactRuntime.CircuitContext<PS>): Promise<__compactRuntime.CircuitResults<PS, []>>;"
+        "export type Circuits = {"
+        "  foo(context: __compactRuntime.CircuitContext): Promise<__compactRuntime.CircuitResults<[]>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -90057,19 +91107,10 @@ groups than for single tests.
         "const _descriptor_10 = new __compactRuntime.CompactTypeUnsignedInteger(4294967295n, 4);"
         ""
         "export class Contract {"
-        "  witnesses;"
         "  constructor(...args_0) {"
-        "    if (args_0.length !== 1) {"
-        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 1 argument, received ${args_0.length}`);"
+        "    if (args_0.length !== 0) {"
+        "      throw new __compactRuntime.CompactError(`Contract constructor: expected 0 arguments, received ${args_0.length}`);"
         "    }"
-        "    const witnesses_0 = args_0[0];"
-        "    if (typeof(witnesses_0) !== 'object') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor is not an object');"
-        "    }"
-        "    if (typeof(witnesses_0.bar) !== 'function') {"
-        "      throw new __compactRuntime.CompactError('first (witnesses) argument to Contract constructor does not contain a function-valued field named bar');"
-        "    }"
-        "    this.witnesses = witnesses_0;"
         "    this.circuits = {"
         "      foo: async (...args_1) => {"
         "        if (args_1.length !== 1) {"
@@ -90084,6 +91125,7 @@ groups than for single tests.
         "                                     contextOrig_0)"
         "        }"
         "        const context = __compactRuntime.copyCircuitContext(contextOrig_0);"
+        "        __compactRuntime.assertHostInterfaces(context, hostInterfaces, 'foo');"
         "        const partialProofData = {"
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
@@ -90107,9 +91149,6 @@ groups than for single tests.
         "    if (typeof(constructorContext_0) !== 'object') {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'constructorContext' in argument 1 (as invoked from Typescript) to be an object`);"
         "    }"
-        "    if (!('initialPrivateState' in constructorContext_0)) {"
-        "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialPrivateState' in argument 1 (as invoked from Typescript)`);"
-        "    }"
         "    if (!('initialZswapLocalState' in constructorContext_0)) {"
         "      throw new __compactRuntime.CompactError(`Contract state constructor: expected 'initialZswapLocalState' in argument 1 (as invoked from Typescript)`);"
         "    }"
@@ -90120,7 +91159,7 @@ groups than for single tests.
         "    let stateValue_0 = __compactRuntime.StateValue.newArray();"
         "    state_0.data = new __compactRuntime.ChargedState(stateValue_0);"
         "    state_0.setOperation('foo', new __compactRuntime.ContractOperation());"
-        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data, privateState: constructorContext_0.initialPrivateState});"
+        "    const context = __compactRuntime.createCircuitContext({circuitId: 'constructor', contractAddress: __compactRuntime.dummyContractAddress(), coinPublicKeyOrZswapState: constructorContext_0.initialZswapLocalState.coinPublicKey, contractState: state_0.data});"
         "    const partialProofData = {"
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
@@ -90130,24 +91169,26 @@ groups than for single tests.
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
         "      currentContractState: state_0,"
-        "      currentPrivateState: context.callContext.currentPrivateState,"
         "      currentZswapLocalState: context.callContext.currentZswapLocalState"
         "    }"
         "  }"
         "  _bar_0(context, partialProofData) {"
-        "    const witnessContext_0 = __compactRuntime.createWitnessContext(ledger(context.callContext.currentQueryContext.state), context.callContext.currentPrivateState, context.callContext.currentQueryContext.address);"
-        "    const [nextPrivateState_0, result_0] = this.witnesses.bar(witnessContext_0);"
-        "    context.callContext.currentPrivateState = nextPrivateState_0;"
+        "    const result_0 = __compactRuntime.callHostFunction(context, 'test:oracle/bar@1.0.0', 'bar', []);"
         "    if (!(result_0.buffer instanceof ArrayBuffer && result_0.BYTES_PER_ELEMENT === 1 && result_0.length === 32)) {"
-        "      __compactRuntime.typeError('bar',"
+        "      __compactRuntime.typeError('host function bar of test:oracle/bar@1.0.0',"
         "                                 'return value',"
-        "                                 'testfile.compact line 2 char 1',"
+        "                                 'testfile.compact line 2 char 30',"
         "                                 'Bytes<32>',"
         "                                 result_0)"
         "    }"
-        "    partialProofData.privateTranscriptOutputs.push({"
-        "      value: _descriptor_0.toValue(result_0),"
-        "      alignment: _descriptor_0.alignment()"
+        "    __compactRuntime.recordHostOutput(partialProofData, {"
+        "      interfaceId: 'test:oracle/bar@1.0.0',"
+        "      name: 'bar',"
+        "      args: { value: [], alignment: [] },"
+        "      result: {"
+        "        value: _descriptor_0.toValue(result_0),"
+        "        alignment: _descriptor_0.alignment()"
+        "      }"
         "    });"
         "    return result_0;"
         "  }"
@@ -90160,8 +91201,8 @@ groups than for single tests.
         "                                                                 .arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_10.toValue(1n),"
         "                                                                                                                  alignment: _descriptor_10.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_9.toValue(0n),"
         "                                                                                                                                                                                                            alignment: _descriptor_9.alignment() })).arrayPush(__compactRuntime.StateValue.newCell({ value: _descriptor_0.toValue({ nullifier:"
-        "                                                                                                                                                                                                                                                                                                                                      this._bar_0(context,"
-        "                                                                                                                                                                                                                                                                                                                                                  partialProofData) }.nullifier),"
+        "                                                                                                                                                                                                                                                                                                                                      ((result_0) => { partialProofData.privateTranscriptOutputs.push({ value: _descriptor_0.toValue(result_0), alignment: _descriptor_0.alignment() }); return result_0; })(this._bar_0(context,"
+        "                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         partialProofData)) }.nullifier),"
         "                                                                                                                                                                                                                                                                                                     alignment: _descriptor_0.alignment() }))"
         "                                                                 .encode() } },"
         "                                              'log']);"
@@ -90186,7 +91227,7 @@ groups than for single tests.
         "const _emptyContext = {"
         "  callContext: { currentQueryContext: new __compactRuntime.QueryContext(new __compactRuntime.ContractState().data, __compactRuntime.dummyContractAddress()), currentGasCost: __compactRuntime.emptyRunningCost() }"
         "};"
-        "const _dummyContract = new Contract({ bar: (...args) => undefined });"
+        "const _dummyContract = new Contract();"
         "export const pureCircuits = {};"
         "export const expectedVk = {};"
         ""
@@ -90195,6 +91236,10 @@ groups than for single tests.
         "};"
         ""
         "export const declaredInterfaces = {};"
+        ""
+        "export const hostInterfaces = {"
+        "  'test:oracle/bar@1.0.0': ['bar'],"
+        "};"
         ""
         "//# sourceMappingURL=index.js.map"))
     )
@@ -90224,7 +91269,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x42);"
         "  const r = await C.circuits.emit_one(Ctxt, n);"
         "  expect(Array.isArray(r.context.events)).toBe(true);"
@@ -90232,7 +91277,7 @@ groups than for single tests.
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields (version, eventType, data)', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, new Uint8Array(32));"
         "  const content = r.context.events[0];"
         "  expect(content.version).toBeDefined();"
@@ -90244,25 +91289,25 @@ groups than for single tests.
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit, no ledger access) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, new Uint8Array(32));"
         "  // Pure circuits use the abbreviated wrapper that omits events"
         "  expect(r.context.events).toEqual([]);"
@@ -90297,13 +91342,13 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('emit inside for emits one event per iteration', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_in_loop(Ctxt, new Uint8Array(32));"
         "  expect(r.context.events.length).toBe(3);"
         "});"
         ""
         "test('emit statement does not affect the circuits return value', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x99);"
         "  const r = await C.circuits.emit_then_return(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
@@ -90311,7 +91356,7 @@ groups than for single tests.
         "});"
         ""
         "test('no emit in body leaves r.result unmodified', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x77);"
         "  const r = await C.circuits.return_then_no_emit(Ctxt, n);"
         "  expect(r.result).toEqual(n);"
@@ -90320,7 +91365,7 @@ groups than for single tests.
         "});"
         ""
         "test('impure circuit with conditional emit emits zero events when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const n = new Uint8Array(32).fill(0x77);"
         "  const r = await C.circuits.no_emit_if_false(Ctxt, false, n);"
         "  expect(r.result).toEqual(n);"
@@ -90347,42 +91392,42 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('serialize_ShieldedSpend returns the nullifier bytes verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0x42);"
         "  const r = await C.circuits.serialize_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toEqual(nullifier);"
         "});"
         ""
         "test('deserialize_ShieldedSpend reconstructs the struct from bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const bytes = new Uint8Array(32).fill(0x55);"
         "  const r = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
         "  expect(r.result.nullifier).toEqual(bytes);"
         "});"
         ""
         "test('round-trip returns true for uniform-byte nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0xAB);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for all-zero nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for all-0xFF nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32).fill(0xFF);"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
         "  expect(r.result).toBe(true);"
         "});"
         ""
         "test('round-trip returns true for non-uniform nullifier', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const nullifier = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) nullifier[i] = (i * 7 + 13) & 0xFF;"
         "  const r = await C.circuits.roundtrip_ShieldedSpend(Ctxt, { nullifier });"
@@ -90390,7 +91435,7 @@ groups than for single tests.
         "});"
         ""
         "test('separate serialize then deserialize yields original struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: new Uint8Array(32).fill(0x7E) };"
         "  const ser = await C.circuits.serialize_ShieldedSpend(Ctxt, orig);"
         "  expect(ser.result).toBeInstanceOf(Uint8Array);"
@@ -90400,7 +91445,7 @@ groups than for single tests.
         "});"
         ""
         "test('deserialize then serialize recovers the original bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const bytes = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) bytes[i] = i * 8;"
         "  const deser = await C.circuits.deserialize_ShieldedSpend(Ctxt, bytes);"
@@ -90409,7 +91454,7 @@ groups than for single tests.
         "});"
         ""
         "test('different nullifiers serialize to different bytes', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const a = { nullifier: new Uint8Array(32).fill(0x01) };"
         "  const b = { nullifier: new Uint8Array(32).fill(0x02) };"
         "  const ra = await C.circuits.serialize_ShieldedSpend(Ctxt, a);"
@@ -90472,13 +91517,13 @@ groups than for single tests.
         "const N512 = () => new Uint8Array(512).fill(0x33);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N512());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N512());"
         "  const content = r.context.events[0];"
         "  expect(content.version).toBe(1);"
@@ -90487,31 +91532,31 @@ groups than for single tests.
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32(), N512());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32(), N512());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32(), N512());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedReceive returns 578-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    contractAddress: { is_some: true, value: N32() },"
@@ -90523,7 +91568,7 @@ groups than for single tests.
         "});"
         ""
         "test('serialize is structural: inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    contractAddress: { is_some: true, value: N32() },"
@@ -90589,43 +91634,43 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedMint returns 81-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
@@ -90636,7 +91681,7 @@ groups than for single tests.
         "});"
         ""
         "test('roundtrip preserves ShieldedMint struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = {"
         "    commitment: N32(),"
         "    domainSep: N32(),"
@@ -90697,50 +91742,50 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_ShieldedBurn returns 49-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: N32(), amount: { is_some: true, value: 100n } };"
         "  const r = await C.circuits.serialize_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result.length).toBe(49);"
         "});"
         ""
         "test('roundtrip preserves ShieldedBurn struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { nullifier: N32(), amount: { is_some: false, value: 0n } };"
         "  const r = await C.circuits.roundtrip_ShieldedBurn(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -90826,50 +91871,50 @@ groups than for single tests.
         "});"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedSpend returns 145-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedSpend inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { sender: senderL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedSpend(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -90955,50 +92000,50 @@ groups than for single tests.
         "});"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedReceive returns 145-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 777n };"
         "  const r = await C.circuits.serialize_UnshieldedReceive(Ctxt, orig);"
         "  expect(r.result.length).toBe(145);"
         "});"
         ""
         "test('serialize is structural: UnshieldedReceive inactive-variant payload is preserved verbatim', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { recipient: recipL(), domainSep: N32(), tokenType: N32(), amount: 555n };"
         "  const r = await C.circuits.roundtrip_UnshieldedReceive(Ctxt, orig);"
         "  // serialize is purely structural — no Either canonicalization."
@@ -91063,50 +92108,50 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_UnshieldedMint returns 80-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { domainSep: N32(), tokenType: N32(), amount: 999n };"
         "  const r = await C.circuits.serialize_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result.length).toBe(80);"
         "});"
         ""
         "test('roundtrip preserves UnshieldedMint struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { domainSep: N32(), tokenType: N32(), amount: 12345n };"
         "  const r = await C.circuits.roundtrip_UnshieldedMint(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -91149,49 +92194,49 @@ groups than for single tests.
         "const N32 = () => new Uint8Array(32).fill(0x42);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_Paused returns 0-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.serialize_Paused(Ctxt, {});"
         "  expect(r.result.length).toBe(0);"
         "});"
         ""
         "test('roundtrip preserves empty Paused struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.roundtrip_Paused(Ctxt, {});"
         "  expect(r.result).toEqual({});"
         "});"
@@ -91234,50 +92279,50 @@ groups than for single tests.
         "const N256 = () => new Uint8Array(256).fill(0x77);"
         ""
         "test('single emit produces exactly one event tagged emit', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('emit event has decoded VersionedEmitItem fields', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_one(Ctxt, N32(), N256());"
         "  expect(r.context.events[0].version).toBe(1);"
         "});"
         ""
         "test('two emit statements produce two events', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.emit_two(Ctxt, N32(), N256());"
         "  expect(r.context.events.length).toBe(2);"
         "});"
         ""
         "test('conditional emit emits when condition is true', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, true, N32(), N256());"
         "  expect(r.context.events.length).toBe(1);"
         "});"
         ""
         "test('conditional emit emits nothing when condition is false', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.cond_emit(Ctxt, false, N32(), N256());"
         "  expect(r.context.events.length).toBe(0);"
         "});"
         ""
         "test('pure circuit (no emit) has no events field', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const r = await C.circuits.no_emit(Ctxt, N32());"
         "  expect(r.context.events).toEqual([]);"
         "});"
         ""
         "test('serialize_Misc returns 288-byte payload', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { name: N32(), payload: N256() };"
         "  const r = await C.circuits.serialize_Misc(Ctxt, orig);"
         "  expect(r.result.length).toBe(288);"
         "});"
         ""
         "test('roundtrip preserves Misc struct', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const orig = { name: N32(), payload: N256() };"
         "  const r = await C.circuits.roundtrip_Misc(Ctxt, orig);"
         "  expect(r.result).toEqual(orig);"
@@ -91321,7 +92366,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('nested equality through aliases', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const s0a = { y: false, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
         "  const s0b = { y: true, x: [ 37n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
         "  const s0c = { y: false, x: [ 73n, new Uint8Array([ 13, 8, 5, 3, 2, 1, 1, 0 ])] };"
@@ -91360,7 +92405,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty tuple', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
         "});"
         ))
@@ -91380,7 +92425,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty vector', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, [])).result).toEqual([]);"
         "});"
         ))
@@ -91400,7 +92445,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('empty byte vector', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, new Uint8Array())).result)"
         "      .toEqual(new Uint8Array());"
         "});"
@@ -91422,7 +92467,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('struct with no fields', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, {})).result).toEqual({});"
         "});"
         ))
@@ -91443,7 +92488,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('enum with one variant', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, 0)).result).toEqual(0);"
         "});"
         ))
@@ -91463,7 +92508,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint<0..1>', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test(context, 0n)).result).toEqual(0n);"
         "});"
         ))
@@ -91488,7 +92533,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Embedded vector of Uint<0..1>', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const embedded = {"
         "    x: 100n,"
         "    y: Array(10).fill(0n),"
@@ -91521,7 +92566,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Uint8Array equality comparison', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const a0 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
         "  const a1 = new Uint8Array([0, 1, 1, 2, 3, 5, 8, 13]);"
         "  // Different length."
@@ -91580,7 +92625,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('nested Uint8Array equality comparison', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const mk = (bytes: number[], tag: bigint) => ({ data: new Uint8Array(bytes), tag });"
         "  const v0 = [mk([0, 1, 1, 2], 10n), mk([3, 5, 8, 13], 20n)];"
         "  // Structurally identical to v0, but every Uint8Array is a distinct object."
@@ -91624,7 +92669,7 @@ groups than for single tests.
   (test
     '(
       "ledger flag: Boolean;"
-      "witness touch(arr: Opaque<'Uint8Array'>): [];"
+      "host test:oracle/touch@1.0.0 { touch(arr: Opaque<'Uint8Array'>): []; }"
       "export circuit mutateBefore(arr0: Opaque<'Uint8Array'>, arr1: Opaque<'Uint8Array'>): Boolean {"
       "  touch(arr0);"
       "  const result = arr0 == arr1;"
@@ -91634,16 +92679,15 @@ groups than for single tests.
       )
     (stage-javascript
       '(
-        "test('witness mutation of an opaque argument before comparison', async () => {"
+        "test('host mutation of an opaque argument before comparison', async () => {"
         "  // The Opaque<'Uint8Array'> descriptor's toValue captures the Uint8Array by"
         "  // reference and the encoding happens at proof finalization, so a mutation"
-        "  // performed by a witness is visible both to the JS comparison and to the"
-        "  // circuit's input.  The two targets must agree that the mutated arr0 equals"
-        "  // arr1."
-        "  const witnesses = {"
-        "    touch: (context: any, arr: Uint8Array): [number, []] => { arr[0] = 99; return [context.privateState, []]; }"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  // performed by a host function is visible both to the JS comparison and to"
+        "  // the circuit's input.  The two targets must agree that the mutated arr0"
+        "  // equals arr1."
+        "  const oracle = { 'test:oracle/touch@1.0.0': { touch: (_ctx: any, arr: Uint8Array): [] => { arr[0] = 99; return []; } } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  const arr0 = new Uint8Array([1, 2, 3, 4]);"
         "  const arr1 = new Uint8Array([99, 2, 3, 4]);"
         "  expect((await contract.circuits.mutateBefore(context, arr0, arr1)).result).toEqual(true);"
@@ -91660,7 +92704,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('argument type checks on JS opaque types', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  expect((await contract.circuits.test0(context, new Uint8Array(32))).result).toEqual([]);"
         "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow(runtime.CompactError);"
         "  await expect(contract.circuits.test0(context, 0n)).rejects.toThrow('type error: ');"
@@ -91693,42 +92737,39 @@ groups than for single tests.
         ""
         "export type JubjubPoint = __compactRuntime.JubjubPoint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "  ecMul(a_0: JubjubPoint, b_0: JubjubScalar): JubjubPoint;"
         "}"
         ""
-        "export type Circuits<PS> = {"
-        "  ecMul(context: __compactRuntime.CircuitContext<PS>,"
+        "export type Circuits = {"
+        "  ecMul(context: __compactRuntime.CircuitContext,"
         "        a_0: JubjubPoint,"
-        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<PS, JubjubPoint>>;"
+        "        b_0: JubjubScalar): Promise<__compactRuntime.CircuitResults<JubjubPoint>>;"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -91748,7 +92789,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Deserializing a Boolean asserts when presented with the serialization of a non-boolean value', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.d1(Ctxt, new Uint8Array([0]))).result).toEqual(false);"
         "  expect((await C.circuits.d1(Ctxt, new Uint8Array([1]))).result).toEqual(true);"
         "  await expect(C.circuits.d1(Ctxt, new Uint8Array([2]))).rejects.toThrow(runtime.CompactError);"
@@ -91782,7 +92823,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
         "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
         "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
@@ -91790,6 +92831,1705 @@ groups than for single tests.
         "});"
         ))
     )
+)
+
+; local state, host functions and cross-contract capsules, end to end; these ran under zkir v3
+; only until the v2 emitter learned local operations, therefore both versions run them now
+(run-tests print-typescript
+  ; local state end to end: join constructor seeds it, a circuit body operates on it directly,
+  ; a local function evolves it, and the result crosses into the proof as a disclosed value
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "local constructor {"
+      "  credits.increment(3);"
+      "}"
+      "local spend(n: Uint<16>): Uint<64> {"
+      "  credits.decrement(1);"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(n: Uint<16>): Uint<64> {"
+      "  total.increment(1);"
+      "  credits.increment(n);"
+      "  return disclose(spend(n));"
+      "}"
+      "export circuit staged(n: Uint<16>): [] {"
+      "  credits.increment(n);"
+      "  kernel.checkpoint();"
+      "  credits.increment(n);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local state evolves across chained calls', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.tick(context, 2n);"
+        "  expect(r1.result).toEqual(4n);"
+        "  const r2 = await contract.circuits.tick(r1.context, 4n);"
+        "  expect(r2.result).toEqual(7n);"
+        "  const L = contractCode.ledger(r2.context.callContext.currentQueryContext.state);"
+        "  expect(L.total).toEqual(2n);"
+        "});"
+        "test('initialLocalState is deterministic', async () => {"
+        "  const a = contractCode.initialLocalState();"
+        "  const b = contractCode.initialLocalState();"
+        "  expect(a.toString()).toEqual(b.toString());"
+        "});"
+        "test('the recorded local transcript folds to the live state', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r = await contract.circuits.tick(context, 2n);"
+        "  const pd = r.context.callProofDataTrace.at(-1)!;"
+        "  const folded = foldedState(foldCall(contractCode.initialLocalState(), pd));"
+        "  const live = r.context.callContext.currentLocalQueryContext!.state.state;"
+        "  expect(folded.toString()).toEqual(live.toString());"
+        "});"
+        "test('a checkpoint splits the local fold', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r = await contract.circuits.staged(context, 5n);"
+        "  const pd = r.context.callProofDataTrace.at(-1)!;"
+        "  const c = pd.publicTranscript.findIndex((op) => (op as unknown) === 'ckpt' || (typeof op === 'object' && op !== null && 'ckpt' in (op as object)));"
+        "  expect(c).toBeGreaterThanOrEqual(0);"
+        "  // the local constructor's guard cell holds index 0 of the local root, so credits is index 1"
+        "  const dec = (sv: runtime.StateValue) => { let v = 0n; const b = sv.asArray()![1].asCell().value[0]; for (let i = b.length - 1; i >= 0; i--) v = (v << 8n) | BigInt(b[i]); return v; };"
+        "  const partial = foldedState(foldCall(contractCode.initialLocalState(), pd, { tag: 'partial', guaranteedLength: c }));"
+        "  const whole = foldedState(foldCall(contractCode.initialLocalState(), pd));"
+        "  const failed = foldedState(foldCall(contractCode.initialLocalState(), pd, { tag: 'failure' }));"
+        "  expect(dec(partial)).toEqual(8n);"
+        "  expect(dec(whole)).toEqual(13n);"
+        "  expect(failed.toString()).toEqual(contractCode.initialLocalState().toString());"
+        "  expect(whole.toString()).toEqual(r.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "});"
+        ))
+    )
+
+  ; a call works on a copy of the context it is given, therefore that context keeps its capsule
+  ; whether the call succeeds or fails, and a second call prepared from it starts there too
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger round: Counter;"
+      "export local tally: Counter;"
+      "export circuit add(n: Uint<16>): [] {"
+      "  tally.increment(n);"
+      "  round.increment(1);"
+      "}"
+      "export circuit addThenRefuse(n: Uint<16>): [] {"
+      "  tally.increment(n);"
+      "  assert(n == 0, 'refused');"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a call leaves the context it was given as it was', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const address = context.callContext.contractAddress;"
+        "  const tallyIn = (c: typeof context) => contractCode.localState(runtime.localStates(c)[address]).tally;"
+        "  const first = await contract.circuits.add(context, 5n);"
+        "  expect(tallyIn(first.context)).toEqual(5n);"
+        "  expect(tallyIn(context)).toEqual(0n);"
+        "  expect(contractCode.localState(context.callContext.currentLocalQueryContext!.state.state).tally).toEqual(0n);"
+        "  const second = await contract.circuits.add(context, 7n);"
+        "  expect(tallyIn(second.context)).toEqual(7n);"
+        "  await expect(contract.circuits.addThenRefuse(context, 3n)).rejects.toThrow(/refused/);"
+        "  expect(tallyIn(context)).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  ; guarded consumption: conditionally executed local operations and local calls, driven
+  ; through both branch polarities and validated against the generated zkir, which a circuit
+  ; has only with a public operation, hence `calls`
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger calls: Counter;"
+      "local bank: Counter;"
+      "local constructor {"
+      "  bank.increment(1);"
+      "}"
+      "local sample(): Uint<64> {"
+      "  return bank.read();"
+      "}"
+      "export circuit maybeBump(b: Boolean, n: Uint<16>): Uint<64> {"
+      "  calls.increment(1);"
+      "  if (b) {"
+      "    bank.increment(n);"
+      "  }"
+      "  return disclose(b ? sample() : 0);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('guarded local operations align with the circuit', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.maybeBump(context, true, 5n);"
+        "  expect(r1.result).toEqual(6n);"
+        "  const r2 = await contract.circuits.maybeBump(r1.context, false, 5n);"
+        "  expect(r2.result).toEqual(0n);"
+        "  const r3 = await contract.circuits.maybeBump(r2.context, true, 1n);"
+        "  expect(r3.result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  ; the rest of the callable surface: a local map with computed keys, a nested ADT reached
+  ; through a path element, local-to-local calls, a pure circuit called from local code, and
+  ; a join constructor that seeds state through a local function
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local balances: Map<Bytes<1>, Uint<64>>;"
+      "local marks: Map<Bytes<1>, Counter>;"
+      "local tag: Counter;"
+      "local constructor {"
+      "  seedTag();"
+      "}"
+      "local seedTag(): [] {"
+      "  tag.increment(7);"
+      "}"
+      "pure circuit floorTen(v: Uint<64>): Uint<64> {"
+      "  return v < 10 ? 10 : v;"
+      "}"
+      "local put(k: Bytes<1>, v: Uint<64>): [] {"
+      "  balances.insert(k, floorTen(v));"
+      "}"
+      "local getOr(k: Bytes<1>): Uint<64> {"
+      "  if (balances.member(k)) {"
+      "    return balances.lookup(k);"
+      "  }"
+      "  return tag.read();"
+      "}"
+      "local mark(k: Bytes<1>): Uint<64> {"
+      "  if (!marks.member(k)) {"
+      "    marks.insertDefault(k);"
+      "  }"
+      "  marks.lookup(k).increment(1);"
+      "  return marks.lookup(k).read();"
+      "}"
+      "export circuit store(k: Bytes<1>, v: Uint<64>): [] {"
+      "  put(k, v);"
+      "}"
+      "export circuit fetch(k: Bytes<1>): Uint<64> {"
+      "  return disclose(getOr(k));"
+      "}"
+      "export circuit stamp(k: Bytes<1>): Uint<64> {"
+      "  return disclose(mark(k));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local maps, nested ADTs, and the local call graph', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const k = new Uint8Array([1]);"
+        "  const k2 = new Uint8Array([2]);"
+        "  const r1 = await contract.circuits.fetch(context, k);"
+        "  expect(r1.result).toEqual(7n);"
+        "  const r2 = await contract.circuits.store(r1.context, k, 3n);"
+        "  const r3 = await contract.circuits.fetch(r2.context, k);"
+        "  expect(r3.result).toEqual(10n);"
+        "  const r4 = await contract.circuits.stamp(r3.context, k2);"
+        "  expect(r4.result).toEqual(1n);"
+        "  const r5 = await contract.circuits.stamp(r4.context, k2);"
+        "  expect(r5.result).toEqual(2n);"
+        "});"
+        ))
+    )
+
+  ; compound types across the circuit-to-local boundary: a struct result is several private
+  ; inputs, so this is the multi-primitive flattening the Counter tests never touch
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct Point { x: Field, y: Field, tag: Boolean };"
+      "local last: Point;"
+      "local remember(p: Point): Point {"
+      "  last = p;"
+      "  return last;"
+      "}"
+      "export circuit roundTrip(p: Point): Point {"
+      "  return disclose(remember(p));"
+      "}"
+      "export circuit lastTag(): Boolean {"
+      "  return disclose(last.tag);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a struct crosses the local boundary intact', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const p = { x: 3n, y: 5n, tag: true };"
+        "  const r1 = await contract.circuits.roundTrip(context, p);"
+        "  expect(r1.result).toEqual(p);"
+        "  const r2 = await contract.circuits.lastTag(r1.context);"
+        "  expect(r2.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; enum and vector cells in the local store, written through the assignment sugar
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum Phase { setup, live, done };"
+      "local phase: Phase;"
+      "local grid: Vector<3, Uint<8>>;"
+      "export circuit start(): [] {"
+      "  phase = Phase.live;"
+      "  grid = [1, 2, 3];"
+      "}"
+      "export circuit started(): Boolean {"
+      "  return disclose(phase == Phase.live);"
+      "}"
+      "export circuit snapshot(): Vector<3, Uint<8>> {"
+      "  return disclose(grid);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('enum and vector local cells', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r0 = await contract.circuits.started(context);"
+        "  expect(r0.result).toEqual(false);"
+        "  const r1 = await contract.circuits.start(r0.context);"
+        "  const r2 = await contract.circuits.started(r1.context);"
+        "  expect(r2.result).toEqual(true);"
+        "  const r3 = await contract.circuits.snapshot(r2.context);"
+        "  expect(r3.result).toEqual([1n, 2n, 3n]);"
+        "});"
+        ))
+    )
+
+  ; a public and a local twin in one circuit: the public insert demands disclose, the
+  ; local one does not, and both stores answer membership independently
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pubSet: Set<Uint<8>>;"
+      "local locSet: Set<Uint<8>>;"
+      "local locList: List<Uint<16>>;"
+      "export circuit addBoth(v: Uint<8>): Boolean {"
+      "  pubSet.insert(disclose(v));"
+      "  locSet.insert(v);"
+      "  return disclose(locSet.member(v));"
+      "}"
+      "export circuit pushTwice(v: Uint<16>): Uint<64> {"
+      "  locList.pushFront(v);"
+      "  locList.pushFront(v);"
+      "  return disclose(locList.length());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('set and list twins across the two stores', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.addBoth(context, 4n);"
+        "  expect(r1.result).toEqual(true);"
+        "  const L = contractCode.ledger(r1.context.callContext.currentQueryContext.state);"
+        "  expect(L.pubSet.member(4n)).toEqual(true);"
+        "  expect(L.pubSet.member(5n)).toEqual(false);"
+        "  const r2 = await contract.circuits.pushTwice(r1.context, 9n);"
+        "  expect(r2.result).toEqual(2n);"
+        "  const r3 = await contract.circuits.pushTwice(r2.context, 9n);"
+        "  expect(r3.result).toEqual(4n);"
+        "});"
+        ))
+    )
+
+  ; a VM fault in local code surfaces as an error, not a wrong answer
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export circuit burn(n: Uint<16>): [] {"
+      "  credits.decrement(n);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('decrementing a local counter below zero faults', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  await expect(contract.circuits.burn(context, 5n)).rejects.toThrow();"
+        "});"
+        ))
+    )
+
+  ; more than 15 local fields forces a nested array on the local root, so the batched
+  ; path machinery runs for the local store
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local c00: Counter;"
+      "local c01: Counter;"
+      "local c02: Counter;"
+      "local c03: Counter;"
+      "local c04: Counter;"
+      "local c05: Counter;"
+      "local c06: Counter;"
+      "local c07: Counter;"
+      "local c08: Counter;"
+      "local c09: Counter;"
+      "local c10: Counter;"
+      "local c11: Counter;"
+      "local c12: Counter;"
+      "local c13: Counter;"
+      "local c14: Counter;"
+      "local c15: Counter;"
+      "local c16: Counter;"
+      "export circuit poke(): Uint<64> {"
+      "  c00.increment(1);"
+      "  c16.increment(2);"
+      "  return disclose(c16.read());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a batched local layout addresses its leaves', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.poke(context);"
+        "  expect(r1.result).toEqual(2n);"
+        "  const r2 = await contract.circuits.poke(r1.context);"
+        "  expect(r2.result).toEqual(4n);"
+        "});"
+        ))
+    )
+
+  ; host functions and local state coexist, a host result flows into the local store with no
+  ; disclose, and a persisted local StateValue restores through CircuitContextOptions
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "host test:oracle/secret@1.0.0 { secret(): Uint<64>; }"
+      "local stash: Uint<64>;"
+      "export circuit save(): [] {"
+      "  stash = secret();"
+      "}"
+      "export circuit reveal(): Uint<64> {"
+      "  return disclose(stash);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const secretOracle = (v: bigint) => ({ 'test:oracle/secret@1.0.0': { secret: () => v } });"
+        "test('a host result enters local state without disclose', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, secretOracle(42n));"
+        "  const r1 = await contract.circuits.save(context);"
+        "  const r2 = await contract.circuits.reveal(r1.context);"
+        "  expect(r2.result).toEqual(42n);"
+        "});"
+        "test('local state round-trips through CircuitContextOptions', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, secretOracle(7n));"
+        "  const r1 = await contract.circuits.save(context);"
+        "  const persisted = r1.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const context2 = runtime.createCircuitContext({"
+        "    circuitId: 'reveal',"
+        "    contractAddress: r1.context.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: r1.context.callContext.currentQueryContext.state,"
+        "    localState: persisted,"
+        "    hostInterfaceProvider: r1.context.hostInterfaceProvider,"
+        "  });"
+        "  const r2 = await contract.circuits.reveal(context2);"
+        "  expect(r2.result).toEqual(7n);"
+        "});"
+        ))
+    )
+
+  ; a local Merkle tree end to end: inserts, the local-read operations (a plain pinned
+  ; read, a snippet with a Maybe, a snippet that throws), a path crossing into the proof
+  ; (proved because `member` has a public operation), and the root pin letting the fold
+  ; catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger checks: Counter;"
+      "local tree: MerkleTree<4, Bytes<8>>;"
+      "local prove(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const m = tree.findPathForLeaf(item);"
+      "  assert(m.is_some, 'leaf not found');"
+      "  return m.value;"
+      "}"
+      "local rootMatches(rt: MerkleTreeDigest): Boolean {"
+      "  return tree.checkRoot(rt) && tree.checkRoot(tree.root());"
+      "}"
+      "local slots(): Uint<64> {"
+      "  return tree.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  tree.insert(item);"
+      "}"
+      "export circuit member(item: Bytes<8>): Boolean {"
+      "  checks.increment(1);"
+      "  const p = prove(item);"
+      "  return disclose(rootMatches(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(slots());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local Merkle tree proves membership and the fold pins it', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const missing = new Uint8Array([9, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.add(r1.context, b);"
+        "  const r3 = await contract.circuits.count(r2.context);"
+        "  expect(r3.result).toEqual(2n);"
+        "  const prior = r3.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r4 = await contract.circuits.member(r3.context, a);"
+        "  expect(r4.result).toEqual(true);"
+        "  await expect(contract.circuits.member(r4.context, missing)).rejects.toThrow(/leaf not found/);"
+        "  const pd = r4.context.callProofDataTrace.at(-1)!;"
+        "  const folded = foldedState(foldCall(prior, pd));"
+        "  expect(folded.toString()).toEqual(r4.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(foldCall(contractCode.initialLocalState(), pd)).toMatchObject({ tag: 'diverged', divergence: { kind: 'ReplayFailed', entryIndex: 0 } });"
+        "});"
+        ))
+    )
+
+  ; a local body is synchronous, therefore the lambdas, mappers, and folders printed inside one
+  ; are too (an `await` in a plain method is a syntax error); from a circuit, a local function
+  ; passed by name to map or fold crosses into the proof like any other local call
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local tags: Set<Bytes<8>>;"
+      "local isTagged(x: Bytes<8>): Boolean {"
+      "  return tags.member(x);"
+      "}"
+      "local tagged(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return map((x) => tags.member(x), xs);"
+      "}"
+      "local countTagged(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs);"
+      "}"
+      "export circuit tag(x: Bytes<8>): [] {"
+      "  tags.insert(x);"
+      "}"
+      "export circuit which(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(tagged(xs));"
+      "}"
+      "export circuit howMany(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(countTagged(xs));"
+      "}"
+      "export circuit whichByName(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyByLambda(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  return disclose(fold((acc, x) => isTagged(x) ? (acc + 1) as Uint<8> : acc, 0 as Uint<8>, xs));"
+      "}"
+      "export ledger queries: Counter;"
+      "local countIfTagged(acc: Uint<8>, x: Bytes<8>): Uint<8> {"
+      "  return isTagged(x) ? (acc + 1) as Uint<8> : acc;"
+      "}"
+      "export circuit whichOnChain(xs: Vector<3, Bytes<8>>): Vector<3, Boolean> {"
+      "  queries.increment(1);"
+      "  return disclose(map(isTagged, xs));"
+      "}"
+      "export circuit howManyOnChain(xs: Vector<3, Bytes<8>>): Uint<8> {"
+      "  queries.increment(1);"
+      "  return disclose(fold(countIfTagged, 0 as Uint<8>, xs));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('map and fold run synchronously in local functions and cross into the proof from circuits', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const c = new Uint8Array([3, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.tag(context, a);"
+        "  const r2 = await contract.circuits.tag(r1.context, b);"
+        "  const r3 = await contract.circuits.which(r2.context, [a, b, c]);"
+        "  expect(r3.result).toEqual([true, true, false]);"
+        "  const r4 = await contract.circuits.howMany(r3.context, [a, b, c]);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const r5 = await contract.circuits.whichByName(r4.context, [a, c, b]);"
+        "  expect(r5.result).toEqual([true, false, true]);"
+        "  const r6 = await contract.circuits.howManyByLambda(r5.context, [c, c, a]);"
+        "  expect(r6.result).toEqual(1n);"
+        "  // with a public op in the body the circuit is proved, so the local calls by name must"
+        "  // push their results as private inputs"
+        "  const r7 = await contract.circuits.whichOnChain(r6.context, [b, a, c]);"
+        "  expect(r7.result).toEqual([true, true, false]);"
+        "  expect(r7.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "  const r8 = await contract.circuits.howManyOnChain(r7.context, [a, b, c]);"
+        "  expect(r8.result).toEqual(2n);"
+        "  expect(r8.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(3);"
+        "});"
+        ))
+    )
+
+  ; the tree reads that run in JavaScript rehash the stored tree on every read, which is cheap
+  ; because the VM keeps a tree hashed; a cache for the rehash was measured and not built, and
+  ; this pins what one would have to keep: a read sees every earlier write in the same call,
+  ; on the local store and on the public one
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "export ledger published: MerkleTree<4, Bytes<8>>;"
+      "local noted(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [notes.findPathForLeaf(a).is_some, notes.findPathForLeaf(b).is_some];"
+      "}"
+      "local grow(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  notes.insert(a);"
+      "  const r1 = notes.root();"
+      "  const before = noted(a, b);"
+      "  notes.insert(b);"
+      "  const after = noted(a, b);"
+      "  return [before[0], before[1], after[0], after[1], r1.field != notes.root().field];"
+      "}"
+      "export circuit record(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean, Boolean] {"
+      "  return disclose(grow(a, b));"
+      "}"
+      "local seen(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean] {"
+      "  return [published.findPathForLeaf(a).is_some, published.findPathForLeaf(b).is_some];"
+      "}"
+      "export circuit publish(a: Bytes<8>, b: Bytes<8>): [Boolean, Boolean, Boolean, Boolean] {"
+      "  published.insert(disclose(a));"
+      "  const before = seen(a, b);"
+      "  published.insert(disclose(b));"
+      "  const after = seen(a, b);"
+      "  return disclose([before[0], before[1], after[0], after[1]]);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('tree reads see every write to their store within one call', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const prior = context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r1 = await contract.circuits.record(context, a, b);"
+        "  expect(r1.result).toEqual([true, false, true, true, true]);"
+        "  const pd = r1.context.callProofDataTrace.at(-1)!;"
+        "  const folded = foldedState(foldCall(prior, pd));"
+        "  expect(folded.toString()).toEqual(r1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const r2 = await contract.circuits.publish(r1.context, a, b);"
+        "  expect(r2.result).toEqual([true, false, true, true]);"
+        "});"
+        ))
+    )
+
+  ; host functions end to end: the context's provider resolves the implementation (the
+  ; runtime builds in none, so without one the root's entry check names the gap), every call
+  ; is recorded beside its question, a circuit's call crosses into the proof as a private
+  ; input while a local function's does not, and the declared result type is checked at run
+  ; time
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "host midnight:capsule/keys@1.0.0 {"
+      "  secretKey(): Bytes<32>;"
+      "}"
+      "local notes: Set<Bytes<32>>;"
+      "export ledger commitments: Set<Bytes<32>>;"
+      "local mine(): Bytes<32> {"
+      "  return persistentHash<Bytes<32>>(secretKey());"
+      "}"
+      "export circuit commit(): [] {"
+      "  const k = secretKey();"
+      "  commitments.insert(disclose(persistentHash<Bytes<32>>(k)));"
+      "  notes.insert(mine());"
+      "}"
+      "export circuit reveal(): Bytes<32> {"
+      "  return disclose(secretKey());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('host functions resolve through the context\\'s provider and cross into the proof from circuits', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  // the module declares what it requires, so a gate can check it against a provider before a run"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/keys@1.0.0': ['secretKey'] });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, bare.hostInterfaceProvider)).toEqual(["
+        "    { interfaceId: 'midnight:capsule/keys@1.0.0', resolved: false, missing: ['secretKey'] },"
+        "  ]);"
+        "  // the root's entry check, before anything runs"
+        "  await expect(contract.circuits.reveal(bare))"
+        "      .rejects.toThrow(/^reveal: the host interface provider resolves no 'midnight:capsule\\/keys@1.0.0', of which secretKey is required/);"
+        "  const key = new Uint8Array(32).fill(7);"
+        "  const context = withHostInterfaces(bare, { 'midnight:capsule/keys@1.0.0': { secretKey: () => key } });"
+        "  expect(runtime.missingHostFunctions(contractCode.hostInterfaces, context.hostInterfaceProvider)).toEqual([]);"
+        "  const r1 = await contract.circuits.reveal(context);"
+        "  expect(r1.result).toEqual(key);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.hostOutputs).toEqual([{"
+        "    interfaceId: 'midnight:capsule/keys@1.0.0',"
+        "    name: 'secretKey',"
+        "    args: { value: [], alignment: [] },"
+        "    result: { value: new runtime.CompactTypeBytes(32).toValue(key), alignment: new runtime.CompactTypeBytes(32).alignment() },"
+        "  }]);"
+        "  expect(r1.context.callProofDataTrace.at(-1)!.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.commit(r1.context);"
+        "  const pd = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the circuit's own call and the local function's are both recorded, in call order"
+        "  expect(pd.hostOutputs).toHaveLength(2);"
+        "  expect(pd.hostOutputs![0]).toEqual(pd.hostOutputs![1]);"
+        "  // the circuit's host call, the local call's result, and the local op cross into the proof;"
+        "  // the local function's host call does not"
+        "  expect(pd.privateTranscriptOutputs).toHaveLength(3);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).commitments.size()).toEqual(1n);"
+        "  const shortKey = withHostInterfaces(r2.context, { 'midnight:capsule/keys@1.0.0': { secretKey: () => new Uint8Array(16) } });"
+        "  await expect(contract.circuits.reveal(shortKey))"
+        "      .rejects.toThrow(/host function secretKey of midnight:capsule\\/keys@1.0.0/);"
+        "});"
+        ))
+    )
+
+  ; a host call's question is recorded with its answer: the interface, the function, and the
+  ; arguments as one aligned value, encoded as a circuit's input is, from a circuit and from a
+  ; local function alike
+  (test
+    '(
+      "host test:oracle/sum@1.0.0 { add(a: Uint<8>, b: Uint<16>): Uint<32>; }"
+      "export ledger total: Uint<32>;"
+      "export circuit pair(a: Uint<8>, b: Uint<16>): [] {"
+      "  total = disclose(add(a, b));"
+      "}"
+      "local addLocally(a: Uint<8>, b: Uint<16>): Uint<32> {"
+      "  return add(a, b);"
+      "}"
+      "export circuit pairLocally(a: Uint<8>, b: Uint<16>): [] {"
+      "  total = disclose(addLocally(a, b));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a host call is recorded beside its question, its arguments encoded as a circuit\\'s input is', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(bare, { 'test:oracle/sum@1.0.0': { add: (_: unknown, a: bigint, b: bigint) => a + b } });"
+        "  const r1 = await contract.circuits.pair(context, 3n, 300n);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  const uint32 = new runtime.CompactTypeUnsignedInteger(4294967295n, 4);"
+        "  expect(pd1.hostOutputs).toEqual([{"
+        "    interfaceId: 'test:oracle/sum@1.0.0',"
+        "    name: 'add',"
+        "    // the same two values, in the same order and encoding, as the circuit's own input"
+        "    args: pd1.input,"
+        "    result: { value: uint32.toValue(303n), alignment: uint32.alignment() },"
+        "  }]);"
+        "  const r2 = await contract.circuits.pairLocally(r1.context, 3n, 300n);"
+        "  expect(r2.context.callProofDataTrace.at(-1)!.hostOutputs).toEqual(pd1.hostOutputs);"
+        "  const r3 = await contract.circuits.pair(r2.context, 4n, 300n);"
+        "  expect(r3.context.callProofDataTrace.at(-1)!.hostOutputs![0].args).not.toEqual(pd1.input);"
+        "});"
+        ))
+    )
+
+  ; the record a fold takes from a root call: one per call that left a local transcript, with
+  ; the call context and the public state the call started from, also when the call runs on a
+  ; context an earlier call returned
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local seen: Counter;"
+      "export circuit bump(n: Uint<16>): Uint<64> {"
+      "  total.increment(disclose(n));"
+      "  seen.increment(1);"
+      "  return disclose(seen);"
+      "}"
+      "export circuit peek(): Uint<64> {"
+      "  return total;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a root call\\'s record pins the call context and the public state it started from', async () => {"
+        "  const [contract, start] = await startContract(contractCode);"
+        "  const context = runtime.createCircuitContext({"
+        "    circuitId: 'bump',"
+        "    contractAddress: start.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: start.callContext.currentQueryContext.state,"
+        "    localState: start.callContext.currentLocalQueryContext!.state.state,"
+        "    time: 1234,"
+        "    parentBlockHash: 'ab'.repeat(32),"
+        "  });"
+        "  const r1 = await contract.circuits.bump(context, 3n);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  expect(runtime.localRecordsOf(r1.context.callProofDataTrace)).toEqual([{"
+        "    contractAddress: start.callContext.contractAddress,"
+        "    circuitId: 'bump',"
+        "    input: pd1.input,"
+        "    basis: {"
+        "      callContext: pd1.initialQueryContext.block,"
+        "      stateDigest: runtime.stateValueDigest(start.callContext.currentQueryContext.state.state),"
+        "    },"
+        "    localTranscript: pd1.localTranscript,"
+        "    hostOutputs: [],"
+        "    calleeReturns: [],"
+        "    privateTranscriptOutputs: pd1.privateTranscriptOutputs,"
+        "  }]);"
+        "  const [record1] = runtime.localRecordsOf(r1.context.callProofDataTrace);"
+        "  expect(record1.basis.callContext.secondsSinceEpoch).toEqual(1234n);"
+        "  expect(record1.basis.callContext.parentBlockHash).toEqual('ab'.repeat(32));"
+        "  // both local operations' results crossed into the proof, the write's empty"
+        "  expect(record1.privateTranscriptOutputs).toEqual([{ value: [], alignment: [] }, pd1.privateTranscriptOutputs[1]]);"
+        "  // a second call on the context the first returned starts from the first's public write"
+        "  const r2 = await contract.circuits.bump(r1.context, 4n);"
+        "  const [record2] = runtime.localRecordsOf(r2.context.callProofDataTrace.slice(1));"
+        "  expect(record2.basis.stateDigest).toEqual(runtime.stateValueDigest(r1.context.callContext.currentQueryContext.state.state));"
+        "  expect(record2.basis.stateDigest).not.toEqual(record1.basis.stateDigest);"
+        "  // a call that touches no local state leaves no record"
+        "  const r3 = await contract.circuits.peek(r2.context);"
+        "  expect(r3.result).toEqual(7n);"
+        "  expect(runtime.localRecordsOf(r3.context.callProofDataTrace.slice(2))).toEqual([]);"
+        "});"
+        ))
+    )
+
+  ; a local-only circuit gets no zkir and is not provable, but it runs and its local effect
+  ; shows; the circuit with an on-chain effect is proved as before
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger counter: Counter;"
+      "export local notes: Counter;"
+      "export circuit noteLocally(): [] {"
+      "  notes.increment(1);"
+      "}"
+      "export circuit noteBoth(): [] {"
+      "  notes.increment(1);"
+      "  counter.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a circuit without an on-chain effect is not proved', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  expect(Object.keys(contract.provableCircuits)).toEqual(['noteBoth']);"
+        "  expect(Object.keys(contract.impureCircuits).sort()).toEqual(['noteBoth', 'noteLocally']);"
+        "  const r1 = await contract.circuits.noteLocally(context);"
+        "  const r2 = await contract.circuits.noteBoth(r1.context);"
+        "  expect(contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state).notes).toEqual(2n);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).counter).toEqual(1n);"
+        "});"
+        ))
+    )
+
+  ; the direction document's vendor module: any interface id compiles, and the registry
+  ; decides at call time whether an implementation exists
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "module identus_verification {"
+      "  export struct SignedDate {"
+      "    date: Uint<64>;"
+      "    issuer: Bytes<32>;"
+      "    signature: Bytes<64>;"
+      "  }"
+      "  export host identus:verification/age@1.2.0 {"
+      "    ageCredential(): SignedDate;"
+      "  }"
+      "}"
+      "import identus_verification;"
+      "export ledger issuers: Set<Bytes<32>>;"
+      "export circuit present(): Uint<64> {"
+      "  const credential = ageCredential();"
+      "  issuers.insert(disclose(credential.issuer));"
+      "  return disclose(credential.date);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a vendor-published host interface resolves through the provider', async () => {"
+        "  const [contract, bare] = await startContract(contractCode);"
+        "  await expect(contract.circuits.present(bare))"
+        "      .rejects.toThrow(/^present: the host interface provider resolves no 'identus:verification\\/age@1.2.0'/);"
+        "  const issuer = new Uint8Array(32).fill(9);"
+        "  const context = withHostInterfaces(bare, {"
+        "    'identus:verification/age@1.2.0': {"
+        "      ageCredential: () => ({ date: 20010101n, issuer, signature: new Uint8Array(64).fill(1) }),"
+        "    },"
+        "  });"
+        "  const r = await contract.circuits.present(context);"
+        "  expect(r.result).toEqual(20010101n);"
+        "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).issuers.member(issuer)).toEqual(true);"
+        "  expect(r.context.callProofDataTrace.at(-1)!.hostOutputs).toHaveLength(1);"
+        "});"
+        ))
+    )
+
+  ; the standard library declares the wallet's coin operations as the zswap host interface,
+  ; which compact-runtime implements from the context, so a contract gets them with nothing
+  ; supplied by the DApp, from circuits and from local functions alike
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger owner: ZswapCoinPublicKey;"
+      "export circuit claim(): [] {"
+      "  owner = disclose(ownPublicKey());"
+      "}"
+      "local who(): ZswapCoinPublicKey {"
+      "  return ownPublicKey();"
+      "}"
+      "export circuit claimLocally(): [] {"
+      "  owner = disclose(who());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the standard library\\'s zswap host interface is served by the provider like any other', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  // of the interface's three functions only the reachable one is a requirement"
+        "  expect(contractCode.hostInterfaces).toEqual({ 'midnight:capsule/zswap@1.0.0': ['ownPublicKey'] });"
+        "  // the runtime resolves nothing by itself: without a provider the coin operations are unavailable"
+        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: undefined }))"
+        "      .rejects.toThrow(/^claim: the contract declares host functions but the circuit context carries no host interface provider/);"
+        "  await expect(contract.circuits.claim({ ...context, hostInterfaceProvider: { resolve: () => undefined } }))"
+        "      .rejects.toThrow(/^claim: the host interface provider resolves no 'midnight:capsule\\/zswap@1.0.0', of which ownPublicKey is required/);"
+        "  const coinPublicKey = context.callContext.currentZswapLocalState!.coinPublicKey;"
+        "  const r1 = await contract.circuits.claim(context);"
+        "  expect(contractCode.ledger(r1.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd1 = r1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd1.hostOutputs).toHaveLength(1);"
+        "  expect(pd1.privateTranscriptOutputs).toHaveLength(1);"
+        "  const r2 = await contract.circuits.claimLocally(r1.context);"
+        "  expect(contractCode.ledger(r2.context.callContext.currentQueryContext.state).owner).toEqual(coinPublicKey);"
+        "  const pd2 = r2.context.callProofDataTrace.at(-1)!;"
+        "  // the local function's host call is recorded but only its own result crosses into the proof"
+        "  expect(pd2.hostOutputs).toHaveLength(1);"
+        "  expect(pd2.privateTranscriptOutputs).toHaveLength(1);"
+        "});"
+        ))
+    )
+
+  ; the historic twin, and pathForLeaf: a wrong leaf yields a path that fails the root
+  ; check rather than a proof, so the negative case is a false answer, not a fault
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local hist: HistoricMerkleTree<4, Bytes<8>>;"
+      "local pathAt(index: Field, item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  return hist.pathForLeaf(index, item);"
+      "}"
+      "local free(): Uint<64> {"
+      "  return hist.firstFree();"
+      "}"
+      "export circuit add(item: Bytes<8>): [] {"
+      "  hist.insert(item);"
+      "}"
+      "export circuit proveAt(index: Field, item: Bytes<8>): Boolean {"
+      "  const p = pathAt(index, item);"
+      "  return disclose(hist.checkRoot(merkleTreePathRoot<4, Bytes<8>>(p)));"
+      "}"
+      "export circuit count(): Uint<64> {"
+      "  return disclose(free());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('a local historic tree serves indexed paths', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const b = new Uint8Array([2, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.add(context, a);"
+        "  const r2 = await contract.circuits.count(r1.context);"
+        "  expect(r2.result).toEqual(1n);"
+        "  const r3 = await contract.circuits.add(r2.context, b);"
+        "  const r4 = await contract.circuits.count(r3.context);"
+        "  expect(r4.result).toEqual(2n);"
+        "  const prior = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r5 = await contract.circuits.proveAt(r4.context, 0n, a);"
+        "  expect(r5.result).toEqual(true);"
+        "  const r6 = await contract.circuits.proveAt(r5.context, 1n, b);"
+        "  expect(r6.result).toEqual(true);"
+        "  const r7 = await contract.circuits.proveAt(r6.context, 0n, b);"
+        "  expect(r7.result).toEqual(false);"
+        "  const pd = r5.context.callProofDataTrace.at(-1)!;"
+        "  const folded = foldedState(foldCall(prior, pd));"
+        "  expect(folded.toString()).toEqual(r5.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "});"
+        ))
+    )
+
+  ; data-bounded iteration over local containers: a Set and a Map fold into an accumulator
+  ; through local state, and the container pin lets the fold catch a divergent prior
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local seen: Set<Uint<8>>;"
+      "local weights: Map<Uint<8>, Uint<16>>;"
+      "local tally: Counter;"
+      "local sumWeights(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const kv of weights) {"
+      "    tally.increment(kv[1]);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "local sumSeen(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const v of seen) {"
+      "    tally.increment(v);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "export circuit note(k: Uint<8>, w: Uint<16>): [] {"
+      "  seen.insert(k);"
+      "  weights.insert(k, w);"
+      "}"
+      "export circuit sum(): Uint<64> {"
+      "  return disclose(sumWeights());"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumSeen());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('iteration folds local containers and pins them', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.note(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.sum(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const r4 = await contract.circuits.total(r3.context);"
+        "  expect(r4.result).toEqual(8n);"
+        "  const r5 = await contract.circuits.note(r4.context, 3n, 10n);"
+        "  const prior = r5.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const r6 = await contract.circuits.sum(r5.context);"
+        "  expect(r6.result).toEqual(30n);"
+        "  const pd = r6.context.callProofDataTrace.at(-1)!;"
+        "  const folded = foldedState(foldCall(prior, pd));"
+        "  expect(folded.toString()).toEqual(r6.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  expect(foldCall(contractCode.initialLocalState(), pd)).toMatchObject({ tag: 'diverged', divergence: { kind: 'ObservationMismatch', entryIndex: 1, path: [1] } });"
+        "});"
+        ))
+    )
+
+  ; a List is walked front to back, an empty one included: a local one pinned for the fold,
+  ; and a public one read from local code as an unpinned snapshot
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger posted: List<Uint<8>>;"
+      "local queue: List<Uint<8>>;"
+      "export local seen: List<Uint<8>>;"
+      "local tally: Counter;"
+      "local walkQueue(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  seen.resetToDefault();"
+      "  for (const q of queue) {"
+      "    tally.increment(q);"
+      "    seen.pushFront(q);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "local walkPosted(): Uint<64> {"
+      "  tally.resetToDefault();"
+      "  for (const p of posted) {"
+      "    tally.increment(p);"
+      "  }"
+      "  return tally.read();"
+      "}"
+      "export circuit push(x: Uint<8>): [] {"
+      "  queue.pushFront(x);"
+      "}"
+      "export circuit post(x: Uint<8>): [] {"
+      "  posted.pushFront(disclose(x));"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(walkQueue());"
+      "}"
+      "export circuit totalPosted(): Uint<64> {"
+      "  return disclose(walkPosted());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('for-of walks a List front to back', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const localOf = (r: { context: typeof context }) => r.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const callOf = (r: { context: typeof context }) => r.context.callProofDataTrace.at(-1)!;"
+        "  const pins = (r: { context: typeof context }) => callOf(r).localTranscript!.filter((e) => e.tag === 'observe');"
+        "  const empty = await contract.circuits.total(context);"
+        "  expect(empty.result).toEqual(0n);"
+        "  let r = empty;"
+        "  for (const x of [3n, 5n, 9n]) r = await contract.circuits.push(r.context, x);"
+        "  const prior = localOf(r);"
+        "  const walked = await contract.circuits.total(r.context);"
+        "  expect(walked.result).toEqual(17n);"
+        "  // the walk pushes each element onto seen as it goes, so seen holds the visiting order reversed"
+        "  expect([...contractCode.localState(localOf(walked)).seen]).toEqual([3n, 5n, 9n]);"
+        "  expect(pins(walked)).toHaveLength(1);"
+        "  const folded = foldedState(foldCall(prior, callOf(walked)));"
+        "  expect(runtime.stateValueDigest(folded)).toEqual(runtime.stateValueDigest(localOf(walked)));"
+        "  const longer = await contract.circuits.push(r.context, 1n);"
+        "  expect(foldCall(localOf(longer), callOf(walked))).toMatchObject({ tag: 'diverged', divergence: { kind: 'ObservationMismatch', entryIndex: 2, path: [0] } });"
+        "  let p = walked;"
+        "  for (const x of [4n, 6n]) p = await contract.circuits.post(p.context, x);"
+        "  const quoted = await contract.circuits.totalPosted(p.context);"
+        "  expect(quoted.result).toEqual(10n);"
+        "  expect(pins(quoted)).toHaveLength(0);"
+        "});"
+        ))
+    )
+
+  ; V3: iteration canonicality. The same keys inserted in two orders leave containers with equal
+  ; digests, per key type; a walk visits them in the same order and pins them alike; and the
+  ; container pins of a walk over one hold on the capsule the other order built
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export enum Tone { low, mid, high }"
+      "export struct Key { tone: Tone; n: Uint<16>; }"
+      "local s8: Set<Uint<8>>;"
+      "local m8: Map<Uint<8>, Uint<8>>;"
+      "local s128: Set<Uint<128>>;"
+      "local m128: Map<Uint<128>, Uint<8>>;"
+      "local sf: Set<Field>;"
+      "local mf: Map<Field, Uint<8>>;"
+      "local sb: Set<Bytes<32>>;"
+      "local mb: Map<Bytes<32>, Uint<8>>;"
+      "local sk: Set<Key>;"
+      "local mk: Map<Key, Uint<8>>;"
+      "export local trail: List<Field>;"
+      "export circuit add(a: Uint<8>, b: Uint<128>, c: Field, d: Bytes<32>, e: Key, v: Uint<8>): [] {"
+      "  s8.insert(a);"
+      "  m8.insert(a, v);"
+      "  s128.insert(b);"
+      "  m128.insert(b, v);"
+      "  sf.insert(c);"
+      "  mf.insert(c, v);"
+      "  sb.insert(d);"
+      "  mb.insert(d, v);"
+      "  sk.insert(e);"
+      "  mk.insert(e, v);"
+      "}"
+      "local walkAll(): [] {"
+      "  for (const k of s8) { trail.pushFront(k as Field); }"
+      "  for (const kv of m8) { trail.pushFront(kv[0] as Field); }"
+      "  for (const k of s128) { trail.pushFront(k as Field); }"
+      "  for (const kv of m128) { trail.pushFront(kv[0] as Field); }"
+      "  for (const k of sf) { trail.pushFront(k); }"
+      "  for (const kv of mf) { trail.pushFront(kv[0]); }"
+      "  for (const k of sb) { trail.pushFront(degradeToTransient(k)); }"
+      "  for (const kv of mb) { trail.pushFront(degradeToTransient(kv[0])); }"
+      "  for (const k of sk) { trail.pushFront(k.n as Field); }"
+      "  for (const kv of mk) { trail.pushFront(kv[0].n as Field); }"
+      "}"
+      "export circuit walk(): [] {"
+      "  walkAll();"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const bytes = (i: number) => Uint8Array.from({ length: 32 }, (_, j) => (i * 37 + j * 11) % 256);"
+        "const rows = ["
+        "  [3n, 2n ** 127n, 0n, bytes(1), { tone: 0, n: 7n }, 0n],"
+        "  [250n, 5n, 1n, bytes(2), { tone: 2, n: 40000n }, 1n],"
+        "  [17n, 2n ** 64n, 2n ** 200n, bytes(3), { tone: 1, n: 0n }, 2n],"
+        "  [0n, 0n, 42n, bytes(4), { tone: 0, n: 1n }, 3n],"
+        "  [128n, 1n, 2n ** 128n, bytes(5), { tone: 2, n: 2n }, 4n],"
+        "  [64n, 12345678901234567890n, 999n, bytes(6), { tone: 1, n: 65535n }, 5n],"
+        "  [99n, 7n, 2n ** 64n + 1n, bytes(7), { tone: 0, n: 300n }, 6n],"
+        "  [1n, 2n ** 100n, 7n, bytes(8), { tone: 1, n: 12n }, 7n],"
+        "];"
+        "const fill = async (contract: any, context: runtime.CircuitContext, order: number[]) => {"
+        "  let ctx = context;"
+        "  for (const i of order) {"
+        "    ctx = (await contract.circuits.add(ctx, ...rows[i])).context;"
+        "  }"
+        "  return ctx;"
+        "};"
+        "const stateOf = (ctx: runtime.CircuitContext) => ctx.callContext.currentLocalQueryContext!.state.state;"
+        "test('insertion order leaves no trace in a local container, its iteration, or its pin', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const forward = await fill(contract, context, [0, 1, 2, 3, 4, 5, 6, 7]);"
+        "  const backward = await fill(contract, context, [7, 6, 5, 4, 3, 2, 1, 0]);"
+        "  ['s8', 'm8', 's128', 'm128', 'sf', 'mf', 'sb', 'mb', 'sk', 'mk'].forEach((name, i) =>"
+        "    expect(runtime.stateValueDigest(stateOf(forward).asArray()![i]), name).toEqual(runtime.stateValueDigest(stateOf(backward).asArray()![i])));"
+        "  const wf = await contract.circuits.walk(forward);"
+        "  const wb = await contract.circuits.walk(backward);"
+        "  // the trail records the visiting order"
+        "  expect(contractCode.localState(stateOf(wf.context)).trail.length()).toEqual(80n);"
+        "  expect(stateOf(wf.context).toString()).toEqual(stateOf(wb.context).toString());"
+        "  const tf = wf.context.callProofDataTrace.at(-1)!.localTranscript!;"
+        "  const tb = wb.context.callProofDataTrace.at(-1)!.localTranscript!;"
+        "  const pins = (t: runtime.LocalTranscriptEntry[]) => t.flatMap((e) => (e.tag === 'observe' ? [e.digest] : []));"
+        "  expect(pins(tf)).toHaveLength(10);"
+        "  expect(pins(tf)).toEqual(pins(tb));"
+        "  expect(foldedState(foldCall(stateOf(backward), wf.context.callProofDataTrace.at(-1)!)).toString()).toEqual(stateOf(wb.context).toString());"
+        "  expect(foldedState(foldCall(stateOf(forward), wb.context.callProofDataTrace.at(-1)!)).toString()).toEqual(stateOf(wf.context).toString());"
+        "});"
+        ))
+    )
+
+  ; the localState accessor: export local mirrors export ledger, so the DApp reads the
+  ; exported fields of a persisted local state without running any circuit
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export local credits: Counter;"
+      "export local owners: Map<Uint<8>, Bytes<4>>;"
+      "export local seen: Set<Uint<8>>;"
+      "local hidden: Counter;"
+      "export circuit note(k: Uint<8>, v: Bytes<4>): [] {"
+      "  credits.increment(1);"
+      "  hidden.increment(2);"
+      "  owners.insert(k, v);"
+      "  seen.insert(k);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('the localState accessor reads exported local fields', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.note(context, 3n, new Uint8Array([1, 2, 3, 4]));"
+        "  const r2 = await contract.circuits.note(r1.context, 5n, new Uint8Array([5, 6, 7, 8]));"
+        "  const L = contractCode.localState(r2.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.owners.size()).toEqual(2n);"
+        "  expect(L.owners.member(3n)).toEqual(true);"
+        "  expect(L.owners.lookup(3n)).toEqual(new Uint8Array([1, 2, 3, 4]));"
+        "  expect(L.seen.member(5n)).toEqual(true);"
+        "  expect([...L.seen].sort()).toEqual([3n, 5n]);"
+        "  expect((L as any).hidden).toBeUndefined();"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState());"
+        "  expect(L0.credits).toEqual(0n);"
+        "  expect(L0.owners.isEmpty()).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; ledger reads from local functions are snapshot quotes: nothing reaches the public
+  ; transcript or the local one, the js-only tree reads work on public trees, and a
+  ; public container iterates without a pin
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: HistoricMerkleTree<4, Bytes<8>>;"
+      "local sum: Counter;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  if (prices.member(k)) {"
+      "    return prices.lookup(k);"
+      "  }"
+      "  return 0;"
+      "}"
+      "local sumPrices(): Uint<64> {"
+      "  sum.resetToDefault();"
+      "  for (const kv of prices) {"
+      "    sum.increment(kv[1]);"
+      "  }"
+      "  return sum.read();"
+      "}"
+      "local proveItem(item: Bytes<8>): MerkleTreePath<4, Bytes<8>> {"
+      "  const p = registry.findPathForLeaf(item);"
+      "  assert(p.is_some, 'unknown item');"
+      "  return p.value;"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(item: Bytes<8>): [] {"
+      "  registry.insert(disclose(item));"
+      "}"
+      "export circuit total(): Uint<64> {"
+      "  return disclose(sumPrices());"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return disclose(priceOf(pick()));"
+      "}"
+      "export circuit prove(item: Bytes<8>): Boolean {"
+      "  const p = proveItem(item);"
+      "  return disclose(registry.checkRoot(disclose(merkleTreePathRoot<4, Bytes<8>>(p))));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('local functions read the ledger from the snapshot', async () => {"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, { 'test:oracle/pick@1.0.0': { pick: () => 3n } });"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.stock(r1.context, 5n, 20n);"
+        "  const r3 = await contract.circuits.total(r2.context);"
+        "  expect(r3.result).toEqual(30n);"
+        "  const pd = r3.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript).toEqual([]);"
+        "  expect(pd.localTranscript!.every((e) => e.tag === 'ops')).toBe(true);"
+        "  const r4 = await contract.circuits.chosen(r3.context);"
+        "  expect(r4.result).toEqual(10n);"
+        "  const a = new Uint8Array([1, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r5 = await contract.circuits.register(r4.context, a);"
+        "  const r6 = await contract.circuits.prove(r5.context, a);"
+        "  expect(r6.result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  ; the join constructor is the guarded prologue of the account's first landed circuit call:
+  ; it reads the ledger at that call's basis, records at offset 0, runs once per capsule, and
+  ; a second first call rehearsed against the same empty capsule diverges on the guard
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger members: Set<Uint<8>>;"
+      "export ledger round: Counter;"
+      "export local snapshot: Set<Uint<8>>;"
+      "export local joinedAt: Uint<64>;"
+      "local constructor {"
+      "  for (const m of members) {"
+      "    snapshot.insert(m);"
+      "  }"
+      "  joinedAt = round.read();"
+      "}"
+      "export circuit enroll(m: Uint<8>): [] {"
+      "  members.insert(disclose(m));"
+      "  round.increment(1);"
+      "}"
+      "export circuit sizeAtJoin(): Uint<64> {"
+      "  return disclose(snapshot.size());"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "const joinerContext = (ledgerContext: runtime.CircuitContext, localState?: runtime.StateValue) =>"
+        "  runtime.createCircuitContext({"
+        "    circuitId: 'join',"
+        "    contractAddress: ledgerContext.callContext.contractAddress,"
+        "    coinPublicKeyOrZswapState: '0'.repeat(64),"
+        "    contractState: ledgerContext.callContext.currentQueryContext.state,"
+        "    localState: localState ?? contractCode.initialLocalState(),"
+        "  });"
+        "test('the join constructor runs at the first call against its basis', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  // the deployer joins at their first call, when the membership set is still empty"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const d2 = await contract.circuits.enroll(d1.context, 2n);"
+        "  const d3 = await contract.circuits.sizeAtJoin(d2.context);"
+        "  expect(d3.result).toEqual(0n);"
+        "  const D = contractCode.localState(d3.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(D.joinedAt).toEqual(0n);"
+        "  // a joiner's first call sees the ledger as of that call"
+        "  const j1 = await contract.circuits.enroll(joinerContext(d3.context), 7n);"
+        "  const pd = j1.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.publicTranscript.length).toBeGreaterThan(0);"
+        "  const prologue = pd.localTranscript!.filter((e) => e.offset === 0);"
+        "  expect(prologue.length).toBeGreaterThan(1);"
+        "  expect(pd.localTranscript!.indexOf(prologue.at(-1)!)).toEqual(prologue.length - 1);"
+        "  const J = contractCode.localState(j1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect([...J.snapshot].sort()).toEqual([1n, 2n]);"
+        "  expect(J.joinedAt).toEqual(2n);"
+        "  // a later call records the guard read and nothing else of the prologue"
+        "  const j2 = await contract.circuits.enroll(j1.context, 8n);"
+        "  expect(j2.context.callProofDataTrace.at(-1)!.localTranscript!.length).toEqual(1);"
+        "  // the snapshot is as of the join, not the latest call"
+        "  const j3 = await contract.circuits.sizeAtJoin(j2.context);"
+        "  expect(j3.result).toEqual(2n);"
+        "  // the fold reproduces the joiner's state from the defaults, and the prologue survives"
+        "  // a split at the very start of the call"
+        "  const whole = foldedState(foldCall(contractCode.initialLocalState(), pd));"
+        "  expect(whole.toString()).toEqual(j1.context.callContext.currentLocalQueryContext!.state.state.toString());"
+        "  const guaranteed = foldedState(foldCall(contractCode.initialLocalState(), pd, { tag: 'partial', guaranteedLength: 0 }));"
+        "  expect(contractCode.localState(guaranteed).joinedAt).toEqual(2n);"
+        "});"
+        "test('two first calls in flight: the second diverges on the guard and re-executes', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const d1 = await contract.circuits.enroll(context, 1n);"
+        "  const a = await contract.circuits.enroll(joinerContext(d1.context), 5n);"
+        "  const b = await contract.circuits.enroll(joinerContext(d1.context), 6n);"
+        "  const afterA = foldedState(foldCall(contractCode.initialLocalState(), a.context.callProofDataTrace.at(-1)!));"
+        "  expect(foldCall(afterA, b.context.callProofDataTrace.at(-1)!)).toMatchObject({ tag: 'diverged', divergence: { kind: 'ReplayFailed', entryIndex: 0 } });"
+        "  const b2 = await contract.circuits.enroll(joinerContext(d1.context, afterA), 6n);"
+        "  const pd = b2.context.callProofDataTrace.at(-1)!;"
+        "  expect(pd.localTranscript!.filter((e) => e.offset === 0).length).toEqual(1);"
+        "  const afterB = foldedState(foldCall(afterA, pd));"
+        "  expect(afterB.toString()).toEqual(afterA.toString());"
+        "});"
+        ))
+    )
+
+  ; V2: semantics identity. Every ADT operation on a local field emits the program its
+  ; ledger twin emits at the same path, answers the same, and faults the same; the
+  ; local-read tree ops agree with their snapshot twins on results (their programs differ
+  ; by the pin, by design). Twins are declared pairwise so the two stores share a layout.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger pCell: Uint<16>;"
+      "local lCell: Uint<16>;"
+      "export ledger pCounter: Counter;"
+      "local lCounter: Counter;"
+      "export ledger pSet: Set<Uint<8>>;"
+      "local lSet: Set<Uint<8>>;"
+      "export ledger pMap: Map<Uint<8>, Uint<16>>;"
+      "local lMap: Map<Uint<8>, Uint<16>>;"
+      "export ledger pNested: Map<Uint<8>, Counter>;"
+      "local lNested: Map<Uint<8>, Counter>;"
+      "export ledger pList: List<Uint<8>>;"
+      "local lList: List<Uint<8>>;"
+      "export ledger pTree: MerkleTree<3, Bytes<4>>;"
+      "local lTree: MerkleTree<3, Bytes<4>>;"
+      "export ledger pHist: HistoricMerkleTree<3, Bytes<4>>;"
+      "local lHist: HistoricMerkleTree<3, Bytes<4>>;"
+      "export circuit cell_write(v: Uint<16>): [] { pCell = disclose(v); lCell = v; }"
+      "export circuit cell_read(): [Uint<16>, Uint<16>] { return [pCell, disclose(lCell)]; }"
+      "export circuit cell_resetToDefault(): [] { pCell.resetToDefault(); lCell.resetToDefault(); }"
+      "export circuit counter_increment(n: Uint<16>): [] { pCounter.increment(disclose(n)); lCounter.increment(n); }"
+      "export circuit counter_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); lCounter.decrement(n); }"
+      "export circuit counter_read(): [Uint<64>, Uint<64>] { return [pCounter.read(), disclose(lCounter.read())]; }"
+      "export circuit counter_lessThan(t: Uint<64>): [Boolean, Boolean] { return [pCounter.lessThan(disclose(t)), disclose(lCounter.lessThan(t))]; }"
+      "export circuit counter_resetToDefault(): [] { pCounter.resetToDefault(); lCounter.resetToDefault(); }"
+      "export circuit set_insert(e: Uint<8>): [] { pSet.insert(disclose(e)); lSet.insert(e); }"
+      "export circuit set_member(e: Uint<8>): [Boolean, Boolean] { return [pSet.member(disclose(e)), disclose(lSet.member(e))]; }"
+      "export circuit set_size(): [Uint<64>, Uint<64>] { return [pSet.size(), disclose(lSet.size())]; }"
+      "export circuit set_isEmpty(): [Boolean, Boolean] { return [pSet.isEmpty(), disclose(lSet.isEmpty())]; }"
+      "export circuit set_remove(e: Uint<8>): [] { pSet.remove(disclose(e)); lSet.remove(e); }"
+      "export circuit set_resetToDefault(): [] { pSet.resetToDefault(); lSet.resetToDefault(); }"
+      "export circuit map_insert(k: Uint<8>, v: Uint<16>): [] { pMap.insert(disclose(k), disclose(v)); lMap.insert(k, v); }"
+      "export circuit map_insertDefault(k: Uint<8>): [] { pMap.insertDefault(disclose(k)); lMap.insertDefault(k); }"
+      "export circuit map_member(k: Uint<8>): [Boolean, Boolean] { return [pMap.member(disclose(k)), disclose(lMap.member(k))]; }"
+      "export circuit map_lookup(k: Uint<8>): [Uint<16>, Uint<16>] { return [pMap.lookup(disclose(k)), disclose(lMap.lookup(k))]; }"
+      "export circuit map_size(): [Uint<64>, Uint<64>] { return [pMap.size(), disclose(lMap.size())]; }"
+      "export circuit map_isEmpty(): [Boolean, Boolean] { return [pMap.isEmpty(), disclose(lMap.isEmpty())]; }"
+      "export circuit map_remove(k: Uint<8>): [] { pMap.remove(disclose(k)); lMap.remove(k); }"
+      "export circuit map_resetToDefault(): [] { pMap.resetToDefault(); lMap.resetToDefault(); }"
+      "export circuit nested_insertDefault(k: Uint<8>): [] { pNested.insertDefault(disclose(k)); lNested.insertDefault(k); }"
+      "export circuit nested_increment(k: Uint<8>, n: Uint<16>): [] { pNested.lookup(disclose(k)).increment(disclose(n)); lNested.lookup(k).increment(n); }"
+      "export circuit nested_read(k: Uint<8>): [Uint<64>, Uint<64>] { return [pNested.lookup(disclose(k)).read(), disclose(lNested.lookup(k).read())]; }"
+      "export circuit list_pushFront(v: Uint<8>): [] { pList.pushFront(disclose(v)); lList.pushFront(v); }"
+      "export circuit list_head(): [Maybe<Uint<8>>, Maybe<Uint<8>>] { return [pList.head(), disclose(lList.head())]; }"
+      "export circuit list_length(): [Uint<64>, Uint<64>] { return [pList.length(), disclose(lList.length())]; }"
+      "export circuit list_isEmpty(): [Boolean, Boolean] { return [pList.isEmpty(), disclose(lList.isEmpty())]; }"
+      "export circuit list_popFront(): [] { pList.popFront(); lList.popFront(); }"
+      "export circuit list_resetToDefault(): [] { pList.resetToDefault(); lList.resetToDefault(); }"
+      "export circuit tree_insert(item: Bytes<4>): [] { pTree.insert(disclose(item)); lTree.insert(item); }"
+      "export circuit tree_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); lTree.insertIndex(item, i); }"
+      "export circuit tree_insertHash(h: Bytes<32>): [] { pTree.insertHash(disclose(h)); lTree.insertHash(h); }"
+      "export circuit tree_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pTree.insertHashIndex(disclose(h), disclose(i)); lTree.insertHashIndex(h, i); }"
+      "export circuit tree_insertIndexDefault(i: Uint<64>): [] { pTree.insertIndexDefault(disclose(i)); lTree.insertIndexDefault(i); }"
+      "export circuit tree_isFull(): [Boolean, Boolean] { return [pTree.isFull(), disclose(lTree.isFull())]; }"
+      "export circuit tree_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pTree.checkRoot(disclose(rt)), disclose(lTree.checkRoot(rt))]; }"
+      "export circuit tree_resetToDefault(): [] { pTree.resetToDefault(); lTree.resetToDefault(); }"
+      "export circuit hist_insert(item: Bytes<4>): [] { pHist.insert(disclose(item)); lHist.insert(item); }"
+      "export circuit hist_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pHist.insertIndex(disclose(item), disclose(i)); lHist.insertIndex(item, i); }"
+      "export circuit hist_insertHash(h: Bytes<32>): [] { pHist.insertHash(disclose(h)); lHist.insertHash(h); }"
+      "export circuit hist_insertHashIndex(h: Bytes<32>, i: Uint<64>): [] { pHist.insertHashIndex(disclose(h), disclose(i)); lHist.insertHashIndex(h, i); }"
+      "export circuit hist_insertIndexDefault(i: Uint<64>): [] { pHist.insertIndexDefault(disclose(i)); lHist.insertIndexDefault(i); }"
+      "export circuit hist_isFull(): [Boolean, Boolean] { return [pHist.isFull(), disclose(lHist.isFull())]; }"
+      "export circuit hist_checkRoot(rt: MerkleTreeDigest): [Boolean, Boolean] { return [pHist.checkRoot(disclose(rt)), disclose(lHist.checkRoot(rt))]; }"
+      "export circuit hist_resetHistory(): [] { pHist.resetHistory(); lHist.resetHistory(); }"
+      "export circuit hist_resetToDefault(): [] { pHist.resetToDefault(); lHist.resetToDefault(); }"
+      "local tree_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return [pTree.root(), lTree.root(), pTree.firstFree(), lTree.firstFree(),"
+      "          pTree.pathForLeaf(0 as Field, leaf), lTree.pathForLeaf(0 as Field, leaf),"
+      "          pTree.findPathForLeaf(leaf).is_some, lTree.findPathForLeaf(leaf).is_some];"
+      "}"
+      "local hist_reads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return [pHist.root(), lHist.root(), pHist.firstFree(), lHist.firstFree(),"
+      "          pHist.pathForLeaf(0 as Field, leaf), lHist.pathForLeaf(0 as Field, leaf),"
+      "          pHist.findPathForLeaf(leaf).is_some, lHist.findPathForLeaf(leaf).is_some];"
+      "}"
+      "export circuit tree_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return disclose(tree_reads(leaf));"
+      "}"
+      "export circuit hist_localReads(leaf: Bytes<4>): [MerkleTreeDigest, MerkleTreeDigest, Uint<64>, Uint<64>, MerkleTreePath<3, Bytes<4>>, MerkleTreePath<3, Bytes<4>>, Boolean, Boolean] {"
+      "  return disclose(hist_reads(leaf));"
+      "}"
+      "export circuit pub_decrement(n: Uint<16>): [] { pCounter.decrement(disclose(n)); }"
+      "export circuit loc_decrement(n: Uint<16>): [] { lCounter.decrement(n); }"
+      "export circuit pub_insertIndex(item: Bytes<4>, i: Uint<64>): [] { pTree.insertIndex(disclose(item), disclose(i)); }"
+      "export circuit loc_insertIndex(item: Bytes<4>, i: Uint<64>): [] { lTree.insertIndex(item, i); }"
+      )
+    (stage-javascript
+      '(
+        "const json = (x: unknown) => JSON.stringify(x, (_, v) => typeof v === 'bigint' ? v.toString() : v);"
+        "const b4 = (n: number) => new Uint8Array([n, 0, 0, 0]);"
+        "const b32 = (n: number) => new Uint8Array(32).fill(n);"
+        "test('every op emits the same program for both stores and agrees on results', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const steps: [string, unknown[]][] = ["
+        "    ['cell_read', []], ['cell_write', [7n]], ['cell_read', []], ['cell_resetToDefault', []], ['cell_read', []],"
+        "    ['counter_read', []], ['counter_increment', [5n]], ['counter_decrement', [2n]], ['counter_read', []],"
+        "    ['counter_lessThan', [3n]], ['counter_lessThan', [4n]], ['counter_resetToDefault', []], ['counter_read', []],"
+        "    ['set_isEmpty', []], ['set_insert', [3n]], ['set_insert', [9n]], ['set_member', [3n]], ['set_member', [4n]],"
+        "    ['set_size', []], ['set_remove', [3n]], ['set_member', [3n]], ['set_isEmpty', []], ['set_resetToDefault', []], ['set_size', []],"
+        "    ['map_isEmpty', []], ['map_insert', [1n, 100n]], ['map_insertDefault', [2n]], ['map_member', [1n]], ['map_member', [5n]],"
+        "    ['map_lookup', [1n]], ['map_lookup', [2n]], ['map_size', []], ['map_remove', [1n]], ['map_member', [1n]],"
+        "    ['map_isEmpty', []], ['map_resetToDefault', []], ['map_size', []],"
+        "    ['nested_insertDefault', [4n]], ['nested_increment', [4n, 6n]], ['nested_increment', [4n, 1n]], ['nested_read', [4n]],"
+        "    ['list_isEmpty', []], ['list_head', []], ['list_pushFront', [1n]], ['list_pushFront', [2n]], ['list_head', []],"
+        "    ['list_length', []], ['list_popFront', []], ['list_head', []], ['list_isEmpty', []], ['list_resetToDefault', []], ['list_length', []],"
+        "    ['tree_isFull', []], ['tree_insert', [b4(1)]], ['tree_insertIndex', [b4(2), 3n]], ['tree_insertHash', [b32(3)]],"
+        "    ['tree_insertHashIndex', [b32(4), 5n]], ['tree_insertIndexDefault', [6n]], ['tree_isFull', []],"
+        "    ['hist_isFull', []], ['hist_insert', [b4(1)]], ['hist_insertIndex', [b4(2), 3n]], ['hist_insertHash', [b32(3)]],"
+        "    ['hist_insertHashIndex', [b32(4), 5n]], ['hist_insertIndexDefault', [6n]], ['hist_isFull', []], ['hist_resetHistory', []],"
+        "  ];"
+        "  let ctx = context;"
+        "  for (const [name, args] of steps) {"
+        "    const r = await contract.circuits[name](ctx, ...args);"
+        "    const pd = r.context.callProofDataTrace.at(-1)!;"
+        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
+        "    expect(json(localOps), `${name}(${json(args)})`).toEqual(json(pd.publicTranscript));"
+        "    if (Array.isArray(r.result)) {"
+        "      expect(r.result[1], `${name}(${json(args)}) result`).toEqual(r.result[0]);"
+        "    }"
+        "    ctx = r.context;"
+        "  }"
+        "  // roots agree, so checkRoot agrees too, through the local-read twins"
+        "  const reads = await contract.circuits.tree_localReads(ctx, b4(1));"
+        "  const [proot, lroot, pfree, lfree, ppath, lpath, pfound, lfound] = reads.result;"
+        "  expect(lroot).toEqual(proot); expect(lfree).toEqual(pfree); expect(lpath).toEqual(ppath); expect(lfound).toEqual(pfound);"
+        "  expect(pfound).toEqual(true);"
+        "  const check = await contract.circuits.tree_checkRoot(reads.context, proot);"
+        "  expect(check.result).toEqual([true, true]);"
+        "  const hreads = await contract.circuits.hist_localReads(check.context, b4(1));"
+        "  expect(hreads.result[1]).toEqual(hreads.result[0]);"
+        "  expect(hreads.result[3]).toEqual(hreads.result[2]);"
+        "  expect(hreads.result[5]).toEqual(hreads.result[4]);"
+        "  const hcheck = await contract.circuits.hist_checkRoot(hreads.context, hreads.result[0]);"
+        "  expect(hcheck.result).toEqual([true, true]);"
+        "  ctx = hcheck.context;"
+        "  // resets"
+        "  for (const name of ['tree_resetToDefault', 'hist_resetToDefault']) {"
+        "    const r = await contract.circuits[name](ctx);"
+        "    const pd = r.context.callProofDataTrace.at(-1)!;"
+        "    const localOps = (pd.localTranscript ?? []).flatMap((e: any) => e.tag === 'ops' ? e.ops : []);"
+        "    expect(json(localOps), name).toEqual(json(pd.publicTranscript));"
+        "    ctx = r.context;"
+        "  }"
+        "  const after = await contract.circuits.tree_isFull(ctx);"
+        "  expect(after.result).toEqual([false, false]);"
+        "});"
+        "test('faults agree', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const msg = async (p: Promise<unknown>) => { try { await p; return 'no error'; } catch (e) { return String(e); } };"
+        "  const pubDec = await msg(contract.circuits.pub_decrement(context, 1n));"
+        "  const locDec = await msg(contract.circuits.loc_decrement(context, 1n));"
+        "  const pubIdx = await msg(contract.circuits.pub_insertIndex(context, b4(1), 99n));"
+        "  const locIdx = await msg(contract.circuits.loc_insertIndex(context, b4(1), 99n));"
+        "  expect(pubDec).not.toEqual('no error');"
+        "  expect(locDec).toEqual(pubDec);"
+        "  expect(pubIdx).not.toEqual('no error');"
+        "  expect(locIdx).toEqual(pubIdx);"
+        "});"
+        ))
+    )
+
+  ; decision 7: an exported local function is a method of localState(); it stays an ordinary
+  ; local function for circuits, and one that reads the ledger (directly or through the local
+  ; functions it calls) runs only when the accessor is given a ledger state
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "export ledger registry: MerkleTree<4, Bytes<8>>;"
+      "export local credits: Counter;"
+      "local seen: Set<Uint<8>>;"
+      "local notes: MerkleTree<4, Bytes<8>>;"
+      "pure circuit twice(n: Uint<64>): Uint<64> {"
+      "  return n * 2 as Uint<64>;"
+      "}"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.member(k) ? prices.lookup(k) : 0;"
+      "}"
+      "export local quote(k: Uint<8>): Uint<64> {"
+      "  return twice(credits.read()) + priceOf(k) as Uint<64>;"
+      "}"
+      "export local seenBefore(k: Uint<8>): Boolean {"
+      "  return seen.member(k);"
+      "}"
+      "export local noteProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return notes.findPathForLeaf(leaf);"
+      "}"
+      "export local registryProof(leaf: Bytes<8>): Maybe<MerkleTreePath<4, Bytes<8>>> {"
+      "  return registry.findPathForLeaf(leaf);"
+      "}"
+      "export circuit stock(k: Uint<8>, w: Uint<16>): [] {"
+      "  prices.insert(disclose(k), disclose(w));"
+      "}"
+      "export circuit register(leaf: Bytes<8>): [] {"
+      "  registry.insert(disclose(leaf));"
+      "}"
+      "export circuit tick(k: Uint<8>, leaf: Bytes<8>): [] {"
+      "  credits.increment(1);"
+      "  seen.insert(k);"
+      "  notes.insert(leaf);"
+      "}"
+      "export circuit check(k: Uint<8>): Uint<64> {"
+      "  return disclose(quote(k));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('exported local functions are methods of localState', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const leaf = new Uint8Array([7, 0, 0, 0, 0, 0, 0, 0]);"
+        "  const r1 = await contract.circuits.stock(context, 3n, 10n);"
+        "  const r2 = await contract.circuits.register(r1.context, leaf);"
+        "  const r3 = await contract.circuits.tick(r2.context, 3n, leaf);"
+        "  const r4 = await contract.circuits.tick(r3.context, 5n, leaf);"
+        "  const local = r4.context.callContext.currentLocalQueryContext!.state.state;"
+        "  const ledger = r4.context.callContext.currentQueryContext.state;"
+        "  const L = contractCode.localState(local, ledger);"
+        "  expect(L.credits).toEqual(2n);"
+        "  expect(L.quote(3n)).toEqual(14n);"
+        "  expect(L.quote(4n)).toEqual(4n);"
+        "  expect(L.seenBefore(5n)).toEqual(true);"
+        "  expect(L.seenBefore(6n)).toEqual(false);"
+        "  expect(L.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(leaf).is_some).toEqual(true);"
+        "  expect(L.registryProof(new Uint8Array(8)).is_some).toEqual(false);"
+        "  // the same function is still an ordinary local function for circuits"
+        "  const r5 = await contract.circuits.check(r4.context, 3n);"
+        "  expect(r5.result).toEqual(14n);"
+        "  // before any call, the accessor answers from the declaration defaults"
+        "  const L0 = contractCode.localState(contractCode.initialLocalState(), ledger);"
+        "  expect(L0.quote(3n)).toEqual(10n);"
+        "  // a function that reads the ledger refuses to run without a ledger state; one that"
+        "  // does not runs with the local state alone"
+        "  const Lno = (contractCode as any).localState(local);"
+        "  expect(Lno.seenBefore(3n)).toEqual(true);"
+        "  expect(Lno.noteProof(leaf).is_some).toEqual(true);"
+        "  expect(() => Lno.quote(3n)).toThrow(/needs a ledger state/);"
+        "  expect(() => (L as any).quote(300n)).toThrow();"
+        "  expect(() => (L as any).seenBefore()).toThrow(/expected 1 argument/);"
+        "});"
+        ))
+    )
+
+  ; the ledger-state parameter is optional exactly when no exported local function reads the
+  ; ledger; the .d.ts is exercised by the type-checker, so the one-argument call must type
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "local credits: Counter;"
+      "export local balance(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      "export circuit tick(): [] {"
+      "  total.increment(1);"
+      "  credits.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('no exported local function reads the ledger, so localState takes the local state alone', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.tick(context);"
+        "  const L = contractCode.localState(r1.context.callContext.currentLocalQueryContext!.state.state);"
+        "  expect(L.balance()).toEqual(1n);"
+        "  expect(contractCode.localState(contractCode.initialLocalState()).balance()).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  ; a program with exported local functions but no local declarations still gets a local store,
+  ; empty, so the accessor and initialLocalState() exist
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger total: Counter;"
+      "export local snapshotTotal(): Uint<64> {"
+      "  return total.read();"
+      "}"
+      "export circuit bump(): [] {"
+      "  total.increment(1);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an exported local function with no local fields still has a store to hang on', async () => {"
+        "  const [contract, context] = await startContract(contractCode);"
+        "  const r1 = await contract.circuits.bump(context);"
+        "  const L = contractCode.localState(contractCode.initialLocalState(), r1.context.callContext.currentQueryContext.state);"
+        "  expect(L.snapshotTotal()).toEqual(1n);"
+        "});"
+        ))
+    )
+
+  ; a snapshot read's result carries its arguments' taint: witness data cannot launder
+  ; through a public lookup in a local function
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger prices: Map<Uint<8>, Uint<16>>;"
+      "host test:oracle/pick@1.0.0 { pick(): Uint<8>; }"
+      "local priceOf(k: Uint<8>): Uint<16> {"
+      "  return prices.lookup(k);"
+      "}"
+      "export circuit chosen(): Uint<16> {"
+      "  return priceOf(pick());"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 8 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of host function pick at line 3 char 31" ("\n    nature of the disclosure:\n      the value returned from exported circuit chosen might disclose the witness value\n    via this path through the program:\n      the argument to priceOf at line 8 char 10"))))
+    )
+
+  ; a local operation's result is witness data: returning it from an exported circuit
+  ; without disclose is an error
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "local credits: Counter;"
+      "export circuit peek(): Uint<64> {"
+      "  return credits.read();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the result of an operation on local field credits at line 4 char 10" ("\n    nature of the disclosure:\n      the value returned from exported circuit peek might disclose the witness value"))))
+    )
+
+  ; phase 2, cross-contract local state: a callee's capsule is installed before its wrapper runs
+  ; (the account's folded state, or the declaration defaults at first touch, when its local
+  ; constructor runs inside the caller's transaction), its host interfaces are checked at
+  ; resolution, each capsule gets its own record, and the caller's record pins the callee's return
+  (test-group
+    ((source-file "test-center/composable/Capsule/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Capsule/Outer.compact")
+     (stage-javascript outerCode "test-center/ts/composable/capsule.ts")))
+
+  ; the direction document's worked example: the vendor module, the registry with its own private
+  ; books as a callee, and the ballot as the root, with two participants folding from scratch
+  (test-group
+    ((source-file "test-center/composable/Ballot/Registry.compact")
+     (stage-javascript registryCode '()))
+    ((source-file "test-center/composable/Ballot/Ballot.compact")
+     (stage-javascript ballotCode "test-center/ts/composable/ballot.ts")))
+
+  ; a callee's capsule across transactions in flight, first touches racing, two calls deep, coin
+  ; operations, a container pin and a checkpoint split in its record, a caught failure, a wallet
+  ; whose answers change, and a callee circuit with nothing to prove
+  (test-group
+    ((source-file "test-center/composable/Capsule/Inner.compact")
+     (stage-javascript innerCode '()))
+    ((source-file "test-center/composable/Capsule/Outer.compact")
+     (stage-javascript outerCode '()))
+    ((source-file "test-center/composable/Vault/Vault.compact")
+     (stage-javascript vaultCode '()))
+    ((source-file "test-center/composable/Vault/Relay.compact")
+     (stage-javascript relayCode '()))
+    ((source-file "test-center/composable/Vault/Entry.compact")
+     (stage-javascript entryCode "test-center/ts/composable/capsule-races.ts")))
+
+  ; the randomized replay test: a call's record folded onto a capsule other than the one it was
+  ; prepared against agrees with re-executing the call there whenever the fold accepts, and
+  ; re-execution records something else whenever the fold refuses
+  (test
+    "test-center/compact/local-replay.compact"
+    (stage-javascript "test-center/ts/local-replay.ts"))
+
+  ; private-input alignment, path by path: each way a local or host result reaches a proved
+  ; circuit, under each control-flow construct, on each branch, against both zkir versions
+  (test
+    "test-center/compact/local-alignment.compact"
+    (stage-javascript "test-center/ts/local-alignment.ts"))
+
 )
 
 (run-javascript)
@@ -92213,7 +94953,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -92236,7 +94976,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Secp256k1Base;"
-      "witness add1(b: Secp256k1Base): Secp256k1Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Secp256k1Base): Secp256k1Base; }"
       "export circuit test(b: Secp256k1Base): Secp256k1Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -92258,13 +94998,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256k1Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -92303,7 +95040,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256k1Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -92326,7 +95063,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Secp256k1Scalar;"
-      "witness add1(s: Secp256k1Scalar): Secp256k1Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Secp256k1Scalar): Secp256k1Scalar; }"
       "export circuit test(s: Secp256k1Scalar): Secp256k1Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -92348,13 +95085,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256k1Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256k1Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -92410,7 +95144,7 @@ groups than for single tests.
           (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256k1Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
@@ -92439,8 +95173,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Secp256k1Point;"
-      "witness point0(): Secp256k1Point;"
-      "witness point1(): Secp256k1Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Secp256k1Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Secp256k1Point; }"
       "export circuit test0(): Secp256k1Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -92483,30 +95217,21 @@ groups than for single tests.
             %fld.23)
           (output %t.18))))
     (stage-javascript
-      '("test('Secp256k1Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 1n,"
-        "          y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256k1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
-        "          y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Secp256k1Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Secp256k1Point => ({"
+        "      x: 1n,"
+        "      y: 29896722852569046015560700294576055776214335159245303116488692907525646231534n,"
+        "      identity: false,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Secp256k1Point => ({"
+        "      x: 55066263022277343669578718895168534326250603453777594175500187360389116729240n,"
+        "      y: 32670510020758816978083085130507043184471273380659243275938904335757337482424n,"
+        "      identity: false,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 1n,"
@@ -92612,7 +95337,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to secp256k1 fields casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -92720,7 +95445,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('secp256k1 fields to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -92795,7 +95520,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Bytes to secp256k1 field casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -92837,7 +95562,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('secp256k1 field to bytes casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6e7545706a590d3b6d349a6a134c94693facb0059f4daa541642cb7a5f46bff7n;"
         "  var scalar = 0x67231c3f0c86cca3be938e0381273f6dad7b82f2e5c0cb0c4435d7f22ac4ab61n;"
@@ -92894,7 +95619,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('check 1', async () => {"
-        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const [C, Ctxt] = await startContract(contractCode);"
         "  const msg = new Uint8Array(32).fill(0xab);"
         "  const sig = {r: 17n, s: 31n};"
         "  const pk = {"
@@ -92932,7 +95657,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.secp256k1MulGenerator(5n);"
         "  const p2 = runtime.secp256k1MulGenerator(5n);"
         "  const p3 = runtime.secp256k1MulGenerator(7n);"
@@ -92975,7 +95700,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 4n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
@@ -93012,7 +95737,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Issue 608', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256k1MulGenerator(5n);"
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test0(context, p0);"
@@ -93032,7 +95757,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('sha512 hashing', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256k1MulGenerator(5n);"
         "  const p1 = runtime.secp256k1MulGenerator(7n);"
         "  await contract.circuits.test(context, p0, p1);"
@@ -93053,7 +95778,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Ethereum address byte order', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A public key and (case insensitive) address from a random private key"
         "  // (secp256k1 scalar), generated by"
         "  // https://www.rfctools.com/ethereum-address-test-tool/."
@@ -93075,9 +95800,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger owner: Bytes<20>;"
-      "witness recoverKey(digest: Bytes<32>,"
+      "host test:oracle/recover-key@1.0.0 { recoverKey(digest: Bytes<32>,"
       "                   sig: Secp256k1EcdsaSignature,"
-      "                   recoveryId: Uint<2>): Secp256k1Point;"
+      "                   recoveryId: Uint<2>): Secp256k1Point; }"
       "export circuit setOwner(addr: Bytes<20>): [] {"
       "  owner = disclose(addr);"
       "}"
@@ -93123,21 +95848,22 @@ groups than for single tests.
         "// recover the same key -- and therefore the same Ethereum address."
         "const n = secp256k1.Point.Fn.ORDER;"
         "const twinSig = { r: sig.r, s: n - sig.s };"
-        "// The witness takes the digest, the signature and the recovery id as"
+        "// The host function takes the digest, the signature and the recovery id as"
         "// arguments, so one implementation serves every case below.  A dApp would"
         "// take the recovery id from the signature's v byte.  Uint<2> arrives as a"
         "// bigint, while the runtime's recover expects a number."
-        "const witnesses = {"
-        "  recoverKey(wc: runtime.WitnessContext<{}, number>,"
-        "             digest: Uint8Array,"
-        "             sig: { r: bigint, s: bigint },"
-        "             recoveryId: bigint): [number, runtime.Secp256k1Point] {"
-        "    return [wc.privateState,"
-        "            runtime.secp256k1EcdsaRecover(digest, sig, Number(recoveryId))];"
+        "const oracle = {"
+        "  'test:oracle/recover-key@1.0.0': {"
+        "    recoverKey: (_ctx: any,"
+        "                 digest: Uint8Array,"
+        "                 sig: { r: bigint, s: bigint },"
+        "                 recoveryId: bigint): runtime.Secp256k1Point =>"
+        "      runtime.secp256k1EcdsaRecover(digest, sig, Number(recoveryId)),"
         "  },"
         "};"
         "const withOwner = async (addr: Uint8Array) => {"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  const r = await contract.circuits.setOwner(context, addr);"
         "  return [contract, r.context] as const;"
         "};"
@@ -93306,7 +96032,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256k1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-secp256k1-base) (1- base0))
@@ -93368,7 +96094,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on the identity', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 3n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
@@ -93405,7 +96131,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on a ledger point', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A Secp256k1Point ledger cell starts out holding the identity, which"
         "  // has no coordinates."
         "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
@@ -93457,7 +96183,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors on an identity computed in circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const G = runtime.secp256k1MulGenerator(1n);"
         "  const negG = runtime.secp256k1Mul(G, runtime.SECP256K1_SCALAR_MODULUS - 1n);"
         "  expect(runtime.secp256k1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
@@ -93498,7 +96224,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256k1Point accessors guarded by an assert', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  await expect(contract.circuits.storeXChecked(context))"
         "      .rejects.toThrow(/the identity has no coordinates/);"
         "  const G = runtime.secp256k1MulGenerator(1n);"
@@ -93573,7 +96299,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Nested ZKIR native types in various contexts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const result = await contract.circuits.test(context, 3n, 4n);"
         "  expect(result.result).toEqual([]);"
         "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
@@ -93601,7 +96327,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger n: Uint<64>;"
-      "witness w(): Field;"
+      "host test:oracle/w@1.0.0 { w(): Field; }"
       "export circuit impureProvable(b: Boolean, f: Field, u: Uint<128>, y: Bytes<32>): [] {"
       "  n = disclose(1 as Uint<64>);"
       "}"
@@ -93663,8 +96389,9 @@ groups than for single tests.
         "    {tag: 'Secp256k1Scalar'},"
         "    {tag: 'Secp256k1Point'}]);"
         "});"
-        "test('an absent declaredInterfaces is an empty object', () => {"
+        "test('an absent declaredInterfaces is an empty object, as is an absent hostInterfaces', () => {"
         "  expect(curveCode.declaredInterfaces).toEqual({});"
+        "  expect(curveCode.hostInterfaces).toEqual({});"
         "});"
         ))
     )
@@ -93847,7 +96574,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256r1Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -93870,7 +96597,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Secp256r1Base;"
-      "witness add1(b: Secp256r1Base): Secp256r1Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Secp256r1Base): Secp256r1Base; }"
       "export circuit test(b: Secp256r1Base): Secp256r1Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -93892,13 +96619,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256r1Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256r1Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -93937,7 +96661,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Secp256r1Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -93960,7 +96684,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Secp256r1Scalar;"
-      "witness add1(s: Secp256r1Scalar): Secp256r1Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Secp256r1Scalar): Secp256r1Scalar; }"
       "export circuit test(s: Secp256r1Scalar): Secp256r1Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -93982,13 +96706,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Secp256r1Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Secp256r1Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -94044,7 +96765,7 @@ groups than for single tests.
           (output %t.18 %t.21))))
     (stage-javascript
       '("test('Secp256r1Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // The point at X=0."
         "  var pt = {"
         "      x: 0x0n,"
@@ -94073,8 +96794,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Secp256r1Point;"
-      "witness point0(): Secp256r1Point;"
-      "witness point1(): Secp256r1Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Secp256r1Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Secp256r1Point; }"
       "export circuit test0(): Secp256r1Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -94117,30 +96838,21 @@ groups than for single tests.
             %fld.23)
           (output %t.18))))
     (stage-javascript
-      '("test('Secp256r1Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 0x0n,"
-        "          y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Secp256r1Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
-        "          y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
-        "          identity: false,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Secp256r1Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Secp256r1Point => ({"
+        "      x: 0x0n,"
+        "      y: 0x66485c780e2f83d72433bd5d84a06bb6541c2af31dae871728bf856a174f93f4n,"
+        "      identity: false,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Secp256r1Point => ({"
+        "      x: 0x6b17d1f2e12c4247f8bce6e563a440f277037d812deb33a0f4a13945d898c296n,"
+        "      y: 0x4fe342e2fe1a7f9b8ee7eb4a7c0f9e162bce33576b315ececbb6406837bf51f5n,"
+        "      identity: false,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 0x0n,"
@@ -94234,7 +96946,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to secp256r1 fields casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -94342,7 +97054,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('secp256r1 fields to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -94417,7 +97129,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Bytes to secp256r1 field casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -94459,7 +97171,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('secp256r1 field to bytes casts inside an if', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x6c8a8c3f071f4d6dbe937aaf1a1d457dc5ab2e9e188e6a5c3190ea1072df9a97n;"
         "  var scalar = 0x78db8cdf5ff2bc906d349cd5b11384283b39a67a9ed2739a2428dfd814c6e43dn;"
@@ -94509,7 +97221,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.secp256r1MulGenerator(5n);"
         "  const p2 = runtime.secp256r1MulGenerator(5n);"
         "  const p3 = runtime.secp256r1MulGenerator(7n);"
@@ -94552,7 +97264,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 4n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
@@ -94703,7 +97415,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256r1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-secp256r1-base) (1- base0))
@@ -94764,7 +97476,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on the identity', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const identity0 = { x: 0n, y: 0n, identity: true };"
         "  const identity1 = { x: 3n, y: 4n, identity: true };"
         "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
@@ -94801,7 +97513,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on a ledger point', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // A Secp256r1Point ledger cell starts out holding the identity, which"
         "  // has no coordinates."
         "  let L = contractCode.ledger(context.callContext.currentQueryContext.state);"
@@ -94853,7 +97565,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors on an identity computed in circuit', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const G = runtime.secp256r1MulGenerator(1n);"
         "  const negG = runtime.secp256r1Mul(G, runtime.SECP256R1_SCALAR_MODULUS - 1n);"
         "  expect(runtime.secp256r1Add(G, negG)).toEqual({ x: 0n, y: 0n, identity: true });"
@@ -94894,7 +97606,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Secp256r1Point accessors guarded by an assert', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  await expect(contract.circuits.storeXChecked(context))"
         "      .rejects.toThrow(/the identity has no coordinates/);"
         "  const G = runtime.secp256r1MulGenerator(1n);"
@@ -94969,7 +97681,7 @@ groups than for single tests.
       )
     (stage-javascript
       '("test('Nested secp256r1 ZKIR native types in various contexts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const result = await contract.circuits.test(context, 3n, 4n);"
         "  expect(result.result).toEqual([]);"
         "  const ledger = contractCode.ledger(result.context.callContext.currentQueryContext.state);"
@@ -95023,7 +97735,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Issue 608 for secp256r1', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p0 = runtime.secp256r1MulGenerator(5n);"
         "  const p1 = runtime.secp256r1MulGenerator(7n);"
         "  await contract.circuits.test(context, p0, p1);"
@@ -95056,7 +97768,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Curve25519Base round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(0n);"
@@ -95079,7 +97791,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger base: Curve25519Base;"
-      "witness add1(b: Curve25519Base): Curve25519Base;"
+      "host test:oracle/add1@1.0.0 { add1(b: Curve25519Base): Curve25519Base; }"
       "export circuit test(b: Curve25519Base): Curve25519Base {"
       "  base = disclose(add1(b));"
       "  return base;"
@@ -95101,13 +97813,10 @@ groups than for single tests.
           (impact 1 12 2 24 8 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Curve25519Base passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Curve25519Base passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).base).toEqual(1n);"
@@ -95146,7 +97855,7 @@ groups than for single tests.
           (output %t.3))))
     (stage-javascript
       `("test('Curve25519Scalar round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(0n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(0n);"
@@ -95169,7 +97878,7 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger scalar: Curve25519Scalar;"
-      "witness add1(s: Curve25519Scalar): Curve25519Scalar;"
+      "host test:oracle/add1@1.0.0 { add1(s: Curve25519Scalar): Curve25519Scalar; }"
       "export circuit test(s: Curve25519Scalar): Curve25519Scalar {"
       "  scalar = disclose(add1(s));"
       "  return scalar;"
@@ -95191,13 +97900,10 @@ groups than for single tests.
           (impact 1 12 2 26 7 %fld.5 %fld.6)
           (output %t.4))))
     (stage-javascript
-      `("test('Curve25519Scalar passing through witnesses', async () => {"
-        "  const witnesses = {"
-        "    add1(wc: runtime.WitnessContext<{}, number>, s: bigint): [number, bigint] {"
-        "      return [wc.privateState, s + 1n];"
-        "    },"
-        "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+      `("test('Curve25519Scalar passing through host functions', async () => {"
+        "  const oracle = { 'test:oracle/add1@1.0.0': { add1: (_ctx: any, s: bigint) => s + 1n } };"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  var r = await contract.circuits.test(context, 0n);"
         "  expect(r.result).toEqual(1n);"
         "  expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).scalar).toEqual(1n);"
@@ -95250,7 +97956,7 @@ groups than for single tests.
           (output %t.15 %t.18))))
     (stage-javascript
       '("test('Curve25519Point round tripping through the ledger', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // ecMulGenerator(2n)."
         "  var pt = {"
         "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
@@ -95277,8 +97983,8 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "export ledger point: Curve25519Point;"
-      "witness point0(): Curve25519Point;"
-      "witness point1(): Curve25519Point;"
+      "host test:oracle/point0@1.0.0 { point0(): Curve25519Point; }"
+      "host test:oracle/point1@1.0.0 { point1(): Curve25519Point; }"
       "export circuit test0(): Curve25519Point {"
       "  point = disclose(point0());"
       "  return point;"
@@ -95317,28 +98023,19 @@ groups than for single tests.
           (impact 1 12 4 24 8 24 8 %fld.16 %fld.17 %fld.18 %fld.19)
           (output %t.15))))
     (stage-javascript
-      '("test('Curve25519Point coming from witnesses', async () => {"
-        "  const witnesses = {"
-        "    point0(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
-        "          y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
-        "        },"
-        "      ];"
-        "    },"
-        "    point1(wc: runtime.WitnessContext<{}, number>): [number, runtime.Curve25519Point] {"
-        "      return ["
-        "        wc.privateState,"
-        "        {"
-        "          x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
-        "          y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
-        "        },"
-        "      ];"
-        "    },"
+      '("test('Curve25519Point coming from host functions', async () => {"
+        "  const oracle = {"
+        "    'test:oracle/point0@1.0.0': { point0: (): runtime.Curve25519Point => ({"
+        "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
+        "      y: 15549675580280190176352668710449542251549572066445060580507079593062643049417n,"
+        "    }) },"
+        "    'test:oracle/point1@1.0.0': { point1: (): runtime.Curve25519Point => ({"
+        "      x: 15112221349535400772501151409588531511454012693041857206046113283949847762202n,"
+        "      y: 46316835694926478169428394003475163141307993866256225615783033603165251855960n,"
+        "    }) },"
         "  };"
-        "  const [contract, context] = await startContract(contractCode, witnesses, 0);"
+        "  const [contract, context0] = await startContract(contractCode);"
+        "  const context = withHostInterfaces(context0, oracle);"
         "  // The point at X=1."
         "  var pt = {"
         "      x: 24727413235106541002554574571675588834622768167397638456726423682521233608206n,"
@@ -95430,7 +98127,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Bytes to Curve25519 field casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
@@ -95538,7 +98235,7 @@ groups than for single tests.
           (impact 1 145))))
     (stage-javascript
       '("test('Curve25519 field to Bytes casts', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random values in range."
         "  var base = 0x67231c3f0c86cca3be937aaf1a1d54b3cb12add4188e6a5c31931cdf3ad2bb61n;"
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
@@ -95607,7 +98304,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Curve25519Point equality', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const p1 = runtime.curve25519MulGenerator(5n);"
         "  const p2 = runtime.curve25519MulGenerator(5n);"
         "  const p3 = runtime.curve25519MulGenerator(7n);"
@@ -95756,7 +98453,7 @@ groups than for single tests.
                   circuit left right result))])
         `(
           "test('secp256r1 field arithmetic', async () => {"
-          "  const [contract, context] = await startContract(contractCode, {}, 0);"
+          "  const [contract, context] = await startContract(contractCode);"
           ,(expect 'addb base0 0 base0)
           ,(expect 'addb base1 0 base1)
           ,(expect 'addb base0 (max-curve25519-base) (1- base0))
@@ -95827,7 +98524,7 @@ groups than for single tests.
           (output %s.4))))
     (stage-javascript
       '("test('Bytes<64> cast to Curve25519Scalar', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  // Random value in range."
         "  var scalar = 0x0e7545706a590d3b6d348e5e55058f0808d30736058953ee40bc238694733d9an;"
         "  var bytes = new Uint8Array(64);"
@@ -95902,38 +98599,35 @@ groups than for single tests.
         ""
         "export type Spam = bigint;"
         ""
-        "export type Witnesses<PS> = {"
+        "export type ImpureCircuits = {"
         "}"
         ""
-        "export type ImpureCircuits<PS> = {"
-        "}"
-        ""
-        "export type ProvableCircuits<PS> = {"
+        "export type ProvableCircuits = {"
         "}"
         ""
         "export type PureCircuits = {"
         "}"
         ""
-        "export type Circuits<PS> = {"
+        "export type Circuits = {"
         "}"
         ""
         "export type Ledger = {"
         "}"
         ""
-        "export declare class Contract<PS = any, W extends Witnesses<PS> = Witnesses<PS>> {"
-        "  witnesses: W;"
-        "  circuits: Circuits<PS>;"
-        "  impureCircuits: ImpureCircuits<PS>;"
-        "  provableCircuits: ProvableCircuits<PS>;"
-        "  constructor(witnesses: W);"
-        "  initialState(context: __compactRuntime.ConstructorContext<PS>): Promise<__compactRuntime.ConstructorResult<PS>>;"
+        "export declare class Contract {"
+        "  circuits: Circuits;"
+        "  impureCircuits: ImpureCircuits;"
+        "  provableCircuits: ProvableCircuits;"
+        "  constructor();"
+        "  initialState(context: __compactRuntime.ConstructorContext): Promise<__compactRuntime.ConstructorResult>;"
         "}"
         ""
         "export declare function ledger(state: __compactRuntime.StateValue | __compactRuntime.ChargedState): Ledger;"
         "export declare const pureCircuits: PureCircuits;"
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
-        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"))
+        "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
     )
 
   (test
@@ -95952,7 +98646,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('secp256r1 ECDSA verification', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const msg = new Uint8Array(32);"
         "  for (let i = 0; i < 32; i++) msg[i] = i + 1;"
         "  const digest = runtime.keccak256(new runtime.CompactTypeBytes(32), msg);"
@@ -96025,7 +98719,7 @@ groups than for single tests.
     (stage-javascript
       '(
         "test('Ed25519 verification', async () => {"
-        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const [contract, context] = await startContract(contractCode);"
         "  const L = ed25519.Point.Fn.ORDER;"
         "  const hex = (s: string) => Uint8Array.from(Buffer.from(s, 'hex'));"
         "  const point = (b: Uint8Array) => runtime.curve25519FromProjective(ed25519.Point.fromBytes(b));"

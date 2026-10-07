@@ -16,6 +16,59 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 
 /**
+ * One entry in a call's local transcript, offset-tagged against the call's public transcript:
+ * `offset` is the public transcript's length at the moment the entry was recorded, so the
+ * checkpoint split partitions the local transcript by the same position that partitions the
+ * public one.
+ *
+ * The two kinds are the two kinds of checkable mark a local observation can leave. An `ops`
+ * entry is a batch of Impact operations, replayed in verify mode, its `popeq`s carrying the
+ * observed reads (a tree's root pin is such a batch). An `observe` entry pins a whole state
+ * value - a container about to be iterated - which no Impact read expresses; the fold checks
+ * it by recomputing the digest of the folding state's value at the same path.
+ */
+export interface LocalOpsEntry {
+  readonly tag: 'ops';
+  readonly offset: number;
+  readonly ops: ocrt.Op<ocrt.AlignedValue>[];
+}
+
+export interface LocalObserveEntry {
+  readonly tag: 'observe';
+  readonly offset: number;
+  /** The observed value's indices under the local state root. */
+  readonly path: readonly number[];
+  /** The observed value's `stateValueDigest`. */
+  readonly digest: string;
+}
+
+export type LocalTranscriptEntry = LocalOpsEntry | LocalObserveEntry;
+
+/**
+ * One host function call: the answer beside the question it answers. A re-execution consumes the
+ * answers in call order instead of asking again, therefore it needs the questions to tell whether
+ * it is asking the same ones.
+ */
+export interface HostOutput {
+  readonly interfaceId: string;
+  readonly name: string;
+  /** The arguments as one aligned value, concatenated in order as a circuit's `input` is. */
+  readonly args: ocrt.AlignedValue;
+  readonly result: ocrt.AlignedValue;
+}
+
+/**
+ * One cross-contract call's result, as the caller pinned it: the callee's output beside the circuit
+ * called and the input it was given, so that a re-execution can tell whether it makes the same call.
+ */
+export interface CalleeReturn {
+  readonly contractAddress: ocrt.ContractAddress;
+  readonly circuitId: string;
+  readonly input: ocrt.AlignedValue;
+  readonly output: ocrt.AlignedValue;
+}
+
+/**
  * Encapsulates the data required to produce a zero-knowledge proof except the circuit output
  */
 export interface PartialProofData {
@@ -28,9 +81,29 @@ export interface PartialProofData {
    */
   publicTranscript: ocrt.Op<ocrt.AlignedValue>[];
   /**
-   * The transcript of the witness call outputs
+   * The private inputs the circuit consumes beyond its arguments: host function results, and
+   * local-state results crossing into the proof
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The transcript of local-state operations, offset-tagged against {@link publicTranscript}.
+   * Absent until the first local operation runs, so proof data built by older generated code is
+   * unaffected.
+   */
+  localTranscript?: LocalTranscriptEntry[];
+  /**
+   * Every host function call of the call, in call order: the pinned nondeterminism a
+   * re-execution consumes instead of re-sampling. Absent until the first host call, so proof
+   * data built by older generated code is unaffected.
+   */
+  hostOutputs?: HostOutput[];
+  /**
+   * Each cross-contract call's result, in call order. The landed transaction binds this contract
+   * to that result through the communication commitment, therefore a re-execution consumes it
+   * instead of re-running the callee; an external result like a host output, kept apart from them
+   * because its origin is another capsule's record. Absent until the first cross-contract call.
+   */
+  calleeReturns?: CalleeReturn[];
 }
 
 /**

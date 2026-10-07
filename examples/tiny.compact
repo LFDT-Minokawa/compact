@@ -52,22 +52,23 @@ out in the set state.
 ledger authority: Bytes<32>;
 export ledger value: Field;
 ledger state: STATE;
-constructor(v: Field) {
-  const sk = private$secret_key();
+constructor(v: Field, sk: Bytes<32>) {
   authority = public_key(sk);
   value = disclose(v);
   state = STATE.set;
 }
 
 /*
-Witnesses permit a contract to read private state.  Here we use
-it to obtain the actor's private key.  Care must be taken no to
-expose private information.  This contract uses the private key
-to obtain a public key and stores only the public key in the public
-state.
+Host functions permit a contract to read values the wallet holds.
+Here we use one to obtain the actor's private key.  Care must be
+taken not to expose private information.  This contract uses the
+private key to obtain a public key and stores only the public key
+in the public state.  The deployer's key arrives as a constructor
+argument: a constructor runs before any wallet is attached to the
+contract, so it cannot call host functions.
 */
 
-witness private$secret_key(): Bytes<32>;
+host test:oracle/private-secret-key@1.0.0 { private$secret_key(): Bytes<32>; }
 
 /*
 set(value) fails if the state is not currently 'unset'.

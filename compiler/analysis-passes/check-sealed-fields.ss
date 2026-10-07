@@ -18,7 +18,7 @@
 (define-pass check-sealed-fields : Lnodca (ir) -> Lnodca ()
   ; this pass complains if a sealed field can be modified by an exported circuit or any
   ; circuit that is reachable from an exported circuit.  we presently assume that no
-  ; witnesses or natives can modify any sealed fields.
+  ; host functions or natives can modify any sealed fields.
   (definitions
     (define-condition-type &sealed-condition &condition
       make-sealed-condition sealed-condition?
@@ -58,7 +58,8 @@
                  [(,ledger-op^ ,op-class ((,var-name* ,type* ,discloses?*) ...) ,type ,vm-code)
                   (guard (eq? ledger-op^ ledger-op))
                   (if (null? accessor*)
-                      (eq? op-class 'read)
+                      ; local-read never writes: the vm-code is a pin or a plain read
+                      (memq op-class '(read local-read))
                       (loop accessor*
                             (nanopass-case (Lnodca Type) (de-alias type)
                               [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))

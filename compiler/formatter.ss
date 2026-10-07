@@ -808,6 +808,17 @@
                      (cons*
                        nbsp (Type type)
                        (add-punctuation semicolon '()))))))))]
+      [(local-ledger-declaration ,src ,kwd-export? ,kwd ,ledger-field-name ,colon ,type ,semicolon)
+       (// src
+           (apply make-Qconcat #f
+             (add-modifier kwd-export?
+               (cons*
+                 (make-Qtoken kwd)
+                 nbsp (make-Qtoken ledger-field-name)
+                 (add-punctuation colon
+                   (cons*
+                     nbsp (Type type)
+                     (add-punctuation semicolon '())))))))]
       [(constructor ,src ,kwd ,parg-list ,blck)
        (// src
            (make-Qblock
@@ -817,6 +828,13 @@
                  (make-Qstring "")
                  (parg-list-getter parg-list)
                  '()))
+             blck))]
+      [(local-constructor ,src ,kwd ,kwd^ ,blck)
+       (// src
+           (make-Qblock
+             (make-Qconcat #f
+               (make-Qtoken kwd)
+               nbsp (make-Qtoken kwd^))
              blck))]
       [(circuit ,src ,kwd-export? ,kwd-pure? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
        (// src
@@ -832,19 +850,32 @@
                             (list (Return-Type return-type)))
                      '()))))
              blck))]
-      [(witness ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,arg-list ,return-type ,semicolon)
+      [(local-circuit ,src ,kwd-export? ,kwd ,function-name ,generic-param-list? ,parg-list ,return-type ,blck)
+       (// src
+           (make-Qblock
+             (apply make-Qconcat #f
+               (add-modifier kwd-export?
+                 (cons*
+                   (make-Qtoken kwd)
+                   nbsp (make-Qsignature
+                          (Qfun function-name generic-param-list?)
+                          (parg-list-getter parg-list)
+                          (list (Return-Type return-type)))
+                   '())))
+             blck))]
+      [(host ,src ,kwd-export? ,kwd ,interface-id ,lbrace (,hsig* ...) ,rbrace)
        (// src
            (apply make-Qconcat #f
-             (add-modifier kwd-export?
-               (cons*
-                 (make-Qtoken kwd)
-                 nbsp (make-Qsignature
-                        (Qfun function-name generic-param-list?)
-                        (arg-list-getter arg-list)
-                        (cons
-                          (Return-Type return-type)
-                          (add-punctuation semicolon '())))
-                 '()))))]
+             (apply make-Qconcat #f
+               (add-modifier kwd-export?
+                 (list
+                   (make-Qtoken kwd)
+                   nbsp (make-Qtoken interface-id)
+                   nbsp (make-Qtoken lbrace))))
+             (fold-right
+               (lambda (hsig q*) (cons* nl 2 (Host-Signature hsig) q*))
+               (cons nl (add-closer 2 nl rbrace '()))
+               hsig*)))]
       [(external-contract ,src ,kwd-export? ,kwd ,contract-name ,lbrace (,ecdecl-circuit* ...) (,sep* ...) ,rbrace ,semicolon?)
        (// src
            (apply make-Qconcat #f
@@ -1018,6 +1049,15 @@
        (apply make-Qconcat #f
          (add-punctuation colon
            (cons* nbsp (Type type) '())))])
+    (Host-Signature : Host-Signature (ir) -> * (q)
+      [(,src ,function-name ,arg-list ,return-type ,semicolon)
+       (// src
+           (make-Qsignature
+             (Qfun function-name #f)
+             (arg-list-getter arg-list)
+             (cons
+               (Return-Type return-type)
+               (add-punctuation semicolon '()))))])
     (External-Contract-Circuit : External-Contract-Circuit (ir) -> * (q)
       [(,src ,kwd-pure? ,kwd ,function-name ,arg-list ,return-type)
        (// src

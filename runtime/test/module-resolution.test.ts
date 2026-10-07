@@ -50,6 +50,15 @@ const ALL_FAILURES: { [K in ModuleResolutionFailure['kind']]: Extract<ModuleReso
   ImplementationMismatch: { kind: 'ImplementationMismatch', circuitId: 'transfer', expected: VK_A, actual: VK_B },
   ModuleLoadRejected: { kind: 'ModuleLoadRejected', cause: new Error('boom') },
   IncompleteModule: { kind: 'IncompleteModule', missing: ['circuitSignatures', 'expectedVk'] },
+  HostInterfaceProviderAbsent: { kind: 'HostInterfaceProviderAbsent' },
+  HostInterfaceAbsent: {
+    kind: 'HostInterfaceAbsent',
+    interfaceId: 'midnight:capsule/keys@1.0.0',
+    resolved: false,
+    missing: ['secretKey'],
+  },
+  LocalStateProviderAbsent: { kind: 'LocalStateProviderAbsent' },
+  LocalStateProviderThrew: { kind: 'LocalStateProviderThrew', cause: new Error('boom') },
 };
 
 describe('ModuleResolutionError message', () => {
@@ -142,6 +151,26 @@ describe('ModuleResolutionError message', () => {
       argumentIndex: 2,
     });
     expect(err.message).toContain('argument 2');
+  });
+
+  test('a missing host interface says whether the provider resolves nothing or something incomplete', () => {
+    const unresolved = new ModuleResolutionError(CONTEXT, {
+      kind: 'HostInterfaceAbsent',
+      interfaceId: 'midnight:capsule/keys@1.0.0',
+      resolved: false,
+      missing: ['secretKey'],
+    });
+    expect(unresolved.message).toContain("the host interface provider resolves no 'midnight:capsule/keys@1.0.0'");
+    expect(unresolved.message).toContain('secretKey');
+
+    const incomplete = new ModuleResolutionError(CONTEXT, {
+      kind: 'HostInterfaceAbsent',
+      interfaceId: 'identus:verification/age@1.2.0',
+      resolved: true,
+      missing: ['ageCredential', 'issuer'],
+    });
+    expect(incomplete.message).toContain("resolves for 'identus:verification/age@1.2.0' has no function ageCredential, issuer");
+    expect(incomplete.message).not.toContain('resolves no');
   });
 });
 

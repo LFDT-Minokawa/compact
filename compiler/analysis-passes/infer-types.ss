@@ -26,7 +26,7 @@
     (define-datatype Idtype
       ; ordinary expression types
       (Idtype-Base type)
-      ; circuits, witnesses, and statements
+      ; circuits, host and local functions, and statements
       (Idtype-Function kind is-native arg-name* arg-type* return-type)
       )
     (module (set-idtype! unset-idtype! get-idtype)
@@ -1013,12 +1013,21 @@
      (build-function 'circuit #f function-name arg* type)]
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      (build-function (native-entry-class native-entry) #t function-name arg* type)]
-    [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
      (check-zkir-v3-curve type)
-     (build-function 'witness #f function-name arg* type)]
+     (build-function 'host #f function-name arg* type)]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "local function" -> type] ,expr)
+     (check-zkir-v3-curve type)
+     (build-function 'local-circuit #f function-name arg* type)]
     [(public-ledger-declaration ,src ,ledger-field-name ,[type])
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
+                          (format-type type)))
+     (check-zkir-v3-curve type)
+     (set-idtype! ledger-field-name (Idtype-Base type))]
+    [(local-ledger-declaration ,src ,ledger-field-name ,[type])
+     (unless (public-adt? type)
+       (source-errorf src "expected ADT-type for local declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
      (check-zkir-v3-curve type)
      (set-idtype! ledger-field-name (Idtype-Base type))]
@@ -1033,19 +1042,25 @@
   (Ledger-Constructor : Ledger-Constructor (ir) -> Ledger-Constructor ()
     [(constructor ,src (,[arg*] ...) ,expr)
      (let-values ([(expr return-type) (do-circuit-body src "ledger constructor" arg* (with-output-language (Ltypes Type) `(ttuple ,src)) expr)])
-       `(constructor ,src (,arg* ...) ,expr))])
+       `(constructor ,src (,arg* ...) ,expr))]
+    [(local-constructor ,src ,expr)
+     (let-values ([(expr return-type) (do-circuit-body src "local constructor" '() (with-output-language (Ltypes Type) `(ttuple ,src)) expr)])
+       `(local-constructor ,src ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
      (for-each check-zkir-v3-curve (map arg->type arg*))
      (check-zkir-v3-curve type)
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
-       `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
+       `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))]
+    [(local-circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "local function" -> type] ,expr)
+     (let-values ([(expr return-type) (do-circuit-body src (format "local function ~a" (id-sym function-name)) arg* type expr)])
+       `(local-circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
-  (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
-    [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     `(witness ,src ,function-name (,arg* ...) ,type)])
+  (Host-Declaration : Host-Declaration (ir) -> Host-Declaration ()
+    [(host ,src ,function-name ,interface-id ,host-name (,[arg*] ...) ,[Return-Type : type src "host function" -> type])
+     `(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)])
   (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
     [(export-typedef ,src ,type-name (,tvar-name* ...) ,[type])
      (if (public-adt? type)
@@ -1101,14 +1116,6 @@
     [(talias ,src ,nominal? ,type-name ,[type])
      `(talias ,src ,nominal? ,type-name ,type)]
     [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,[adt-op*] ...) (,[adt-rt-op*] ...))
-     (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
-       (let ([depth (car generic-value*)])
-         (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
-           (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
-                          adt-name
-                          depth
-                          (min-merkle-tree-depth)
-                          (max-merkle-tree-depth)))))
      `(tadt ,src ,adt-name ([,adt-formal* ,(map Generic-Value generic-value*)] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))])
   (CareNot : Expression (ir) -> Expression ()
     [(if ,src ,[Care : expr0 type0] ,expr1 ,expr2)
@@ -1583,22 +1590,56 @@
        (lambda (type expr1 expr2)
          `(!= ,src ,type ,expr1 ,expr2)))]
     [(for ,src ,var-name ,expr1 ,expr2)
-     (let-values ([(expr1 type1) (Care expr1)])
-       (let-values ([(len elt-type) (vector-element-type src "for 'of' expression" type1)])
-         (set-idtype! var-name (Idtype-Base elt-type))
-         (let ([expr2 (CareNot expr2)])
-           (unset-idtype! var-name)
-           (values
-             `(fold ,src ,len
-                ,(let ([t (make-temp-id src 't)])
-                   `(circuit ,src ((,t (ttuple ,src))
-                                   (,var-name ,elt-type))
-                             (ttuple ,src)
-                             (seq ,src ,expr2 (var-ref ,src ,t))))
-                ((tuple ,src) (ttuple ,src))
-                (,expr1 ,type1 ,elt-type))
-             (with-output-language (Ltypes Type)
-               `(ttuple ,src))))))]
+     ;; iteration over a container field is data-bounded (a foreach, kept as control for the
+     ;; TypeScript backend); everything else is the static vector form, unrolled as a fold
+     (let ([iterable
+             (nanopass-case (Lexpanded Expression) expr1
+               [(ledger-ref ,src^ ,ledger-field-name)
+                (Idtype-case (get-idtype src^ ledger-field-name)
+                  [(Idtype-Base type)
+                   (nanopass-case (Ltypes Type) (de-alias type #t)
+                     [(tadt ,src^^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                      (and (memq adt-name '(Set Map List))
+                           (let ([type* (fold-right
+                                          (lambda (adt-arg type*)
+                                            (nanopass-case (Ltypes Public-Ledger-ADT-Arg) adt-arg
+                                              [,nat type*]
+                                              [,type (cons type type*)]))
+                                          '()
+                                          adt-arg*)])
+                             (cons ledger-field-name
+                                   (with-output-language (Ltypes Type)
+                                     (if (eq? adt-name 'Map)
+                                         `(ttuple ,src ,(car type*) ,(cadr type*))
+                                         (car type*))))))]
+                     [else #f])]
+                  [else #f])]
+               [else #f])])
+       (if iterable
+           (let ([ledger-field-name (car iterable)] [elt-type (cdr iterable)])
+             (set-idtype! var-name (Idtype-Base elt-type))
+             (let ([expr2 (CareNot expr2)])
+               (unset-idtype! var-name)
+               (values
+                 `(foreach ,src ,var-name ,ledger-field-name ,elt-type ,expr2)
+                 (with-output-language (Ltypes Type)
+                   `(ttuple ,src)))))
+           (let-values ([(expr1 type1) (Care expr1)])
+             (let-values ([(len elt-type) (vector-element-type src "for 'of' expression" type1)])
+               (set-idtype! var-name (Idtype-Base elt-type))
+               (let ([expr2 (CareNot expr2)])
+                 (unset-idtype! var-name)
+                 (values
+                   `(fold ,src ,len
+                      ,(let ([t (make-temp-id src 't)])
+                         `(circuit ,src ((,t (ttuple ,src))
+                                         (,var-name ,elt-type))
+                                   (ttuple ,src)
+                                   (seq ,src ,expr2 (var-ref ,src ,t))))
+                      ((tuple ,src) (ttuple ,src))
+                      (,expr1 ,type1 ,elt-type))
+                   (with-output-language (Ltypes Type)
+                     `(ttuple ,src))))))))]
     [(map ,src ,fun ,expr ,expr* ...)
      (let*-values ([(expr+ actual-type+) (maplr2 Care (cons expr expr*))]
                    [(len actual-elt-type+) (vector-element-types src 'map actual-type+ 2)])

@@ -461,10 +461,10 @@ describe('[Bugs] Compiler', () => {
                 },
             },
             {
-                testcase: 'should not trigger internal error when contract contains non utf-8 characters (witness name)',
+                testcase: 'should not trigger internal error when contract contains non utf-8 characters (host function name)',
                 file: 'example_seven.compact',
                 output: {
-                    stderr: 'Exception: example_seven.compact line 16 char 9:\n  parse error: found "7" looking for an identifier',
+                    stderr: 'Exception: example_seven.compact line 16 char 32:\n  parse error: found "7" looking for a host signature or "}"',
                     stdout: compilerDefaultOutput(),
                     exitCode: ExitCodes.Failure,
                 },

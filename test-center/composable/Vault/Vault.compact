@@ -1,0 +1,73 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// A callee that keeps a capsule, reached one or two calls deep: notes held privately, a copy taken
+// by iterating them, a counter staged around a checkpoint, coins minted for the transacting party,
+// and a circuit whose only effect is local.
+
+import CompactStandardLibrary;
+
+export ledger deposits: Counter;
+
+export local notes: Set<Bytes<32>>;
+export local copies: Set<Bytes<32>>;
+export local staged: Counter;
+export local minted: Counter;
+export local joinedAt: Maybe<Uint<64>>;
+
+local constructor {
+  joinedAt = some<Uint<64>>(deposits.read());
+}
+
+export circuit stash(note: Bytes<32>): Uint<64> {
+  deposits.increment(1);
+  notes.insert(note);
+  return disclose(notes.size());
+}
+
+// iterates the notes, therefore the record pins the set it saw
+local copyNotes(): Uint<64> {
+  for (const n of notes) {
+    copies.insert(n);
+  }
+  return copies.size();
+}
+
+export circuit audit(): Uint<64> {
+  deposits.increment(1);
+  return disclose(copyNotes());
+}
+
+export circuit stage(n: Uint<16>): [] {
+  deposits.increment(1);
+  staged.increment(n);
+  kernel.checkpoint();
+  deposits.increment(1);
+  staged.increment(n);
+}
+
+export circuit mint(amount: Uint<64>): ShieldedCoinInfo {
+  minted.increment(1);
+  const nonce = persistentHash<Vector<2, Bytes<32>>>([pad(32, "vault:nonce"), minted.read() as Field as Bytes<32>]);
+  return mintShieldedToken(pad(32, "vault"),
+                           disclose(amount),
+                           disclose(nonce),
+                           left<ZswapCoinPublicKey, ContractAddress>(disclose(ownPublicKey())));
+}
+
+// only local effects, therefore no proof and no deployed operation
+export circuit remember(note: Bytes<32>): [] {
+  notes.insert(note);
+}

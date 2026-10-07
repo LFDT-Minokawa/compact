@@ -37,15 +37,15 @@ export circuit test2(param1: Bytes<10>): [] {
 }
 
 
-// test3: witness as bytes -> vector
-witness w3(param1: Bytes<1024>): Vector<1024, Uint<8>>;
+// test3: host function result as bytes -> vector
+host test:oracle/w3@1.0.0 { w3(param1: Bytes<1024>): Vector<1024, Uint<8>>; }
 
 export circuit test3(param1: Bytes<1024>): Vector<1024, Uint<8>> {
    return disclose(w3(param1));
 }
 
-// test4: witness as vector -> bytes
-witness w4(param1: Vector<1024, Uint<8>>): Bytes<1024>;
+// test4: host function result as vector -> bytes
+host test:oracle/w4@1.0.0 { w4(param1: Vector<1024, Uint<8>>): Bytes<1024>; }
 
 export circuit test4(param1: Vector<1024, Uint<8>>): Bytes<1024> {
    return disclose(w4(param1));

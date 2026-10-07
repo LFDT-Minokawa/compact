@@ -34,7 +34,7 @@ constructor(v: Field) {
   state = STATE.set;
 }
 
-witness private$secret_key(): Bytes<32>;
+host test:oracle/private-secret-key@1.0.0 { private$secret_key(): Bytes<32>; }
 
 circuit in_state(s: STATE): Boolean {
   return state == s;

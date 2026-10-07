@@ -32,6 +32,7 @@
   (define (id-token? x) (and (token? x) (eq? (token-type x) 'id)))
   (define (string-token? x) (and (token? x) (eq? (token-type x) 'string)))
   (define (version-token? x) (and (token? x) (eq? (token-type x) 'version)))
+  (define (interface-id-token? x) (and (token? x) (eq? (token-type x) 'interface-id)))
   (define (eof-token? x) (and (token? x) (eq? (token-type x) 'eof)))
   (define (keyword-token? x) (and (token? x) (eq? (token-type x) 'id)))
   (define (op-token? x) (and (token? x) (eq? (token-type x) 'binop)))
@@ -44,6 +45,7 @@
       (id-token (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name prefix type-name))
       (string-token (str mesg opaque-type file))
       (version-token (version))
+      (interface-id-token (interface-id))
       (eof-token (eof))
       (keyword-token (kwd kwd-else kwd-const kwd-of kwd-export kwd-sealed kwd-pure kwd-prefix kwd-from kwd-as kwd-new kwd-implements))
       (op-token (op langle rangle))
@@ -61,7 +63,7 @@
       ldecl
       lconstructor
       cdefn
-      wdecl
+      hdecl
       cidecl
       ecdecl
       structdef
@@ -117,17 +119,26 @@
     (Ledger-Declaration (ldecl)
       (public-ledger-declaration src (maybe kwd-export?) (maybe kwd-sealed?) kwd ledger-field-name colon type semicolon) =>
         (public-ledger-declaration kwd-export? kwd-sealed? #f ledger-field-name #f type)
+      (local-ledger-declaration src (maybe kwd-export?) kwd ledger-field-name colon type semicolon) =>
+        (local-ledger-declaration kwd-export? #f ledger-field-name #f type)
       )
     (Ledger-Constructor (lconstructor)
       (constructor src kwd parg-list blck) => (constructor parg-list #f blck)
+      (local-constructor src kwd kwd^ blck) => (local-constructor #f blck)
       )
     (Circuit-Definition (cdefn)
       (circuit src (maybe kwd-export?) (maybe kwd-pure?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
         (circuit kwd-export? kwd-pure? function-name generic-param-list? parg-list 4 return-type #f blck)
+      (local-circuit src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) parg-list return-type blck) =>
+        (local-circuit kwd-export? function-name generic-param-list? parg-list 4 return-type #f blck)
       )
-    (Witness-Declaration (wdecl)
-      (witness src (maybe kwd-export?) kwd function-name (maybe generic-param-list?) arg-list return-type semicolon) =>
-        (witness kwd-export? function-name generic-param-list? arg-list 4 return-type)
+    (Host-Declaration (hdecl)
+      (host src (maybe kwd-export?) kwd interface-id lbrace (hsig* ...) rbrace) =>
+        (host kwd-export? interface-id #f hsig* ...)
+      )
+    (Host-Signature (hsig)
+      (src function-name arg-list return-type semicolon) =>
+        (function-name arg-list 4 return-type)
       )
     (Contract-Implements-Declaration (cidecl)
       (contract-implements src kwd kwd-implements type semicolon) =>

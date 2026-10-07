@@ -31,4 +31,6 @@ constructor() {
   const f = default<Uint<32>> as Field;
 }
 
-witness method_2(): Boolean;
+host test:oracle/method-two@1.0.0 {
+  method_2(): Boolean;
+}

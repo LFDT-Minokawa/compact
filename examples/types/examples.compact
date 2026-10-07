@@ -289,10 +289,10 @@ export circuit test16(vara: t16_vector_of_fields): t16_not_a_field {
   return t16_sum_of_fields.lookup(0 as Field);
 }
 
-// Test 17: witness with custom param and return type
+// Test 17: host function with custom param and return type
 new type t17_boolean = Boolean;
 type t17_field = Field;
-witness t17_witness(vara: t17_boolean): t17_field;
+host test:oracle/t17-witness@1.0.0 { t17_witness(vara: t17_boolean): t17_field; }
 
 export circuit test17(vara: t17_boolean): t17_field {
   return disclose(t17_witness(disclose(vara)));
@@ -509,7 +509,7 @@ new type t37_address = ContractAddress;
 new type t37_either = Either<t37_pubkey, t37_address>;
 
 export circuit test37(): t37_either {
-  return left<t37_pubkey, t37_address>(ownPublicKey() as t37_pubkey) as t37_either;
+  return left<t37_pubkey, t37_address>(disclose(ownPublicKey()) as t37_pubkey) as t37_either;
 }
 
 // Test 38: Custom types with assert

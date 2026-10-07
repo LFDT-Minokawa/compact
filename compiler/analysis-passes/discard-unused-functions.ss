@@ -24,8 +24,9 @@
     (define (ipelt->function-name ipelt)
       (nanopass-case (Loneledger Program-Element) (ipelt-pelt ipelt)
         [(circuit ,src ,function-name (,arg* ...) ,type ,expr) function-name]
+        [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr) function-name]
         [(native ,src ,function-name ,native-entry (,arg* ...) ,type) function-name]
-        [(witness ,src ,function-name (,arg* ...) ,type) function-name]
+        [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type) function-name]
         [else #f]))
     (define (exported? ipelt)
       (let ([id (ipelt->function-name ipelt)])

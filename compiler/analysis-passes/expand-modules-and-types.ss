@@ -852,17 +852,33 @@
                        (loop pelt* seqno*
                              (if exported? (cons (make-exportit src ledger-field-name info) export*) export*)
                              unresolved-export*)))]
+                  [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,type)
+                   (let ([id (make-source-id src ledger-field-name)])
+                     (id-local?-set! id #t)
+                     (let ([info (Info-ledger id)])
+                       (env-insert! p src ledger-field-name info)
+                       (set! frob* (cons (make-frob (reverse seqno) pelt p id) frob*))
+                       (loop pelt* seqno*
+                             (if exported? (cons (make-exportit src ledger-field-name info) export*) export*)
+                             unresolved-export*)))]
                   [(constructor ,src (,arg* ...) ,expr)
                    (unless top-level?
                      (source-errorf src "misplaced constructor: should appear only at the top level of a program"))
                    (set! frob* (cons (make-frob (reverse seqno) pelt p #f) frob*))
                    (loop pelt* seqno* export* unresolved-export*)]
+                  [(local-constructor ,src ,expr)
+                   (unless top-level?
+                     (source-errorf src "misplaced local constructor: should appear only at the top level of a program"))
+                   (set! frob* (cons (make-frob (reverse seqno) pelt p #f) frob*))
+                   (loop pelt* seqno* export* unresolved-export*)]
                   [(circuit ,src ,exported? ,pure-dcl? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
                    (handle-fun src 'circuit pelt exported? function-name type-param*)]
+                  [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg ...) ,type ,expr)
+                   (handle-fun src 'local-circuit pelt exported? function-name type-param*)]
                   [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'native pelt exported? function-name type-param*)]
-                  [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
-                   (handle-fun src 'witness pelt exported? function-name type-param*)]
+                  [(host ,src ,exported? ,interface-id ,function-name (,arg* ...) ,type)
+                   (handle-fun src 'host pelt exported? function-name '())]
                   ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
                   ;; so its result reaches the caller's proof unconstrained, and the callee's module
                   ;; is unknown until run time so it cannot be inlined instead. The runtime stops the
@@ -965,6 +981,17 @@
                                        [(Info-size src size) size]
                                        [else (assert cannot-happen)])))
                                  info*)])
+        ;; a tree's operations take their types from its depth (a path holds a Vector of that
+        ;; length), therefore the depth is checked before they are expanded, or a depth past the
+        ;; longest vector is reported as that vector's length, in the standard library
+        (when (or (eq? adt-name 'MerkleTree) (eq? adt-name 'HistoricMerkleTree))
+          (let ([depth (car generic-value*)])
+            (unless (<= (min-merkle-tree-depth) depth (max-merkle-tree-depth))
+              (source-errorf src "~a depth ~d does not fall in ~d <= depth <= ~d"
+                             adt-name
+                             depth
+                             (min-merkle-tree-depth)
+                             (max-merkle-tree-depth)))))
         (let ([adt-op* (fold-right
                          (lambda (adt-op adt-op*)
                            (nanopass-case (Lpreexpand ADT-Op) adt-op
@@ -1012,6 +1039,38 @@
       (nanopass-case (Lexpanded Type) (de-alias type #t)
         [(tadt ,src ,adt-name ([,adt-formal* ,generic-value*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...)) #t]
         [else #f]))
+    ;; a state field of ordinary type is implicitly a Cell of that type,
+    ;; therefore a non-ADT declaration type is wrapped here
+    (define (ensure-adt-type src type)
+      (if (public-adt? type)
+          type
+          (let ([p (or Cell-ADT-env
+                       (let ([p (add-rib empty-env)])
+                         (do-import src 'CompactStandardLibrary '() ""
+                                    (list (with-output-language (Lpreexpand Import-Element)
+                                            `(,src __compact_Cell __compact_Cell)))
+                                    p)
+                         (set! Cell-ADT-env p)
+                         p))])
+            (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))
+    ;; the local constructor runs as a guarded prologue of every exported circuit, therefore a
+    ;; program that declares one gets a compiler-owned Cell<Boolean> guard as the local store's
+    ;; first binding; the guard is a temp id, which is what keeps it out of contract-info and the
+    ;; accessors
+    (define (add-local-constructor-guard pelt*)
+      (let ([src (ormap (lambda (pelt)
+                          (nanopass-case (Lexpanded Program-Element) pelt
+                            [(local-constructor ,src ,expr) src]
+                            [else #f]))
+                        pelt*)])
+        (if src
+            (let ([id (make-temp-id src 'initialised)])
+              (id-local?-set! id #t)
+              (cons (with-output-language (Lexpanded Program-Element)
+                      `(local-ledger-declaration ,src ,id
+                         ,(ensure-adt-type src (with-output-language (Lexpanded Type) `(tboolean ,src)))))
+                    pelt*))
+            pelt*)))
     )
   (Program : Program (ir) -> Program ()
     (definitions
@@ -1056,7 +1115,7 @@
                      [(Info-functions name info-fun+)
                       (for-each
                         (lambda (info-fun)
-                          (unless (eq? (info-fun-kind info-fun) 'circuit)
+                          (unless (memq (info-fun-kind info-fun) '(circuit local-circuit))
                             (source-errorf src "cannot export ~s (~s) from the top level" (info-fun-kind info-fun) export-name))
                           (unless (null? (info-fun-type-param* info-fun))
                             (source-errorf src "cannot export type-parameterized function (~s) from the top level" export-name))
@@ -1113,7 +1172,7 @@
                         (set! exported-other* (cons (cons export-name ledger-field-name) exported-other*)))]
                      [else (export-oops src export-name info)])))
                (reverse export*))))
-         (let ([reachable* (process-frob-worklist seqno.pelt*)])
+         (let ([reachable* (add-local-constructor-guard (process-frob-worklist seqno.pelt*))])
            ; process uninstantiated modules to catch any errors therein, skipping those
            ; with generic parameters since we have no generic values to supply
            (let loop ()
@@ -1179,28 +1238,27 @@
        `(circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
     [(native ,src ,exported? ,function-name ,native-entry (,type-param* ...) (,[arg*] ...) ,[type])
      `(native ,src ,id ,native-entry (,arg* ...) ,type)]
-    [(witness ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type])
-     `(witness ,src ,id (,arg* ...) ,type)]
+    [(host ,src ,exported? ,interface-id ,function-name (,[arg*] ...) ,[type])
+     `(host ,src ,id ,interface-id ,function-name (,arg* ...) ,type)]
+    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,[arg*] ...) ,[type] ,expr)
+     (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
+       (for-each
+         (lambda (id) (env-insert! p src (id-sym id) (Info-var id)))
+         var-id*)
+       `(local-circuit ,src ,id (,arg* ...) ,type ,(Expression expr p)))]
     [(public-ledger-declaration ,src ,exported? ,sealed? ,ledger-field-name ,[type])
      (when sealed? (id-sealed?-set! id #t))
-     `(public-ledger-declaration ,src ,id
-        ,(if (public-adt? type)
-             type
-             (let ([p (or Cell-ADT-env
-                          (let ([p (add-rib empty-env)])
-                            (do-import src 'CompactStandardLibrary '() ""
-                                       (list (with-output-language (Lpreexpand Import-Element)
-                                               `(,src __compact_Cell __compact_Cell)))
-                                       p)
-                            (set! Cell-ADT-env p)
-                            p))])
-               (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
+     `(public-ledger-declaration ,src ,id ,(ensure-adt-type src type))]
+    [(local-ledger-declaration ,src ,exported? ,ledger-field-name ,[type])
+     `(local-ledger-declaration ,src ,id ,(ensure-adt-type src type))]
     [(constructor ,src (,[arg*] ...) ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])
        (for-each
          (lambda (id) (env-insert! p src (id-sym id) (Info-var id)))
          var-id*)
        `(constructor ,src (,arg* ...) , (Expression expr p)))]
+    [(local-constructor ,src ,expr)
+     `(local-constructor ,src ,(Expression expr p))]
     [else (internal-errorf 'expand-modules-and-types "unexpected program element ~s" ir)])
   (External-Contract-Declaration : External-Contract-Declaration (ir p) -> External-Contract-Declaration ()
     [(external-contract ,src ,exported? ,contract-name ,[ecdecl-circuit*] ...)

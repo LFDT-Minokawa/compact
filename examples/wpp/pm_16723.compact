@@ -22,8 +22,8 @@ ledger field: Field;
 ledger counter: Counter;
 ledger bool: Boolean;
 
-witness antonio(): Boolean;
-witness brad(): Field;
+host test:oracle/antonio@1.0.0 { antonio(): Boolean; }
+host test:oracle/brad@1.0.0 { brad(): Field; }
 
 export circuit toby(a: Field): Field {
   field.write((() => { const p = disclose([a]); field.write(p[0]); return field.read();})());

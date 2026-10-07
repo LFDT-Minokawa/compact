@@ -68,7 +68,7 @@ export type InterfaceCircuitDeclaration = {
 export type InterfaceDescriptor = Readonly<Record<string, InterfaceCircuitDeclaration>>;
 
 /** One circuit as *implemented*. `pure` is inferred purity; `provable` means a proof can be
- *  generated for it. Disjoint but not exhaustive: a circuit that only calls a witness is neither. */
+ *  generated for it. Disjoint but not exhaustive: a circuit that only calls a host function is neither. */
 export type CircuitSignature = InterfaceCircuitDeclaration & {
   readonly provable: boolean;
 };

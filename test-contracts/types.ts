@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import type { HostInterface } from '@midnight-ntwrk/compact-runtime';
+
 export type TestPhase = 'compile' | 'runtime';
 
 export type TestResult = 'pass' | 'fail';
@@ -88,51 +90,29 @@ export type GeneratedContractModule = {
     pureCircuits: GeneratedPureCircuits;
 };
 
-export type CompactContract<PrivateState = any> = {
+export type CompactContract = {
     initialState(
         context: any,
         ...args: any[]
-    ):
-        | Promise<CompactConstructorResult<PrivateState>>
-        | CompactConstructorResult<PrivateState>;
+    ): Promise<CompactConstructorResult> | CompactConstructorResult;
 };
 
-type CompactConstructorResult<PrivateState = any> = {
+type CompactConstructorResult = {
     currentContractState: any;
-    currentPrivateState: PrivateState;
     currentZswapLocalState: {
         coinPublicKey: any;
     };
 };
 
 export type CompactContractConstructor<
-    Contract extends CompactContract<any> = CompactContract<any>,
-    Witnesses = any,
-> = new (witnesses: Witnesses) => Contract;
+    Contract extends CompactContract = CompactContract,
+> = new () => Contract;
 
-type ContractConstructorResult<Contract> = Contract extends {
-    initialState(context: any, ...args: any[]): infer Result;
-}
-    ? Awaited<Result>
-    : {
-          currentContractState: any;
-          currentPrivateState: any;
-          currentZswapLocalState: {
-              coinPublicKey: any;
-          };
-      };
-
-export type ContractPrivateState<Contract> =
-    ContractConstructorResult<Contract> extends {
-        currentPrivateState: infer PrivateState;
-    }
-        ? PrivateState
-        : any;
-
-export type ContractWitnesses<Contract extends CompactContractConstructor> =
-    ConstructorParameters<Contract> extends [infer Witnesses, ...unknown[]]
-        ? Witnesses
-        : never;
+/**
+ * The host interfaces a fixture answers, keyed by interface id: the test's side of the
+ * contract's `host` blocks.
+ */
+export type ContractHostInterfaces = Readonly<Record<string, HostInterface>>;
 
 type ContractCircuitContextFromCircuits<Circuits> =
     Circuits[keyof Circuits] extends (

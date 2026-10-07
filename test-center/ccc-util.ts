@@ -25,10 +25,19 @@ import {
   ContractModuleProvider,
   ContractStateProvider,
   EncodedContractAddress,
+  HostInterface,
+  HostInterfaceProvider,
+  LocalFoldDivergence,
+  LocalFoldOutcome,
+  LocalFoldResult,
+  LocalRecord,
+  LocalStateProvider,
   Module as RuntimeModule,
   ModuleThunk,
   createConstructorContext,
   createCircuitContext,
+  foldLocalState,
+  localRecordsOf,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 import {
@@ -36,7 +45,7 @@ import {
   Contract,
   InitialStateParams,
   Module,
-  Witnesses,
+  hostInterfaceProviderOf,
   registerProofCheck,
 } from './util.js';
 
@@ -47,8 +56,6 @@ export type {
   Contract,
   InitialStateParams,
   Module,
-  Witness,
-  Witnesses,
 } from './util.js';
 
 const DEFAULT_COIN_PUBLIC_KEY: ocrt.CoinPublicKey = '0'.repeat(64);
@@ -91,7 +98,7 @@ const deployedVerifierKey = (contractDir: string, circuitId: string): Uint8Array
 };
 
 export const scheduleProofChecks = (
-  circuitResults: CircuitResults<unknown, unknown>,
+  circuitResults: CircuitResults<unknown>,
   traceLengthBefore: number,
   contractDirByAddress: ReadonlyMap<ocrt.ContractAddress, string>,
 ): void => {
@@ -122,28 +129,49 @@ export const checkCallProofData = async (
   await checkProofData(contractDir, entry.circuitId, entry);
 };
 
+/** A fold's divergence in words, kind first, for an error a test matches. */
+export const describeDivergence = (divergence: LocalFoldDivergence): string =>
+  divergence.kind === 'ObservationMismatch'
+    ? `ObservationMismatch at entry ${divergence.entryIndex}, the container at [${divergence.path.join(', ')}]`
+    : `ReplayFailed at entry ${divergence.entryIndex}: ${divergence.message}`;
+
+/**
+ * Folds one call's record onto a prior local state, as the one step of a transaction with the given
+ * outcome. A call that left no local transcript has no record, therefore it folds to the prior.
+ */
+export const foldCall = (
+  prior: ocrt.StateValue,
+  call: CallProofData,
+  outcome: LocalFoldOutcome = { tag: 'success' },
+): LocalFoldResult => foldLocalState(prior, localRecordsOf([call]).map((record) => ({ record, outcome })));
+
+/** The state a fold reached; a divergence throws, saying which step and why. */
+export const foldedState = (result: LocalFoldResult): ocrt.StateValue => {
+  if (result.tag === 'diverged') {
+    throw new Error(`step ${result.stepIndex} diverged: ${describeDivergence(result.divergence)}`);
+  }
+  return result.state;
+};
+
 /** A deployed contract, as returned by {@link TestChain.deploy}. */
-export interface DeployedContract<C extends Contract<any, any> = Contract<any, any>> {
+export interface DeployedContract<C extends Contract = Contract> {
   /**
    * The module the provider returns for {@link address}. Its `expectedVk` is the harness's: this
    * suite compiles with `skip-zk`, so the staged module's own is `{}`.
    */
-  module: Module<C, any>;
+  module: Module<C>;
   address: ocrt.ContractAddress;
   encodedAddress: EncodedContractAddress;
 }
 
 /**
  * A deploy transaction: run a contract's constructor and persist the resulting
- * ledger state on the chain. Only the root of a call tree may declare witnesses,
- * so `witnesses` defaults to empty.
+ * ledger state on the chain.
  */
-export interface DeployTransaction<C extends Contract<any, any>> {
-  module: Module<C, any>;
+export interface DeployTransaction<C extends Contract> {
+  module: Module<C>;
   args: InitialStateParams<C>;
-  initialPrivateState: unknown;
   address?: ocrt.ContractAddress;
-  witnesses?: Witnesses<any>;
   coinPublicKey?: ocrt.CoinPublicKey;
 }
 
@@ -152,18 +180,119 @@ export interface DeployTransaction<C extends Contract<any, any>> {
  * contract's currently persisted ledger state. The optional fields are forwarded to
  * {@link createCircuitContext}.
  */
-export interface CallTransaction<PS, W extends Witnesses<PS>, C extends Contract<PS, W>> {
-  module: Module<C, W>;
+export interface CallTransaction<C extends Contract> {
+  module: Module<C>;
   address: ocrt.ContractAddress;
   circuitId: string;
   args: readonly unknown[];
-  witnesses: W;
-  privateState: PS;
+  /**
+   * Whose transaction this is: the account's capsules supply the entry contract's local state and
+   * serve the runtime's {@link LocalStateProvider} for callees, and a landed call folds its records
+   * into them. Omit it for contracts without local state, as before.
+   */
+  account?: Account;
+  /**
+   * The transacting party's answers to the host interfaces the call tree declares, on top of the
+   * harness wallet's coin operations. Different participants pass different ones.
+   */
+  hostInterfaces?: Record<string, HostInterface>;
+  /**
+   * A provider in place of the harness wallet, for a test about the provider itself;
+   * `hostInterfaces` is then unused.
+   */
+  hostInterfaceProvider?: HostInterfaceProvider;
   coinPublicKey?: ocrt.CoinPublicKey;
   gasLimit?: ocrt.RunningCost;
   costModel?: ocrt.CostModel;
   time?: number;
   parentBlockHash?: string;
+}
+
+/**
+ * One participant's capsules: the local state of every contract the account has touched, folded
+ * (tier 1) from the records of its landed transactions, one record per capsule per transaction. A
+ * chain holds no local state, so this is separate from {@link TestChain} and a test holds one per
+ * participant; as the runtime's {@link LocalStateProvider} it answers for callees, and the harness
+ * reads the entry contract's state from it directly.
+ */
+export class Account implements LocalStateProvider {
+  private readonly states = new Map<ocrt.ContractAddress, ocrt.StateValue>();
+
+  /** Every record folded so far, in landing order, keyed by the capsule it belongs to. */
+  readonly records = new Map<ocrt.ContractAddress, LocalRecord[]>();
+
+  /** Provider lookups served, keyed by callee address, so a test can assert when the runtime asks. */
+  private readonly lookups = new Map<ocrt.ContractAddress, number>();
+
+  /** {@link LocalStateProvider}: the capsule as last folded, or `undefined` before the first touch. */
+  async getLocalState(address: ocrt.ContractAddress): Promise<ocrt.StateValue | undefined> {
+    this.lookups.set(address, (this.lookups.get(address) ?? 0) + 1);
+    return this.states.get(address);
+  }
+
+  /** The folded capsule for `address`, if the account has touched the contract. */
+  localState(address: ocrt.ContractAddress): ocrt.StateValue | undefined {
+    return this.states.get(address);
+  }
+
+  /** How many times the runtime asked for `address` (0 if never). */
+  lookupCount(address: ocrt.ContractAddress): number {
+    return this.lookups.get(address) ?? 0;
+  }
+
+  /**
+   * The entry contract's local state for a call: the folded capsule, or the declaration defaults
+   * when this is the account's first touch; `undefined` for a contract without a local half.
+   */
+  entryLocalState(module: RuntimeModule, address: ocrt.ContractAddress): ocrt.StateValue | undefined {
+    return this.states.get(address) ?? module.initialLocalState?.();
+  }
+
+  /**
+   * Folds a landed transaction's records into the capsules they touched: a capsule's records replay
+   * in trace order against its prior (the declaration defaults at a first touch), so the fold is
+   * the tier-1 account of the call and not a copy of the rehearsed state. Every capsule folds
+   * before any is stored, therefore a divergence throws with the account as it was; the harness
+   * has no re-execution, so a test rehearses the call again instead.
+   */
+  commit(results: CircuitResults<unknown>, moduleFor: (address: ocrt.ContractAddress) => RuntimeModule): void {
+    const recordsByCapsule = new Map<ocrt.ContractAddress, LocalRecord[]>();
+    for (const record of localRecordsOf(results.context.callProofDataTrace)) {
+      recordsByCapsule.set(record.contractAddress, [...(recordsByCapsule.get(record.contractAddress) ?? []), record]);
+    }
+    const folded = new Map<ocrt.ContractAddress, ocrt.StateValue>();
+    for (const [address, records] of recordsByCapsule) {
+      const initialLocalState = moduleFor(address).initialLocalState;
+      if (initialLocalState === undefined) {
+        throw new Error(`a record for ${address} has a local transcript but its module keeps no local state`);
+      }
+      const prior = this.states.get(address) ?? initialLocalState();
+      const result = foldLocalState(prior, records.map((record) => ({ record, outcome: { tag: 'success' } })));
+      if (result.tag === 'diverged') {
+        throw new Error(
+          `the transaction's record ${result.stepIndex} for ${address} diverged: ${describeDivergence(result.divergence)}; its call must be re-executed`,
+        );
+      }
+      folded.set(address, result.state);
+    }
+    for (const [address, state] of folded) {
+      this.states.set(address, state);
+      this.records.set(address, [...(this.records.get(address) ?? []), ...recordsByCapsule.get(address)!]);
+    }
+  }
+
+  /**
+   * Folds every record of a capsule from the declaration defaults, as a fresh device recovering
+   * the account would, and returns the result for comparison with the folded or rehearsed state.
+   */
+  refold(module: RuntimeModule, address: ocrt.ContractAddress): ocrt.StateValue {
+    const initialLocalState = module.initialLocalState;
+    if (initialLocalState === undefined) {
+      throw new Error(`the module for ${address} keeps no local state`);
+    }
+    const records = this.records.get(address) ?? [];
+    return foldedState(foldLocalState(initialLocalState(), records.map((record) => ({ record, outcome: { tag: 'success' } }))));
+  }
 }
 
 /**
@@ -181,6 +310,8 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
   private readonly states = new Map<ocrt.ContractAddress, ocrt.ContractState>();
   private readonly contractDirByAddress = new Map<ocrt.ContractAddress, string>();
   private readonly moduleByAddress = new Map<ocrt.ContractAddress, ModuleThunk>();
+  /** The modules behind the thunks, for the synchronous reads an {@link Account} fold needs. */
+  private readonly loadedModuleByAddress = new Map<ocrt.ContractAddress, RuntimeModule>();
 
   /** Number of cross-contract state fetches served, keyed by callee address. */
   private readonly fetchCounts = new Map<ocrt.ContractAddress, number>();
@@ -214,6 +345,16 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
    */
   overrideModule(address: ocrt.ContractAddress, module: RuntimeModule): void {
     this.moduleByAddress.set(address, () => Promise.resolve(module));
+    this.loadedModuleByAddress.set(address, module);
+  }
+
+  /** The module bound to `address`, for the harness's own reads. */
+  moduleFor(address: ocrt.ContractAddress): RuntimeModule {
+    const module = this.loadedModuleByAddress.get(address);
+    if (module === undefined) {
+      throw new Error(`No module bound to address ${address}`);
+    }
+    return module;
   }
 
   /**
@@ -258,27 +399,23 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
   /**
    * Execute a deploy transaction and persist the contract's initial ledger state.
    */
-  async deploy<C extends Contract<any, any>>(
+  async deploy<C extends Contract>(
     tx: DeployTransaction<C>,
   ): Promise<DeployedContract<C>> {
-    const contract = new tx.module.Contract(
-      (tx.witnesses ?? {}) as Record<string, never>,
-    );
-    const constructorContext = createConstructorContext(
-      tx.initialPrivateState,
-      tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
-    );
+    const contract = new tx.module.Contract();
+    const constructorContext = createConstructorContext(tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY);
     const constructorResult = (await contract.initialState(
       constructorContext,
       ...(tx.args as unknown[]),
-    )) as ConstructorResult<unknown>;
+    )) as ConstructorResult;
 
     const address = tx.address ?? ocrt.sampleContractAddress();
     const expectedVk = this.installVerifierKeys(constructorResult.currentContractState, tx.module.contractDir);
-    const module: Module<C, any> = { ...tx.module, expectedVk };
+    const module: Module<C> = { ...tx.module, expectedVk };
     this.states.set(address, constructorResult.currentContractState);
     this.contractDirByAddress.set(address, tx.module.contractDir);
     this.moduleByAddress.set(address, () => Promise.resolve(module));
+    this.loadedModuleByAddress.set(address, module);
 
     return {
       module,
@@ -288,14 +425,31 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
   }
 
   /**
-   * Executes a call transaction: seeds a context from the entry contract's persisted state, runs the
-   * circuit, schedules proof checks for the call tree, then commits every touched contract.
+   * Executes a call transaction: rehearses it, then commits every touched contract and folds the
+   * account's records.
    */
-  async call<PS, W extends Witnesses<PS>, C extends Contract<PS, W>>(
-    tx: CallTransaction<PS, W, C>,
-  ): Promise<CircuitResults<PS, unknown>> {
+  async call<C extends Contract>(
+    tx: CallTransaction<C>,
+  ): Promise<CircuitResults<unknown>> {
+    const result = await this.rehearse(tx);
+    this.commit(result.context);
+    // The chain lands the public side; the account folds the records of every capsule touched.
+    tx.account?.commit(result, (address) => this.moduleFor(address));
+    return result;
+  }
+
+  /**
+   * Runs a call transaction without landing it: seeds a context from the entry contract's persisted
+   * state, runs the circuit and schedules proof checks for the call tree, and leaves the chain and
+   * the account as they were, as for a transaction still in flight. The chain stores post-call
+   * states rather than replaying transcripts, therefore a test lands only the local side of such a
+   * transaction, by folding its records ({@link Account.commit}).
+   */
+  async rehearse<C extends Contract>(
+    tx: CallTransaction<C>,
+  ): Promise<CircuitResults<unknown>> {
     const entryState = this.getContractStateOrThrow(tx.address);
-    const contract = new tx.module.Contract(tx.witnesses);
+    const contract = new tx.module.Contract();
 
     const now = tx.time ?? Math.floor(Date.now() / 1_000);
     const context = createCircuitContext({
@@ -303,16 +457,17 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
       contractAddress: tx.address,
       coinPublicKeyOrZswapState: tx.coinPublicKey ?? DEFAULT_COIN_PUBLIC_KEY,
       contractState: entryState,
-      privateState: tx.privateState,
+      localState: tx.account?.entryLocalState(tx.module, tx.address),
       gasLimit: tx.gasLimit,
       costModel: tx.costModel,
       time: now,
       parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
-      crossContract: { stateProvider: this, moduleProvider: this },
-    }) as CircuitContext<PS>;
+      hostInterfaceProvider: tx.hostInterfaceProvider ?? hostInterfaceProviderOf(tx.hostInterfaces),
+      crossContract: { stateProvider: this, moduleProvider: this, localStateProvider: tx.account },
+    });
 
-    const circuits = contract.circuits as Circuits<PS>;
-    const impureCircuits = contract.impureCircuits as Circuits<PS>;
+    const circuits = contract.circuits as Circuits;
+    const impureCircuits = contract.impureCircuits as Circuits;
     const circuit = impureCircuits[tx.circuitId] ?? circuits[tx.circuitId];
     if (circuit === undefined) {
       throw new Error(
@@ -323,13 +478,11 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
     const result = (await circuit(
       context,
       ...tx.args,
-    )) as CircuitResults<PS, unknown>;
+    )) as CircuitResults<unknown>;
 
     // The fresh context starts with an empty trace, so every entry the call
     // produced — the root circuit plus every cross-contract sub-call — is checked.
     scheduleProofChecks(result, 0, this.contractDirByAddress);
-
-    this.commit(result.context);
 
     return result;
   }
@@ -338,7 +491,7 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
    * Persists every touched contract's final ledger state. `queryContexts[address].state` holds it
    * once a circuit finishes, and it is spliced into the stored {@link ocrt.ContractState}.
    */
-  private commit(context: CircuitContext<any>): void {
+  private commit(context: CircuitContext): void {
     for (const [address, queryContext] of Object.entries(context.queryContexts)) {
       const state = this.getContractStateOrThrow(address);
       state.data = queryContext.state;

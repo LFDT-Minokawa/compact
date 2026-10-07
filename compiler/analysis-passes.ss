@@ -57,7 +57,11 @@
 
   (include "analysis-passes/reject-constructor-cc-calls.ss")
 
+  (include "analysis-passes/reject-constructor-local-calls.ss")
+
   (include "analysis-passes/identify-pure-circuits.ss")
+
+  (include "analysis-passes/check-local-callability.ss")
 
   (include "analysis-passes/determine-ledger-paths.ss")
 
@@ -82,7 +86,9 @@
     (check-sealed-fields             Lnodca)
     (reject-constructor-emit         Lnodca)
     (reject-constructor-cc-calls     Lnodca)
+    (reject-constructor-local-calls  Lnodca)
     (identify-pure-circuits          Lnodca)
+    (check-local-callability         Lnodca)
     (determine-ledger-paths          Lwithpaths0)
     (propagate-ledger-paths          Lwithpaths)
     (track-witness-data              Lwithpaths)

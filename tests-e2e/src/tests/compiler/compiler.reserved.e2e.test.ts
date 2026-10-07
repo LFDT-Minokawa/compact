@@ -179,7 +179,7 @@ describe('[Reserved] PM-14357 - Reserved keywords', () => {
                 testcase: 'instanceof keyword',
                 file: 'example_23.compact',
                 output: {
-                    stderr: 'Exception: example_23.compact line 16 char 9: parse error: found keyword "instanceof" (which is reserved for future use) looking for an identifier',
+                    stderr: 'Exception: example_23.compact line 16 char 37: parse error: found keyword "instanceof" (which is reserved for future use) looking for a host signature or "}"',
                 },
             },
             {

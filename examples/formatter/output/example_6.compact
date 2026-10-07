@@ -24,8 +24,12 @@ export circuit test(): [] {
   return [];
 }
 
-witness barbara(): Boolean;
+host test:oracle/barbara@1.0.0 {
+  barbara(): Boolean;
+}
 
-witness arnold(x: Float): Boolean;
+host test:oracle/arnold@1.0.0 {
+  arnold(x: Float): Boolean;
+}
 
 export ledger counter: Counter;

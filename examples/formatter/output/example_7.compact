@@ -25,7 +25,9 @@ export circuit randolph(x: Field, z: Field): Field {
   return x + z;
 }
 
-witness adam(x: Field, y: Uint<32>): Uint<16>;
+host test:oracle/adam@1.0.0 {
+  adam(x: Field, y: Uint<32>): Uint<16>;
+}
 
 export ledger round: Counter;
 

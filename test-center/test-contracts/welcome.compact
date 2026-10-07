@@ -21,18 +21,18 @@ export { Maybe }
 // This contract is not intended to provide a production-grade user registration service. It is intended to be a simple
 // demonstration of a Midnight decentralized application.
 
-// Stores the identity the participant used to check in
-witness set_local_id(participant: Opaque<"string">): [];
+// The identity this account checked in as, kept off chain
+export local checked_in_as: Maybe<Opaque<"string">>;
 
-// Secret key of the current user (only defined for organizers)
-witness local_sk(): Maybe<Bytes<32>>;
+// The capsule secret; an organizer's derives one of the organizer public keys
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
 
 export ledger organizer_pks: Set<Bytes<32>>;
 export ledger eligible_participants: Set<Opaque<"string">>;
 export ledger checked_in_participants: Set<Opaque<"string">>;
 
-constructor(initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
-  organizer_pks.insert(public_key(local_sk_or_error()));
+constructor(organizer_sk: Bytes<32>, initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>) {
+  organizer_pks.insert(disclose(public_key(organizer_sk)));
   for (const maybe_participant of disclose(initial_eligible_participants)) {
     if (maybe_participant.is_some) {
       eligible_participants.insert(maybe_participant.value);
@@ -41,12 +41,12 @@ constructor(initial_eligible_participants: Vector<5000, Maybe<Opaque<"string">>>
 }
 
 export circuit add_participant(participant: Opaque<"string">): [] {
-  assert(organizer_pks.member(public_key(local_sk_or_error())), "Not an organizer");
+  assert(organizer_pks.member(disclose(public_key(secretKey()))), "Not an organizer");
   eligible_participants.insert(disclose(participant));
 }
 
 export circuit add_organizer(organizer_pk: Bytes<32>): [] {
-  assert(organizer_pks.member(public_key(local_sk_or_error())), "Not an organizer");
+  assert(organizer_pks.member(disclose(public_key(secretKey()))), "Not an organizer");
   organizer_pks.insert(disclose(organizer_pk));
 }
 
@@ -54,13 +54,7 @@ export circuit add_organizer(organizer_pk: Bytes<32>): [] {
 export circuit check_in(participant: Opaque<"string">): [] {
   assert(eligible_participants.member(disclose(participant)), "Not eligible participant");
   checked_in_participants.insert(disclose(participant));
-  set_local_id(participant);
-}
-
-circuit local_sk_or_error(): Bytes<32> {
-  const maybe_sk = disclose(local_sk());
-  assert(maybe_sk.is_some, "No secret key found");
-  return maybe_sk.value;
+  checked_in_as = some<Opaque<"string">>(participant);
 }
 
 export circuit public_key(sk: Bytes<32>): Bytes<32> {

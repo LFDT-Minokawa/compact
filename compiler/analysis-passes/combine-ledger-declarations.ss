@@ -29,11 +29,28 @@
          (nanopass-case (Lnotundeclared Type) (de-alias type)
            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
             (eq? adt-name 'Kernel)]
-           [else (assert cannot-happen)])])))
+           [else (assert cannot-happen)])]
+        [(local-ledger-declaration ,src ,ledger-field-name ,type) #f]))
+    (define (local-decl? ldecl)
+      (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+        [(local-ledger-declaration ,src ,ledger-field-name ,type) #t]
+        [else #f]))
+    (define (local-ctor? lconstructor)
+      (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
+        [(local-constructor ,src ,expr) #t]
+        [else #f]))
+    ;; an exported local function is a method of the local store's accessor, therefore it
+    ;; needs the store to exist, if only as an empty package
+    (define (exported-local-function? pelt)
+      (nanopass-case (Lnotundeclared Program-Element) pelt
+        [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr) (id-exported? function-name)]
+        [else #f])))
   (Program : Program (ir) -> Program ()
     [(program ,src (,[contract-type*] ...) ((,struct-name* ,[type*]) ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (let*-values ([(ldecl* pelt*) (partition Lnotundeclared-Ledger-Declaration? pelt*)]
                    [(lconstructor* pelt*) (partition Lnotundeclared-Ledger-Constructor? pelt*)]
+                   [(local-ldecl* ldecl*) (partition local-decl? ldecl*)]
+                   [(local-ctor* lconstructor*) (partition local-ctor? lconstructor*)]
                    [(kernel-ldecl* ldecl*) (partition kernel? ldecl*)])
        (fluid-let ([kernel-id* (map (lambda (kernel-ldecl)
                                       (nanopass-case (Lnotundeclared Ledger-Declaration) kernel-ldecl
@@ -70,6 +87,33 @@
                                   "found other ledger constructors in program: \
                                    ~{\n    ~a~^,~}"
                                   (map format-source-object (cdr src*))))]))
+            ,(if (and (null? local-ldecl*) (null? local-ctor*) (not (ormap exported-local-function? pelt*)))
+                 '()
+                 (list
+                   `(local-ledger-declaration
+                      ,(map (lambda (ldecl)
+                              (nanopass-case (Lnotundeclared Ledger-Declaration) ldecl
+                                [(local-ledger-declaration ,src ,ledger-field-name ,type)
+                                 `(,src ,ledger-field-name ,(Type type))]))
+                            local-ldecl*)
+                      ...
+                      ,(cond
+                        [(null? local-ctor*) `(local-constructor ,src (tuple ,src))]
+                        [(null? (cdr local-ctor*))
+                         (nanopass-case (Lnotundeclared Ledger-Constructor) (car local-ctor*)
+                           [(local-constructor ,src ,expr)
+                            `(local-constructor ,src ,(Expression expr))])]
+                        [else
+                         (let ([src* (map (lambda (lconstructor)
+                                            (nanopass-case (Lnotundeclared Ledger-Constructor) lconstructor
+                                              [(local-constructor ,src ,expr) src]))
+                                          local-ctor*)])
+                           (source-errorf (car src*)
+                                          "found other local constructors in program: \
+                                           ~{\n    ~a~^,~}"
+                                          (map format-source-object (cdr src*))))])))
+                 )
+            ...
             ,(map Program-Element pelt*)
             ...)))])
   (Program-Element : Program-Element (ir) -> Program-Element ()

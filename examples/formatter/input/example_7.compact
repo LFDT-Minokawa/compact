@@ -25,12 +25,12 @@ const p=f+z
 x:Field,z:Field):Field
 {
 return x+z;
-} witness adam(
+} host test:oracle/adam@1.0.0 { adam(
 x:Field,
 y:
 Uint<32>)
 :Uint<16
->;
+>; }
 
 
 

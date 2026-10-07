@@ -738,6 +738,21 @@
          (print-gate "div_mod_power_of_two" `[var ,triv] `[bits ,bits])
          (new-var! var-name1)
          (new-var! var-name2)]
+        [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,triv* ...))
+         (guard (id-local? ledger-field-name))
+         ;; a local operation contributes no impact instructions and no public inputs; the prover
+         ;; supplies its result as private inputs, exactly as a witness call's
+         (let ([test (Triv test)])
+           (nanopass-case (Lflattened ADT-Op) adt-op
+             [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...) (,type* ...) ,type ,vm-code)
+              (for-each
+                (lambda (primitive-type var)
+                  (if (equal? test (hashtable-ref literal-ht 1 #f))
+                      (print-gate "private_input" '[guard null])
+                      (print-gate "private_input" `[guard ,test]))
+                  (constrain-type primitive-type (new-var! var)))
+                (type->primitive-types type)
+                var-name*)]))]
         [(= ,[* test] (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,[* path-elt*] ...) ,src^ ,adt-op ,[* triv*] ...))
          (let ()
            (define (group type* triv*)

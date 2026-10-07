@@ -105,6 +105,14 @@ export struct QualifiedShieldedCoinInfo {
 
 export struct ZswapCoinPublicKey { bytes: Bytes<32>; }
 
+// The wallet's coin operations, provided by the runtime host: the user's coin public key, and
+// the registration of a coin the transaction spends or creates.
+export host midnight:capsule/zswap@1.0.0 {
+  ownPublicKey(): ZswapCoinPublicKey;
+  createZswapInput(coin: QualifiedShieldedCoinInfo): [];
+  createZswapOutput(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [];
+}
+
 export struct ShieldedSendResult {
   change: Maybe<ShieldedCoinInfo>;
   sent: ShieldedCoinInfo;

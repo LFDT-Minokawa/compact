@@ -29,6 +29,10 @@
      (Block blck #t)]
     [(constructor ,src (,arg* ...) ,blck)
      (Block blck #t)]
+    [(local-circuit ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type ,blck)
+     (Block blck #t)]
+    [(local-constructor ,src ,blck)
+     (Block blck #t)]
     [else (void)])
   (Block : Block (ir [reachable? #t]) -> * (reachable?)
     [(block ,src ,stmt* ...)

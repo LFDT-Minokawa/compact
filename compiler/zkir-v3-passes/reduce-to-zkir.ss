@@ -643,6 +643,9 @@
                  '()
                  (list (combine hi n))))]
 
+          ;; ckpt --> 0xff
+          [("ckpt") (list #xff)]
+
           [else
             (fprintf (current-error-port) "unimplemented: ~s\n" impact-instr)
             (assert not-implemented)])))
@@ -930,6 +933,15 @@
              (let ([quo (make-temp-id default-src 'quo)])
                (loop (cdr var-name*) quo
                  (cons `(div_mod_power_of_two ,quo ,(car var-name*) ,var ,8) instr*))))))]
+    [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...)
+                           ,src^ ,adt-op ,triv* ...))
+     (guard (id-local? ledger-field-name))
+     ;; a local operation contributes no impact instructions and no public inputs; the prover
+     ;; supplies its result as private inputs, exactly as a witness call's
+     (nanopass-case (Lflattened ADT-Op) adt-op
+       [(,ledger-op ,op-class (,adt-name (,adt-formal* ,adt-arg*) ...) (,ledger-op-formal* ...)
+          (,type* ...) (ty (,alignment* ...) (,primitive-type* ...)) ,vm-code)
+        ((make-witness alignment* primitive-type*) var-name* src test triv* instr*)])]
     [(= ,test (,var-name* ...) (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...)
                            ,src^ ,adt-op ,triv* ...))
      (nanopass-case (Lflattened ADT-Op) adt-op

@@ -71,6 +71,27 @@
         [(talias ,src ,nominal? ,type-name ,type)
          (unwrap-to-adt type)]
         [else type]))
+    ;; (interface-id . function-json) pairs to one JSON object per interface, in first-seen
+    ;; order, each listing its functions in declaration order
+    (define (group-host-functions tagged*)
+      (let loop ([tagged* tagged*] [interface* '()])
+        (if (null? tagged*)
+            (map (lambda (interface)
+                   (list
+                     (cons "interface" (car interface))
+                     (cons "functions" (list->vector (reverse (cdr interface))))))
+                 (reverse interface*))
+            (let ([interface-id (caar tagged*)] [function (cdar tagged*)])
+              (loop (cdr tagged*)
+                    (cond
+                      [(assoc interface-id interface*) =>
+                       (lambda (interface)
+                         (map (lambda (x)
+                                (if (eq? x interface)
+                                    (cons interface-id (cons function (cdr interface)))
+                                    x))
+                              interface*))]
+                      [else (cons (cons interface-id (list function)) interface*)]))))))
     (define (tcontract-tail contract-name elt-name* pure-dcl* type** type*)
       (list
         (cons "name" (symbol->string contract-name))
@@ -88,7 +109,12 @@
                  elt-name* pure-dcl* type** type*))))))
   (Program : Program (ir) -> * (json)
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
-     (list
+     ;; the local and host sections appear only for contracts with a local half or host
+     ;; requirements, so contract-info is unchanged for everything else
+     (let ([local-field* (fold-right (lambda (pelt field*) (LedgerField pelt field* #t)) '() pelt*)]
+           [host-interface* (group-host-functions (fold-right Host '() pelt*))])
+     (append
+      (list
        (cons
          "compiler-version"
          compiler-version-string)
@@ -110,9 +136,6 @@
                '()
                pelt*))))
        (cons
-         "witnesses"
-         (list->vector (fold-right Witness '() pelt*)))
-       (cons
          "contracts"
          (list->vector
            (map (lambda (ct)
@@ -122,44 +145,68 @@
                 contract-type*)))
        (cons
          "ledger"
-         (list->vector (fold-right LedgerField '() pelt*))))])
-  (Witness : Program-Element (ir witness*) -> * (json)
-    [(witness ,src ,function-name (,arg* ...) ,type)
+         (list->vector (fold-right (lambda (pelt field*) (LedgerField pelt field* #f)) '() pelt*))))
+      (if (null? local-field*)
+          '()
+          (list (cons "local" (list->vector local-field*))))
+      (if (null? host-interface*)
+          '()
+          (list (cons "host" (list->vector host-interface*))))))])
+  ;; the host functions the contract requires, one entry per declared function, tagged
+  ;; with its interface id; `group-host-functions` folds them into one entry per interface
+  (Host : Program-Element (ir host*) -> * (json)
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
      (cons
-       (list
-         (cons
-           "name"
-           (symbol->string (id-sym function-name)))
-         (cons
-           "arguments"
-           (list->vector (map Argument arg*)))
-         (cons
-           "result type"
-           (Type type)))
-       witness*)]
-    [else witness*])
-  (LedgerField : Program-Element (ir field*) -> * (json)
+       (cons
+         interface-id
+         (list
+           (cons
+             "name"
+             (symbol->string host-name))
+           (cons
+             "arguments"
+             (list->vector (map Argument arg*)))
+           (cons
+             "result type"
+             (Type type))))
+       host*)]
+    [else host*])
+  ;; one walker for both stores: local? selects which package contributes
+  (LedgerField : Program-Element (ir field* local?) -> * (json)
+    (definitions
+      ;; a compiler-owned binding (the local constructor's guard cell) is a temp id, and the
+      ;; source declared no such field, therefore it is left out
+      (define (package-fields pl-array field*)
+        (append
+          (fold-right
+            (lambda (pb field*)
+              (nanopass-case (Lloweredemit Public-Ledger-Binding) pb
+                [(,src ,ledger-field-name (,path-index* ...) ,type)
+                 (if (id-temp? ledger-field-name)
+                     field*
+                     (let ([name (symbol->string (id-sym ledger-field-name))]
+                           [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
+                           [exported (id-exported? ledger-field-name)]
+                           [unwrapped (unwrap-to-adt type)])
+                       (nanopass-case (Lloweredemit Type) unwrapped
+                         [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                          (cons
+                            (cons*
+                              (cons "name" name)
+                              (cons "index" index)
+                              (cons "exported" exported)
+                              (serialize-adt "storage" adt-name adt-arg*))
+                            field*)]
+                         [else (assert cannot-happen)])))]))
+            '()
+            (flatten-pl-array pl-array))
+          field*)))
     [(public-ledger-declaration ,pl-array ,lconstructor)
-     (let ([bindings (flatten-pl-array pl-array)])
-       (append
-         (map
-           (lambda (pb)
-             (nanopass-case (Lloweredemit Public-Ledger-Binding) pb
-               [(,src ,ledger-field-name (,path-index* ...) ,type)
-                (let ([name (symbol->string (id-sym ledger-field-name))]
-                      [index (if (and (pair? path-index*) (null? (cdr path-index*))) (car path-index*) (list->vector path-index*))]
-                      [exported (id-exported? ledger-field-name)]
-                      [unwrapped (unwrap-to-adt type)])
-                  (nanopass-case (Lloweredemit Type) unwrapped
-                    [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                     (cons*
-                       (cons "name" name)
-                       (cons "index" index)
-                       (cons "exported" exported)
-                       (serialize-adt "storage" adt-name adt-arg*))]
-                    [else (assert cannot-happen)]))]))
-           bindings)
-         field*))]
+     (guard (not local?))
+     (package-fields pl-array field*)]
+    [(local-ledger-declaration ,pl-array ,lconstructor)
+     (guard local?)
+     (package-fields pl-array field*)]
     [else field*])
   (exported-circuit : Program-Element (ir circuit* export-alist) -> * (json)
     (definitions

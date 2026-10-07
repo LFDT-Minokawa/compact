@@ -1,0 +1,106 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The direction document's ballot: the root contract a user calls, which enrolls voters through a
+// registry it knows only by address, gated by a credential from the wallet.
+
+import CompactStandardLibrary;
+
+// binds ageCredential
+include "identus_verification";
+import identus_verification;
+
+// in-place host block: the capsule secret
+host midnight:capsule/keys@1.0.0 {
+  secretKey(): Bytes<32>;
+}
+
+// contract type; the implementation is resolved at run time, by address
+contract VoterRegistry {
+  circuit enroll(commitment: Bytes<32>): [];
+  circuit proveMembership(commitment: Bytes<32>): [];
+}
+
+export ledger registry: VoterRegistry;
+export sealed ledger issuerPk: Bytes<32>;
+export ledger nullifiers: Set<Bytes<32>>;
+export ledger votesFor: Counter;
+export ledger votesAgainst: Counter;
+
+// ledger constructor: deployer only, public state only
+constructor(r: VoterRegistry, issuer: Bytes<32>) {
+  registry = disclose(r);
+  issuerPk = disclose(issuer);
+}
+
+// private vote budget and enrollment
+export local credits: Uint<4>;
+export local myCommitment: Maybe<Bytes<32>>;
+
+// every party starts identically; joining needs only the address
+local constructor {
+  credits = 1;
+}
+
+// a private convenience check; the sound guard is the nullifier set
+local spendCredit(): [] {
+  assert(credits > 0, "no votes left");
+  credits = credits - 1;
+}
+
+local commitmentOf(): Bytes<32> {
+  assert(myCommitment.is_some, "not signed up");
+  return myCommitment.value;
+}
+
+export circuit signup(asOf: Uint<64>): [] {
+  // a public lower bound on the block time, proven on the ledger; the credential is compared
+  // against it privately, so the birth date never leaves the proof
+  assert(blockTimeGte(disclose(asOf)), "time bound is in the future");
+  // the wallet answers; the answer is frozen into the record
+  const cred = ageCredential();
+  assert(validSignature(issuerPk, cred), "unrecognized issuer");
+  assert(olderThan18(cred, asOf), "under age");
+  const c = persistentCommit<Bytes<32>>(secretKey(), pad(32, "enroll"));
+  // the callee updates its own private books too
+  registry.enroll(disclose(c));
+  myCommitment = some<Bytes<32>>(c);
+}
+
+export circuit vote(choice: Boolean): [] {
+  spendCredit();
+  const c = commitmentOf();
+  // the callee proves from its own private records and the public tree
+  registry.proveMembership(disclose(c));
+  const nul = disclose(persistentCommit<Bytes<32>>(secretKey(), pad(32, "vote")));
+  // the sound double-vote guard, in-circuit, on the ledger
+  assert(!nullifiers.member(nul), "already voted");
+  nullifiers.insert(nul);
+  if (disclose(choice)) {
+    votesFor.increment(1);
+  } else {
+    votesAgainst.increment(1);
+  }
+}
+
+// stands in for an issuer signature check over (date, issuer)
+pure circuit validSignature(pk: Bytes<32>, cred: SignedDate): Boolean {
+  return pk == cred.issuer;
+}
+
+// the credential carries a birth date: eighteen years of seconds before the time bound
+pure circuit olderThan18(cred: SignedDate, asOf: Uint<64>): Boolean {
+  return cred.date + 568036800 <= asOf;
+}

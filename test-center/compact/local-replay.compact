@@ -1,0 +1,291 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// The randomized replay test's contract (test-center/ts/local-replay.ts): every kind of
+// observation local code can make of local state, each beside the writes that depend on it.
+// Single reads leave popeqs; tree reads leave root pins; walks leave container pins; blind
+// counter and tree updates fault inside the VM instead. Ledger reads and host answers are
+// basis- and record-pinned rather than observations of local state, and are here too.
+
+import CompactStandardLibrary;
+
+host test:oracle/dice@1.0.0 {
+  roll(): Uint<8>;
+}
+
+export ledger round: Counter;
+export ledger board: Set<Uint<8>>;
+
+local joined: Uint<64>;
+local level: Uint<8>;
+local armed: Boolean;
+local hits: Counter;
+local tally: Counter;
+local tags: Set<Uint<8>>;
+local scores: Map<Uint<8>, Uint<16>>;
+local books: Map<Uint<8>, Counter>;
+local queue: List<Uint<8>>;
+local tree: MerkleTree<2, Uint<8>>;
+
+// a joined capsule starts with hits to spend and two of the tree's four leaves, so underflow and
+// a full tree are a few calls away rather than at the first
+local constructor {
+  joined = round.read();
+  hits.increment(3);
+  tree.insert(1);
+  tree.insert(2);
+}
+
+export circuit note(k: Uint<8>): [] {
+  tags.insert(k);
+  hits.increment(1);
+  round.increment(1);
+}
+
+export circuit forget(k: Uint<8>): Boolean {
+  const had = tags.member(k);
+  if (had) {
+    tags.remove(k);
+  }
+  return disclose(had);
+}
+
+local addScore(k: Uint<8>, d: Uint<8>): Uint<16> {
+  const next = (scores.member(k) ? scores.lookup(k) : 0) + d as Uint<16>;
+  scores.insert(k, next);
+  return next;
+}
+
+export circuit score(k: Uint<8>, d: Uint<8>): Uint<16> {
+  return disclose(addScore(k, d));
+}
+
+// a blind decrement reads nothing, therefore a prior with fewer hits fails in the VM
+local payOut(n: Uint<8>): [] {
+  hits.decrement(n);
+}
+
+export circuit spend(n: Uint<8>): [] {
+  payOut(n);
+}
+
+export circuit spendLevel(): [] {
+  hits.decrement(level);
+}
+
+local walkAll(): Uint<64> {
+  tally.resetToDefault();
+  for (const t of tags) {
+    if (t > level) {
+      tally.increment(t);
+    }
+  }
+  for (const kv of scores) {
+    tally.increment(kv[1]);
+  }
+  for (const q of queue) {
+    tally.increment(q);
+  }
+  return tally.read();
+}
+
+export circuit walk(): Uint<64> {
+  return disclose(walkAll());
+}
+
+export circuit push(x: Uint<8>): [] {
+  queue.pushFront(x);
+}
+
+// guarded by the head read, because `popFront` on an empty list nulls the list rather than faulting
+local takeHead(): Uint<8> {
+  const h = queue.head();
+  if (h.is_some) {
+    queue.popFront();
+    return h.value;
+  }
+  return 0;
+}
+
+export circuit pop(): Uint<8> {
+  return disclose(takeHead());
+}
+
+// careless, the insert is blind and fails in the VM on a full tree; careful, it reads `isFull`
+export circuit plant(leaf: Uint<8>, careful: Boolean): [] {
+  if (careful) {
+    if (!tree.isFull()) {
+      tree.insert(leaf);
+    }
+  } else {
+    tree.insert(leaf);
+  }
+}
+
+// `pathForLeaf` at an index no leaf fills throws, therefore the index is checked against `firstFree`
+local pathAt(i: Uint<8>, leaf: Uint<8>): Maybe<MerkleTreePath<2, Uint<8>>> {
+  if (i < tree.firstFree()) {
+    return some<MerkleTreePath<2, Uint<8>>>(tree.pathForLeaf(i as Field, leaf));
+  }
+  return none<MerkleTreePath<2, Uint<8>>>();
+}
+
+export circuit prove(i: Uint<8>, leaf: Uint<8>): Boolean {
+  const p = pathAt(i, leaf);
+  return disclose(p.is_some && tree.checkRoot(merkleTreePathRoot<2, Uint<8>>(p.value)));
+}
+
+// `find` and `seal` see the tree through its root pin alone, unlike `prove`, whose `firstFree`
+// read changes with almost every change to the tree
+local locate(leaf: Uint<8>): Boolean {
+  return tree.findPathForLeaf(leaf).is_some;
+}
+
+export circuit find(leaf: Uint<8>): Boolean {
+  return disclose(locate(leaf));
+}
+
+local rootOf(): MerkleTreeDigest {
+  return tree.root();
+}
+
+export circuit seal(): MerkleTreeDigest {
+  return disclose(rootOf());
+}
+
+local draw(): Boolean {
+  const r = roll();
+  if (r > level) {
+    armed = true;
+    tags.insert(r);
+    return true;
+  }
+  return false;
+}
+
+export circuit gamble(): Boolean {
+  return disclose(draw());
+}
+
+export circuit raise(): [] {
+  level = roll();
+}
+
+local trigger(): Boolean {
+  if (armed) {
+    armed = false;
+    hits.increment(2);
+    return true;
+  }
+  return false;
+}
+
+export circuit fire(): Boolean {
+  return disclose(trigger());
+}
+
+// ledger reads from local code, a walk over a public set included, are basis-pinned rather than
+// recorded, therefore they agree only because re-execution runs against the same ledger state
+local sync(): [] {
+  if (board.member(level)) {
+    hits.increment(1);
+  }
+  for (const b of board) {
+    tally.increment(b);
+  }
+  joined = round.read();
+}
+
+export circuit stamp(): [] {
+  sync();
+}
+
+// a local read decides a public operation, so a missing pin would show in the public transcript
+export circuit post(x: Uint<8>): [] {
+  board.insert(disclose(x));
+  if (disclose(tags.member(x))) {
+    round.increment(1);
+  }
+  level = x;
+}
+
+local credit(k: Uint<8>): Uint<64> {
+  if (!books.member(k)) {
+    books.insertDefault(k);
+  }
+  books.lookup(k).increment(1);
+  return books.lookup(k).read();
+}
+
+export circuit book(k: Uint<8>): Uint<64> {
+  return disclose(credit(k));
+}
+
+// the three walks below change the container they walk, but each visits the value it pinned,
+// because a walk starts from a snapshot taken with the pin
+local prune(limit: Uint<8>): [] {
+  for (const t of tags) {
+    if (t < limit) {
+      tags.remove(t);
+    }
+  }
+}
+
+export circuit purge(limit: Uint<8>): [] {
+  prune(limit);
+}
+
+local fade(): [] {
+  for (const kv of scores) {
+    if (kv[1] > 4) {
+      scores.insert(kv[0], kv[1] - 4 as Uint<16>);
+    } else {
+      scores.remove(kv[0]);
+    }
+  }
+}
+
+export circuit decay(): [] {
+  fade();
+}
+
+local consume(): [] {
+  for (const q of queue) {
+    if (q > level) {
+      tally.increment(q);
+    }
+    queue.popFront();
+  }
+}
+
+export circuit drain(): [] {
+  consume();
+}
+
+export circuit wipe(which: Uint<8>): [] {
+  if (which == 0) {
+    tags.resetToDefault();
+  } else if (which == 1) {
+    scores.resetToDefault();
+  } else if (which == 2) {
+    queue.resetToDefault();
+  } else {
+    tree.resetToDefault();
+  }
+}
+
+export circuit census(): [Uint<64>, Boolean, Uint<64>, Boolean, Uint<64>, Boolean] {
+  return disclose([tags.size(), tags.isEmpty(), scores.size(), queue.isEmpty(), queue.length(), hits.lessThan(4)]);
+}

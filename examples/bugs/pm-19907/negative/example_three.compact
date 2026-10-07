@@ -13,7 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-witness get_secret(): Field;
+host test:oracle/get-secret@1.0.0 { get_secret(): Field; }
 
 export circuit test3(condition: Boolean): Field {
     if (condition) const secret = disclose(get_secret());

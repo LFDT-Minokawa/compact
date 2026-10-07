@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,26 +13,35 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Cross-calls into the witness-defining Callee. This contract declares no
-// witnesses of its own, so it is a normal root contract.
+// A caller without local state of its own, so the callee's capsule is the only one in play.
 
 import CompactStandardLibrary;
 
-contract Callee {
-  circuit bump(value: Field): Field;
-  circuit leak(): Field;
+contract Inner {
+  circuit visit(): Uint<64>;
+  circuit hasJoined(): Boolean;
 }
 
-export ledger callee: Callee;
+export ledger inner: Inner;
+export ledger lastCount: Uint<64>;
 
-constructor(c: Callee) {
-  callee = disclose(c);
+constructor(i: Inner) {
+  inner = disclose(i);
 }
 
-export circuit callBump(value: Field): Field {
-  return callee.bump(disclose(value));
+export circuit visitOnce(): Uint<64> {
+  const c = inner.visit();
+  lastCount = c;
+  return c;
 }
 
-export circuit callLeak(): Field {
-  return callee.leak();
+export circuit visitTwice(): Uint<64> {
+  inner.visit();
+  const c = inner.visit();
+  lastCount = c;
+  return c;
+}
+
+export circuit checkJoined(): Boolean {
+  return inner.hasJoined();
 }

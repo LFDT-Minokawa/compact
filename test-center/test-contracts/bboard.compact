@@ -30,18 +30,19 @@ constructor() {
     instance.increment(1);
 }
 
-witness local_secret_key(): Bytes<32>;
+// the capsule secret identifies the poster
+host midnight:capsule/keys@1.0.0 { secretKey(): Bytes<32>; }
 
 export circuit post(new_message: Opaque<"string">): [] {
     assert(state == STATE.vacant, "Attempted to post to an occupied board");
-    poster = disclose(public_key(local_secret_key(), instance as Field as Bytes<32>));
+    poster = disclose(public_key(secretKey(), instance as Field as Bytes<32>));
     message = some<Opaque<"string">>(disclose(new_message));
     state = STATE.occupied;
 }
 
 export circuit take_down(): Opaque<"string"> {
     assert(state == STATE.occupied, "Attempted to take down post from an empty board");
-    assert(poster == public_key(local_secret_key(), instance as Field as Bytes<32>),
+    assert(poster == public_key(secretKey(), instance as Field as Bytes<32>),
         "Attempted to take down post, but not the current poster");
     const former_msg = message.value;
     state = STATE.vacant;

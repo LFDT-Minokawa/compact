@@ -23,7 +23,8 @@ import {
 } from './zswap.js';
 import { PartialProofData, ProofData } from './proof-data.js';
 import { CompactError, assertDefined } from './error.js';
-import { ContractModuleProvider, ContractStateProvider } from './providers.js';
+import { createLocalQueryContext } from './local-state.js';
+import { ContractModuleProvider, ContractStateProvider, HostInterfaceProvider, LocalStateProvider } from './providers.js';
 
 export type CircuitId = string;
 
@@ -66,7 +67,7 @@ export interface CallProofData extends ProofData {
   commCommData?: CommunicationCommitmentData;
 }
 
-export interface CallContext<PS = any> {
+export interface CallContext {
   /**
    * The ID of the circuit that was called.
    */
@@ -88,13 +89,18 @@ export interface CallContext<PS = any> {
    */
   currentGasCost: ocrt.RunningCost;
   /**
-   * The current private state for the contract.
-   */
-  currentPrivateState: PS | undefined;
-  /**
    * The current Zswap local state. Tracks inputs and outputs produced during circuit execution.
    */
   currentZswapLocalState: EncodedZswapLocalState | undefined;
+  /**
+   * The contract's local (private) state, threaded through {@link queryLocalState}, and aliased by
+   * {@link CircuitContext.localQueryContexts} under the contract's address. For the entry contract it
+   * is the `localState` option; for a cross-contract callee it is installed before the callee's
+   * wrapper runs, from the account's {@link LocalStateProvider} or, at the capsule's first touch,
+   * the callee's declaration defaults. Absent when the contract keeps no local state, so a contract
+   * without a local half pays nothing.
+   */
+  currentLocalQueryContext: ocrt.QueryContext | undefined;
   /**
    * The hash of the parent block on which we're building this transaction. Used to fetch contract states dynamically.
    */
@@ -124,11 +130,11 @@ export type LogEvent = Extract<ocrt.GatherResult, { tag: 'log' }>['content'] & {
 /**
  * The external information accessible from within a Compact circuit call
  */
-export interface CircuitContext<PS = any> {
+export interface CircuitContext {
   /**
    * The context for the current call.
    */
-  callContext: CallContext<PS>;
+  callContext: CallContext;
   /**
    * The current query context of every contract in the call tree.
    */
@@ -143,6 +149,14 @@ export interface CircuitContext<PS = any> {
    * the submitter's `coinPublicKey` is shared, since one wallet pays for the transaction.
    */
   zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
+  /**
+   * The current local state of every contract in the call tree that keeps one, keyed like
+   * {@link queryContexts}: each entry is the capsule `(this account, address)` as the call tree has
+   * advanced it. The entry contract's is seeded from the `localState` option; a callee's is installed
+   * at its first entry in the transaction and reused by a later sequential call to the same address.
+   * `.state.state` of an entry is the `StateValue` an application persists or folds against.
+   */
+  localQueryContexts: Record<ocrt.ContractAddress, ocrt.QueryContext>;
   /**
    * The deployed state of every cross-contract callee, keyed by address and filled on first
    * resolution. The cached query context keeps only ledger data, so this is where a callee's
@@ -173,6 +187,17 @@ export interface CircuitContext<PS = any> {
    */
   moduleProvider?: ContractModuleProvider;
   /**
+   * The {@link LocalStateProvider}. Absent unless the execution can call into contracts that keep
+   * local state; resolving such a callee without one is a `LocalStateProviderAbsent` failure.
+   */
+  localStateProvider?: LocalStateProvider;
+  /**
+   * The {@link HostInterfaceProvider} answering every host call in the call tree, the root's and
+   * its callees'. Absent unless some contract in the tree declares host functions: a root that
+   * does fails at entry without one, a callee at resolution (`HostInterfaceProviderAbsent`).
+   */
+  hostInterfaceProvider?: HostInterfaceProvider;
+  /**
    * The contract addresses currently executing: the entry contract, plus every callee whose call
    * has not returned. Shared by reference across the call tree, so {@link crossContractCall} can
    * reject re-entry (`A -> A`, `A -> B -> A`) from any depth.
@@ -193,10 +218,16 @@ export type CrossContractInputs = {
   readonly stateProvider: ContractStateProvider;
   /** The {@link ContractModuleProvider}. */
   readonly moduleProvider: ContractModuleProvider;
+  /**
+   * The {@link LocalStateProvider}: this account's capsules, for callees that keep local state.
+   * Optional because an execution whose callees keep none needs no account; a callee that does
+   * fails resolution without one.
+   */
+  readonly localStateProvider?: LocalStateProvider;
 };
 
 /** The inputs to {@link createCircuitContext}. */
-export type CircuitContextOptions<PS = any> = {
+export type CircuitContextOptions = {
   /** The name of the circuit being executed. */
   readonly circuitId: CircuitId;
   /** The address of the contract defining the circuit being executed. */
@@ -209,8 +240,11 @@ export type CircuitContextOptions<PS = any> = {
     | EncodedZswapLocalState;
   /** The ledger state to execute against — most often a snapshot fetched from the chain. */
   readonly contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState;
-  /** The witness / private state — most often a snapshot from local storage. */
-  readonly privateState: PS;
+  /**
+   * The contract's local state, as a `StateValue` — most often a snapshot reconstructed by folding
+   * local transcripts. Omit it for a contract with no local half.
+   */
+  readonly localState?: ocrt.StateValue;
   /** The maximum gas this contract should consume. */
   readonly gasLimit?: ocrt.RunningCost;
   /** The model capturing how much ledger operations cost. */
@@ -222,6 +256,12 @@ export type CircuitContextOptions<PS = any> = {
    * the block a cross-contract callee's state is fetched at.
    */
   readonly parentBlockHash?: string;
+  /**
+   * Resolves the host interfaces the contracts in the call tree declare — the wallet's answer for
+   * the account that is transacting. Required when any of them declares host functions, the
+   * standard library's coin operations included.
+   */
+  readonly hostInterfaceProvider?: HostInterfaceProvider;
   /** Present exactly when this execution may make cross-contract calls. */
   readonly crossContract?: CrossContractInputs;
 };
@@ -230,27 +270,29 @@ export type CircuitContextOptions<PS = any> = {
  * Entry point for constructing the {@link CircuitContext} to pass as an argument to a circuit. Always
  * use this function to set up the initial circuit context.
  */
-export const createCircuitContext = <PS>({
+export const createCircuitContext = ({
   circuitId,
   contractAddress,
   coinPublicKeyOrZswapState,
   contractState,
-  privateState,
+  localState,
   gasLimit,
   costModel,
   time,
   parentBlockHash,
+  hostInterfaceProvider,
   crossContract,
-}: CircuitContextOptions<PS>): CircuitContext<PS> => {
+}: CircuitContextOptions): CircuitContext => {
   const callContext = createCallContext(
     circuitId,
     contractAddress,
     coinPublicKeyOrZswapState,
     contractState,
-    privateState,
     time,
     parentBlockHash,
   );
+  const localQueryContext = localState ? createLocalQueryContext(localState) : undefined;
+  callContext.currentLocalQueryContext = localQueryContext;
   // The per-address maps below must alias *this* call context's cells, so a write through either
   // route is visible from the other. (They previously indexed a second, separately-constructed
   // call context, which held distinct `QueryContext` objects.)
@@ -261,27 +303,36 @@ export const createCircuitContext = <PS>({
     queryContexts: { [contractAddress]: callContext.currentQueryContext },
     gasCosts: { [contractAddress]: callContext.currentGasCost },
     zswapLocalStates: { [contractAddress]: zswapLocalState },
+    localQueryContexts: localQueryContext === undefined ? {} : { [contractAddress]: localQueryContext },
     contractStates: {},
     costModel: costModel ?? ocrt.CostModel.initialCostModel(),
     callProofDataTrace: [],
     gasLimit,
     stateProvider: crossContract?.stateProvider,
     moduleProvider: crossContract?.moduleProvider,
+    localStateProvider: crossContract?.localStateProvider,
+    hostInterfaceProvider,
     activeContracts: new Set([contractAddress]),
     events: [],
   };
 };
 
 /**
+ * The context a circuit call runs with, copied so that the call leaves the given one alone. The call
+ * starts from the given context's current ledger state, which is not its initial one when an
+ * earlier call returned it, therefore the copy's initial state is reset there: a record's basis is
+ * the state its own call started from.
+ *
  * @internal
  */
 export const copyCircuitContext = (context: CircuitContext): CircuitContext => ({
   // `activeContracts` falls through the spread. Shared by reference on purpose — do not copy it.
   ...context,
-  callContext: { ...context.callContext },
+  callContext: { ...context.callContext, initialQueryContext: context.callContext.currentQueryContext },
   queryContexts: { ...context.queryContexts },
   gasCosts: { ...context.gasCosts },
   zswapLocalStates: { ...context.zswapLocalStates },
+  localQueryContexts: { ...context.localQueryContexts },
   contractStates: { ...context.contractStates },
   callProofDataTrace: [...context.callProofDataTrace],
   events: [...context.events],
@@ -393,16 +444,15 @@ const isEncodedZswapLocalState = (value: any): value is EncodedZswapLocalState =
   );
 };
 
-export const createCallContext = <PS>(
+export const createCallContext = (
   circuitId: CircuitId,
   contractAddress: ocrt.ContractAddress,
   coinPublicKeyOrZswapState: ocrt.CoinPublicKey | EncodedCoinPublicKey | ZswapLocalState | EncodedZswapLocalState,
   contractState: ocrt.ContractState | ocrt.StateValue | ocrt.ChargedState,
-  privateState: PS,
   maybeTime?: number,
   parentBlockHash?: string,
   caller?: ocrt.PublicAddress,
-): CallContext<PS> => {
+): CallContext => {
   const time = maybeTime ?? Math.floor(Date.now() / 1_000);
   const initialQueryContext = createInitialQueryContext(contractState, contractAddress, time, parentBlockHash, caller);
 
@@ -424,8 +474,8 @@ export const createCallContext = <PS>(
     initialQueryContext: initialQueryContext,
     currentQueryContext: initialQueryContext,
     currentGasCost: emptyRunningCost(),
-    currentPrivateState: privateState,
     currentZswapLocalState: zswapLocalState,
+    currentLocalQueryContext: undefined,
     parentBlockHash,
     time,
   };
@@ -444,7 +494,7 @@ export const emptyRunningCost = (): ocrt.RunningCost => ({
 /**
  * The results of the call to a Compact circuit
  */
-export interface CircuitResults<PS = any, R = any> {
+export interface CircuitResults<R = any> {
   /**
    * The primary result, as returned from Compact
    */
@@ -453,7 +503,7 @@ export interface CircuitResults<PS = any, R = any> {
    * The updated context after the circuit execution, that can be used to
    * inform further runs
    */
-  context: CircuitContext<PS>;
+  context: CircuitContext;
   /**
    * The gas consumption of the circuit execution
    */
@@ -516,6 +566,34 @@ export const queryLedgerState = (
           : op,
       ) as ocrt.Op<ocrt.AlignedValue>[],
     );
+    if (res.events.length === 1 && res.events[0].tag === 'read') {
+      return res.events[0].content;
+    }
+    return undefined;
+  } catch (err) {
+    if (err instanceof Error) {
+      throw new CompactError(err.toString());
+    }
+    throw err;
+  }
+};
+
+/**
+ * Runs a read-only query against the current mid-call ledger state without recording it.
+ * A local function's ledger read is served from this snapshot: appending it to the public
+ * transcript would make it an on-chain-replayed observation, so the query runs in gather
+ * mode and is recorded nowhere — tier 1 replays only the local ops (which already embed
+ * what the read produced), and tier 2 re-executes the call against the basis block.
+ *
+ * @param circuitContext The context for the currently executing circuit.
+ * @param program The read-only query to run.
+ */
+export const snapshotLedgerState = (
+  circuitContext: CircuitContext,
+  program: ocrt.Op<null>[],
+): ocrt.AlignedValue | undefined => {
+  try {
+    const res = circuitContext.callContext.currentQueryContext.query(program, circuitContext.costModel, circuitContext.gasLimit);
     if (res.events.length === 1 && res.events[0].tag === 'read') {
       return res.events[0].content;
     }

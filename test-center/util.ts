@@ -19,44 +19,62 @@ import {
   CircuitContext,
   createConstructorContext,
   createCircuitContext,
-  WitnessContext,
   ConstructorContext,
   CircuitResults,
   ConstructorResult,
-  Module as RuntimeModule
+  HostInterface,
+  HostInterfaceProvider,
+  Module as RuntimeModule,
+  ZSWAP_HOST_INTERFACE_ID,
+  zswapHostInterface,
 } from '@midnight-ntwrk/compact-runtime';
 import { checkProofData } from './key-provider.js';
 
-export type Witness<PS> = (context: WitnessContext<any, PS>, ...rest: any[]) => [PS, any];
-export type Witnesses<PS> = Record<string, Witness<PS>>;
-export type Circuit<PS> = (context: CircuitContext<PS>, ...args: any[]) => Promise<CircuitResults<PS, any>>;
-export type Circuits<PS> = Record<string, Circuit<PS>>;
+export type Circuit = (context: CircuitContext, ...args: any[]) => Promise<CircuitResults<any>>;
+export type Circuits = Record<string, Circuit>;
 
 /**
  * An instance of a generated `Contract` class, as a test uses one. Wider than the runtime's
  * `ContractInstance`, which needs only `provableCircuits` because a cross-contract callee is entered
- * through nothing else. A test also constructs the contract and calls its circuits directly.
+ * through nothing else. A test also constructs the contract and calls its circuits directly, and
+ * looser than the generated declaration, so a test can pass a circuit the wrong arguments and check
+ * the wrapper's run-time type error.
  */
-export type Contract<PS, W extends Witnesses<PS>> = {
-  witnesses: W;
-  impureCircuits: Circuits<PS>;
-  circuits: Circuits<PS>;
-  provableCircuits: Circuits<PS>;
-  initialState(ctx: ConstructorContext<PS>, ...args: any[]): Promise<ConstructorResult<PS>>;
+export type Contract = {
+  impureCircuits: Circuits;
+  circuits: Circuits;
+  provableCircuits: Circuits;
+  initialState(ctx: ConstructorContext, ...args: any[]): Promise<ConstructorResult>;
 };
 
 export type InitialStateParams<
-  C extends Contract<any, any>
+  C extends Contract
 > = C['initialState'] extends (c: ConstructorContext, ...a: infer A) => any ? A : never;
 
 /**
  * A generated contract module as `stage-javascript` hands it to a test: everything the runtime
  * resolves a cross-contract callee to, plus where the compiled output was staged.
  */
-export type Module<C, W> = Omit<RuntimeModule, 'Contract'> & {
-  Contract: new (witnesses: W) => C;
+export type Module<C extends Contract = Contract> = Omit<RuntimeModule, 'Contract'> & {
+  Contract: new () => C;
   contractDir: string;
 };
+
+/**
+ * The harness's wallet. The runtime resolves no host interface by itself, the standard library's
+ * coin operations included, so the harness serves those (the DApp's job) plus whatever a test adds;
+ * one provider per context, so two participants in one test can carry different answers.
+ */
+export const hostInterfaceProviderOf = (interfaces: Record<string, HostInterface> = {}): HostInterfaceProvider => {
+  const served: Record<string, HostInterface> = { [ZSWAP_HOST_INTERFACE_ID]: zswapHostInterface, ...interfaces };
+  return { resolve: (id) => served[id] };
+};
+
+/** `context` with its host calls answered by the harness wallet extended with `interfaces`. */
+export const withHostInterfaces = (
+  context: CircuitContext,
+  interfaces: Record<string, HostInterface>,
+): CircuitContext => ({ ...context, hostInterfaceProvider: hostInterfaceProviderOf(interfaces) });
 
 /** Pending proof validations scheduled by circuit calls (module-singleton). */
 const pending = new Set<Promise<void>>();
@@ -106,20 +124,14 @@ export const flushProofChecks = async (): Promise<void> => {
   if (rejected) throw rejected.reason;
 }
 
-export const startContract = async <
-  PS,
-  W extends Witnesses<PS>,
-  C extends Contract<PS, W>
->(
-  module: Module<C, W>,
-  witnesses: W,
-  privateState: PS,
-  ...args: InitialStateParams<C>
-): Promise<readonly [C, CircuitContext<PS>]> => {
+export const startContract = async (
+  module: Module,
+  ...args: unknown[]
+): Promise<readonly [Contract, CircuitContext]> => {
 
-  const contract = new module.Contract(witnesses);
+  const contract = new module.Contract();
 
-  const constructorContext = createConstructorContext(privateState, '0'.repeat(64));
+  const constructorContext = createConstructorContext('0'.repeat(64));
   const constructorResult = await contract.initialState(constructorContext, ...args);
 
   const circuitContext = createCircuitContext({
@@ -127,10 +139,12 @@ export const startContract = async <
     contractAddress: ocrt.sampleContractAddress(),
     coinPublicKeyOrZswapState: constructorResult.currentZswapLocalState.coinPublicKey,
     contractState: constructorResult.currentContractState,
-    privateState: constructorResult.currentPrivateState,
+    // a fresh capsule holds the declaration defaults; the join constructor runs at the first call
+    localState: module.initialLocalState?.(),
+    hostInterfaceProvider: hostInterfaceProviderOf(),
   });
 
-  const wrappedImpureCircuits = {} as C['impureCircuits'];
+  const wrappedImpureCircuits = {} as Circuits;
 
   for (const [circuitId, circuit] of Object.entries(contract.impureCircuits)) {
     (wrappedImpureCircuits as any)[circuitId] = async (context: any, ...cArgs: any[]): Promise<any> => {
@@ -151,7 +165,7 @@ export const startContract = async <
   }
 
   // Pure circuits go through as-is (no validation).
-  const wrappedCircuits = { ...contract.circuits, ...wrappedImpureCircuits } as C['circuits'];
+  const wrappedCircuits = { ...contract.circuits, ...wrappedImpureCircuits };
 
   // `provableCircuits` is left unwrapped: a cross-contract callee is entered through it, and those
   // are checked through `TestChain`.
@@ -160,5 +174,5 @@ export const startContract = async <
     circuits: wrappedCircuits,
   });
 
-  return [contract as C, circuitContext as CircuitContext<PS>] as const;
+  return [contract, circuitContext] as const;
 }

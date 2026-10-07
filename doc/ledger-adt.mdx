@@ -502,6 +502,22 @@ Tests if the given Merkle tree root is the root for this Merkle tree. MerkleTree
 
 *available from Typescript as `checkRoot(rt: MerkleTreeDigest): boolean`*
 
+### findPathForLeaf
+
+```compact
+findPathForLeaf(leaf: value_type): Maybe<MerkleTreePath<nat, value_type>>
+```
+
+Finds the path for a given leaf, pinning the tree's root in the local transcript. Be warned that this is O(n) and should be avoided for large trees; it is total in the state. Returns none when no such leaf exists. Only callable from local functions. Maybe and MerkleTreePath are defined in CompactStandardLibrary.
+
+### firstFree
+
+```compact
+firstFree(): Uint<64>
+```
+
+Retrieves the first (guaranteed) free index in the Merkle tree, pinning it in the local transcript. Only callable from local functions.
+
 ### insert
 
 ```compact
@@ -552,6 +568,14 @@ Returns if this Merkle tree is full and further items cannot be directly inserte
 
 *available from Typescript as `isFull(): boolean`*
 
+### pathForLeaf
+
+```compact
+pathForLeaf(index: Field, leaf: value_type): MerkleTreePath<nat, value_type>
+```
+
+Returns the Merkle path, given the knowledge that the specified leaf is at the given index, pinning the tree's root in the local transcript. It is an error to call this if the leaf is not at the index. Only callable from local functions. MerkleTreePath is defined in CompactStandardLibrary (compact-runtime from Typescript).
+
 ### resetToDefault
 
 ```compact
@@ -559,6 +583,14 @@ resetToDefault(): []
 ```
 
 Resets this Merkle tree to the empty Merkle tree.
+
+### root
+
+```compact
+root(): MerkleTreeDigest
+```
+
+Retrieves the root of the Merkle tree, pinning it in the local transcript. Only callable from local functions. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript).
 
 ### findPathForLeaf
 
@@ -614,6 +646,22 @@ Tests if the given Merkle tree root is one of the past roots for this Merkle tre
 
 *available from Typescript as `checkRoot(rt: MerkleTreeDigest): boolean`*
 
+### findPathForLeaf
+
+```compact
+findPathForLeaf(leaf: value_type): Maybe<MerkleTreePath<nat, value_type>>
+```
+
+Finds the path for a given leaf, pinning the tree's root in the local transcript. Be warned that this is O(n) and should be avoided for large trees; it is total in the state. Returns none when no such leaf exists. Only callable from local functions. Maybe and MerkleTreePath are defined in CompactStandardLibrary.
+
+### firstFree
+
+```compact
+firstFree(): Uint<64>
+```
+
+Retrieves the first (guaranteed) free index in the Merkle tree, pinning it in the local transcript. Only callable from local functions.
+
 ### insert
 
 ```compact
@@ -664,6 +712,14 @@ Returns if this Merkle tree is full and further items cannot be directly inserte
 
 *available from Typescript as `isFull(): boolean`*
 
+### pathForLeaf
+
+```compact
+pathForLeaf(index: Field, leaf: value_type): MerkleTreePath<nat, value_type>
+```
+
+Returns the Merkle path, given the knowledge that the specified leaf is at the given index, pinning the tree's root in the local transcript. It is an error to call this if the leaf is not at the index. Only callable from local functions. MerkleTreePath is defined in CompactStandardLibrary (compact-runtime from Typescript).
+
 ### resetHistory
 
 ```compact
@@ -679,6 +735,14 @@ resetToDefault(): []
 ```
 
 Resets this Merkle tree to the empty Merkle tree.
+
+### root
+
+```compact
+root(): MerkleTreeDigest
+```
+
+Retrieves the root of the Merkle tree, pinning it in the local transcript. Only callable from local functions. MerkleTreeDigest is defined in CompactStandardLibrary (compact-runtime from Typescript).
 
 ### findPathForLeaf
 

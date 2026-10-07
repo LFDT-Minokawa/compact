@@ -32,7 +32,7 @@
     (define-datatype Idtype
       ; ordinary expression types
       (Idtype-Base type)
-      ; circuits, witnesses, and statements
+      ; circuits, host and local functions, and statements
       (Idtype-Function kind arg-name* arg-type* return-type)
       )
     (module (set-idtype! unset-idtype! get-idtype)
@@ -356,6 +356,8 @@
            (record-one! public-binding)]
           [(public-ledger-declaration ,public-binding* ... ,lconstructor)
            (for-each record-one! public-binding*)]
+          [(local-ledger-declaration ,public-binding* ... ,lconstructor)
+           (for-each record-one! public-binding*)]
           [else (void)]))
       (define (lookup-adt-ops ledger-field-name)
         (assert (hashtable-ref ledger-ht ledger-field-name #f))))
@@ -398,17 +400,24 @@
      (build-function 'circuit function-name arg* type)]
     [(native ,src ,function-name ,native-entry (,arg* ...) ,type)
      (build-function 'circuit function-name arg* type)]
-    [(witness ,src ,function-name (,arg* ...) ,type)
-     (build-function 'witness function-name arg* type)]
+    [(host ,src ,function-name ,interface-id ,host-name (,arg* ...) ,type)
+     (build-function 'host function-name arg* type)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (build-function 'local-circuit function-name arg* type)]
     [(public-ledger-declaration ,public-binding* ... ,lconstructor) (void)]
+    [(local-ledger-declaration ,public-binding* ... ,lconstructor) (void)]
     [(kernel-declaration ,public-binding) (void)]
     [(export-typedef ,src ,type-name (,tvar-name* ...) ,type) (void)])
   (Ledger-Constructor : Ledger-Constructor (ir) -> * (void)
     [(constructor ,src (,arg* ...) ,expr)
-     (do-circuit-body src "ledger constructor" arg* (with-output-language (Lnodca Type) `(ttuple ,src)) expr)])
+     (do-circuit-body src "ledger constructor" arg* (with-output-language (Lnodca Type) `(ttuple ,src)) expr)]
+    [(local-constructor ,src ,expr)
+     (do-circuit-body src "local constructor" '() (with-output-language (Lnodca Type) `(ttuple ,src)) expr)])
   (Program-Element : Program-Element (ir) -> * (void)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)]
+    [(local-circuit ,src ,function-name (,arg* ...) ,type ,expr)
+     (do-circuit-body src (format "local function ~a" (id-sym function-name)) arg* type expr)]
     [else (void)])
   (CareNot : Expression (ir) -> * (void)
     [(if ,src ,[Care : expr0 -> * type0] ,expr1 ,expr2)
@@ -649,6 +658,12 @@
                              map-arg+
                              (enumerate map-arg+)))])
        (do-call src #t fun (cons type0 elt-type+)))]
+    [(foreach ,src ,var-name ,ledger-field-name ,type ,expr)
+     ;; the binder carries the element type through the statement-shaped body
+     (set-idtype! var-name (Idtype-Base type))
+     (CareNot expr)
+     (unset-idtype! var-name)
+     (with-output-language (Lnodca Type) `(ttuple ,src))]
     [(call ,src ,function-name ,expr* ...)
      (do-call src #f
               (with-output-language (Lnodca Function)

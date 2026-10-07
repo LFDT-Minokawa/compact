@@ -35,8 +35,6 @@ const callOuter = (
   chain.call({
     module: outerCode,
     address,
-    witnesses: {},
-    privateState: 0,
     circuitId,
     args,
   }) as unknown as Promise<{ result: any; context: any }>;
@@ -44,11 +42,10 @@ const callOuter = (
 describe('Outer.add forwards to Inner.add', () => {
   test('single call: result equals Inner.v after the call', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const { result } = await callOuter(chain, outer.address, 'add', 7n);
@@ -58,11 +55,10 @@ describe('Outer.add forwards to Inner.add', () => {
 
   test('chain of five Outer.add calls returns running totals', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const adds = [3n, 5n, 7n, 11n, 13n];
@@ -80,12 +76,11 @@ describe('Outer.add forwards to Inner.add', () => {
 describe('setInner swaps which Inner is current', () => {
   test('setInner returns the previously-stored inner address', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [innerA.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const { result } = await callOuter(chain, outer.address, 'setInner', innerB.encodedAddress);
@@ -94,12 +89,11 @@ describe('setInner swaps which Inner is current', () => {
 
   test('setInner directs subsequent Outer.add to the new inner', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [innerA.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // 1. add against A
@@ -122,11 +116,10 @@ describe('setInner swaps which Inner is current', () => {
 
   test('setInner to the same inner is functionally a no-op', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     await callOuter(chain, outer.address, 'add', 3n);
@@ -138,13 +131,12 @@ describe('setInner swaps which Inner is current', () => {
 
   test('rotating through three inners keeps each independent', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerC = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
+    const innerC = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [innerA.encodedAddress],
-      initialPrivateState: 0,
     });
 
     await callOuter(chain, outer.address, 'add', 1n); // A.v = 1
@@ -162,12 +154,11 @@ describe('setInner swaps which Inner is current', () => {
 
   test('outer.inner ledger field reflects the most recent setInner', async () => {
     const chain = new TestChain();
-    const innerA = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const innerB = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const innerA = await chain.deploy({ module: innerCode, args: [] });
+    const innerB = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [innerA.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // Before the swap, Outer.inner = innerA.
@@ -183,17 +174,15 @@ describe('setInner swaps which Inner is current', () => {
 describe('Multiple Outer instances stay isolated', () => {
   test('two Outers each wrapping their own Inner do not interfere', async () => {
     const chain = new TestChain();
-    const inner1 = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const inner2 = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner1 = await chain.deploy({ module: innerCode, args: [] });
+    const inner2 = await chain.deploy({ module: innerCode, args: [] });
     const outer1 = await chain.deploy({
       module: outerCode,
       args: [inner1.encodedAddress],
-      initialPrivateState: 0,
     });
     const outer2 = await chain.deploy({
       module: outerCode,
       args: [inner2.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const r1 = await callOuter(chain, outer1.address, 'add', 4n);
@@ -211,11 +200,10 @@ describe('Multiple Outer instances stay isolated', () => {
 describe('Contract values are first-class: const assignment', () => {
   test('echoStored threads the stored contract value through const bindings', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const { result } = await callOuter(chain, outer.address, 'echoStored');
@@ -224,12 +212,11 @@ describe('Contract values are first-class: const assignment', () => {
 
   test('echoInner round-trips a contract value passed as a parameter', async () => {
     const chain = new TestChain();
-    const stored = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
-    const other = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const stored = await chain.deploy({ module: innerCode, args: [] });
+    const other = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [stored.encodedAddress],
-      initialPrivateState: 0,
     });
 
     // The value returned is the argument, independent of the stored ledger field.
@@ -240,11 +227,10 @@ describe('Contract values are first-class: const assignment', () => {
 
   test('a const-bound contract value can be the receiver of a call', async () => {
     const chain = new TestChain();
-    const inner = await chain.deploy({ module: innerCode, args: [], initialPrivateState: 0 });
+    const inner = await chain.deploy({ module: innerCode, args: [] });
     const outer = await chain.deploy({
       module: outerCode,
       args: [inner.encodedAddress],
-      initialPrivateState: 0,
     });
 
     const { result } = await callOuter(chain, outer.address, 'addViaConst', 6n);

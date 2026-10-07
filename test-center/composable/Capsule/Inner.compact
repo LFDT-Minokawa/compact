@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2025 Midnight Foundation
+// Copyright (C) 2026 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,11 +13,34 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+// A callee with a capsule of its own: a local constructor, local books, and a host function.
+
 import CompactStandardLibrary;
 
-export ledger v: Field;
+host vendor:capsule/tally@1.0.0 {
+  weight(): Uint<16>;
+}
 
-export circuit add(value: Field): Field {
-    v = v + disclose(value);
-    return v;
+export ledger visitors: Counter;
+
+export local visits: Counter;
+export local joined: Boolean;
+
+local constructor {
+  joined = true;
+}
+
+local tally(w: Uint<16>): Uint<64> {
+  visits.increment(w);
+  return visits;
+}
+
+export circuit visit(): Uint<64> {
+  visitors.increment(1);
+  return disclose(tally(weight()));
+}
+
+export circuit hasJoined(): Boolean {
+  visitors.increment(1);
+  return disclose(joined);
 }

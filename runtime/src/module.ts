@@ -13,7 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext, CircuitId, CircuitResults } from './circuit-context.js';
+import type { HostInterfaceRequirements } from './host.js';
 import { CircuitSignatures, DeclaredInterfaces } from './interface-descriptor.js';
 
 /**
@@ -42,12 +44,8 @@ export type ContractInstance = {
   readonly provableCircuits: ProvableCircuits;
 };
 
-/**
- * A generated module's `Contract` constructor. `witnesses` is `any` because a generated `Contract`
- * declares `constructor(witnesses: W)`, and an index signature doesn't satisfy a declared property,
- * so anything narrower makes every generated module unassignable.
- */
-export type ContractCtor = new (witnesses: any) => ContractInstance;
+/** A generated module's `Contract` constructor. */
+export type ContractCtor = new () => ContractInstance;
 
 /**
  * The exports of a generated `contract/index.js` that the runtime needs from a cross-contract
@@ -67,4 +65,14 @@ export type Module = {
   readonly circuitSignatures: CircuitSignatures;
   /** The contract types this module itself calls through. */
   readonly declaredInterfaces: DeclaredInterfaces;
+  /**
+   * The declaration defaults of the contract's local store, which seed a capsule at its first touch.
+   * Absent when the contract keeps no local state, so a callee without one runs with none.
+   */
+  readonly initialLocalState?: () => ocrt.StateValue;
+  /**
+   * The host functions the contract's circuits can reach, by interface id. Absent from a module
+   * built before host functions, which requires none.
+   */
+  readonly hostInterfaces?: HostInterfaceRequirements;
 };
