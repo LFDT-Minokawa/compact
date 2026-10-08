@@ -150,7 +150,7 @@
                           (run-passes zkir-v3-passes circuit-ir))
                         (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                         (unless (skip-zk)
-                          (if (zero? (system "command -v zkir > /dev/null"))
+                          (if (zero? (system "command -v zkir-v3 > /dev/null"))
                               ;; If we have zero circuits, the zkir directory won't exist,
                               ;; and zkir will fail to read it. Skip in that case silently.
                               (when (file-exists? (format "~a/zkir" output-directory-pathname))
