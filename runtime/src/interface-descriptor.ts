@@ -14,9 +14,11 @@
 // limitations under the License.
 
 /**
- * Machine-readable circuit signatures, emitted by the compiler into every generated contract
- * module, so a module resolved at call time can be checked against the contract type its caller
- * declared.
+ * Machine-readable signatures, emitted by the compiler into every generated contract module: the
+ * circuits, the constructor, both stores' exported fields, the exported local functions and the
+ * host functions. A module resolved at call time is checked against the contract type its caller
+ * declared through them, and a party holding no module, such as a DApp sending a wallet a call,
+ * encodes values against them (`descriptorOf`).
  */
 
 /**
@@ -79,3 +81,54 @@ export type CircuitSignatures = Readonly<Record<string, CircuitSignature>>;
 /** The `declaredInterfaces` export of a generated contract module, keyed by
  *  contract type name. Those names are local to the declaring contract. */
 export type DeclaredInterfaces = Readonly<Record<string, InterfaceDescriptor>>;
+
+/** The `constructorSignature` export: the ledger constructor's parameters in order, which is
+ *  what a deploy's arguments are encoded against. Every contract has one; a contract without
+ *  a `constructor` declaration takes no arguments. */
+export type ConstructorSignature = {
+  readonly argumentTypes: readonly SignatureType[];
+};
+
+/** A ledger or local field as declared: the ADT holding it and the ADT's type arguments. Only
+ *  a `Map`'s value may itself be an ADT, since the language nests no other container. */
+export type FieldSignature =
+  | { readonly storage: 'Cell'; readonly type: SignatureType }
+  | { readonly storage: 'Counter' }
+  | { readonly storage: 'Set'; readonly type: SignatureType }
+  | { readonly storage: 'List'; readonly type: SignatureType }
+  | { readonly storage: 'Map'; readonly key: SignatureType; readonly value: SignatureType | FieldSignature }
+  | { readonly storage: 'MerkleTree'; readonly depth: number; readonly type: SignatureType }
+  | { readonly storage: 'HistoricMerkleTree'; readonly depth: number; readonly type: SignatureType };
+
+/** The `ledgerSignatures` export: the exported ledger fields, by external name, which is what
+ *  the `ledger()` accessor exposes. */
+export type LedgerSignatures = {
+  readonly fields: Readonly<Record<string, FieldSignature>>;
+};
+
+/** An exported local function as `localState()` exposes it. `readsLedger` means the accessor
+ *  needs a ledger state to run it. */
+export type LocalFunctionSignature = {
+  readonly argumentTypes: readonly SignatureType[];
+  readonly resultType: SignatureType;
+  readonly readsLedger: boolean;
+};
+
+/** The `localStateSignatures` export: the exported local fields and exported local functions, by
+ *  external name, which is what the `localState()` accessor exposes. Both empty for a contract
+ *  without a local store. */
+export type LocalStateSignatures = {
+  readonly fields: Readonly<Record<string, FieldSignature>>;
+  readonly functions: Readonly<Record<string, LocalFunctionSignature>>;
+};
+
+/** One host function as a `host` block declares it. */
+export type HostFunctionSignature = {
+  readonly argumentTypes: readonly SignatureType[];
+  readonly resultType: SignatureType;
+};
+
+/** The `hostInterfaceSignatures` export: the host functions the circuits can reach, by interface
+ *  id then function name. Its keys are exactly those of `hostInterfaces`, which keeps the names
+ *  alone for the resolution gate. */
+export type HostInterfaceSignatures = Readonly<Record<string, Readonly<Record<string, HostFunctionSignature>>>>;

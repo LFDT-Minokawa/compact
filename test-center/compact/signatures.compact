@@ -1,0 +1,93 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// 	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+// Every kind of signature a module exports, in one contract: a constructor with arguments, both
+// stores with every ADT, exported and unexported fields and local functions, and host functions
+// with and without arguments, used and unused.
+
+import CompactStandardLibrary;
+
+export struct Inner { f: Field }
+export struct Outer { i: Inner, b: Boolean }
+export enum Color { red, green, blue }
+export new type Nominal = Bytes<8>;
+export type Transparent = Field;
+
+contract Callee {
+  circuit ping(x: Uint<8>): Uint<8>;
+}
+
+host test:oracle/data@1.0.0 {
+  credential(subject: Bytes<32>, nonce: Uint<64>): Outer;
+  random(): Field;
+}
+// declared and never called, therefore absent from the module's host exports
+host midnight:capsule/keys@1.0.0 {
+  secretKey(): Bytes<32>;
+}
+
+export ledger owner: Bytes<32>;
+export ledger callee: Callee;
+export ledger tally: Counter;
+export ledger members: Set<Bytes<32>>;
+export ledger marks: Map<Bytes<1>, Counter>;
+export ledger prices: Map<Uint<8>, Uint<64>>;
+export ledger queue: List<Color>;
+export ledger tree: MerkleTree<4, Field>;
+export ledger history: HistoricMerkleTree<3, Bytes<32>>;
+ledger hidden: Counter;
+
+export local credits: Uint<4>;
+export local last: Maybe<Bytes<32>>;
+export local seen: Set<Bytes<32>>;
+local draws: Counter;
+
+constructor(o: Bytes<32>, c: Callee, color: Color) {
+  owner = disclose(o);
+  callee = disclose(c);
+}
+
+local constructor {
+  credits = 3;
+}
+
+export local remaining(): Uint<4> {
+  return credits;
+}
+
+export local quote(k: Uint<8>, fallback: Uint<64>): Uint<64> {
+  if (prices.member(k)) {
+    return prices.lookup(k);
+  } else {
+    return fallback;
+  }
+}
+
+local bump(): [] {
+  draws.increment(1);
+}
+
+export circuit act(o: Outer, c: Color, nm: Nominal, tr: Transparent, v: Vector<2, Uint<16>>, t: [Field, Boolean],
+                   subject: Bytes<32>, nonce: Uint<64>): Inner {
+  tally.increment(1);
+  bump();
+  const cred = credential(subject, nonce);
+  const r = random();
+  return Inner { f: disclose(r + cred.i.f) };
+}
+
+export circuit noop(): [] {
+  tally.increment(1);
+}

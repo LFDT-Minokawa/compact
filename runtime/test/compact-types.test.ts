@@ -215,6 +215,29 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
       },
     ),
   ],
+  CompactTypeStruct: [
+    sample(
+      'Struct { a: Field, b: Boolean, c: Bytes<2> }',
+      new runtime.CompactTypeStruct<{ a: bigint; b: boolean; c: Uint8Array }>([
+        ['a', runtime.CompactTypeField],
+        ['b', runtime.CompactTypeBoolean],
+        ['c', new runtime.CompactTypeBytes(2)],
+      ]),
+      { a: 5n, b: true, c: new Uint8Array([1, 2]) },
+    ),
+    // A nested struct decodes from the same stream as its siblings, so nesting is the case that matters.
+    sample(
+      'Struct { inner: Struct { f: Field }, p: Secp256k1Point }',
+      new runtime.CompactTypeStruct<{ inner: { f: bigint }; p: runtime.Secp256k1Point }>([
+        ['inner', new runtime.CompactTypeStruct<{ f: bigint }>([['f', runtime.CompactTypeField]])],
+        ['p', runtime.CompactTypeSecp256k1Point],
+      ]),
+      { inner: { f: 3n }, p: SECP256K1_G },
+    ),
+  ],
+  CompactTypeTuple: [
+    sample('[Field, Boolean]', new runtime.CompactTypeTuple([runtime.CompactTypeField, runtime.CompactTypeBoolean]), [9n, false]),
+  ],
   CompactTypeOpaqueString: [
     sample('Opaque<"string">', runtime.CompactTypeOpaqueString, 'hello'),
     sample('Opaque<"string"> (empty)', runtime.CompactTypeOpaqueString, ''),

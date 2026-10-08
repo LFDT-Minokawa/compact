@@ -999,6 +999,10 @@
             (display-string "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;\n")
             (display-string "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;\n")
             (display-string "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;\n")
+            (display-string "export declare const constructorSignature: __compactRuntime.ConstructorSignature;\n")
+            (display-string "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;\n")
+            (display-string "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;\n")
+            (display-string "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;\n")
             )))))
 
     (define (format-curve-type ctype)
@@ -2297,30 +2301,181 @@
             '()
             xpelt*)))
 
-      ;; The host functions the circuits can reach, by interface id — unused declarations are gone
-      ;; by now, therefore this is what a run can call, which is what the runtime's resolution gate
-      ;; checks against its registry. Interfaces in first-seen order, each listing its functions in
-      ;; declaration order, as contract-info's `host` section does.
+      ;; The host functions the circuits can reach, grouped by interface id — unused declarations
+      ;; are gone by now, therefore this is what a run can call. Interfaces in first-seen order,
+      ;; each listing its functions in declaration order, as contract-info's `host` section does.
+      ;; `format-function` renders one function from its name, parameters and result type;
+      ;; `hostInterfaces` and `hostInterfaceSignatures` are this one walk under two renderings,
+      ;; which is what keeps their keys the same.
+      (define (host-interface-entries xpelt* format-function)
+        (let loop ([xpelt* xpelt*] [interface* '()])
+          (if (null? xpelt*)
+              (map (lambda (interface) (cons (car interface) (reverse (cdr interface))))
+                   (reverse interface*))
+              (loop (cdr xpelt*)
+                (XPelt-case (car xpelt*)
+                  [(XPelt-host src internal-id interface-id host-name arg* type)
+                   (let ([entry (format-function (symbol->string host-name) arg* type)])
+                     (cond
+                       [(assoc interface-id interface*) =>
+                        (lambda (interface)
+                          (map (lambda (x) (if (eq? x interface) (cons interface-id (cons entry (cdr interface))) x))
+                               interface*))]
+                       [else (cons (list interface-id entry) interface*)]))]
+                  [else interface*])))))
+
+      ;; What the runtime's resolution gate checks against a provider: the names alone.
       (define (print-host-interfaces xpelt*)
         (print-table "hostInterfaces"
-          (let loop ([xpelt* xpelt*] [interface* '()])
-            (if (null? xpelt*)
-                (map (lambda (interface)
-                       (format "~a: [~a]"
-                         (format-javascript-string (car interface))
-                         (comma-separated (map format-javascript-string (reverse (cdr interface))))))
-                     (reverse interface*))
-                (loop (cdr xpelt*)
-                  (XPelt-case (car xpelt*)
-                    [(XPelt-host src internal-id interface-id host-name arg* type)
-                     (let ([name (symbol->string host-name)])
-                       (cond
-                         [(assoc interface-id interface*) =>
-                          (lambda (interface)
-                            (map (lambda (x) (if (eq? x interface) (cons interface-id (cons name (cdr interface))) x))
-                                 interface*))]
-                         [else (cons (list interface-id name) interface*)]))]
-                    [else interface*]))))))
+          (map (lambda (interface)
+                 (format "~a: [~a]"
+                   (format-javascript-string (car interface))
+                   (comma-separated (cdr interface))))
+               (host-interface-entries xpelt*
+                 (lambda (name arg* type) (format-javascript-string name))))))
+
+      ;; The same functions with their declared types, for a host constructing an answer.
+      (define (print-host-interface-signatures xpelt*)
+        (print-table "hostInterfaceSignatures"
+          (map (lambda (interface)
+                 (format "~a: {~a}"
+                   (format-javascript-string (car interface))
+                   (comma-separated (cdr interface))))
+               (host-interface-entries xpelt*
+                 (lambda (name arg* type)
+                   (format "~a: {argumentTypes: [~a], resultType: ~a}"
+                     (format-javascript-string name)
+                     (comma-separated (map format-argument-type arg*))
+                     (format-compact-type type)))))))
+
+      ;; The ledger constructor's parameter types, in order: what a deploy's arguments are
+      ;; encoded against by a party holding no module. A program without a `constructor`
+      ;; declaration has one taking no arguments.
+      (define (print-constructor-signature xpelt*)
+        (XPelt-case (public-ledger-xpelt xpelt*)
+          [(XPelt-public-ledger pl-array lconstructor external-names)
+           (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
+             [(constructor ,src (,arg* ...) ,stmt)
+              (printf "export const constructorSignature = {argumentTypes: [~a]};\n\n"
+                (comma-separated (map format-argument-type arg*)))])]
+          [else (assert cannot-happen)]))
+
+      ;; every program has exactly one public ledger element
+      (define (public-ledger-xpelt xpelt*)
+        (let loop ([xpelt* xpelt*])
+          (assert (not (null? xpelt*)))
+          (XPelt-case (car xpelt*)
+            [(XPelt-public-ledger pl-array lconstructor external-names) (car xpelt*)]
+            [else (loop (cdr xpelt*))])))
+
+      ;; A store's field as declared: the ADT holding it and the ADT's type arguments, the
+      ;; `storage` names of contract-info's `ledger` and `local` sections. A `Map`'s value may
+      ;; be an ADT itself, therefore an argument prints as a field signature when it is one.
+      (define (format-field-signature type)
+        (define (storage-name adt-name)
+          (let ([s (symbol->string adt-name)])
+            (if (string-prefix? "__compact_" s)
+                (substring s 10 (string-length s))
+                s)))
+        (define (format-adt-arg adt-arg)
+          (nanopass-case (Ltypescript Public-Ledger-ADT-Arg) adt-arg
+            [,nat (format "~d" nat)]
+            [,type (if (public-adt? type)
+                       (format-field-signature type)
+                       (format-compact-type type))]))
+        (nanopass-case (Ltypescript Type) (de-alias type)
+          [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+           (let ([storage (storage-name adt-name)])
+             (cond
+               [(member storage '("Cell" "Set" "List"))
+                (format "{storage: ~a, type: ~a}"
+                  (format-javascript-string storage)
+                  (format-adt-arg (car adt-arg*)))]
+               [(string=? storage "Counter") "{storage: 'Counter'}"]
+               [(string=? storage "Map")
+                (format "{storage: 'Map', key: ~a, value: ~a}"
+                  (format-adt-arg (car adt-arg*))
+                  (format-adt-arg (cadr adt-arg*)))]
+               [(member storage '("MerkleTree" "HistoricMerkleTree"))
+                (format "{storage: ~a, depth: ~a, type: ~a}"
+                  (format-javascript-string storage)
+                  (format-adt-arg (car adt-arg*))
+                  (format-adt-arg (cadr adt-arg*)))]
+               [else (assert cannot-happen)]))]
+          [else (assert cannot-happen)]))
+
+      ;; One entry per external name of each exported field of the store, in layout order, as
+      ;; the `ledger()` and `localState()` accessors expose them.
+      (define (format-field-signatures pl-array external-names)
+        (fold-right
+          (lambda (public-binding entry*)
+            (nanopass-case (Ltypescript Public-Ledger-Binding) public-binding
+              [(,src ,ledger-field-name (,path-index* ...) ,type)
+               (fold-right
+                 (lambda (export-name entry*)
+                   (cons (format "~a: ~a" (format-javascript-string export-name) (format-field-signature type))
+                         entry*))
+                 entry*
+                 (external-names ledger-field-name))]))
+          '()
+          (filter exported-public-binding? (pl-array->public-bindings pl-array))))
+
+      (define (print-signature-table name section*)
+        (printf "export const ~a = {\n" name)
+        (for-each
+          (lambda (section)
+            (if (null? (cdr section))
+                (printf "  ~a: {},\n" (car section))
+                (begin
+                  (printf "  ~a: {\n" (car section))
+                  (for-each (lambda (entry) (printf "    ~a,\n" entry)) (cdr section))
+                  (printf "  },\n"))))
+          section*)
+        (display-string "};\n")
+        (newline))
+
+      (define (print-ledger-signatures xpelt*)
+        (print-signature-table "ledgerSignatures"
+          (list
+            (cons "fields"
+              (XPelt-case (public-ledger-xpelt xpelt*)
+                [(XPelt-public-ledger pl-array lconstructor external-names)
+                 (format-field-signatures pl-array external-names)]
+                [else (assert cannot-happen)])))))
+
+      ;; The exported local fields and the exported local functions, both empty for a program
+      ;; with no local store, so a consumer need not test for the export.
+      (define (print-local-state-signatures xpelt*)
+        (print-signature-table "localStateSignatures"
+          (list
+            (cons "fields"
+              (let loop ([xpelt* xpelt*])
+                (cond
+                  [(null? xpelt*) '()]
+                  [else
+                   (XPelt-case (car xpelt*)
+                     [(XPelt-local-ledger pl-array lconstructor external-names)
+                      (format-field-signatures pl-array external-names)]
+                     [else (loop (cdr xpelt*))])])))
+            (cons "functions"
+              (fold-right
+                (lambda (xpelt entry*)
+                  (XPelt-case xpelt
+                    [(XPelt-local-circuit src internal-id arg* type stmt external-name*)
+                     (fold-right
+                       (lambda (external-name entry*)
+                         (cons
+                           (format "~a: {argumentTypes: [~a], resultType: ~a, readsLedger: ~a}"
+                             (format-javascript-string external-name)
+                             (comma-separated (map format-argument-type arg*))
+                             (format-compact-type type)
+                             (if (id-reads-ledger? internal-id) "true" "false"))
+                           entry*))
+                       entry*
+                       external-name*)]
+                    [else entry*]))
+                '()
+                xpelt*)))))
 
       ;; contract-type* holds exactly the contract types a call is made on.
       (define (print-declared-interfaces contract-type*)
@@ -2365,6 +2520,10 @@
             (print-circuit-signatures xpelt*)
             (print-declared-interfaces contract-type*)
             (print-host-interfaces xpelt*)
+            (print-constructor-signature xpelt*)
+            (print-ledger-signatures xpelt*)
+            (print-local-state-signatures xpelt*)
+            (print-host-interface-signatures xpelt*)
             (print-contract-footer)
             (record-sourcemap-eof! sourcemap-tracker (port-position (current-output-port)))
             (display-sourcemap sourcemap-tracker (get-target-port 'contract.js.map))))))

@@ -27,6 +27,7 @@ export * from './local-state.js';
 export * from './host.js';
 export * from './utils.js';
 export * from './interface-descriptor.js';
+export * from './signature-descriptors.js';
 export * from './verifier-key-hash.js';
 export * from './module.js';
 export * from './conformance.js';

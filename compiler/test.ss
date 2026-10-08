@@ -74537,7 +74537,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74626,7 +74630,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74724,7 +74732,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -74842,7 +74854,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -77352,7 +77368,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -77925,6 +77945,23 @@ groups than for single tests.
         "  'test:oracle/private-secret-key@1.0.0': ['private$secret_key'],"
         "};"
         ""
+        "export const constructorSignature = {argumentTypes: [{tag: 'Field'}, {tag: 'Bytes', length: 32}]};"
+        ""
+        "export const ledgerSignatures = {"
+        "  fields: {"
+        "    'value': {storage: 'Cell', type: {tag: 'Field'}},"
+        "  },"
+        "};"
+        ""
+        "export const localStateSignatures = {"
+        "  fields: {},"
+        "  functions: {},"
+        "};"
+        ""
+        "export const hostInterfaceSignatures = {"
+        "  'test:oracle/private-secret-key@1.0.0': {'private$secret_key': {argumentTypes: [], resultType: {tag: 'Bytes', length: 32}}},"
+        "};"
+        ""
         "//# sourceMappingURL=index.js.map"))
     (output-file "compiler/testdir/contract/index.js.map"
       '(
@@ -77934,7 +77971,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\", \"compiler/zkir-v3-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;MA4BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GArEA;EAJD;;;;;UAAY,GAAQ;UAAE,IAAa;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHnC;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAElB,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;GACN;ECnCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFsE4C,AAAA,qBAAgC;;;;;;;;;;;;;;;;;;;GAAA;EAQ5E,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA3ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;EAyE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -78296,7 +78333,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78358,7 +78399,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78413,7 +78458,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -78497,7 +78546,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "const oracle = { 'test:oracle/witnesses@1.0.0': { witnesses: (_ctx: any, witnesses: bigint) => witnesses + 11n } };"
@@ -79248,7 +79301,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test
@@ -79551,7 +79608,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test
@@ -80248,7 +80309,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test
@@ -80896,7 +80961,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88289,7 +88358,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88347,7 +88420,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88405,7 +88482,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88460,7 +88541,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88521,7 +88606,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -88605,7 +88694,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     (stage-javascript
       '(
         "test('check 1', async () => {"
@@ -89696,7 +89789,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test
@@ -91001,7 +91098,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     ; WARNING: Do not replace this wholesale...maintain the structure of the first several
     ; lines to avoid hard-coding a specific runtime version string into the test
     (output-file "compiler/testdir/contract/index.js"
@@ -91239,6 +91340,21 @@ groups than for single tests.
         ""
         "export const hostInterfaces = {"
         "  'test:oracle/bar@1.0.0': ['bar'],"
+        "};"
+        ""
+        "export const constructorSignature = {argumentTypes: []};"
+        ""
+        "export const ledgerSignatures = {"
+        "  fields: {},"
+        "};"
+        ""
+        "export const localStateSignatures = {"
+        "  fields: {},"
+        "  functions: {},"
+        "};"
+        ""
+        "export const hostInterfaceSignatures = {"
+        "  'test:oracle/bar@1.0.0': {'bar': {argumentTypes: [], resultType: {tag: 'Bytes', length: 32}}},"
         "};"
         ""
         "//# sourceMappingURL=index.js.map"))
@@ -92769,7 +92885,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test
@@ -96509,6 +96629,13 @@ groups than for single tests.
         ))
     )
 
+  ; the signature exports beyond circuitSignatures (the constructor, both stores' exported
+  ; fields, the exported local functions, the host functions), checked against what the module
+  ; exposes and against the encodings its circuits and host wrappers record
+  (test
+    "test-center/compact/signatures.compact"
+    (stage-javascript "test-center/ts/signatures.ts"))
+
   (test-group
     ((create-file "Adder.compact"
        '(
@@ -98627,7 +98754,11 @@ groups than for single tests.
         "export declare const expectedVk: Record<string, string>;"
         "export declare const circuitSignatures: __compactRuntime.CircuitSignatures;"
         "export declare const declaredInterfaces: __compactRuntime.DeclaredInterfaces;"
-        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"))
+        "export declare const hostInterfaces: __compactRuntime.HostInterfaceRequirements;"
+        "export declare const constructorSignature: __compactRuntime.ConstructorSignature;"
+        "export declare const ledgerSignatures: __compactRuntime.LedgerSignatures;"
+        "export declare const localStateSignatures: __compactRuntime.LocalStateSignatures;"
+        "export declare const hostInterfaceSignatures: __compactRuntime.HostInterfaceSignatures;"))
     )
 
   (test

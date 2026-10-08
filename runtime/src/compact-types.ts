@@ -580,6 +580,78 @@ export class CompactTypeVector<A> implements CompactType<A[]> {
 }
 
 /**
+ * Runtime type of a struct: its elements in declaration order, each encoded by its own type,
+ * therefore the struct's binary form is the concatenation of its elements' forms and a value
+ * decodes element by element from one shared stream. The compiler emits a class of this shape
+ * for each struct a contract uses; this one is built from a signature instead (`descriptorOf`).
+ */
+export class CompactTypeStruct<A extends object> implements CompactType<A> {
+  readonly elements: ReadonlyArray<readonly [string, CompactType<unknown>]>;
+
+  constructor(elements: ReadonlyArray<readonly [string, CompactType<unknown>]>) {
+    this.elements = elements;
+  }
+
+  alignment(): ocrt.Alignment {
+    let res: ocrt.Alignment = [];
+    for (const [, type] of this.elements) {
+      res = res.concat(type.alignment());
+    }
+    return res;
+  }
+
+  fromValue(value: ocrt.Value): A {
+    const res: Record<string, unknown> = {};
+    for (const [name, type] of this.elements) {
+      res[name] = type.fromValue(value);
+    }
+    return res as A;
+  }
+
+  toValue(value: A): ocrt.Value {
+    let res: ocrt.Value = [];
+    for (const [name, type] of this.elements) {
+      res = res.concat(type.toValue((value as Record<string, unknown>)[name]));
+    }
+    return res;
+  }
+}
+
+/**
+ * Runtime type of a tuple: a struct whose elements are positional.
+ */
+export class CompactTypeTuple implements CompactType<unknown[]> {
+  readonly types: ReadonlyArray<CompactType<unknown>>;
+
+  constructor(types: ReadonlyArray<CompactType<unknown>>) {
+    this.types = types;
+  }
+
+  alignment(): ocrt.Alignment {
+    let res: ocrt.Alignment = [];
+    for (const type of this.types) {
+      res = res.concat(type.alignment());
+    }
+    return res;
+  }
+
+  fromValue(value: ocrt.Value): unknown[] {
+    return this.types.map((type) => type.fromValue(value));
+  }
+
+  toValue(value: unknown[]): ocrt.Value {
+    if (value.length != this.types.length) {
+      throw new CompactError(`expected ${this.types.length}-element tuple`);
+    }
+    let res: ocrt.Value = [];
+    for (let i = 0; i < this.types.length; i++) {
+      res = res.concat(this.types[i].toValue(value[i]));
+    }
+    return res;
+  }
+}
+
+/**
  * Runtime type of the builtin `Boolean` type
  */
 export const CompactTypeBoolean: CompactType<boolean> = {

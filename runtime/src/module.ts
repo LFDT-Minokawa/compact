@@ -16,7 +16,14 @@
 import * as ocrt from '@midnightntwrk/onchain-runtime-v4';
 import { CircuitContext, CircuitId, CircuitResults } from './circuit-context.js';
 import type { HostInterfaceRequirements } from './host.js';
-import { CircuitSignatures, DeclaredInterfaces } from './interface-descriptor.js';
+import {
+  CircuitSignatures,
+  ConstructorSignature,
+  DeclaredInterfaces,
+  HostInterfaceSignatures,
+  LedgerSignatures,
+  LocalStateSignatures,
+} from './interface-descriptor.js';
 
 /**
  * A circuit evaluable outside a transaction: no ledger access, no cross-contract call, no proof
@@ -75,4 +82,13 @@ export type Module = {
    * built before host functions, which requires none.
    */
   readonly hostInterfaces?: HostInterfaceRequirements;
+  /**
+   * The signatures of the constructor, the exported fields of both stores, the exported local
+   * functions and the host functions, for a party that holds no module (a DApp encoding a call)
+   * and for a host decoding what it receives. Absent from a module built before them.
+   */
+  readonly constructorSignature?: ConstructorSignature;
+  readonly ledgerSignatures?: LedgerSignatures;
+  readonly localStateSignatures?: LocalStateSignatures;
+  readonly hostInterfaceSignatures?: HostInterfaceSignatures;
 };
