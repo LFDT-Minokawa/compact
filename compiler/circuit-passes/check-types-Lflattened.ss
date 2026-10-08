@@ -364,20 +364,14 @@
          (syntax-rules ()
            [(make-zkir-type primitive-type)
             (begin
-              (assert (feature-zkir-v3))
               (assert (= (length var-name*) 1))
               (set-idtype! (car var-name*) (Idtype-Base primitive-type)))]))
        (verify-test program-src test)
        (case opaque-type
          [("JubjubPoint")
-          (if (feature-zkir-v3)
-              (begin
-                (assert (= (length var-name*) 1))
-                (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub)))))
-              (begin
-                (assert (= (length var-name*) 2))
-                (set-idtype! (car var-name*) (Idtype-Base `(tfield (field-native))))
-                (set-idtype! (cadr var-name*) (Idtype-Base `(tfield (field-native))))))]
+          (begin
+            (assert (= (length var-name*) 1))
+            (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub)))))]
          [("Curve25519Base") (make-zkir-type `(tfield (field-base (curve-curve25519))))]
          [("Curve25519Scalar") (make-zkir-type `(tfield (field-scalar (curve-curve25519))))]
          [("Curve25519Point") (make-zkir-type `(tpoint (curve-curve25519)))]

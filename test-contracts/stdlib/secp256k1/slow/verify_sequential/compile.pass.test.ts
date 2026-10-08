@@ -16,6 +16,4 @@
 import { defineCompileTest } from '@test/compact-test';
 
 // Provable, so this generates keys and is slow.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

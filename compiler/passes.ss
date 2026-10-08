@@ -35,7 +35,6 @@
           (save-contract-info-passes)
           (typescript-passes)
           (circuit-passes)
-          (zkir-passes)
           (zkir-v3-passes)
           (manifest-passes))
 
@@ -148,7 +147,7 @@
                         (with-target-ports
                           (map (lambda (sym) (cons sym (format "zkir/~a.zkir" sym)))
                                proof-circuit-name*)
-                          (run-passes (if (feature-zkir-v3) zkir-v3-passes zkir-passes) circuit-ir))
+                          (run-passes zkir-v3-passes circuit-ir))
                         (unless (null? (pending-conditions)) (raise (make-halt-condition)))
                         (unless (skip-zk)
                           (if (zero? (system "command -v zkir > /dev/null"))
@@ -157,7 +156,7 @@
                               (when (file-exists? (format "~a/zkir" output-directory-pathname))
                                 ;; TODO: Properly string escape!
                                 (let ([res (system (format "exec ~a compile-many '~a/zkir' '~a/keys'"
-                                                     (if (feature-zkir-v3) "zkir-v3" "zkir")
+                                                     "zkir-v3"
                                                      output-directory-pathname
                                                      output-directory-pathname))])
                                   (unless (zero? res)

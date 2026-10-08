@@ -24,7 +24,6 @@ import { Compilation, CompilationPaths } from './types';
 
 export enum Arguments {
     SKIP_ZK = '--skip-zk',
-    FEATURE_V3 = '--feature-zkir-v3',
     NO_COMMUNICATIONS_COMMITMENT = '--no-communications-commitment',
     TRACE_PASSES = '--trace-passes',
     HELP = '--help',

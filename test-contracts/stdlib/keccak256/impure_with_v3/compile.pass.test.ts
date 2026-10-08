@@ -17,6 +17,4 @@ import { defineCompileTest } from '@test/compact-test';
 
 // With the flag, keccak256 is available to provable circuits, so the source
 // that fails in ../impure_without_v3 compiles here.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

@@ -80,7 +80,7 @@ describe('[Bugs] Zero-bit fields use consistent one-byte alignment', () => {
 
     test('[Issue #615] the reproduction compiles with the v3 backend', async () => {
         const outputDir = createTempFolder();
-        const result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, ATTESTATION, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, ATTESTATION, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
         expectFiles(result).thatGeneratedJSCodeIsValid();

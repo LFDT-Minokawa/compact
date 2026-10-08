@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.105, language 0.27.0, runtime 0.20.102]
+
+### Removed
+
+- The ZKIR-v2 backend passes (`zkir-passes`) and the `--feature-zkir-v3` flag are
+  removed. The compiler now defaults to ZKIR-v3. Passing
+  `--feature-zkir-v3` is now an error. `--ledger-version` now always prints
+  the version of the `zkir-v3` dependency.
+
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
 ### Fixed
