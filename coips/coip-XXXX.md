@@ -203,6 +203,221 @@ This design enables some implementation improvements, not mandated by this CoIP.
   we already have it available without the intermediate field encoding and decoding.
   This removes the field encoding performed by Midnight.js,
   in favor of letting the ZKIR language perform its own type-directed handling of FAB.
+  
+### The serialization format
+
+This is draft text, outlining the current ledger format,
+the current event serialization format,
+and the `Bytes` serialization format where it exists.
+It then describes the proposed serialization format.
+
+TODO: massage it into a forward-looking specification, relegate changes from the existing format to an appendix?
+
+When describing the ledger serialization of a Compact type,
+we use `Field` to mean that it is serialized as a native field element (with the alignment atom tag 'field')
+we use `Bytes<N>` to mean that it is serialized as a byte vector (with the alignment atom tag 'bytes' and the length N).
+
+### Base types
+
+Serialization is defined in terms of the serialization of **base types**.
+These include some of the Compact primitive types and standard library-defined types.
+
+#### Boolean
+
+This is a Compact primitive type.
+
+The ledger serialization is `Bytes<1>`, where `true` is serialized as `[0x1]` and `false` is serialized as `[0x0]`.
+Ledger deserialization fails if the value is not the canonical encoding of one of those two byte arrays.
+(Note here and below:
+the ledger serialization of a byte array drops trailing zeros and recovers them using the length of the alignment.
+Therefore, `[0x0]` is serialized as an empty array.)
+See `CompactTypeBoolean`.
+
+The event serialization is `Bytes<1>`, where `true` is serialized as `[0x1]` and `false` is serialized as `[0x0]`.
+(Note here that the serialized representation of `[0x0]` is a single byte, not no bytes as in the ledger serialization format.
+However, if the `Bytes<1>` serialized representation is written into the ledger then it will have the **same**
+representation as serializing the original Compact `Boolean` value).
+
+#### Uint<0..N>
+
+These are Compact primitive types.
+
+The ledger serialization is `Bytes<M>`, where `M` is the number of bytes required to represent the maximum value `N-1`
+but at least one byte
+(`Uint<0..1>` can only represent the value 0, it is serialized as `Bytes<1>`;
+however, the 1-byte (little-endian) encoding of 0 is `[0x0]` which is stored in the ledger as an empty byte vector).
+The byte vector contains the little-endian encoding of the `Uint`'s value.
+Note: the descriptor code uses the serialization code for the Compact type `Field`,
+which produces a little-endian encoding as a byte vector of length at most `M` and relies on the ledger serialization
+dropping trailing zeros to recover them from the alignment length `M`.
+Deserialization computes the number encoded as a little endian byte vector,
+and fails if it is greater than the maximum value `N-1`.
+See `CompactTypeUnsignedInteger`.
+
+Note that sized usigned integer types like `Uint<8>`, `Uint<16>` behave exactly as the bounded unsigned integer type
+they correspond to (for example, `Uint<0..256>`, `Uint<0..65536>`).
+Specifically, according to this rule, the type `Uint<16>` is serialized as `Bytes<2>` containing a little-endian encoding
+of the unsigned integer value.
+
+The event serialization of `Uint<0..1>` is `Bytes<0>`, an empty byte vector.
+Otherwise, the event serialization of a number `n` of type `Uint<0..N>` is `n as Field as Bytes<M>`,
+where `M` is the number of bytes required to represent the maximum value `N-1`.
+
+#### Field
+
+This is a Compact primitive type.
+
+The ledger serialization is `Field`.
+The descriptor implementation uses the on-chain runtime (code from the ledger) to serialize and deserialize `Field`s.
+This code will serialize the value as a byte vector containing the little-endian encoding of the value.
+As usual, trailing zeros are in this byte vector are dropped and recovered on deserialization using a length.
+For `Field`, the length is implicitly the length of the maxumum value of the native field at any time in the Midnight network's history.
+Currently, that is 32 bytes.
+On deserialization, the number represented by the byte vector is reduced by the field modulus (also known as the field order).
+See `CompactTypeField`.
+
+The event serialization is `Bytes<32>`.
+It is serialized **exactly** as the Compact source expression `f as Bytes<32>`,
+which gives a (full) 32-byte little-endian encoding, including any trailing zeros in the byte vector.
+
+#### Bytes<N>
+
+These are Compact primitive types.
+
+The ledger serialization is `Bytes<N>`, that is as a byte vector containing the bytes in order.
+As usual, trailing zeros are dropped and recovered on deserialization using the length.
+See `CompactTypeBytes`.
+
+#### Opaque<'Uint8Array'>
+
+This is a Compact primitive type.
+
+The ledger serialization of a JavaScript `Uint8Array` is as a byte vector containing the bytes of the `Uint8Array`,
+**without** trailing zeros dropped to be recovered on deserialization.
+It has an alignment tag of `compress`, **not** `bytes`.
+This means that the actual value (the full byte vector) is stored in the ledger,
+but when converting to a sequence of native field values in circuit,
+the Poseidon hashing algorithm is (currently) used to get a single native field value.
+See `CompactTypeOpaqueUint8Array`.
+
+#### Opaque<'string'>
+
+This is a Compact primitive type.
+
+The ledger serialization of a JavaScript `string` is as a byte vector containing the bytes of the UTF-8 encoding of the string,
+**without** trailing zeros dropped to be recovered on deserialization.
+It has an alignment tag of `compress`, **not** `bytes`.
+This means that the actual value (the UTF-8 encoding of the string) is stored in the ledger,
+but as for `Opaque<'Uint8Array'>` it is represented in circuit by a hash of the bytes.
+See `CompactTypeOpaqueString`.
+
+#### JubjubScalar
+
+This is a Compact standard library type.
+
+This is serialized in the ledger exactly as the type `Field`, with the alignment tag `field`.
+Note that on deserialization, the value represented by the byte vector is (1) reduced by the native field modulus (**wrong!**),
+and (2) allowed to be outside the range of `JubjubScalar`.
+The compiler is therefore required to ensure that every ledger-serialized `JubjubScalar` is in the correct range.
+It does this (currently) by prohibiting arithmetic on `JubjubScalar` and by checking the value is in range (and failing if not) on casts to `JubjubScalar`.
+See `CompactTypeJubjubScalar`.
+
+The event serialization format is `x as Bytes<32>`.
+
+#### Secp256k1Base, Secp256k1Scalar, Secp256r1Base, Secp256r1Scalar, Curve25519Base
+
+These are Compact standard library types.
+These so-called "foreign fields" are all serialized in the same way.
+They have different maximum values, but they all fit in 32 bytes.
+They are encoded as little-endian numbers in 32 bytes, then split into four 8-byte limbs.
+Then they are serialized as a pair of byte vectors,
+where the first one is 24 bytes holding the first three (little endian) limbs
+and the second on is 8 bytes holding the last little endian limb.
+The ZKIR representation of these fields has 1 subtracted from the value (modulo the respective field order).
+For the benefit of ZKIR, we therefore serialize these by first subrtracting one,
+and add one (modulo the field order) on deserialization.
+The alignment tags are `Bytes<24>` and `Bytes<8>`, so ledger serialization will drop trailing zeros
+from each byte vector and recover them on deserialization.
+Deserialization checks that the serialized value is in range.
+It **does not** reduce by the field order like `Field` deserialization does.
+See the implementation of `ForeignField8_24`.
+
+Note that this encoding is the for the benefit of ZKIR.
+Remember, the ledger does not know nor care how we will interpret this `Bytes<24>`/`Bytes<8>` pair
+in either Compact or in ZKIR.
+
+The maximum values of each of these fields is larger than the native field size.
+If they were encoded as a single `Bytes<32>`, then they would be represented as a pair of
+native field in circuit in ZKIR private and public inputs,
+where the first one held the low 31 bytes and the last one held the high byte.
+By splitting them the way they are split, they will be represented instead as a pair of fields
+where the first one holds the low 24 bytes (3 limbs) and the last one holds the high 8 bytes (1 limb).
+It is then more efficient in circuit to extract the ZKIR limb representation from the field representation
+than if it has been simply `Bytes<32>`.
+
+The event serialization format is `x as Bytes<32>`.
+
+#### Curve25519Scalar
+
+This is a Compact standard library type.
+The maximum value of this foreign field is less than the maximum value of the native field.
+It fits in 253 bits (32 bytes without needing the three high bits, native fields need 255 bits).
+It is encoded as a little-endian number in 32 bytes (guaranteed to have zeros in the three high bit positions),
+then split into five limbs each consisting of 51 bits (255 bits total, guaranteed to have zeros in the two high bit positions of the last limb).
+Because the ledger can only serialize even numbers of bytes,
+the limbs are packed with the first four (little endian) limbs in a byte vector `Bytes<26>`
+(208 bits, where the low 204 are used), and the last (little endian) limb in a byte vector `Bytes<7>`
+(56 bytes, where the low 51 are used).
+Like the other foreign field types `Secp256k1Base`, etc., the in-circuit representation subtracts one modulo the field order.
+For the benefit of the ZKIR implementation, we perform that subtraction serialization
+and add one (modulo the field order) on deserialization.
+Deserialization checks that the serialized value is in range.
+See `CompactTypeCurve25519Scalar`.
+
+The event serialization format is `x as Bytes<32>`.
+
+#### JubjubPoint
+
+This is a Compact standard library type.
+Conceptually a pair of native field values.
+This is serialized in the ledger as a pair of serialized field values,
+the coordinates with x-coordinate first and y-coordinate second.
+See `CompactTypeJubjubPoint`.
+
+Event serialization is not yet implemented for this type.
+
+#### Curve25519Point
+
+This is a Compact standard library type.
+Conceptually a pair of `Curve25519Base` values.
+This is serialized exactly as the pair of coordinates, according to `Curve25519Base` above.
+That is, as four byte vectors `Bytes<24>`, `Bytes<8>`, `Bytes<24>`, `Bytes<8>`
+containing the little endian encoding of the coordinates in order X-coordinate first
+and Y-coordinate second, and where the serialized values have had one subtracted modulo the field order.
+See `CompactTypeCurve25519Point`.
+
+Event serialization is not yet implemented for this type.
+
+#### Secp256k1Point, Secp256r1Point
+
+These are Compact standard library types.
+Conceptually they are a pair of, respectively, `Secp256k1Base` and `Secp256r1Base` values.
+However, the "zero" (additive identity) point does not have affine X- and Y-coordinates.
+So there is also an "identity" flag in the serialized representation.
+For non-identity points, the serialized representation is the pair of base field coordinates with the
+X-coordinate first and the Y-coordinate second, followed by the serialization of a 0 native field value
+marking it as a non-identity point.
+This is given alignment tag `field`, but since it is only ever the value 0,
+the serialized representation is just the empty byte vector.
+Deserialization as a field produces the value 0 from this representation.
+For the identity point, the serialized representation is a pair of base field 0 values,
+followed by a 1 native field value.
+The base field is serialized as `Bytes<24>` followed by `Bytes<8>` as above.
+Because the serialized representation has one subtracted from it modulo the field order,
+these are vectors representing the maximum field value.
+See `CompactTypeSecp256k1Point` and `CompactTypeSecp256r1Point`.
+
+Event serialization is not yet implemented for these types.
 
 ## Rationale
 
