@@ -644,7 +644,7 @@
                  (list (combine hi n))))]
 
           [else
-            (fprintf (current-error-port) "unimplemented: ~s\n" impact-instr)
+            (fprintf (current-error-port) "unimplemented in zkir-v3: ~s\n" impact-instr)
             (assert not-implemented)])))
 
     ;; We patch up popeq and popeqc instructions.
