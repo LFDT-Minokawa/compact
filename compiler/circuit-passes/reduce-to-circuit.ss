@@ -18,10 +18,46 @@
 (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
   (definitions
     (define fun-ht (make-eq-hashtable))
+    ;; Unconditional A-normalization can separate compiler-generated
+    ;; vector->bytes(vector(...)) shapes into several let-bound definitions.
+    ;; Retain just enough exact provenance to recover those shapes without
+    ;; changing evaluation: recovered leaves must already be trivial values.
+    (define aggregate-provenance-ht (make-eq-hashtable))
+    (define bytes-vector-provenance-ht (make-eq-hashtable))
     (define default-src)
+    (define (unconditional-test? test)
+      (nanopass-case (Lcircuit Triv) test
+        [(quote ,datum) (eqv? datum #t)]
+        [else #f]))
     (define (arg->name arg)
       (nanopass-case (Lnovectorref Argument) arg
         [(,var-name ,type) var-name]))
+    (define (trivial-expression? expr)
+      (nanopass-case (Lnovectorref Expression) expr
+        [(var-ref ,src ,var-name) #t]
+        [(quote ,src ,datum) #t]
+        [else #f]))
+    (define (expression->var-name expr)
+      (nanopass-case (Lnovectorref Expression) expr
+        [(var-ref ,src ,var-name) var-name]
+        [else #f]))
+    (define (record-serialize-provenance! local* expr* test)
+      (when (unconditional-test? test)
+        (for-each
+          (lambda (local expr)
+            (let ([var-name (arg->name local)])
+              (nanopass-case (Lnovectorref Expression) expr
+                [(vector ,src ,tuple-arg* ...)
+                 (hashtable-set! aggregate-provenance-ht var-name tuple-arg*)]
+                [(tuple ,src ,tuple-arg* ...)
+                 (hashtable-set! aggregate-provenance-ht var-name tuple-arg*)]
+                [(bytes->vector ,src ,len ,expr^)
+                 (when (trivial-expression? expr^)
+                   (hashtable-set! bytes-vector-provenance-ht var-name
+                                   (cons len expr^)))]
+                [else (void)])))
+          local*
+          expr*)))
     (define (Triv expr test k)
       (Rhs expr test
         (lambda (rhs)
@@ -57,6 +93,224 @@
             (Tuple-Argument (car tuple-arg*) test
               (lambda (tuple-arg)
                 (f (cdr tuple-arg*) (cons tuple-arg rtuple-arg*)))))))
+    ;; expand-serialize emits vector->bytes of a vector whose elements are
+    ;; either individual bytes or exact spreads of bytes->vector.  Recognize
+    ;; only that shape: it lets the circuit backend retain bounded byte-string
+    ;; segments while every other vector->bytes keeps the established lowering.
+    (define (serialize-tuple-argument? tuple-arg)
+      (nanopass-case (Lnovectorref Tuple-Argument) tuple-arg
+        [(single ,src ,expr) #t]
+        [(spread ,src ,nat ,expr)
+         (and (fx> nat 0)
+              (nanopass-case (Lnovectorref Expression) expr
+                [(bytes->vector ,src^ ,len ,expr^) (fx= nat len)]
+                [else #f]))]))
+    (define (serialize-tuple-argument*? tuple-arg* len)
+      ;; The vector->bytes type check has already proved every single element is
+      ;; Uint8.  Spreads are accepted only when their declared width exactly
+      ;; matches the underlying Bytes conversion, and check-types/Lflattened
+      ;; independently re-proves every retained segment bound.
+      (and (not (null? tuple-arg*))
+           (andmap serialize-tuple-argument? tuple-arg*)
+           (fx= len
+             (fold-left
+               (lambda (len tuple-arg)
+                 (fx+ len
+                   (nanopass-case (Lnovectorref Tuple-Argument) tuple-arg
+                     [(single ,src ,expr) 1]
+                     [(spread ,src ,nat ,expr) nat])))
+               0
+               tuple-arg*))))
+    ;; Leave exact native byte-operation idioms on the established lowering
+    ;; path so flatten-datatypes can validate their provenance before selecting
+    ;; a native ZKIR operation. Other scalar-only serializer shapes remain
+    ;; eligible for serialize-pack.
+    (define (reverse-vector32? tuple-arg*)
+      (and (fx= (length tuple-arg*) 32)
+           (let loop ([tuple-arg* tuple-arg*] [kindex 31] [base-var-name #f])
+             (if (null? tuple-arg*)
+                 #t
+                 (nanopass-case (Lnovectorref Tuple-Argument) (car tuple-arg*)
+                   [(single ,src ,expr)
+                    (nanopass-case (Lnovectorref Expression) expr
+                      [(tuple-ref ,src^ ,expr^ ,kindex^)
+                       (let ([var-name (expression->var-name expr^)])
+                         (and var-name
+                              (fx= kindex kindex^)
+                              (or (not base-var-name)
+                                  (eq? base-var-name var-name))
+                              (loop (cdr tuple-arg*) (fx1- kindex)
+                                    (or base-var-name var-name))))]
+                      [(bytes-ref ,src^ ,expr^ ,kindex^)
+                       (let ([var-name (expression->var-name expr^)])
+                         (and var-name
+                              (fx= kindex kindex^)
+                              (or (not base-var-name)
+                                  (eq? base-var-name var-name))
+                              (loop (cdr tuple-arg*) (fx1- kindex)
+                                    (or base-var-name var-name))))]
+                      [else #f])]
+                   [else #f])))))
+    (define (zero16-aggregate? expr)
+      (define (zero-single? tuple-arg)
+        (nanopass-case (Lnovectorref Tuple-Argument) tuple-arg
+          [(single ,src ,expr)
+           (nanopass-case (Lnovectorref Expression) expr
+             [(quote ,src^ ,datum) (eqv? datum 0)]
+             [else #f])]
+          [else #f]))
+      (define (zero16? tuple-arg*)
+        (and (fx= (length tuple-arg*) 16)
+             (andmap zero-single? tuple-arg*)))
+      (or
+        (nanopass-case (Lnovectorref Expression) expr
+          [(tuple ,src ,tuple-arg* ...) (zero16? tuple-arg*)]
+          [(vector ,src ,tuple-arg* ...) (zero16? tuple-arg*)]
+          [else #f])
+        (let ([var-name (expression->var-name expr)])
+          (and var-name
+               (let ([tuple-arg*
+                      (hashtable-ref aggregate-provenance-ht var-name #f)])
+                 (and tuple-arg* (zero16? tuple-arg*)))))))
+    (define (indexed-reference expr)
+      (nanopass-case (Lnovectorref Expression) expr
+        [(tuple-ref ,src ,expr^ ,kindex)
+         (let ([var-name (expression->var-name expr^)])
+           (and var-name (cons var-name kindex)))]
+        [(bytes-ref ,src ,expr^ ,kindex)
+         (let ([var-name (expression->var-name expr^)])
+           (and var-name (cons var-name kindex)))]
+        [else #f]))
+    (define (numeric-abi-vector32? tuple-arg*)
+      (and (fx= (length tuple-arg*) 17)
+           (nanopass-case (Lnovectorref Tuple-Argument) (car tuple-arg*)
+             [(spread ,src ,nat ,expr)
+              (and (fx= nat 16) (zero16-aggregate? expr))]
+             [else #f])
+           (let loop ([tuple-arg* (cdr tuple-arg*)]
+                      [index 15]
+                      [base-var-name #f])
+             (if (null? tuple-arg*)
+                 (fx= index -1)
+                 (nanopass-case (Lnovectorref Tuple-Argument) (car tuple-arg*)
+                   [(single ,src ,expr)
+                    (let ([reference (indexed-reference expr)])
+                      (and reference
+                           (fx= (cdr reference) index)
+                           (or (not base-var-name)
+                               (eq? (car reference) base-var-name))
+                           (loop (cdr tuple-arg*)
+                                 (fx1- index)
+                                 (or base-var-name (car reference)))))]
+                   [else #f])))))
+    (define (special-byte-vector32? tuple-arg*)
+      (or (reverse-vector32? tuple-arg*)
+          (numeric-abi-vector32? tuple-arg*)))
+    ;; Resolve an A-normalized aggregate back to bounded segments.  Every leaf
+    ;; is a variable or literal that was already evaluated by its original
+    ;; statement, so replacing the pure aggregate/conversion chain cannot
+    ;; duplicate effects.  The optimizer later removes the now-dead chain.
+    (define (provenance-serialize-segments expr len)
+      (define (segments-width segment*)
+        (fold-left (lambda (n segment) (fx+ n (car segment))) 0 segment*))
+      (define (resolve-spread expr len recovered?)
+        (or
+          (nanopass-case (Lnovectorref Expression) expr
+            [(bytes->vector ,src ,len^ ,expr^)
+             ;; An operand recovered from a recorded aggregate was already
+             ;; evaluated by its let binding, so only reuse it when it is
+             ;; trivial. A spread inside the aggregate currently being lowered
+             ;; may evaluate an arbitrary producer exactly once.
+             (and (fx= len len^)
+                  (or (not recovered?) (trivial-expression? expr^))
+                  (list (cons len expr^)))]
+            [else #f])
+          (nanopass-case (Lnovectorref Expression) expr
+            [(tuple ,src ,tuple-arg* ...)
+             (let ([segment* (resolve-arguments tuple-arg* recovered?)])
+               (and segment*
+                    (fx= len (segments-width segment*))
+                    segment*))]
+            [(vector ,src ,tuple-arg* ...)
+             (let ([segment* (resolve-arguments tuple-arg* recovered?)])
+               (and segment*
+                    (fx= len (segments-width segment*))
+                    segment*))]
+            [else #f])
+          (let ([var-name (expression->var-name expr)])
+            (and var-name
+                 (or
+                   (let ([entry
+                          (hashtable-ref bytes-vector-provenance-ht var-name #f)])
+                     (and entry
+                          (fx= len (car entry))
+                          (list (cons len (cdr entry)))))
+                   (let ([tuple-arg*
+                          (hashtable-ref aggregate-provenance-ht var-name #f)])
+                     (and tuple-arg*
+                          (not (special-byte-vector32? tuple-arg*))
+                          (let ([segment* (resolve-arguments tuple-arg* #t)])
+                            (and segment*
+                                 (fx= len (segments-width segment*))
+                                 segment*)))))))))
+      (define (resolve-arguments tuple-arg* recovered?)
+        (let loop ([tuple-arg* tuple-arg*] [rsegment* '()])
+          (if (null? tuple-arg*)
+              (reverse rsegment*)
+              (nanopass-case (Lnovectorref Tuple-Argument) (car tuple-arg*)
+                [(single ,src ,expr)
+                 (and (trivial-expression? expr)
+                      (loop (cdr tuple-arg*) (cons (cons 1 expr) rsegment*)))]
+                [(spread ,src ,nat ,expr)
+                 (let ([segment* (resolve-spread expr nat recovered?)])
+                   (and segment*
+                        (loop (cdr tuple-arg*)
+                              (append (reverse segment*) rsegment*))))]))))
+      (let* ([direct-tuple-arg*
+              (nanopass-case (Lnovectorref Expression) expr
+                [(tuple ,src ,tuple-arg* ...) tuple-arg*]
+                [(vector ,src ,tuple-arg* ...) tuple-arg*]
+                [else #f])]
+             [tuple-arg*
+              (or direct-tuple-arg*
+                  (let ([var-name (expression->var-name expr)])
+                    (and var-name
+                         (hashtable-ref aggregate-provenance-ht var-name #f))))])
+        (and tuple-arg*
+             (not (special-byte-vector32? tuple-arg*))
+             (let ([segment*
+                    (resolve-arguments tuple-arg*
+                      (not direct-tuple-arg*))])
+               (and segment*
+                    (fx= len (segments-width segment*))
+                    segment*)))))
+    (define (Serialize-Provenance-Segment* segment* test k)
+      (let loop ([segment* segment*] [rwidth.triv* '()])
+        (if (null? segment*)
+            (k (reverse rwidth.triv*))
+            (Triv (cdar segment*) test
+              (lambda (triv)
+                (loop (cdr segment*)
+                      (cons (cons (caar segment*) triv) rwidth.triv*)))))))
+    ;; Lower recognized segments left-to-right, matching Tuple-Argument*'s
+    ;; evaluation order.  Spread operands bypass bytes->vector but retain its
+    ;; statically checked byte width alongside the underlying Bytes value.
+    (define (Serialize-Segment* tuple-arg* test k)
+      (let f ([tuple-arg* tuple-arg*] [rwidth.triv* '()])
+        (if (null? tuple-arg*)
+            (k (reverse rwidth.triv*))
+            (nanopass-case (Lnovectorref Tuple-Argument) (car tuple-arg*)
+              [(single ,src ,expr)
+               (Triv expr test
+                 (lambda (triv)
+                   (f (cdr tuple-arg*) (cons (cons 1 triv) rwidth.triv*))))]
+              [(spread ,src ,nat ,expr)
+               (nanopass-case (Lnovectorref Expression) expr
+                 [(bytes->vector ,src^ ,len ,expr^)
+                  (Triv expr^ test
+                    (lambda (triv)
+                      (f (cdr tuple-arg*) (cons (cons nat triv) rwidth.triv*))))]
+                 [else (assert cannot-happen)])]))))
     (define (Path-Element* path-elt* test k)
       (let f ([path-elt* path-elt*] [rpath-elt* '()])
         (if (null? path-elt*)
@@ -97,6 +351,7 @@
        (Statement expr test stmt*)
        expr*)]
     [(let* ,src ([,local* ,expr*] ...) ,expr)
+     (record-serialize-provenance! local* expr* test)
      (fold-right
        (lambda (local expr stmt*)
          (nanopass-case (Lnovectorref Argument) local
@@ -258,10 +513,31 @@
          (k (with-output-language (Lcircuit Rhs)
            `(bytes->vector ,len ,triv)))))]
     [(vector->bytes ,src ,len ,expr)
-     (Triv expr test
-       (lambda (triv)
-         (k (with-output-language (Lcircuit Rhs)
-            `(vector->bytes ,len ,triv)))))]
+     (let ([tuple-arg*
+            (and (feature-zkir-v3)
+                 (unconditional-test? test)
+                 (nanopass-case (Lnovectorref Expression) expr
+                   [(vector ,src^ ,tuple-arg* ...) tuple-arg*]
+                   [else #f]))])
+       (define (finish width.triv*)
+         (let ([nat* (map car width.triv*)]
+               [triv* (map cdr width.triv*)])
+           (k (with-output-language (Lcircuit Rhs)
+                `(serialize-pack ,src ,len (,nat* ,triv*) ...)))))
+       (cond
+         [(and tuple-arg*
+               (not (special-byte-vector32? tuple-arg*))
+               (serialize-tuple-argument*? tuple-arg* len))
+          (Serialize-Segment* tuple-arg* test finish)]
+         [(and (feature-zkir-v3) (unconditional-test? test)
+               (provenance-serialize-segments expr len)) =>
+          (lambda (segment*)
+            (Serialize-Provenance-Segment* segment* test finish))]
+         [else
+          (Triv expr test
+            (lambda (triv)
+              (k (with-output-language (Lcircuit Rhs)
+                   `(vector->bytes ,len ,triv)))))]))]
     [(cast-to-field ,src ,[ftype] ,[type] ,expr)
      (Triv expr test
        (lambda (triv)

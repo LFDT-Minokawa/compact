@@ -111,18 +111,17 @@ and the remaining passes are defined in
 [compiler/save-contract-info-passes.ss](./compiler/save-contract-info-passes.ss),
 [compiler/typescript-passes.ss](./compiler/typescript-passes.ss),
 [compiler/circuit-passes.ss](./compiler/circuit-passes.ss),
-and
-[compiler/zkir-passes.ss](./compiler/zkir-passes.ss).
+[compiler/zkir-passes.ss](./compiler/zkir-passes.ss),
+and [compiler/zkir-v3-passes.ss](./compiler/zkir-v3-passes.ss).
 
-As implied by the existence of two final passes, there are actually two
-paths through the compiler, one leading from `parse-file` to `print-typescript`
-and the other leading from `parse-file` to `print-zkir`.
+There are two code-generation paths through the compiler: one leading from
+`parse-file` to `print-typescript` and the other to ZKIR output.
 The two paths share a common set of initial passes (those in frontend-passes.ss
 and analysis-passes.ss).
 The path from there to `print-typescript` is short, just a couple of passes
 including `print-typescript` in typescript-passes.ss.
-The other path, to `print-zkir` is longer and more involved and includes the
-passes in circuit-passes.ss and zkir-passes.ss.
+The ZKIR path is longer and includes the passes in circuit-passes.ss followed
+by either zkir-passes.ss for ZKIR v2 or zkir-v3-passes.ss for ZKIR v3.
 
 There is actually a third final pass, `save-contract-info.ss`, that runs after
 the front-end and analysis passes.
@@ -2281,6 +2280,10 @@ asserts appear only at the top level of a program and in which all
 expressions are unnested, i.e., all subexpressions are atomic
 (trivial) expressions like constants and variable references.
 
+For ZKIR v3, exact unconditional byte-vector packing shapes retain their
+bounded source segments in `serialize-pack`. Recovered let-bound operands
+must be trivial, so recovering a segment cannot repeat an effect.
+
 Because evaluation of an `assert` expression can depend on the
 position of the `assert` within a nested set of conditionals,
 this pass replaces the `assert` test with one that not only
@@ -2459,6 +2462,11 @@ This pass is responsible for making sure that every argument value, every
 variable value, and every return value fits in a Field.
 
 Existing Field values and types are left alone.
+
+For ZKIR v3, retained serialization segments become bounded field limbs in
+byte-string order. Exact, unconditional byte-reversal and zero-padded
+numeric ABI-word patterns become `reverse-bytes32` and `numeric-abi-word`.
+Their original range checks remain; other shapes use the ordinary lowering.
 
 Each Boolean constant is converted into the Field value 0 or 1, and Boolean
 types `(tboolean)` are converted to the bounded Field type `(tfield 1)`.
@@ -2639,9 +2647,19 @@ a language for proving circuits.
 The pass must process every form in the input language but, even so,
 there is nothing complicated about it.
 
-### print-zkir (Lflattened -> Lflattened)
+### print-zkir (Lflattened -> output)
 
-This pass prints zkir code equivalent to the input Lflattened program.
+This pass prints ZKIR v2 code equivalent to the input `Lflattened` program.
+
+### reduce-to-zkir and print-zkir-v3 (Lflattened -> Lzkir -> output)
+
+For ZKIR v3, `reduce-to-zkir` converts `Lflattened` into `Lzkir` and
+`print-zkir-v3` writes the result. Serialization packs whole segments,
+splitting only at field-limb boundaries; reversal uses typed byte operations.
+Between these passes, `cancel-bytes32-conversions` removes adjacent rebuilds
+only when the source is known to be `Bytes<32>`. It also removes the split
+when neither intermediate limb has another use. Unknown source types and
+other byte lengths are left unchanged.
 
 ## Generated TypeScript/JavaScript structure
 
