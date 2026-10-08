@@ -2280,6 +2280,10 @@ asserts appear only at the top level of a program and in which all
 expressions are unnested, i.e., all subexpressions are atomic
 (trivial) expressions like constants and variable references.
 
+For ZKIR v3, exact unconditional byte-vector packing shapes retain their
+bounded source segments in `serialize-pack`. Recovered let-bound operands
+must be trivial, so recovering a segment cannot repeat an effect.
+
 Because evaluation of an `assert` expression can depend on the
 position of the `assert` within a nested set of conditionals,
 this pass replaces the `assert` test with one that not only
@@ -2458,6 +2462,11 @@ This pass is responsible for making sure that every argument value, every
 variable value, and every return value fits in a Field.
 
 Existing Field values and types are left alone.
+
+For ZKIR v3, retained serialization segments become bounded field limbs in
+byte-string order. Exact, unconditional byte-reversal and zero-padded
+numeric ABI-word patterns become `reverse-bytes32` and `numeric-abi-word`.
+Their original range checks remain; other shapes use the ordinary lowering.
 
 Each Boolean constant is converted into the Field value 0 or 1, and Boolean
 types `(tboolean)` are converted to the bounded Field type `(tfield 1)`.
@@ -2645,9 +2654,12 @@ This pass prints ZKIR v2 code equivalent to the input `Lflattened` program.
 ### reduce-to-zkir and print-zkir-v3 (Lflattened -> Lzkir -> output)
 
 For ZKIR v3, `reduce-to-zkir` converts `Lflattened` into `Lzkir` and
-`print-zkir-v3` writes the result. Between them,
-`cancel-bytes32-conversions` removes adjacent inverse `Bytes<32>` conversions
-when the intermediate limbs have no other uses.
+`print-zkir-v3` writes the result. Serialization packs whole segments,
+splitting only at field-limb boundaries; reversal uses typed byte operations.
+Between these passes, `cancel-bytes32-conversions` removes adjacent rebuilds
+only when the source is known to be `Bytes<32>`. It also removes the split
+when neither intermediate limb has another use. Unknown source types and
+other byte lengths are left unchanged.
 
 ## Generated TypeScript/JavaScript structure
 

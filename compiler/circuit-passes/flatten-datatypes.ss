@@ -141,8 +141,8 @@
       (let ([triv* (wump->elts (Triv triv))])
         (unless (fx= (length triv*) 1)
           (internal-errorf 'Single-Triv "expected ~s to produce one triv, got ~s"
-                           (unparse-Lcircuit triv)
-                           (map unparse-Lflattened triv*)))
+            (unparse-Lcircuit triv)
+            (map unparse-Lflattened triv*)))
         (car triv*)))
     (define (build-type original-type pt*)
       (define (type->alignments type)
@@ -151,28 +151,43 @@
             (nanopass-case (Lcircuit Type) type
               [(tboolean ,src) (cons `(abytes 1) a*)]
               [(tfield ,src ,ftype)
-               (nanopass-case (Lcircuit Field-Type) ftype
-                 [(field-native)
-                  (cons `(afield) a*)]
-                 [(field-scalar (curve-jubjub))
-                  (if (feature-zkir-v3)
-                      (cons `(anative "JubjubScalar") a*)
-                      (cons `(afield) a*))]
-                 [(field-base (curve-secp256k1))
-                  (cons `(anative "Secp256k1Base") a*)]
-                 [(field-scalar (curve-secp256k1))
-                  (cons `(anative "Secp256k1Scalar") a*)])]
+               (strict-nanopass-case (Lcircuit Field-Type) ftype
+                 [(field-native) (cons `(afield) a*)]
+                 [(field-base ,ctype)
+                  (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                    [(curve-curve25519) (cons `(anative "Curve25519Base") a*)]
+                    [(curve-jubjub)
+                     (assertf cannot-happen
+                       "(field-base (curve-jubjub)) should not occur, use (field-native)")]
+                    [(curve-secp256k1) (cons `(anative "Secp256k1Base") a*)]
+                    [(curve-secp256r1) (cons `(anative "Secp256r1Base") a*)])]
+                 [(field-scalar ,ctype)
+                  (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                    [(curve-curve25519) (cons `(anative "Curve25519Scalar") a*)]
+                    [(curve-jubjub)
+                     (if (feature-zkir-v3)
+                         (cons `(anative "JubjubScalar") a*)
+                         (cons `(afield) a*))]
+                    [(curve-secp256k1) (cons `(anative "Secp256k1Scalar") a*)]
+                    [(curve-secp256r1) (cons `(anative "Secp256r1Scalar") a*)])])]
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
               [(tpoint ,src ,ctype)
-               (nanopass-case (Lcircuit Curve-Type) ctype
-                 [(curve-jubjub) (if (feature-zkir-v3)
-                                     (cons `(anative "JubjubPoint") a*)
-                                     (cons* `(afield) `(afield) a*))]
+               (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                 [(curve-curve25519)
+                  (assert (feature-zkir-v3))
+                  (cons `(anative "Curve25519Point") a*)]
+                 [(curve-jubjub)
+                  (if (feature-zkir-v3)
+                      (cons `(anative "JubjubPoint") a*)
+                      (cons* `(afield) `(afield) a*))]
                  [(curve-secp256k1)
                   (assert (feature-zkir-v3))
-                  (cons `(anative "Secp256k1Point") a*)])]
+                  (cons `(anative "Secp256k1Point") a*)]
+                 [(curve-secp256r1)
+                  (assert (feature-zkir-v3))
+                  (cons `(anative "Secp256r1Point") a*)])]
               [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
               [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
               [(tvector ,src ,len ,type)
@@ -180,7 +195,7 @@
                  (do ([len len (- len 1)] [a* a* (append a^* a*)])
                      ((eqv? len 0) a*)))]
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ... )
-               ; A contract value at the canonical AlignedValue level is a length 32 byte string
+               ;; A contract value at the canonical AlignedValue level is a length 32 byte string.
                (cons `(abytes 32) a*)]
               [(ttuple ,src ,type* ...)
                (fold-right f a* type*)]
@@ -191,7 +206,7 @@
                (cons `(aadt) a*)]))))
       (with-output-language (Lflattened Type)
         `(ty (,(type->alignments original-type) ...)
-             (,pt* ...))))
+           (,pt* ...))))
     (define (do-argument var-name original-type wump)
       (let-values ([(wump vn.pt*)
                     (wump-fold-right
@@ -272,30 +287,30 @@
   (Program : Program (ir) -> Program ()
     [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
      `(program ,src ((,export-name* ,name*) ...)
-        ; like map but arranges to process native and witness declarations first
-        ; so that their fun-ht entries are available before processing
-        ; any circuits
+        ;; Like map but arranges to process native and witness declarations first
+        ;; so that their fun-ht entries are available before processing
+        ;; any circuits.
         ,(let f ([pelt* pelt*])
            (if (null? pelt*)
-             '()
-             (let ([pelt (car pelt*)] [pelt* (cdr pelt*)])
-               (cond
-                 [(Lcircuit-Native-Declaration? pelt)
-                  (let ([pelt (Native-Declaration pelt)])
-                    (cons pelt (f pelt*)))]
-                 [(Lcircuit-Witness-Declaration? pelt)
-                  (let ([pelt (Witness-Declaration pelt)])
-                    (cons pelt (f pelt*)))]
-                 [(Lcircuit-Circuit-Definition? pelt)
-                  (let ([pelt* (f pelt*)])
-                    (cons (Circuit-Definition pelt) pelt*))]
-                 [(Lcircuit-Kernel-Declaration? pelt)
-                  (let ([pelt* (f pelt*)])
-                    (cons (Kernel-Declaration pelt) pelt*))]
-                 [(Lcircuit-Ledger-Declaration? pelt)
-                  (let ([pelt* (f pelt*)])
-                    (cons (Ledger-Declaration pelt) pelt*))]
-                 [else (assert cannot-happen)]))))
+               '()
+               (let ([pelt (car pelt*)] [pelt* (cdr pelt*)])
+                 (cond
+                   [(Lcircuit-Native-Declaration? pelt)
+                    (let ([pelt (Native-Declaration pelt)])
+                      (cons pelt (f pelt*)))]
+                   [(Lcircuit-Witness-Declaration? pelt)
+                    (let ([pelt (Witness-Declaration pelt)])
+                      (cons pelt (f pelt*)))]
+                   [(Lcircuit-Circuit-Definition? pelt)
+                    (let ([pelt* (f pelt*)])
+                      (cons (Circuit-Definition pelt) pelt*))]
+                   [(Lcircuit-Kernel-Declaration? pelt)
+                    (let ([pelt* (f pelt*)])
+                      (cons (Kernel-Declaration pelt) pelt*))]
+                   [(Lcircuit-Ledger-Declaration? pelt)
+                    (let ([pelt* (f pelt*)])
+                      (cons (Ledger-Declaration pelt) pelt*))]
+                   [else (assert cannot-happen)]))))
         ...)])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
     [(native ,src ,function-name ,native-entry ((,var-name* ,[Type->Wump : type* -> * wump*]) ...) ,[Type->Wump : type -> * wump])
@@ -313,10 +328,10 @@
        (let ([stmt** (maplr Statement stmt*)])
          (let ([triv* (if (null? primitive-type*) '() (wump->elts (Triv triv)))])
            `(circuit ,src ,function-name
-                     (,arg* ...)
-                     ,(build-type type primitive-type*)
-                     ,(apply append stmt**) ...
-                     (,triv* ...)))))])
+              (,arg* ...)
+              ,(build-type type primitive-type*)
+              ,(apply append stmt**) ...
+              (,triv* ...)))))])
   (Kernel-Declaration : Kernel-Declaration (ir) -> Kernel-Declaration ())
   (Ledger-Declaration : Ledger-Declaration (ir) -> Ledger-Declaration ())
   (ADT-Op : ADT-Op (ir) -> ADT-Op ()
@@ -329,7 +344,7 @@
     [(tbytes ,src ,len)
      (Wump-bytes (bytes->primitive-types len))]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-     ; A contract value flattens identically to (tbytes 32).
+                                        ; A contract value flattens identically to (tbytes 32).
      (Wump-bytes (bytes->primitive-types 32))]
     [(ttuple ,src ,[Type->Wump : type* -> * wump*] ...)
      (Wump-vector wump*)]
@@ -360,38 +375,55 @@
        (list `(assert ,src ,test ,mesg)))])
   (Rhs : Rhs (ir test var-name) -> * (stmt*)
     [,triv
-     (hashtable-set! var-ht var-name (Triv triv))
-     '()]
+      (hashtable-set! var-ht var-name (Triv triv))
+      '()]
     [(default ,type)
      (letrec ([trivial (lambda (wump) (values wump '()))]
+              [make-zkir-default
+                ;; For ZKIR-typed values, which are flattened into a single value.
+                (lambda (name)
+                  (with-output-language (Lflattened Statement)
+                    (let ([tmp (make-new-id var-name)])
+                      (values
+                        (Wump-single tmp)
+                        (list `(= ,test (,tmp) (default ,name)))))))]
               [do-type
                 (lambda (type)
                   (nanopass-case (Lcircuit Type) type
                     [(tboolean ,src) (trivial (Wump-single 0))]
-                    [(tfield ,src ,ftype) (trivial (Wump-single 0))]
+                    [(tfield ,src ,ftype)
+                     (strict-nanopass-case (Lcircuit Field-Type) ftype
+                       [(field-native) (trivial (Wump-single 0))]
+                       [(field-base ,ctype)
+                        (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                          [(curve-curve25519) (make-zkir-default "Curve25519Base")]
+                          [(curve-jubjub) (assert cannot-happen)]
+                          [(curve-secp256k1) (make-zkir-default "Secp256k1Base")]
+                          [(curve-secp256r1) (make-zkir-default "Secp256r1Base")])]
+                       [(field-scalar ,ctype)
+                        (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                          [(curve-curve25519) (make-zkir-default "Curve25519Scalar")]
+                          [(curve-jubjub) (trivial (Wump-single 0))]
+                          [(curve-secp256k1) (make-zkir-default "Secp256k1Scalar")]
+                          [(curve-secp256r1) (make-zkir-default "Secp256r1Scalar")])])]
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
                     [(tpoint ,src ,ctype)
                      (with-output-language (Lflattened Statement)
-                       (nanopass-case (Lcircuit Curve-Type) ctype
+                       (strict-nanopass-case (Lcircuit Curve-Type) ctype
+                         [(curve-curve25519) (make-zkir-default "Curve25519Point")]
                          [(curve-jubjub)
-                          (let ([t1 (make-new-id var-name)])
-                            (if (feature-zkir-v3)
+                          (if (feature-zkir-v3)
+                              (make-zkir-default "JubjubPoint")
+                              (let* ([t1 (make-new-id var-name)] [t2 (make-new-id var-name)])
                                 (values
-                                  (Wump-single t1)
-                                  (list `(= ,test (,t1) (default "JubjubPoint"))))
-                                (let ([t2 (make-new-id var-name)])
-                                  (values
-                                    (Wump-vector (list (Wump-single t1) (Wump-single t2)))
-                                    (list `(= ,test (,t1 ,t2) (default "JubjubPoint")))))))]
-                         [(curve-secp256k1)
-                          (let ([t1 (make-new-id var-name)])
-                            (values
-                              (Wump-single t1)
-                              (list `(= ,test (,t1) (default "Secp256k1Point")))))]))]
+                                  (Wump-vector (list (Wump-single t1) (Wump-single t2)))
+                                  (list `(= ,test (,t1 ,t2) (default "JubjubPoint"))))))]
+                         [(curve-secp256k1) (make-zkir-default "Secp256k1Point")]
+                         [(curve-secp256r1) (make-zkir-default "Secp256r1Point")]))]
                     [(tbytes ,src ,len)
                      (trivial (Wump-bytes (bytes-default-limbs len)))]
                     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                     ; `default<C>` is the all-zero address.
+                     ;; `default<C>` is the all-zero address.
                      (trivial (Wump-bytes (bytes-default-limbs 32)))]
                     [(topaque ,src ,opaque-type) (trivial (Wump-single 0))]
                     [(tvector ,src ,len ,type)
@@ -444,8 +476,8 @@
                  (list `(= ,test ,var-name ,triv-accum)))
                (let ([t1 (make-new-id var-name)] [t2 (make-new-id var-name)])
                  (cons* `(= ,test ,t1 (== ,(car triv1*) ,(car triv2*)))
-                        `(= ,test ,t2 (select ,triv-accum ,t1 0))
-                        (f (cdr triv1*) (cdr triv2*) t2)))))))]
+                   `(= ,test ,t2 (select ,triv-accum ,t1 0))
+                   (f (cdr triv1*) (cdr triv2*) t2)))))))]
     [(select ,[Single-Triv : triv0] ,[* wump1] ,[* wump2])
      (let-values ([(wump var-name*)
                    (wump-fold-right
@@ -462,7 +494,7 @@
          (map (lambda (var-name triv1 triv2)
                 (with-output-language (Lflattened Statement)
                   `(= ,test ,var-name (select ,triv0 ,triv1 ,triv2))))
-              var-name* triv1* triv2*)))]
+           var-name* triv1* triv2*)))]
     [(tuple ,[* wump**] ...)
      (hashtable-set! var-ht var-name (Wump-vector (apply append wump**)))
      '()]
@@ -496,14 +528,22 @@
                     [(Wump-bytes elt*) elt*]
                     [else (assert cannot-happen)])])
        (with-output-language (Lflattened Statement)
-         (define (make-secp256k1-cast)
-           ;; The only possible source type is Bytes<32>, which is two trivs.
-           (assert (= (length triv*) 2))
+         (define (make-foreign-field-cast ctype)
            (hashtable-set! var-ht var-name (Wump-single var-name))
-           (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,(car triv*) ,(cadr triv*)))))
-         (nanopass-case (Lflattened Field-Type) ftype
-           [(field-base (curve-secp256k1)) (make-secp256k1-cast)]
-           [(field-scalar (curve-secp256k1)) (make-secp256k1-cast)]
+           (strict-nanopass-case (Lflattened Curve-Type) ctype
+             [(curve-curve25519)
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
+             [(curve-jubjub)
+              (assertf cannot-happen "cannot cast byte vector to JubjubScalar")]
+             [(curve-secp256k1)
+              (assert (= (length triv*) 2))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]
+             [(curve-secp256r1)
+              (assert (= (length triv*) 2))
+              (list `(= ,test ,var-name (bytes->field ,src ,ftype ,len ,triv* ...)))]))
+         (strict-nanopass-case (Lflattened Field-Type) ftype
+           [(field-base ,ctype) (make-foreign-field-cast ctype)]
+           [(field-scalar ,ctype) (make-foreign-field-cast ctype)]
            [(field-native)
             (let ([n (length triv*)])
               (cond
@@ -692,24 +732,24 @@
        (let ([triv* (fold-right wump->elts '() actual-wump*)])
          (with-output-language (Lflattened Statement)
            (list `(= ,test
-                     (,var-name* ...)
-                     (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
+                    (,var-name* ...)
+                    (public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op^ ,triv* ...))))))]
     [(emit ,src ,event-version ,event-tag ,len ,[* wump] ,vm-code)
      (hashtable-set! var-ht var-name (Wump-vector '()))
      (let ([triv* (wump->elts wump)])
        (with-output-language (Lflattened Statement)
          (list `(= ,test
-                   ()
-                   (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code)))))]
-    ; A tcontract value now flattens like Bytes<32> — multiple ZKIR variables, one
-    ; alignment atom (abytes 32) — so the receiver position in Lflattened's
-    ; contract-call holds a *list* of trivs.  `[* recv-wump]` runs the default
-    ; Triv processor (which looks the receiver var-name up in var-ht), giving us
-    ; the wump that was assigned at the receiver's binding site.
-    ;
-    ; The `type` here is still the source-level tcontract; Single-Type produces
-    ; the tcontract primitive-type tag we attach to the flattened form so the
-    ; type-checker and later passes can find the callee's circuit signatures.
+                  ()
+                  (emit ,src ,event-version ,event-tag ,len ,triv* ... ,vm-code)))))]
+    ;; A tcontract value now flattens like Bytes<32> — multiple ZKIR variables, one
+    ;; alignment atom (abytes 32) — so the receiver position in Lflattened's
+    ;; contract-call holds a *list* of trivs.  `[* recv-wump]` runs the default
+    ;; Triv processor (which looks the receiver var-name up in var-ht), giving us
+    ;; the wump that was assigned at the receiver's binding site.
+    ;;
+    ;; The `type` here is still the source-level tcontract; Single-Type produces
+    ;; the tcontract primitive-type tag we attach to the flattened form so the
+    ;; type-checker and later passes can find the callee's circuit signatures.
     [(contract-call ,src ,elt-name (,[* recv-wump] ,type) ,[* wump*] ...)
      (let-values ([(wump var-name*)
                    (wump-fold-right
@@ -728,8 +768,8 @@
              [recv* (wump->elts recv-wump)])
          (with-output-language (Lflattened Statement)
            (list `(= ,test
-                     (,var-name* ...)
-                     (contract-call ,src ,elt-name ((,recv* ...) ,(Single-Type type)) ,triv* ...))))))]
+                    (,var-name* ...)
+                    (contract-call ,src ,elt-name ((,recv* ...) ,(Single-Type type)) ,triv* ...))))))]
     [(call ,src ,function-name ,[* wump*] ...)
      (let ([funwump (or (hashtable-ref fun-ht function-name #f)
                         (assert cannot-happen))])
@@ -744,12 +784,12 @@
          (let ([triv* (fold-right wump->elts '() wump*)])
            (with-output-language (Lflattened Statement)
              (list `(= ,test
-                       (,var-name* ...)
-                       (call ,src ,function-name ,triv* ...)))))))])
+                      (,var-name* ...)
+                      (call ,src ,function-name ,triv* ...)))))))])
   (Triv : Triv (ir) -> * (wump)
     [,var-name
-     (or (hashtable-ref var-ht var-name #f)
-         (assert cannot-happen))]
+      (or (hashtable-ref var-ht var-name #f)
+          (assert cannot-happen))]
     [(quote ,datum)
      (cond
        [(boolean? datum) (Wump-single (if datum 1 0))]

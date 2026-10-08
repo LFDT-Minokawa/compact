@@ -7,10 +7,6 @@ on:
         description: 'Toolchain version (e.g. v1.2.3)'
         required: true
         type: string
-      language_version:
-        description: 'Language version (e.g. v1.2.3)'
-        required: true
-        type: string
       branch:
         description: 'Branch to grab release notes from'
         required: true
@@ -38,29 +34,48 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_notes_file: ${{ steps.release_notes.outputs.file }}
+      language_version: ${{ steps.language_version.outputs.language_version }}
     steps:
-      - name: Check format of compiler and language versions
+      - name: Check format of toolchain version
+        env:
+          TOOLCHAIN: ${{ inputs.toolchain_version }}
         run: |
-          TOOLCHAIN="${{ inputs.toolchain_version }}"
-          LANGUAGE="${{ inputs.language_version }}"
-
           if [[ ! "$TOOLCHAIN" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
             echo "::error::toolchain version must match v*.*.* format (e.g. v1.2.3), got: $TOOLCHAIN"
             exit 1
           fi
+          echo "Toolchain version format is valid: $TOOLCHAIN"
 
-          if [[ ! "$LANGUAGE" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "::error::language_version must match v*.*.* format (e.g. v1.2.3), got: $LANGUAGE"
+      # This run writes a language version into the published version table, and
+      # the toolchain it describes is the binary released under that version, so
+      # the language version is read from that binary rather than typed.
+      - name: Read the language version from the released binary
+        id: language_version
+        env:
+          GH_TOKEN: ${{ secrets.MIDNIGHTCI_PACKAGES_WRITE }}
+          TOOLCHAIN: ${{ inputs.toolchain_version }}
+        run: |
+          set -euo pipefail
+          if ! gh release download "compactc-${TOOLCHAIN}" --repo midnight-ntwrk/artifacts \
+               --pattern '*x86_64-unknown-linux-musl*' --dir check; then
+            echo "::error::no compactc-${TOOLCHAIN} release in midnight-ntwrk/artifacts; the language version is read from that build, so it has to exist"
             exit 1
           fi
-
-          echo "Toolchain version format is valid: $TOOLCHAIN"
-          echo "Language version format is valid: $LANGUAGE"
+          unzip -q check/*.zip -d check/bin
+          chmod +x check/bin/* || true
+          LANGUAGE="$(check/bin/compactc --language-version)"
+          if [[ ! "$LANGUAGE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::compactc --language-version reports '$LANGUAGE', which is not x.y.z"
+            exit 1
+          fi
+          echo "Compact language $LANGUAGE"
+          echo "language_version=$LANGUAGE" >> "$GITHUB_OUTPUT"
 
       - name: Compute release notes path
         id: release_notes
+        env:
+          TOOLCHAIN: ${{ inputs.toolchain_version }}
         run: |
-          TOOLCHAIN="${{ inputs.toolchain_version }}"
           # Strip leading 'v' if present
           CLEAN_VERSION="${TOOLCHAIN#v}"
           echo "file=doc/release-notes/toolchain-${CLEAN_VERSION}.md" >> "$GITHUB_OUTPUT"
@@ -76,6 +91,6 @@ jobs:
       release_notes_file: ${{ needs.setup.outputs.release_notes_file }}
       branch: ${{ inputs.branch }}
       toolchain_version: ${{ inputs.toolchain_version }}
-      language_version: ${{ inputs.language_version }}
+      language_version: ${{ needs.setup.outputs.language_version }}
       release_notes_branch: ${{ inputs.release_notes_branch }}
       release_notes_pr_description: ${{ inputs.release_notes_pr_description }}

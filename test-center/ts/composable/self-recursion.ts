@@ -13,10 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// TODO: Enable when contract re-entrancy is supported
-// Skipped: direct self-recursion (`foo` -> `self.foo`) re-enters a contract that is
-// already executing, which the re-entrancy guard (on by default) now rejects. Kept
-// as documentation of the previous threaded-state behaviour.
+// TODO: Enable when contract re-entrancy is supported.
+// Skipped: `foo` -> `self.foo` re-enters a contract that is already executing.
 test.skip('self-recursion terminates and threads ledger state: foo(1) === 2', async () => {
   const chain = new TestChain();
   const self = await chain.deploy({ module: contractCode, args: [], initialPrivateState: 0 });
@@ -73,6 +71,5 @@ test('self-recursion (foo -> self.foo) is rejected by the re-entrancy guard', as
       circuitId: 'foo',
       args: [1n],
     }),
-    // The message names the re-entered contract: `self` calling back into itself.
   ).rejects.toThrow(`Contract re-entrancy detected: '${self.address}'`);
 });

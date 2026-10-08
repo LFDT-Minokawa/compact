@@ -15,12 +15,9 @@
 
 // Shielded coin operations across a cross-contract call tree (LFDT-Minokawa/compact#658).
 //
-// A contract that is sent a shielded coin only takes custody of it if it claims the receive in
-// the same transaction, so a callee must be able to run `receiveShielded` — which means having a
-// Zswap local state of its own. These tests pin the state's shape: one per contract, keyed by
-// address like `queryContexts` and `gasCosts`, threaded across a call so a callee's coins survive
-// its return, and mirrored onto `callProofDataTrace` so transaction assembly can attribute every
-// input and output to the contract that made it.
+// A callee has to be able to run `receiveShielded`, so it needs a Zswap local state of its own.
+// These pin the shape: one per contract keyed by address, threaded across a call, and mirrored onto
+// `callProofDataTrace`.
 
 import { describe, expect, test } from 'vitest';
 import * as compactRuntime from '../src/index.js';
@@ -42,7 +39,13 @@ const contractRecipient = (address: ocrt.ContractAddress) => ({
 });
 
 const makeContext = (address: ocrt.ContractAddress) =>
-  compactRuntime.createCircuitContext('test', address, COIN_PUBLIC_KEY, new ocrt.ContractState(), undefined);
+  compactRuntime.createCircuitContext({
+    circuitId: 'test',
+    contractAddress: address,
+    coinPublicKeyOrZswapState: COIN_PUBLIC_KEY,
+    contractState: new ocrt.ContractState(),
+    privateState: undefined,
+  });
 
 describe('per-contract Zswap local state', () => {
   test('createCircuitContext keys the entry contract into zswapLocalStates', () => {
@@ -115,6 +118,23 @@ describe('per-contract Zswap local state', () => {
   });
 });
 
+describe('coin commitments', () => {
+  test('a commitment reaches the per-address query context, not only the live one', () => {
+    const address = ocrt.sampleContractAddress();
+    const context = makeContext(address);
+    const coinInfo = sampleCoinInfo(5n);
+    const recipient = contractRecipient(address);
+
+    compactRuntime.createZswapOutput(context, coinInfo, recipient);
+
+    expect(compactRuntime.hasCoinCommitment(context, coinInfo, recipient)).toBe(true);
+    // A commitment goes into the query context, so it needs the same write-back the Zswap local
+    // state gets. The map cell is what a later turn of this contract resumes from, and what a
+    // returning sub-call used to restore the caller from.
+    expect(context.queryContexts[address]).toBe(context.callContext.currentQueryContext);
+  });
+});
+
 describe('ownPublicKey', () => {
   test('is readable by the entry contract', () => {
     const context = makeContext(ocrt.sampleContractAddress());
@@ -122,15 +142,9 @@ describe('ownPublicKey', () => {
   });
 
   test('reads the submitter key from whichever contract is executing', () => {
-    // All three Zswap natives — ownPublicKey, createZswapInput, createZswapOutput — are declared
-    // `witness` in midnight-natives.ss, but none of them touch persistent private state, so the
-    // CoIP-2 rule that keeps user-declared witnesses out of callees does not reach them. A callee
-    // gets its own state seeded with the submitter's coin public key, which is what lets it pay
-    // the submitter back (change, refunds, swap proceeds).
-    //
-    // Gating the read would not have bought confidentiality either: a coin public key is an
-    // ordinary circuit parameter type — `sendShielded` and `mintShieldedToken` both take
-    // `Either<ZswapCoinPublicKey, ContractAddress>` — so a caller can simply pass the value in.
+    // The Zswap natives are declared `witness` but touch no persistent private state, so the rule
+    // keeping witnesses out of a callee does not reach them. A callee gets the submitter's key so it
+    // can pay them back.
     const callee = makeContext(ocrt.sampleContractAddress());
     expect(compactRuntime.ownPublicKey(callee).bytes).toEqual(ocrt.encodeCoinPublicKey(COIN_PUBLIC_KEY));
   });

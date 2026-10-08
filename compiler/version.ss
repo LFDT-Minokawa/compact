@@ -15,18 +15,44 @@
 
 (library (version)
   (export Lversion make-version make-version-string make-version-checker
+          version-with-tag
           #;version-tests)
   (import (except (chezscheme) errorf) (utils) (nanopass))
 
+  ;; `tag` is a prerelease identifier with its leading #\- (`-rc.2`, `-dev`),
+  ;; or "" for a plain release. It is printed but never compared -- the
+  ;; operators below read only the numbers -- so a candidate satisfies the
+  ;; same `pragma compiler_version` constraints as its release. Build
+  ;; metadata never goes here, so the printed form stays valid semver; the
+  ;; commit is reported beside the version instead (version-config.ss).
+  ;; The 4-argument constructor leaves the tag "", so lexer.ss's calls
+  ;; still work.
   (define-record-type version
     (nongenerative)
-    (fields feature major minor bugfix))
+    (fields feature major minor bugfix tag)
+    (protocol
+      (lambda (new)
+        (case-lambda
+          [(feature major minor bugfix) (new feature major minor bugfix "")]
+          [(feature major minor bugfix tag) (new feature major minor bugfix tag)]))))
+
+  ;; `version` with its tag replaced. Separate from the constructor because the
+  ;; tag is not known when the version is committed, and because
+  ;; scripts/read-version.sh parses the literal `(make-version 'feature M m b)`
+  ;; form for everything outside Scheme.
+  (define (version-with-tag version tag)
+    (make-version (version-feature version)
+                  (version-major version)
+                  (version-minor version)
+                  (version-bugfix version)
+                  tag))
 
   (define (make-version-string version)
-    (format "~d.~d.~d"
+    (format "~d.~d.~d~a"
             (version-major version)
             (version-minor version)
-            (version-bugfix version)))
+            (version-bugfix version)
+            (version-tag version)))
 
   (module (version=? version<? version<=? version>=? version>?)
     (define (comp=? v v^)
@@ -168,6 +194,24 @@
       (test 1 2 3 `(and (>= ,(make-version 'that 1 2 3)) (<= ,(make-version 'that 1 2 4))))
       (test 1 2 4 `(and (>= ,(make-version 'that 1 2 3)) (<= ,(make-version 'that 1 2 4))))
       (test-not 1 2 5 `(and (>= ,(make-version 'that 1 2 3)) (<= ,(make-version 'that 1 2 4))))
+      ;; a tag is printed but never compared
+      (unless (string=? (make-version-string (make-version 'this 1 2 3)) "1.2.3")
+        (syntax-error #'version-tests "untagged version prints wrongly"))
+      (unless (string=? (make-version-string (version-with-tag (make-version 'this 1 2 3) "-rc.2"))
+                        "1.2.3-rc.2")
+        (syntax-error #'version-tests "version-with-tag prints wrongly"))
+      (unless (string=? (make-version-string (version-with-tag (make-version 'this 1 2 3 "-rc.1") "")) "1.2.3")
+        (syntax-error #'version-tests "version-with-tag should be able to clear a tag"))
+      (unless (version-okay? (version-with-tag (make-version 'this 1 2 3) "-rc.2") (make-version 'that 1 2 3))
+        (syntax-error #'version-tests "a tag applied afterwards must stay invisible to comparison"))
+      (unless (string=? (make-version-string (make-version 'this 1 2 3 "-rc.2")) "1.2.3-rc.2")
+        (syntax-error #'version-tests "tagged version prints wrongly"))
+      (unless (string=? (make-version-string (make-version 'this 1 2 3 "-rc.0-a-b-c")) "1.2.3-rc.0-a-b-c")
+        (syntax-error #'version-tests "a multi-identifier prerelease prints wrongly"))
+      (unless (version-okay? (make-version 'this 1 2 3 "-rc.2") (make-version 'that 1 2 3))
+        (syntax-error #'version-tests "a release candidate should satisfy its own release"))
+      (unless (version-okay? (make-version 'this 1 2 3 "-rc.2") `(>= ,(make-version 'that 1 2 3)))
+        (syntax-error #'version-tests "a release candidate should satisfy >= its own release"))
       (test 0 3 5 `(or ,(make-version 'that 0 3 5) (and (> ,(make-version 'that 0 2 0)) (< ,(make-version 'that 0 3 0)))))
       (test 0 2 5 `(or ,(make-version 'that 0 3 5) (and (> ,(make-version 'that 0 2 0)) (< ,(make-version 'that 0 3 0)))))
       (test-not 0 2 0 `(or ,(make-version 'that 0 3 5) (and (> ,(make-version 'that 0 2 0)) (< ,(make-version 'that 0 3 0)))))

@@ -71,7 +71,7 @@
                                           var-name* zkir-type*))]
                   [instructions (list->vector (maplr Instruction instr*))]
                   [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 0)))
+             `((version . ((major . 3) (minor . 1)))
                (do_communications_commitment . ,(not (no-communications-commitment)))
                (inputs . ,inputs)
                (outputs . ,outputs)
@@ -97,11 +97,11 @@
      `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(assert ,[* inp])
      `((op . "assert") (cond . ,inp))]
-    [(bytes32_from_low_high ,[* outp] ,[* inp0] ,[* inp1])
-     `((op . "bytes32_from_low_high") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
-    [(bytes32_into_low_high ,outp0 ,outp1 ,[* inp])
-     (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
-       `((op . "bytes32_into_low_high") (outputs . ,(vector outp0 outp1)) (bytes . ,inp)))]
+    [(bytes_from_natives ,[* outp] ,imm ,[* inp*] ...)
+     `((op . "bytes_from_natives") (output . ,outp) (len . , imm) (inputs . ,(list->vector inp*)))]
+    [(bytes_into_natives (,outp* ...) ,[* inp])
+     (let ([outp* (maplr Output outp*)])
+       `((op . "bytes_into_natives") (outputs . ,(list->vector outp*)) (bytes . ,inp)))]
     [(cond_select ,[* outp] ,[* inp0] ,[* inp1] ,[* inp2])
      `((op . "cond_select") (output . ,outp) (bit . ,inp0) (a . ,inp1) (b . ,inp2))]
     [(constrain_bits ,[* inp] ,imm)
@@ -122,16 +122,14 @@
     [(encode (,outp* ...) ,[* inp])
      (let ([outp* (maplr Output outp*)])
        `((op . "encode") (outputs . ,(list->vector outp*)) (input . ,inp)))]
-    [(from_bytes32 ,zkir-type ,[* outp] ,[* inp])
-     `((op . "from_bytes32") (type . ,zkir-type) (output . ,outp) (bytes . ,inp))]
+    [(from_bytes ,zkir-type ,[* outp] ,[* inp])
+     `((op . "from_bytes") (type . ,zkir-type) (output . ,outp) (bytes . ,inp))]
     [(from_coordinates ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "from_coordinates") (output . ,outp) (inputs . ,(vector inp0 inp1)))]
     [(hash_to_curve ,[* outp] ,[* inp*] ...)
      `((op . "hash_to_curve") (output . ,outp) (inputs . ,(list->vector inp*)))]
     [(impact ,[* inp] ,[* inp*] ...)
      `((op . "impact") (guard . ,inp) (inputs . ,(list->vector inp*)))]
-    [(into_bytes32 ,[* outp] ,[* inp])
-     `((op . "into_bytes32") (output . ,outp) (input . ,inp))]
     [(into_coordinates ,outp0 ,outp1 ,[* inp])
      (let* ([outp0 (Output outp0)] [outp1 (Output outp1)])
        `((op . "into_coordinates") (outputs . ,(vector outp0 outp1)) (point . ,inp)))]
@@ -140,8 +138,8 @@
     [(jubjub_scalar_from_native ,[* outp] ,[* inp])
      `((op . "jubjub_scalar_from_native") (output . ,outp) (native . ,inp))]
     [(keccak256 ,[* outp] (,alignment* ...) ,[* inp*] ...)
-     `((op . "keccak256") (output . ,outp)
-       (alignment . ,(alignment->vector alignment*)) (inputs . ,(list->vector inp*)))]
+     `((op . "keccak256") (output . ,outp) (alignment . ,(alignment->vector alignment*))
+       (inputs . ,(list->vector inp*)))]
     [(less_than ,[* outp] ,[* inp0] ,[* inp1] ,imm)
      `((op . "less_than") (output . ,outp) (a . ,inp0) (b . ,inp1) (bits . ,imm))]
     [(mul ,[* outp] ,[* inp0] ,[* inp1])
@@ -174,8 +172,15 @@
        (bits . ,imm))]
     [(reverse_bytes ,[* outp] ,[* inp])
      `((op . "reverse_bytes") (output . ,outp) (bytes . ,inp))]
+    [(sha512 ,[* outp] (,alignment* ...) ,[* inp*] ...)
+     `((op . "sha512") (output . ,outp) (alignment . ,(alignment->vector alignment*))
+       (inputs . ,(list->vector inp*)))]
+    [(slice ,[* outp] ,[* inp] ,imm0 ,imm1)
+     `((op . "slice") (output . ,outp) (bytes . ,inp) (start . ,imm0) (len . ,imm1))]
     [(test_eq ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "test_eq") (output . ,outp) (a . ,inp0) (b . ,inp1))]
+    [(to_bytes ,[* outp] ,[* inp])
+     `((op . "to_bytes") (output . ,outp) (input . ,inp))]
     [(transient_hash ,[* outp] ,[* inp*] ...)
      `((op . "transient_hash") (output . ,outp) (inputs . ,(list->vector inp*)))])
   (Input : Input (ir) -> * (json)

@@ -23,6 +23,15 @@ nix develop --no-warn-dirty .#test-contracts --command bash -c '
   set -euo pipefail
   cd test-contracts
   ln -sfn "${COMPACT_RUNTIME_PKG:-../runtime}" .compact-runtime
+  # The fixtures typecheck their generated contracts against this runtime, so it has to be built:
+  # there is no local stub standing in for its declarations. The .#test-contracts shell points
+  # COMPACT_RUNTIME_PKG at a Nix package that always is; a working tree at ../runtime may not be.
+  if [ ! -f .compact-runtime/dist/index.d.ts ]; then
+    echo "test.sh: $(readlink .compact-runtime) has no dist/index.d.ts, so the generated" >&2
+    echo "         contracts cannot be typechecked against the runtime they were compiled for." >&2
+    echo "         Build it: nix develop .#runtime --command bash -c \"cd runtime && npm run build\"" >&2
+    exit 1
+  fi
   export COREPACK_ENABLE_DOWNLOAD_PROMPT=0
   corepack yarn install --immutable
   COMPACT_BINARY=compactc corepack yarn lint

@@ -244,6 +244,21 @@ const setCurrentZswapLocalState = (circuitContext: CircuitContext<unknown>, next
 };
 
 /**
+ * The query-context counterpart. A coin commitment lands in the query context rather than the
+ * Zswap local state, so writing only the live cell leaves the per-address one behind — and that is
+ * the one a later turn of this contract resumes from.
+ *
+ * @internal
+ */
+const setCurrentQueryContext = (circuitContext: CircuitContext<unknown>, next: ocrt.QueryContext): void => {
+  const address = circuitContext.callContext.contractAddress;
+  assertDefined(address, 'contract address on the executing call context');
+  assertDefined(circuitContext.queryContexts, 'per-contract query contexts on the circuit context');
+  circuitContext.callContext.currentQueryContext = next;
+  circuitContext.queryContexts[address] = next;
+};
+
+/**
  * Adds a coin to the list of inputs consumed by the circuit.
  *
  * @param circuitContext The current circuit context.
@@ -371,9 +386,12 @@ export function createZswapOutput(
   recipient: EncodedRecipient,
 ): [] {
   assertHasCurrentZswapLocalState(circuitContext);
-  circuitContext.callContext.currentQueryContext = circuitContext.callContext.currentQueryContext.insertCommitment(
-    Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
-    circuitContext.callContext.currentZswapLocalState!.currentIndex,
+  setCurrentQueryContext(
+    circuitContext,
+    circuitContext.callContext.currentQueryContext.insertCommitment(
+      Buffer.from(Bytes32Descriptor.fromValue(createCoinCommitment(coinInfo, recipient).value)).toString('hex'),
+      circuitContext.callContext.currentZswapLocalState!.currentIndex,
+    ),
   );
   setCurrentZswapLocalState(circuitContext, {
     ...circuitContext.callContext.currentZswapLocalState,
