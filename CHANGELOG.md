@@ -13,6 +13,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removed. The compiler now defaults to ZKIR-v3. Passing
   `--feature-zkir-v3` is now an error. `--ledger-version` now always prints
   the version of the `zkir-v3` dependency.
+  
+### Internal notes
+
+- For the devtool tests to pass, upon a final release of the toolchain,
+  the `tools/compact/output/compile/compact_help.txt` 
+  needs to be updated to drop `--feature-zkir-v3` flag.
+  
 
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
