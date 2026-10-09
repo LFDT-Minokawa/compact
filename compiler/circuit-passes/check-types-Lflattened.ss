@@ -369,9 +369,8 @@
        (verify-test program-src test)
        (case opaque-type
          [("JubjubPoint")
-          (begin
             (assert (= (length var-name*) 1))
-            (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub)))))]
+            (set-idtype! (car var-name*) (Idtype-Base `(tpoint (curve-jubjub))))]
          [("Curve25519Base") (make-zkir-type `(tfield (field-base (curve-curve25519))))]
          [("Curve25519Scalar") (make-zkir-type `(tfield (field-scalar (curve-curve25519))))]
          [("Curve25519Point") (make-zkir-type `(tpoint (curve-curve25519)))]

@@ -50964,33 +50964,33 @@ groups than for single tests.
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
     (output-file "compiler/testdir/zkir/get.zkir"
-                 "examples/outputs/tiny.compact/zkir/get.zkir3")
+                 "examples/outputs/tiny.compact/zkir/get.zkir")
     (output-file "compiler/testdir/zkir/set.zkir"
-                 "examples/outputs/tiny.compact/zkir/set.zkir3")
+                 "examples/outputs/tiny.compact/zkir/set.zkir")
     (output-file "compiler/testdir/zkir/clear.zkir"
-                 "examples/outputs/tiny.compact/zkir/clear.zkir3")
+                 "examples/outputs/tiny.compact/zkir/clear.zkir")
     )
 
   (test
     "examples/election.compact"
     (output-file "compiler/testdir/zkir/vote$commit.zkir"
-                 "examples/outputs/election.compact/zkir/vote$commit.zkir3")
+                 "examples/outputs/election.compact/zkir/vote$commit.zkir")
     (output-file "compiler/testdir/zkir/vote$reveal.zkir"
-                 "examples/outputs/election.compact/zkir/vote$reveal.zkir3")
+                 "examples/outputs/election.compact/zkir/vote$reveal.zkir")
     (output-file "compiler/testdir/zkir/add_voter.zkir"
-                 "examples/outputs/election.compact/zkir/add_voter.zkir3")
+                 "examples/outputs/election.compact/zkir/add_voter.zkir")
     (output-file "compiler/testdir/zkir/set_topic.zkir"
-                 "examples/outputs/election.compact/zkir/set_topic.zkir3")
+                 "examples/outputs/election.compact/zkir/set_topic.zkir")
     (output-file "compiler/testdir/zkir/advance.zkir"
-                 "examples/outputs/election.compact/zkir/advance.zkir3")
+                 "examples/outputs/election.compact/zkir/advance.zkir")
     )
 
   (test
     "examples/zerocash.compact"
     (output-file "compiler/testdir/zkir/spend.zkir"
-                 "examples/outputs/zerocash.compact/zkir/spend.zkir3")
+                 "examples/outputs/zerocash.compact/zkir/spend.zkir")
     (output-file "compiler/testdir/zkir/zerocash_mint.zkir"
-                 "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir3")
+                 "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir")
   )
 
   (test
