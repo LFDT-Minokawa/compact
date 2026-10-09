@@ -910,31 +910,6 @@ groups than for single tests.
     '(empty abc multi-block multiline-lf multiline-crlf random-binary))
 )
 
-(run-tests track-witness-data
-  (test
-    '(
-      "export ledger F: Vector<6, Uint<32>>;"
-      "export circuit foo(iv: Vector<32, Uint<16>>): Vector<6, Uint<32>> {"
-      "  const v = disclose(iv);"
-      "  const k: [Uint<32>, Uint<32>] = slice<2>(v, 4);"
-      "  // unused tuple-construction form"
-      "  const v2 = [v[0], ...k, ...[v[15], v[16]], v[31]];"
-      "  return F;"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('check 1', async () => {"
-        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
-        "  const t = await C.circuits.foo(Ctxt, q1);"
-        "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
-        "  });"
-        ))
-    )
-  )
-#!eof
-
 (run-tests parse-file/format/reparse
   (test
     '(
@@ -82402,6 +82377,30 @@ groups than for single tests.
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Vector<6, Uint<32>>;"
+      "export circuit foo(iv: Vector<32, Uint<16>>): Vector<6, Uint<32>> {"
+      "  const v = disclose(iv);"
+      "  // declaring k to be a tuple instead of a vector ..."
+      "  const k: [Uint<32>, Uint<32>] = slice<2>(v, 4);"
+      "  // causes ...k to look like a tuple spread rather than a vector spread"
+      "  // which yields a vector spread inside a tuple form"
+      "  F = [v[0], ...k, ...[v[15], v[16]], v[31]];"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
+        "  const t = await C.circuits.foo(Ctxt, q1);"
+        "  expect(t.result).toEqual([0n, 4n, 5n, 15n, 16n, 31n]);"
         "  });"
         ))
     )
