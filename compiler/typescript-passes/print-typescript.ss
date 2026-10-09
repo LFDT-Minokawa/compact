@@ -3066,14 +3066,12 @@
      ;; all possible values are smaller than the native field modulus.
      (Expr expr level outer-pure?)]
     [(cast-to-field ,src (field-scalar (curve-jubjub)) ,type ,expr)
-     (if (feature-zkir-v3)
-         (parenthesize level (precedence call)
-           (make-Qconcat
-             (compact-stdlib "convertNumericToJubjubScalar")
-             "("
-             (Expr expr (precedence add1 comma) outer-pure?)
-             ")"))
-         (Expr expr level outer-pure?))]
+     (parenthesize level (precedence call)
+       (make-Qconcat
+         (compact-stdlib "convertNumericToJubjubScalar")
+         "("
+         (Expr expr (precedence add1 comma) outer-pure?)
+         ")"))]
     [(cast-to-field ,src ,ftype ,type ,expr)
      (assert cannot-happen)]
     [(cast-from-field ,src ,nat ,ftype ,expr)

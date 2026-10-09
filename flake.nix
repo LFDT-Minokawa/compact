@@ -23,17 +23,8 @@
   };
 
   inputs = {
-    zkir = {
-      # zkir key-generation binary for ZKIR 2
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3"; # zkir-v2
-      inputs.nixpkgs.follows = "nixpkgs-zkir";
-    };
     onchain-runtime-v4 = {
       # dependency for Compact runtime release
-      url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
-    };
-    zkir-wasm = {
-      # dependency for test-center
       url = "github:midnightntwrk/midnight-ledger/ledger-9.1.0.0-rc.3";
     };
     zkir-v3 = {
@@ -62,9 +53,7 @@
 
   outputs = {
     self,
-    zkir,
     onchain-runtime-v4,
-    zkir-wasm,
     zkir-v3,
     zkir-v3-wasm,
     nixpkgs,
@@ -190,12 +179,6 @@
             src = ./test-center;
 
             nixDependenciesMap = {
-              "@midnightntwrk/zkir-v2" = let
-                pkg = zkir-wasm.packages.${system}.zkir-wasm;
-              in {
-                tarPath = "${pkg}/lib/midnight-zkir-v2-${pkg.version}.tgz";
-                libPath = "${pkg}/lib/node_modules/@midnightntwrk/zkir-v2";
-              };
               "@midnightntwrk/zkir-v3" = let
                 pkg = zkir-v3-wasm.packages.${system}.zkir-wasm;
               in {
@@ -217,7 +200,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.35.104"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.105"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -349,7 +332,7 @@
           '';
 
           packages.compactc-binaryWrapperScript-nixos = pkgs.writeShellScriptBin "run-compactc" ''
-            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos zkir.packages.${system}.zkir packages.zkir-v3-bin ]} \
+            PATH=${pkgs.lib.makeBinPath [ packages.compactc-binary-nixos packages.zkir-v3-bin ]} \
             compactc $@
           '';
 
@@ -362,10 +345,8 @@
               mkdir -p $out/bin $out/lib
               cp bin/compactc $out/bin
               mv $out/bin/compactc $out/bin/compactc.bin
-              cp ${zkir.packages.${system}.zkir}/bin/zkir $out/lib/zkir
               cp ${zkir-v3.packages.${system}.zkir}/bin/zkir $out/lib/zkir-v3
 
-              chmod +w $out/lib/zkir
               chmod +w $out/lib/zkir-v3
 
               touch $out/bin/compactc
@@ -383,7 +364,6 @@
                 chmod +x "$out/bin/$exe"
               done
             '' + (if isDarwin then ''
-              install_name_tool -change ${inputs.zkir.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir"
               install_name_tool -change ${inputs.zkir-v3.inputs.nixpkgs.legacyPackages.${system}.darwin.libiconv}/lib/libiconv.2.dylib /usr/lib/libiconv.2.dylib "$out/lib/zkir-v3"
             '' else "");
 
@@ -414,7 +394,6 @@
               Env = [
                 "PATH=${pkgs.lib.makeBinPath [
                   compactc
-                  zkir.packages.${system}.zkir
                   zkir-v3-bin
                 ]}"
               ];
@@ -423,7 +402,6 @@
               (nix2container.buildLayer {
                 deps = [
                   compactc
-                  zkir.packages.${system}.zkir
                   zkir-v3-bin
                 ];
               })
@@ -515,7 +493,6 @@
             meta.mainProgram = "compactc";
             paths = [
               packages.compactc
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
               packages.compact-vscode-extension
             ];
@@ -554,7 +531,6 @@
               packages.runtime.node-modules
               packages.test-center.package
               packages.test-center.node-modules
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
             shellHook = combined-shell-hook;
@@ -569,7 +545,6 @@
               pkgs.git
               packages.compactc
               pkgs.yarn
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
 
@@ -582,7 +557,6 @@
               packages.compactc
               packages.runtime.package
               pkgs.yarn
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
             ];
 
@@ -606,7 +580,6 @@
               packages.compactc
               packages.runtime.package
               packages.runtime.node-modules
-              zkir.packages.${system}.zkir
               packages.zkir-v3-bin
               pkgs.nodejs
               pkgs.yarn

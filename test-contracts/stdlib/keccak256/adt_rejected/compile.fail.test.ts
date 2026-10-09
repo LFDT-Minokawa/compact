@@ -15,9 +15,7 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// The flag is on so the type error fails first, not the missing keccak256.
 export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
     expectedError:
         /expected argument 'value' type to be an ordinary Compact type but received ADT type Counter/,
 });
