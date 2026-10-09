@@ -34015,6 +34015,88 @@ groups than for single tests.
       )
     (succeeds)
     )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [true, false, ...default<Vector<0, Boolean>>];"
+      "  return values[1] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [[true, false], [false, true], ...default<Vector<0, [Boolean, Boolean]>>];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [...map((x) => [true, false], default<Vector<1, Uint<8>>>), [false, true]];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [...map((x) => [true, false], default<Vector<1, Uint<8>>>), [true, false]];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %secret.0 () (tboolean))
+        (circuit %entry.1 ()
+             (tboolean)
+          (let* ([[%values.2 (tvector
+                               2
+                               (ttuple (tboolean) (tboolean)))]
+                  (vector
+                    (spread 1
+                      (map
+                        (circuit ([%x.3 (tunsigned 255)])
+                             (ttuple (tboolean) (tboolean))
+                          (tuple #t #f))
+                        (default (tvector 1 (tunsigned 255)))))
+                    (tuple #t #f))])
+            (if (tuple-ref (tuple-ref %values.2 1) 0)
+                #t
+                (call %secret.0))))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [true, false, ...default<Vector<0, Boolean>>];"
+      "  return values[1] ? secret() : true;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
 )
 
 ; examples of where disclose can be placed
@@ -70445,6 +70527,30 @@ groups than for single tests.
         "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
         "  const t = await C.circuits.foo(Ctxt, q1);"
         "  expect(t.result).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
+      "export ledger F: Vector<6, Uint<32>>;"
+      "export circuit foo(iv: Vector<32, Uint<16>>): Vector<6, Uint<32>> {"
+      "  const v = disclose(iv);"
+      "  // declaring k to be a tuple instead of a vector ..."
+      "  const k: [Uint<32>, Uint<32>] = slice<2>(v, 4);"
+      "  // causes ...k to look like a tuple spread rather than a vector spread"
+      "  // which yields a vector spread inside a tuple form"
+      "  F = [v[0], ...k, ...[v[15], v[16]], v[31]];"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
+        "  const t = await C.circuits.foo(Ctxt, q1);"
+        "  expect(t.result).toEqual([0n, 4n, 5n, 15n, 16n, 31n]);"
         "  });"
         ))
     )

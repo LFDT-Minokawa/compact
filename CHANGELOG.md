@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
+
+- Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).
+  When the witness-protect program encountered a tuple used as an array,
+  it used the first tuple value as a representative for all of the elements
+  of the the array, which when an atomic element is recognized as a Boolean
+  constant the actual value of which in some other elements might not have
+  the same Boolean value.
+
 ## [Toolchain 0.35.105, language 0.27.0, runtime 0.20.102]
 
 ### Removed
@@ -20,7 +29,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   the `tools/compact/output/compile/compact_help.txt` 
   needs to be updated to drop `--feature-zkir-v3` flag.
   
-
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
 ### Fixed
