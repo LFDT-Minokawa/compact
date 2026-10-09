@@ -16,6 +16,4 @@
 import { defineCompileTest } from '@test/compact-test';
 
 // Pure, but the key type and the hash both need the flag.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

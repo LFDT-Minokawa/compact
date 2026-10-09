@@ -28,7 +28,7 @@
 // that adds a length cannot silently lose coverage.
 //
 // Pure -- no ledger write -- so despite the name nothing is proven here and no
-// keys are generated; `--feature-zkir-v3` is still required for the library.
+// keys are generated.
 
 pragma language_version >= 0.25.0;
 
