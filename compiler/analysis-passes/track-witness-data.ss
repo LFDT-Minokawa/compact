@@ -810,7 +810,9 @@
              [(spread ,src ,nat ,[Expression : expr p control-witness* disclosing-function-name? -> abs])
               (Abs-case abs
                 ; this case isn't exercised because tuple forms don't vector-typed spreads
-                [(Abs-single abs) (append (make-list nat abs) abs*)]
+                [(Abs-single abs)
+                 (assert cannot-happen)
+                 (append (make-list nat abs) abs*)]
                 [(Abs-multiple abs^*) (append abs^* abs*)]
                 [else (assert cannot-happen)])]))
          '()
@@ -831,10 +833,7 @@
                    tuple-arg*)])
        (if (null? abs*)
            (Abs-multiple '())
-           (Abs-single
-             (add-witnesses
-               (fold-left merge-witnesses '() (map abs->witnesses (cdr abs*)))
-               (car abs*)))))]
+           (Abs-single (fold-left combine-abs (car abs*) (cdr abs*)))))]
 
     [(seq ,src ,[*] ... ,[* abs]) abs]
 
