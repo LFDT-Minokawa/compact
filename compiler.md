@@ -112,7 +112,7 @@ and the remaining passes are defined in
 [compiler/typescript-passes.ss](./compiler/typescript-passes.ss),
 [compiler/circuit-passes.ss](./compiler/circuit-passes.ss),
 and
-[compiler/zkir-passes.ss](./compiler/zkir-passes.ss).
+[compiler/zkir-v3-passes.ss](./compiler/zkir-v3-passes.ss).
 
 As implied by the existence of two final passes, there are actually two
 paths through the compiler, one leading from `parse-file` to `print-typescript`
@@ -122,7 +122,7 @@ and analysis-passes.ss).
 The path from there to `print-typescript` is short, just a couple of passes
 including `print-typescript` in typescript-passes.ss.
 The other path, to `print-zkir` is longer and more involved and includes the
-passes in circuit-passes.ss and zkir-passes.ss.
+passes in circuit-passes.ss and zkir-v3-passes.ss.
 
 There is actually a third final pass, `save-contract-info.ss`, that runs after
 the front-end and analysis passes.

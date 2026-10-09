@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.105, language 0.27.0, runtime 0.20.102]
-
-### Fixed
+## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
 - Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).
   When the witness-protect program encountered a tuple used as an array,
@@ -16,6 +14,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   constant the actual value of which in some other elements might not have
   the same Boolean value.
 
+## [Toolchain 0.35.105, language 0.27.0, runtime 0.20.102]
+
+### Removed
+
+- The ZKIR-v2 backend passes (`zkir-passes`) and the `--feature-zkir-v3` flag are
+  removed. The compiler now defaults to ZKIR-v3. Passing
+  `--feature-zkir-v3` is now an error. `--ledger-version` now always prints
+  the version of the `zkir-v3` dependency.
+  
+### Internal notes
+
+- For the devtool tests to pass, upon a final release of the toolchain,
+  the `tools/compact/output/compile/compact_help.txt` 
+  needs to be updated to drop `--feature-zkir-v3` flag.
+  
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
 ### Fixed
