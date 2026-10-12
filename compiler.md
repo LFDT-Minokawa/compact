@@ -109,10 +109,10 @@ and the remaining passes are defined in
 [compiler/frontend-passes.ss](./compiler/frontend-passes.ss),
 [compiler/analysis-passes.ss](./compiler/analysis-passes.ss),
 [compiler/save-contract-info-passes.ss](./compiler/save-contract-info-passes.ss),
-[compiler/typescript-passes.ss](./compiler/typescript-passes.ss),
+[compiler/targets/ocrt-4_0-zkir-3_1/typescript-passes.ss](./compiler/targets/ocrt-4_0-zkir-3_1/typescript-passes.ss),
 [compiler/circuit-passes.ss](./compiler/circuit-passes.ss),
 and
-[compiler/zkir-v3-passes.ss](./compiler/zkir-v3-passes.ss).
+[compiler/targets/ocrt-4_0-zkir-3_1/zkir-v3-passes.ss](./compiler/targets/ocrt-4_0-zkir-3_1/zkir-v3-passes.ss).
 
 As implied by the existence of two final passes, there are actually two
 paths through the compiler, one leading from `parse-file` to `print-typescript`
@@ -141,6 +141,93 @@ which processes command-line argument and uses entry points in
 
 The intermediate languages and passes are described in the remaining sections
 of this document.
+
+### Targets
+
+A `compactc` build is built for exactly one *target*, the pair of the on-chain
+runtime and ZKIR versions the compiler depends on (see
+[CoIP-5](./coips/coip-0005.md)).  A target is named
+`ocrt-<major>_<minor>-zkir-<major>_<minor>`, e.g., `ocrt-4_0-zkir-3_1`.
+The files that depend on the target live in
+[compiler/targets/<target>/](./compiler/targets): the TypeScript and ZKIR
+passes, the standard library, and `midnight-ledger.ss` and `midnight-natives.ss`
+(together with `zkir-v3-natives.ss`).
+Each target directory also contains a `current-target.ss` library that
+instantiates the target record defined in [compiler/target.ss](./compiler/target.ss).
+Which target a build uses is fixed at build time by which target directory is
+on the Chez library path (`CHEZSCHEMELIBDIRS`, set by `flake.nix`).
+[compiler/target-include.ss](./compiler/target-include.ss) provides
+`include-target` and `target-pathname`, which resolve target-dependent files
+through the directory of the current target; `include-target` also checks, when
+the compiler is built, that the target agrees with the on-chain runtime
+dependency of `runtime/package.json`.
+`compactc --target` prints the target of a build, and `contract-manifest.json`
+records it in the generated contract.
+
+The repository currently has two targets, `ocrt-4_0-zkir-3_1` (the default) and
+`ocrt-4_1-zkir-3_1`.  The second is a proof of concept: it is a copy of the first
+that still uses on-chain runtime 4.0 and ZKIR 3.1, and exists to show that the
+mechanism works for more than one target.
+
+#### Adding a target
+
+1. Copy an existing target directory, e.g.,
+   `cp -R compiler/targets/ocrt-4_0-zkir-3_1 compiler/targets/<new-target>`.
+2. In `<new-target>/current-target.ss`, set the target name (it must equal the
+   directory name) and the on-chain runtime, ZKIR, and ledger versions.
+   If the on-chain runtime major version changes, `runtime/package.json` must
+   depend on the matching `@midnightntwrk/onchain-runtime-v<N>`; the build
+   checks this.
+3. Make the target-specific changes in the new directory (passes, standard
+   library, `midnight-*.ss`, ...).  Nothing outside `compiler/targets/` needs to
+   change for a copy.
+4. `git add` the new directory: `nix build` only sees files git knows about.
+5. In `flake.nix`, add a package for it next to the existing one:
+   `packages.compactc-<new-target> = lib.compactc-for-target "<new-target>";`
+   To make it the default, change `default-compactc-target` in `flake.nix` instead.
+
+#### Building the compiler for a target
+
+```
+nix build .#compactc                      # the default target (default-compactc-target in flake.nix)
+nix build .#compactc-ocrt-4_1-zkir-3_1    # another target
+```
+
+Which target a build uses is just which `compiler/targets/<target>` directory is
+on `CHEZSCHEMELIBDIRS`.  To work on or test another target in a development
+shell, point the variable at it:
+
+```
+nix develop
+export CHEZSCHEMELIBDIRS=$(echo "$CHEZSCHEMELIBDIRS" | sed 's/ocrt-4_0-zkir-3_1/ocrt-4_1-zkir-3_1/g')
+./clean.sh                 # object files of different targets have the same names
+./compiler/go --rebuild    # run the compiler tests for that target
+```
+
+Clean `obj/` (or use `compiler/go --rebuild`) whenever you switch targets, since
+object files for different targets share names and could otherwise be reused.
+To test every target, run `./compiler/go --build-for-all-targets`; it does the
+above for each directory in `compiler/targets/` in turn (the coverage report
+left behind is that of the last target).
+
+#### Verifying a new target
+
+- `result/bin/compactc --target` prints the expected pair, and
+  `result/bin/compactc --version --verbose` shows the new target name in its
+  `target:` line.
+- `./compiler/go --rebuild` passes with `CHEZSCHEMELIBDIRS` pointing at the new
+  target, and for the default target too.
+- Compile some contracts (e.g., those in `examples/`) with `--skip-zk` using a
+  build of each target and diff the output directories.  For a copy of a target
+  the only differences should be the `sources` entries of the `.js.map` files
+  (which name the target directory) and the corresponding hashes in
+  `contract-manifest.json`; for a real new target the differences should be the
+  ones the target is meant to introduce.
+- `./compiler/go --build-for-all-targets` passes.  It runs the tests once per
+  directory in `compiler/targets/` and regenerates one
+  `doc/ledger-adt-<target>.mdx` per target, each stating the on-chain runtime and
+  ZKIR versions of its target; check that the new target's file exists and
+  looks right.
 
 ## Intermediate languages
 
@@ -994,7 +1081,7 @@ top to bottom (left to right) and handles each kind of program element as follow
          [standard-library.ss](./compiler/standard-library.ss) and precompiled
          Lpreexpand records (specifically `define-adt` forms) produced by syntactic
          abstractions in [ledger.ss](./compiler/ledger.ss) from the ADT descriptions
-         in [midnight-ledger.ss](./compiler/midnight-ledger.ss) and proceeds to step
+         in [midnight-ledger.ss](./compiler/targets/ocrt-4_0-zkir-3_1/midnight-ledger.ss) and proceeds to step
          2 with `R`.  If `M` is not the name of the standard library, the compiler
          proceeds with step 1c.
 

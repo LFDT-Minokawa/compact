@@ -21,6 +21,8 @@
           (compiler-version)
           (language-version)
           (runtime-version)
+          (target)
+          (current-target)
           (langs)
           (pass-helpers))
 

@@ -96,8 +96,11 @@ jobs:
 
           git checkout -b "compact-docs-update-${RUN_ID}"
 
-          cp ../doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
-          cp ../doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          # One ledger ADT document per target
+          for DOC in ../doc/ledger-adt-*.mdx; do
+            cp "$DOC" "docs/compact/data-types/$(basename "$DOC")"
+            cp "$DOC" "docs/compact/reference/$(basename "$DOC")"
+          done
 
           cp ../doc/writing.mdx docs/compact/reference/writing.mdx
           cp ../doc/compact-reference.mdx docs/compact/reference/compact-reference.mdx

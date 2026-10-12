@@ -22,7 +22,8 @@
           (field)
           (datatype)
           (nanopass)
-          (langs))
+          (langs)
+          (target-include))
 
   (define (native-declarations)
     (define ndecl*)
@@ -98,9 +99,9 @@
            (f #'class #'name '() #'function #'(argument-name ...) #'(argument-type ...) #'(disclosure ...) #'result-type)])))
     (values
       (fluid-let ([ndecl* '()])
-        (include "midnight-natives.ss")
+        (include-target "midnight-natives.ss")
         (reverse ndecl*))
       (fluid-let ([ndecl* '()])
-        (include "zkir-v3-natives.ss")
+        (include-target "zkir-v3-natives.ss")
         (reverse ndecl*))))
 )

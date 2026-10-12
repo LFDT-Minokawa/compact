@@ -106,6 +106,9 @@
               chmod u+w -R test-center/node_modules
             fi
           '';
+        # The target built by packages.compactc and used by the dev shells.  Other
+        # targets in compiler/targets/ are built with lib.compactc-for-target.
+        default-compactc-target = "ocrt-4_0-zkir-3_1";
         combined-shell-hook =
           ''
             ${runtime-shell-hook}
@@ -200,7 +203,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.35.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.107"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -212,7 +215,7 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
             COMPACT_LIBCRYPTO = libcrypto;
 
             NODE_PATH = "${packages.runtime.node-modules}/node_modules";
@@ -269,6 +272,15 @@
             '';
           };
 
+          # compactc built for another target in compiler/targets/ (see compiler.md,
+          # "Adding a target").  The target is chosen by the target directory on the
+          # library path, so this only differs from packages.compactc in that path.
+          lib.compactc-for-target = target: packages.compactc.overrideAttrs (oldAttrs: {
+            name = "compactc-${target}";
+            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] oldAttrs.CHEZSCHEMELIBDIRS;
+          });
+          packages.compactc-ocrt-4_1-zkir-3_1 = lib.compactc-for-target "ocrt-4_1-zkir-3_1";
+
           packages.compactc-binary-nixos = let
             linking-pkgs = if pkgs.lib.hasSuffix "linux" system then pkgs.pkgsMusl else pkgs;
             platformSpecificInputs = with linking-pkgs; {
@@ -291,7 +303,7 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
 
             buildInputs = [
               chez-exe
@@ -430,7 +442,7 @@
               ];
 
               TEST_COMPACT_PATH = ./test-center/compact/test.compact;
-              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/compiler:third_party/compiler::obj/third_party/compiler";
+              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler";
 
               buildPhase = ''
                 ln -s ${packages.compact-vscode-extension-node-modules}/node_modules
@@ -514,7 +526,7 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
             WASM_BINDGEN_WEAKREF = 1;
             WASM_BINDGEN_EXTERNREF = 1;
@@ -535,7 +547,7 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 
@@ -548,7 +560,7 @@
               packages.zkir-v3-bin
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
           devShells.test-contracts = pkgs.mkShell {
@@ -561,7 +573,7 @@
             ];
 
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 

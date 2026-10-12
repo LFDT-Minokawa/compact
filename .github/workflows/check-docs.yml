@@ -27,30 +27,43 @@ jobs:
 
       - name: Check compiler and language versions in internal documentation
         run: |
-          # check compiler version
+          shopt -s nullglob
+          LEDGER_ADT_DOCS=(doc/ledger-adt-*.mdx)
+          if [ "${#LEDGER_ADT_DOCS[@]}" -eq 0 ]; then
+            echo "No doc/ledger-adt-<target>.mdx files found"
+            exit 1
+          fi
+
           COMPILER_VERSION=$(./scripts/read-version.sh compiler)
-          DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
-
-          echo "Compiler version: $COMPILER_VERSION"
-          echo "Compiler version in docs: $DOCS_COMPILER"
-
-          if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
-            echo "Compiler version mismatch, please update"
-            exit 1
-          fi
-
-          echo "Compiler versions match"
-
-          # check language version
           LANGUAGE_VERSION=$(./scripts/read-version.sh language)
-          DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" doc/ledger-adt.mdx)
 
-          echo "Language version: $LANGUAGE_VERSION"
-          echo "Language version in docs: $DOCS_LANGUAGE"
+          # check every target's ledger ADT documentation
+          for DOC in "${LEDGER_ADT_DOCS[@]}"; do
+            echo "Checking $DOC"
 
-          if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
-            echo "Language versions mismatch, please update"
-            exit 1
-          fi
+            # check compiler version
+            DOCS_COMPILER=$(grep -oP "compiler version \K[0-9]+\.[0-9]+\.[0-9]+" "$DOC")
 
-          echo "Language versions match"
+            echo "Compiler version: $COMPILER_VERSION"
+            echo "Compiler version in docs: $DOCS_COMPILER"
+
+            if [ "$COMPILER_VERSION" != "$DOCS_COMPILER" ]; then
+              echo "Compiler version mismatch in $DOC, please update"
+              exit 1
+            fi
+
+            echo "Compiler versions match"
+
+            # check language version
+            DOCS_LANGUAGE=$(grep -oP "language version \K[0-9]+\.[0-9]+\.[0-9]+" "$DOC")
+
+            echo "Language version: $LANGUAGE_VERSION"
+            echo "Language version in docs: $DOCS_LANGUAGE"
+
+            if [ "$LANGUAGE_VERSION" != "$DOCS_LANGUAGE" ]; then
+              echo "Language versions mismatch in $DOC, please update"
+              exit 1
+            fi
+
+            echo "Language versions match"
+          done

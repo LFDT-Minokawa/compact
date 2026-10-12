@@ -43,8 +43,11 @@ jobs:
             fi
           }
 
-          check doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
-          check doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          # One ledger ADT document per target
+          for DOC in doc/ledger-adt-*.mdx; do
+            check "$DOC" "docs/compact/data-types/$(basename "$DOC")"
+            check "$DOC" "docs/compact/reference/$(basename "$DOC")"
+          done
           check doc/writing.mdx docs/compact/reference/writing.mdx
           check doc/compact-reference.mdx docs/compact/reference/compact-reference.mdx
           check doc/explicit-disclosure.mdx docs/compact/reference/explicit-disclosure.mdx

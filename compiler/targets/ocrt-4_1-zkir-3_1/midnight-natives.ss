@@ -1,0 +1,117 @@
+;;; This file is part of Compact.
+;;; Copyright (C) 2025 Midnight Foundation
+;;; SPDX-License-Identifier: Apache-2.0
+;;; Licensed under the Apache License, Version 2.0 (the "License");
+;;; you may not use this file except in compliance with the License.
+;;; You may obtain a copy of the License at
+;;;
+;;; 	http://www.apache.org/licenses/LICENSE-2.0
+;;;
+;;; Unless required by applicable law or agreed to in writing, software
+;;; distributed under the License is distributed on an "AS IS" BASIS,
+;;; WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+;;; See the License for the specific language governing permissions and
+;;; limitations under the License.
+
+;; ==== Non-native fields and curve points
+(declare-native-type JubjubScalar tfield (field-scalar (curve-jubjub)))
+(declare-native-type JubjubPoint tpoint (curve-jubjub))
+
+;; ==== Transient (Poseidon) hashing
+(declare-native-entry circuit transientHash [A]
+  "__compactRuntime.transientHash"
+  ([value A (discloses "a hash of")])
+  Field)
+
+(declare-native-entry circuit transientCommit [A]
+  "__compactRuntime.transientCommit"
+  ([value A (discloses nothing)]
+   [rand Field (discloses nothing)])
+  Field)
+
+;; ==== Hashing
+(declare-native-entry circuit persistentHash [A]
+  "__compactRuntime.persistentHash"
+  ([value A (discloses "a hash of")])
+  (Bytes 32))
+
+(declare-native-entry circuit persistentCommit [A]
+  "__compactRuntime.persistentCommit"
+  ([value A (discloses nothing)]
+   [rand (Bytes 32) (discloses nothing)])
+  (Bytes 32))
+
+(declare-native-entry circuit degradeToTransient
+  "__compactRuntime.degradeToTransient"
+  ([x (Bytes 32) (discloses "a modulus of")])
+  Field)
+
+(declare-native-entry circuit upgradeFromTransient
+  "__compactRuntime.upgradeFromTransient"
+  ([x Field (discloses "a converted form of")])
+  (Bytes 32))
+
+(declare-native-entry circuit keccak256 [A]
+  "__compactRuntime.keccak256"
+  ([value A (discloses "a hash of")])
+  (Bytes 32))
+
+;; ==== Curves
+(declare-native-entry circuit jubjubPointX
+  "__compactRuntime.jubjubPointX"
+  ([pt (TypeRef JubjubPoint) (discloses "the X coordinate of")])
+  Field)
+
+(declare-native-entry circuit jubjubPointY
+  "__compactRuntime.jubjubPointY"
+  ([pt (TypeRef JubjubPoint) (discloses "the Y coordinate of")])
+  Field)
+
+(declare-native-entry circuit ecAdd
+  "__compactRuntime.ecAdd"
+  ([a (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")]
+   [b (TypeRef JubjubPoint) (discloses "an elliptic curve sum including")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry circuit ecNeg
+  "__compactRuntime.ecNeg"
+  ([a (TypeRef JubjubPoint) (discloses "the elliptic curve negation of")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry circuit ecMul
+  "__compactRuntime.ecMul"
+  ([a (TypeRef JubjubPoint) (discloses "an elliptic curve product including")]
+   [b (TypeRef JubjubScalar) (discloses "an elliptic curve product including")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry circuit ecMulGenerator
+  "__compactRuntime.ecMulGenerator"
+  ([b (TypeRef JubjubScalar) (discloses "the product of the embedded group generator with")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry circuit hashToCurve [A]
+  "__compactRuntime.hashToCurve"
+  ([value A (discloses "a hash of")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry circuit constructJubjubPoint
+  "__compactRuntime.constructJubjubPoint"
+  ([x Field (discloses "a JubjubPoint containing X coordinate")]
+   [y Field (discloses "a JubjubPoint containing Y coordinate")])
+  (TypeRef JubjubPoint))
+
+(declare-native-entry witness ownPublicKey
+  "__compactRuntime.ownPublicKey"
+  ()
+  (TypeRef ZswapCoinPublicKey))
+
+(declare-native-entry witness createZswapInput
+  "__compactRuntime.createZswapInput"
+  ([coin (TypeRef QualifiedShieldedCoinInfo) (discloses nothing)])
+  Void)
+
+(declare-native-entry witness createZswapOutput
+  "__compactRuntime.createZswapOutput"
+  ([coin (TypeRef ShieldedCoinInfo) (discloses nothing)]
+   [recipient (TypeRef Either (TypeRef ZswapCoinPublicKey) (TypeRef ContractAddress)) (discloses nothing)])
+  Void)

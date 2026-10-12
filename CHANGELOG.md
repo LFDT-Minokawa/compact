@@ -5,6 +5,59 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.102]
+
+### Added
+
+- The compiler is now built for a *target*, the pair of the on-chain runtime
+  and ZKIR versions it is built against (CoIP 5, phase 0).  The new
+  `--target` flag prints the target, e.g.,
+  `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
+  name.  `contract-manifest.json` records the target's `onchain-runtime-version`
+  and `zkir-version`.
+
+### Changed
+
+- The files that depend on the on-chain runtime and ZKIR (the TypeScript and
+  ZKIR passes, the standard library, and the ledger and native declarations) now
+  live in `compiler/targets/<target>/`.  As a consequence, the standard library
+  files listed among the `sources` of generated source maps (`.js.map`) have
+  new paths, e.g.,
+  `compiler/targets/ocrt-4_0-zkir-3_1/standard-library.compact`.
+- `--ledger-version` now prints the ledger version recorded for the target
+  rather than the version of the `zkir-v3` dependency.
+- `doc/ledger-adt.mdx` is now generated per target as
+  `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_1.mdx`) and
+  states the on-chain runtime and ZKIR versions of that target.  The docs
+  workflows check, and copy to the docs repository, every such file.
+  **Action required in the docs repository:** the workflows no longer write
+  `ledger-adt.mdx`, so the old `docs/compact/data-types/ledger-adt.mdx` and
+  `docs/compact/reference/ledger-adt.mdx` in `midnightntwrk/midnight-docs` must
+  be removed by hand (otherwise stale copies remain), and the links to
+  `ledger-adt` (e.g., in `compact-reference.mdx`) must be updated to point at the
+  per-target files.
+- `compiler/go --build-for-all-targets` runs the tests for every target in
+  `compiler/targets/` and so regenerates the ledger ADT documentation of every
+  target.
+
+### Second target (proof of concept)
+
+A second target, `compiler/targets/ocrt-4_1-zkir-3_1`, is added to show that the
+mechanism supports more than one target.  It is a copy of `ocrt-4_0-zkir-3_1`
+and still uses on-chain runtime 4.0 and ZKIR 3.1.  The default build is
+unchanged; the new one is `nix build .#compactc-ocrt-4_1-zkir-3_1`.
+
+To add a target: copy an existing directory in `compiler/targets/`, set the
+name and versions in its `current-target.ss`, `git add` it, and add
+`packages.compactc-<target> = lib.compactc-for-target "<target>";` to
+`flake.nix`.  To build the compiler for it, `nix build .#compactc-<target>`; in a
+development shell, replace the target in `CHEZSCHEMELIBDIRS`, clean `obj/`
+(`./clean.sh`), and run `./compiler/go --rebuild`.  To verify it,
+check `compactc --target` and the `target:` line of
+`compactc --version --verbose`, run `compiler/go --build-for-all-targets`, and diff the
+output of both builds on `examples/` (only the `sources` in `.js.map` files and
+the manifest hashes should differ for a copy).  See "Targets" in `compiler.md`.
+
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
 - Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).

@@ -40,13 +40,17 @@ The following flags, if present, affect the compiler's behavior as follows:
     commit follow the version with that commit and its date in parentheses.
 
   --verbose, given with --version in either order, prints the version, commit,
-    commit date, and language and runtime versions as separate fields, showing
-    unknown for anything the build did not record.
+    commit date, language and runtime versions, and target as separate fields,
+    showing unknown for anything the build did not record.
 
   --language-version prints the language version and exits.
 
   --ledger-version prints the ledger version and exits.  The ledger version
     is the version of the ledger that is expected by the generated code.
+
+  --target prints the target this build of the compiler is built for and
+    exits.  A target is the pair of the on-chain runtime version and the ZKIR
+    version, e.g., onchain-runtime=4.0, zkir=3.1.
 
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
@@ -102,6 +106,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [(version) (print-compiler-version verbose?)]
     [(language-version) (print-language-version)]
     [(ledger-version) (print-ledger-version)]
+    [(target) (print-target)]
     [(runtime-version) (print-runtime-version)]))
 
 (parameterize ([reset-handler abort])
@@ -110,6 +115,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--ledger-version) $ (exit-flag! 'ledger-version)]
+             [(--target) $ (exit-flag! 'target)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              ;; Declared so that a --verbose given with two pathnames still
              ;; matches this clause rather than falling through to the next.
@@ -140,6 +146,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--ledger-version) $ (exit-flag! 'ledger-version)]
+             [(--target) $ (exit-flag! 'target)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              [(--verbose)])
       (string arg) ...)
