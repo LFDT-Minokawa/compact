@@ -14,13 +14,8 @@
 // limitations under the License.
 
 import {
-  KeyMaterialProvider as KeyMaterialProviderV2,
-  ProvingKeyMaterial,
-  check as checkV2,
-  jsonIrToBinary as jsonIrToBinaryV2
-} from '@midnightntwrk/zkir-v2';
-import {
   KeyMaterialProvider as KeyMaterialProviderV3,
+  ProvingKeyMaterial,
   check as checkV3,
   jsonIrToBinary as jsonIrToBinaryV3
 } from '@midnightntwrk/zkir-v3';
@@ -37,6 +32,17 @@ const paramsCache: Record<number, Uint8Array> = {};
 
 type ZkirVersion = { major: number; minor: number };
 
+// Each supported ZKIR major version supplies its own IR encoder and proof checker.  To support a
+// new version (e.g., zkir-v4), import its package above and add an entry here.
+type ZkirBackend = {
+  jsonIrToBinary: (json: string) => Uint8Array;
+  check: (preimage: Uint8Array, provider: KeyMaterialProviderV3) => Promise<(bigint | undefined)[]>;
+};
+
+const zkirBackends: Record<number, ZkirBackend> = {
+  3: { jsonIrToBinary: jsonIrToBinaryV3, check: checkV3 }
+};
+
 const readZkirJson = async (contractDir: string, circuitId: string): Promise<string> => {
   return fs.readFile(path.join(contractDir, ZKIR_DIR, circuitId + ZKIR_EXT), 'utf-8');
 };
@@ -49,13 +55,21 @@ const detectZkirVersion = (json: string): ZkirVersion => {
   return v;
 };
 
-const readIrFile = async (contractDir: string, circuitId: string): Promise<Uint8Array> => {
-  const json = await readZkirJson(contractDir, circuitId);
-  const version = detectZkirVersion(json);
-  return version.major === 3 ? jsonIrToBinaryV3(json) : jsonIrToBinaryV2(json);
+const backendFor = (json: string): ZkirBackend => {
+  const { major } = detectZkirVersion(json);
+  const backend = zkirBackends[major];
+  if (!backend) {
+    throw new Error(`Unsupported ZKIR major version ${major}; supported: ${Object.keys(zkirBackends).join(', ')}`);
+  }
+  return backend;
 };
 
-export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProviderV2 => {
+const readIrFile = async (contractDir: string, circuitId: string): Promise<Uint8Array> => {
+  const json = await readZkirJson(contractDir, circuitId);
+  return backendFor(json).jsonIrToBinary(json);
+};
+
+export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProviderV3 => {
   const lookupKey = async (circuitId: string): Promise<ProvingKeyMaterial | undefined> => {
     return {
       proverKey: new Uint8Array(0),
@@ -79,10 +93,7 @@ export const createKeyMaterialProvider = (contractDir: string): KeyMaterialProvi
 
 export const checkProofData = async (contractDir: string, circuitName: string, proofData: ProofData): Promise<(bigint | undefined)[]> => {
   const json = await readZkirJson(contractDir, circuitName);
-  const version = detectZkirVersion(json);
-  const isV3 = version.major === 3;
-
   const preimage = proofDataIntoSerializedPreimage(proofData.input, proofData.output, proofData.publicTranscript, proofData.privateTranscriptOutputs, circuitName);
   const keyProvider = createKeyMaterialProvider(contractDir);
-  return isV3 ? checkV3(preimage, keyProvider as KeyMaterialProviderV3) : checkV2(preimage, keyProvider);
+  return backendFor(json).check(preimage, keyProvider);
 };
