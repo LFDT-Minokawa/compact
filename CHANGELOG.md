@@ -13,7 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   and ZKIR versions it is built against (CoIP 5, phase 0).  The new
   `--target` flag prints the target, e.g.,
   `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
-  name.  `contract-manifest.json` records the target's `onchain-runtime-version`
+  in the same form.  `contract-manifest.json` records the target's `onchain-runtime-version`
   and `zkir-version`.
 - The new `--list-targets` flag prints the targets that exist, one per line (the
   directories of `compiler/targets/` when the compiler was built).
@@ -45,6 +45,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   be removed by hand (otherwise stale copies remain), and the links to
   `ledger-adt` (e.g., in `compact-reference.mdx`) must be updated to point at the
   per-target files.
+- The standard library API documents moved from `doc/api/CompactStandardLibrary/`
+  to `doc/api/CompactStandardLibrary-<target>/` (e.g.,
+  `doc/api/CompactStandardLibrary-ocrt-4_0-zkir-3_1/`), and their links to the
+  ledger data types point at the target's `doc/ledger-adt-<target>.mdx`.  The docs
+  workflows check and copy each directory to
+  `docs/compact/standard-library/CompactStandardLibrary-<target>/` in the docs
+  repository, **where the old `docs/compact/standard-library/exports.md` and
+  `README.md` must be removed by hand.**
+  **todo @pataei:** `compiler/compact-reference-proto.mdx` (the source of
+  `compact-reference.mdx`) still links to `ledger-adt` in four places; these links
+  have not been updated to the per-target files.
 
 ### Internal notes
 

@@ -37,13 +37,13 @@
           (for (current-target) run expand))
 
   (define (target-pathname name)
-    (string-append "compiler/targets/" (target-name current-target) "/" name))
+    (string-append target-directory-prefix (target-name current-target) "/" name))
 
   (define-syntax include-target
     (lambda (x)
       (define package-json "runtime/package.json")
       (define (path name)
-        (string-append "compiler/targets/" (target-name current-target) "/" name))
+        (string-append target-directory-prefix (target-name current-target) "/" name))
       (define (contains? str sub)
         (let ([n (string-length str)] [m (string-length sub)])
           (let loop ([i 0])
@@ -55,13 +55,8 @@
         ;; so the directory on the library path and the name of the record can only
         ;; differ when the compiled (current-target) library is the one of another
         ;; target, i.e., object files of that target are being reused.
-        (let* ([prefix "compiler/targets/"]
-               [dir* (filter
-                       (lambda (d)
-                         (and (fx>= (string-length d) (string-length prefix))
-                              (string=? (substring d 0 (string-length prefix)) prefix)))
-                       (map car (library-directories)))])
-          (unless (member (string-append prefix (target-name current-target)) dir*)
+        (let ([dir* (target-library-directories)])
+          (unless (member (string-append target-directory-prefix (target-name current-target)) dir*)
             (syntax-error who
               (format "the target directory on the library path is ~a but the compiled current-target library is the one of target ~a: object files of another target are being reused; remove the object directory (rm -rf obj, or use ./compiler/go --rebuild) and build again"
                 (if (null? dir*) "none" (car dir*))
@@ -98,7 +93,7 @@
         [(k)
          (let ([name* (sort string<?
                         (filter
-                          (lambda (name) (file-directory? (string-append "compiler/targets/" name)))
+                          (lambda (name) (file-directory? (string-append target-directory-prefix name)))
                           (directory-list "compiler/targets")))])
            (for-each
              (lambda (name)

@@ -48,6 +48,12 @@ then
     # and object files of different targets share names, hence --rebuild.  Each
     # run regenerates doc/ledger-adt-<target>.mdx.  The coverage report left
     # behind is that of the last target.
+    if ! echo "${CHEZSCHEMELIBDIRS:-}" | tr ':' '\n' | grep -q '^compiler/targets/'
+    then
+      echo "error: CHEZSCHEMELIBDIRS has no compiler/targets/<target> entry to replace with each target" >&2
+      echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+      exit 1
+    fi
     status=0
     for target_dir in compiler/targets/*/
     do

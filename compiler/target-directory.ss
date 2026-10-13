@@ -34,16 +34,10 @@
 
   (define-syntax make-target-here
     (lambda (x)
-      (define prefix "compiler/targets/")
-      (define (target-directory* )
-        (filter
-          (lambda (d)
-            (and (fx>= (string-length d) (string-length prefix))
-                 (string=? (substring d 0 (string-length prefix)) prefix)))
-          (map car (library-directories))))
+      (define prefix target-directory-prefix)
       (syntax-case x ()
         [(k ledger-version)
-         (let ([dir* (target-directory*)])
+         (let ([dir* (target-library-directories)])
            (unless (= (length dir*) 1)
              (syntax-error x
                (format "expected exactly one target directory, compiler/targets/<target>, on the library path (CHEZSCHEMELIBDIRS) but found ~a"

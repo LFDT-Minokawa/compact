@@ -32,8 +32,21 @@
 
 (library (target)
   (export make-target target? target-name target-onchain-runtime-version
-          target-zkir-version target-ledger-version parse-target-name)
+          target-zkir-version target-ledger-version parse-target-name
+          target-directory-prefix target-library-directories)
   (import (chezscheme))
+
+  (define target-directory-prefix "compiler/targets/")
+
+  ;; the entries of the library path that are target directories,
+  ;; compiler/targets/<target>, as strings
+  (define (target-library-directories)
+    (filter
+      (lambda (d)
+        (and (fx>= (string-length d) (string-length target-directory-prefix))
+             (string=? (substring d 0 (string-length target-directory-prefix))
+                       target-directory-prefix)))
+      (map car (library-directories))))
 
   ;; "4_0" -> "4.0" when both parts are non-empty strings of digits, else #f.
   (define (version-from-slug slug)

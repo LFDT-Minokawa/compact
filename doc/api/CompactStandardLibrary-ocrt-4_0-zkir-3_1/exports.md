@@ -252,7 +252,7 @@ The standard library exports a single ledger field, `kernel`, of the built-in
 `Kernel` ledger ADT.  It provides the contract's view of the chain: its own
 address, its caller, its unshielded balances, the current block time, and the
 operations that claim Zswap and unshielded effects.  Its operations are
-documented in [Ledger data types](../../ledger-adt.mdx).
+documented in [Ledger data types](../../ledger-adt-ocrt-4_0-zkir-3_1.mdx).
 
 ```compact
 export ledger kernel: Kernel;

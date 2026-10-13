@@ -242,11 +242,71 @@ the name of the target.
    cannot be built yet (see above).
 5. Make the target-specific changes in the new directory (passes, standard
    library, `midnight-*.ss`, ...).
-6. `git add` the new directory: `nix build` only sees files git knows about.
-7. Nothing needs to be added to `flake.nix` for the packages: it generates
+6. Create the standard library API documents of the new target.  They are written by
+   hand, not generated: copy
+   `doc/api/CompactStandardLibrary-<existing-target>` to
+   `doc/api/CompactStandardLibrary-<new-target>` and edit `README.md` and
+   `exports.md` where the new target's standard library differs.  Point their links
+   to the ledger data types at `../../ledger-adt-<new-target>.mdx`, the file
+   `./compiler/go --build-for-all-targets` generates for the new target.  The docs
+   workflows check and copy every `CompactStandardLibrary-*` directory, so nothing
+   else needs to change for them.
+7. `git add` the new directories: `nix build` only sees files git knows about.
+8. Nothing needs to be added to `flake.nix` for the packages: it generates
    `packages.compactc-<new-target>` and `packages.compactc-binary-<new-target>` (what
    the release workflows build) for every directory of `compiler/targets/`.  To make
    the new target the default, change `default-compactc-target` in `flake.nix`.
+
+#### Deprecating a target
+
+There is no deprecation flag in the compiler: a target is built, tested, and released
+for as long as its directory is in `compiler/targets/`, and it is gone when the
+directory is.  Deprecating a target is therefore a two-step process, the first of which
+only announces it.
+
+**Step 1: announce.**  Do this in a release before the one that removes the target.
+
+1. If the target is the default (`default-compactc-target` in `flake.nix`), make
+   another target the default first.  The default target cannot be removed
+   (`flake.nix` fails the evaluation if `default-compactc-target` has no directory).
+2. Say in `CHANGELOG.md` (under "Changed" or a "Deprecated" heading) that the target is
+   deprecated, which release removes it, and which target to move to.  Binaries,
+   packages, and documents of the target are produced as before.
+3. Tell the owners of the tools that download the release assets by name (e.g.,
+   `compact` devtools), since the asset names carry the target.
+
+**Step 2: remove.**  In the release that removes the target:
+
+1. Delete the directory: `git rm -r compiler/targets/<target>`.  The release workflows
+   (`internal-release.yml`, `dev-publish.yml` with `target=all`), `flake.nix` (the
+   `compactc-<target>` and `compactc-binary-<target>` packages), `compiler/go
+   --build-for-all-targets`, `--list-targets`, and `test-contracts/coverage` all read
+   the directory, so none of them needs an edit for the target to disappear from them.
+   Assets already released stay where they are.
+2. Delete the documents generated per target: `doc/ledger-adt-<target>.mdx` and
+   `doc/api/CompactStandardLibrary-<target>/`.  Running
+   `./compiler/go --build-for-all-targets` no longer regenerates the first.  Remove
+   the corresponding files from `docs/compact/` in `midnightntwrk/midnight-docs` by
+   hand (the docs workflows only add and update files), and fix the links that point at
+   them.
+3. Make `flake.nix` agree with the targets that remain (row 5): an input
+   `onchain-runtime-v<M>` or `zkir-v<N>` that no remaining target uses has to be
+   removed, and the evaluation fails, naming it, until it is.  Conversely, an input a
+   remaining target needs must stay.  Check the places that use an input by name, such
+   as `nixDependenciesMap`.
+4. If no remaining target uses the on-chain runtime major of the removed one, drop its
+   `@midnightntwrk/onchain-runtime-v<M>` dependency from `runtime/package.json`
+   (row 2), and with it any runtime code that was only for that major.
+5. Remove references to the target by name elsewhere (e.g., docs, `RELEASING.md`
+   examples, tests that name it); `git grep <target>` finds them.
+6. Note the removal in `CHANGELOG.md`, including that the release no longer has assets
+   for the target.
+7. Check as in "Verifying a new target": `--list-targets` no longer lists it,
+   `nix build .#compactc` and `./compiler/go --build-for-all-targets` pass, and
+   `nix flake check` reports no disagreement between the targets and the flake inputs.
+
+The last remaining target cannot be removed: at least one target has to exist for
+the compiler to build.
 
 #### Releasing the targets
 
@@ -289,8 +349,8 @@ Run `nix build .#compactc-<new-target>`, then:
 
 - `result/bin/compactc --list-targets` lists all available targets (including the new target),
   `result/bin/compactc --target` prints the new target, and
-  `result/bin/compactc --version --verbose` shows the new target name in its
-  `target:` line.
+  `result/bin/compactc --version --verbose` shows the new target in its
+  `target:` line, in the form `--target` prints it.
 - `./compiler/go --rebuild` passes with `CHEZSCHEMELIBDIRS` pointing at the new
   target, and for the default target too.
 - Compile some contracts (e.g., those in `examples/`) with `--skip-zk` using a
