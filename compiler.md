@@ -154,6 +154,11 @@ passes, the standard library, and `midnight-ledger.ss` and `midnight-natives.ss`
 (together with `zkir-v3-natives.ss`).
 Each target directory also contains a `current-target.ss` library that
 instantiates the target record defined in [compiler/target.ss](./compiler/target.ss).
+The record is made from the name of the directory
+([compiler/target-directory.ss](./compiler/target-directory.ss)): the name of the
+target and its on-chain runtime and ZKIR versions are the ones of
+`compiler/targets/<target>/`, so they cannot disagree, and `current-target.ss` only
+gives what cannot be derived, the ledger version.
 Which target a build uses is fixed at build time by which target directory is
 on the Chez library path (`CHEZSCHEMELIBDIRS`, set by `flake.nix`).
 [compiler/target-include.ss](./compiler/target-include.ss) provides
@@ -164,17 +169,60 @@ dependency of `runtime/package.json`.
 `compactc --target` prints the target of a build, and `contract-manifest.json`
 records it in the generated contract.
 
-The repository currently has two targets, `ocrt-4_0-zkir-3_1` (the default) and
-`ocrt-4_1-zkir-3_1`.  The second is a proof of concept: it is a copy of the first
-that still uses on-chain runtime 4.0 and ZKIR 3.1, and exists to show that the
-mechanism works for more than one target.
+`compactc --list-targets` prints the targets that exist (the directories of
+`compiler/targets/` when the compiler was built), one per line.  The repository
+currently has one target, `ocrt-4_0-zkir-3_1`, which is also the default.
+
+The name of a target says its versions: `ocrt-4_0-zkir-3_1` is the target of
+on-chain runtime 4.0 and ZKIR 3.1, and the record of the target has exactly these
+versions because it is made from the name.  A directory in `compiler/targets/` that
+is not named like a target, `ocrt-<major>_<minor>-zkir-<major>_<minor>`, fails the build
+(and `--list-targets` checks the names of all of them).
+
+#### Names that must agree
+
+A target is referred to by name in several places, and they have to agree.  Take
+`ocrt-4_0-zkir-3_1` (on-chain runtime 4.0, ZKIR 3.1):
+
+| # | What | Must be | Checked by | If it is wrong |
+| - | ---- | ------- | ---------- | -------------- |
+| 1 | The target's directory | `compiler/targets/<target>/`, named `ocrt-<M>_<m>-zkir-<N>_<n>`, with a `current-target.ss` in it.  Everything below is derived from or compared with this name, including the record of the target (its name and its on-chain runtime `<M>.<m>` and ZKIR `<N>.<n>` versions) | `flake.nix` (`checked-target`) when it evaluates; `compiler/go`; `make-target-here` (`compiler/target-directory.ss`) when the compiler is built | `compactc target "<target>" does not exist: there is no compiler/targets/<target>/current-target.ss`, listing the targets; `the target directory compiler/targets/<dir> is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>` |
+| 2 | The on-chain runtime major version of the name in 1 | the `@midnightntwrk/onchain-runtime-v<M>` dependency of `runtime/package.json` | `include-target`, when the compiler is built | `target <target> expects on-chain runtime 4.0 but runtime/package.json does not depend on @midnightntwrk/onchain-runtime-v4` |
+| 3 | The default target, `default-compactc-target` in `flake.nix` | a target of 1 | `flake.nix` (`checked-target`) when it evaluates | the same message as 1, at `nix build` |
+| 4 | The `compiler/targets/<target>` entry of `CHEZSCHEMELIBDIRS` (set by `flake.nix` from 3, or by hand): exactly one | a target of 1 | `compiler/go`; `make-target-here` and `include-target` when the compiler is built | `error: target directory compiler/targets/<target> (from CHEZSCHEMELIBDIRS) has no current-target.ss`; `...has no compiler/targets/<target> entry`; `expected exactly one target directory, compiler/targets/<target>, on the library path (CHEZSCHEMELIBDIRS) but found ...` |
+| 5 | The flake inputs of `flake.nix`: `onchain-runtime-v<M>` and `zkir-v<N>` | for every target `ocrt-<M>_<m>-zkir-<N>_<n>`: both exist, `onchain-runtime-v<M>` provides on-chain runtime `<M>.<m>` and `zkir-v<N>` provides ZKIR `<N>.<n>` (the version of the input's package, e.g., `4.0.0-rc.3`); and every such input is for some target | `flake.nix` (`target-inputs-checked`) when it evaluates | `The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:` followed by, for example, `target ocrt-5_0-zkir-3_1 needs the flake input onchain-runtime-v5, ... but flake.nix has none`, `target ocrt-4_1-zkir-3_1 is for on-chain runtime 4.1 but the flake input onchain-runtime-v4 provides 4.0`, or `the flake input onchain-runtime-v5 is used by no target` |
+| 6 | The object files of the compiler | the ones of the target of 4: the object files of different targets have the same names | `include-target`, when the compiler is built | `the target directory on the library path is compiler/targets/<y> but the compiled current-target library is the one of target <z>: object files of another target are being reused; remove the object directory ...` |
+
+The inputs of 5 are looked up by name, so when the on-chain runtime (or ZKIR) moves to
+a new major version, `flake.nix` needs a new input next to the old one, e.g.,
+`onchain-runtime-v5` next to `onchain-runtime-v4`, for as long as targets of both exist,
+and the input of a major version that no target uses any more has to go.  (The
+places of `flake.nix` that use an input by name, such as `nixDependenciesMap`, only
+know the default target's inputs so far.)
+
+The packages of a target need nothing to agree: `packages.compactc-<target>` and
+`packages.compactc-binary-<target>` are generated by `flake.nix` for every directory
+of `compiler/targets/`, so their names are the names of the directories and the
+packages cannot build another target than their name says.  (The default target's
+are the packages `compactc` and `compactc-binary`.)
+
+The names derived from a target need nothing more: the artifact name of a release,
+`ocrt_v<M>.<m>-zkir_v<M>.<m>`, is computed from the name of the directory by
+`scripts/target-artifact-suffix.sh`, and `doc/ledger-adt-<target>.mdx` is named by
+the name of the target.
 
 #### Adding a target
 
 1. Copy an existing target directory, e.g.,
    `cp -R compiler/targets/ocrt-4_0-zkir-3_1 compiler/targets/<new-target>`.
-2. In `<new-target>/current-target.ss`, set the target name (it must equal the
-   directory name) and the on-chain runtime, ZKIR, and ledger versions.
+2. Name the directory `ocrt-<M>_<m>-zkir-<N>_<n>`: the name of the target and its
+   on-chain runtime and ZKIR versions come from it, so `current-target.ss` needs no
+   edit unless the ledger version, the one thing it says, differs (e.g.,
+   `compiler/targets/ocrt-5_0-zkir-3_2` is the target of on-chain runtime 5.0 and
+   ZKIR 3.2).  See "Names that must agree" above for everything that has to match.
+   A new on-chain runtime or ZKIR *major* version needs a new flake input, e.g.,
+   `onchain-runtime-v5` or `zkir-v4` (see 5 in "Names that must agree" above), whose
+   version has to be the one in the name of the target.
    If the on-chain runtime major version changes, `runtime/package.json` must
    depend on the matching `@midnightntwrk/onchain-runtime-v<N>`; the build
    checks this.
@@ -182,11 +230,10 @@ mechanism works for more than one target.
    library, `midnight-*.ss`, ...).  Nothing outside `compiler/targets/` needs to
    change for a copy.
 4. `git add` the new directory: `nix build` only sees files git knows about.
-5. In `flake.nix`, add a package for it next to the existing one:
-   `packages.compactc-<new-target> = lib.compactc-for-target "<new-target>";`
-   Also add the package that the release workflows build for it:
-   `packages.compactc-binary-<new-target> = lib.compactc-binary-for-target "<new-target>";`.
-   To make it the default, change `default-compactc-target` in `flake.nix` instead.
+5. Nothing needs to be added to `flake.nix`: it generates `packages.compactc-<new-target>`
+   and `packages.compactc-binary-<new-target>` (what the release workflows build) for
+   every directory of `compiler/targets/`.  To make the new target the default,
+   change `default-compactc-target` in `flake.nix`.
 
 #### Releasing the targets
 
@@ -201,7 +248,7 @@ target can be built locally with `nix build .#compactc-binary-<target>`.
 
 ```
 nix build .#compactc                      # the default target (default-compactc-target in flake.nix)
-nix build .#compactc-ocrt-4_1-zkir-3_1    # another target
+nix build .#compactc-<target>              # another target
 ```
 
 Which target a build uses is just which `compiler/targets/<target>` directory is
@@ -210,7 +257,7 @@ shell, point the variable at it:
 
 ```
 nix develop
-export CHEZSCHEMELIBDIRS=$(echo "$CHEZSCHEMELIBDIRS" | sed 's/ocrt-4_0-zkir-3_1/ocrt-4_1-zkir-3_1/g')
+export CHEZSCHEMELIBDIRS=$(echo "$CHEZSCHEMELIBDIRS" | sed 's/ocrt-4_0-zkir-3_1/<target>/g')
 ./clean.sh                 # object files of different targets have the same names
 ./compiler/go --rebuild    # run the compiler tests for that target
 ```
@@ -223,7 +270,8 @@ left behind is that of the last target).
 
 #### Verifying a new target
 
-- `result/bin/compactc --target` prints the expected pair, and
+- `result/bin/compactc --list-targets` lists the new target, and
+  `result/bin/compactc --target` prints the expected pair, and
   `result/bin/compactc --version --verbose` shows the new target name in its
   `target:` line.
 - `./compiler/go --rebuild` passes with `CHEZSCHEMELIBDIRS` pointing at the new

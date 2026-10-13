@@ -19,7 +19,7 @@
 #       | empty (the default)        | the default target, `default-compactc-target` in  |
 #       |                            | flake.nix (e.g. ocrt-4_0-zkir-3_1)                |
 #       | `all`                      | every directory in compiler/targets/              |
-#       | a directory name           | just that target (e.g. ocrt-4_1-zkir-3_1)         |
+#       | a directory name           | just that target (e.g. ocrt-4_0-zkir-3_1)         |
 #       | an unknown name            | the workflow fails, listing the available targets |
 #
 # Coordinates produced (stable, pinnable)

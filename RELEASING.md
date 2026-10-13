@@ -643,9 +643,9 @@ branch being built (see "Targets" in `compiler.md`). Each asset is named
 `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip` — the last part being the
 target's directory name `ocrt-4_0-zkir-3_1` respelled by
 `scripts/target-artifact-suffix.sh`. A directory not named like a target fails the
-`list-targets` job. A new target needs no change to the workflow, but it does need a
-`packages.compactc-binary-<target>` in `flake.nix` (`compiler.md`, "Adding a target"), or
-its build jobs fail with a missing flake attribute. The release is only created when
+`list-targets` job. A new target needs no change to the workflow or to `flake.nix`, which
+generates `packages.compactc-binary-<target>` for every directory of `compiler/targets/`
+(`compiler.md`, "Adding a target"). The release is only created when
 the build and the tests of every target pass on every required system.
 
 **Use workflow from** — GitHub's own selector for which ref the workflow definition

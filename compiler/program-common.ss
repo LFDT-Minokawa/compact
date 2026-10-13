@@ -20,6 +20,7 @@
           print-language-version
           print-ledger-version
           print-target
+          print-list-targets
           print-runtime-version
           check-pathname
           handle-exceptions)
@@ -30,6 +31,7 @@
           (language-version)
           (target)
           (current-target)
+          (target-include)
           (runtime-version))
 
   (define usage (make-parameter #f))
@@ -98,6 +100,12 @@
     (fprintf (current-output-port)
              "~a\n"
              (target-ledger-version current-target)))
+
+  ;; the targets the compiler was built with the sources of, one per line
+  (define (print-list-targets)
+    (for-each
+      (lambda (name) (fprintf (current-output-port) "~a\n" name))
+      (available-targets)))
 
   (define (print-target)
     (fprintf (current-output-port)

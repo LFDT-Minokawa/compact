@@ -107,8 +107,86 @@
             fi
           '';
         # The target built by packages.compactc and used by the dev shells.  Other
-        # targets in compiler/targets/ are built with lib.compactc-for-target.
-        default-compactc-target = "ocrt-4_0-zkir-3_1";
+        # targets in compiler/targets/ are built with packages.compactc-<target>, which
+        # are generated for every target below.
+        default-compactc-target = checked-target "ocrt-4_0-zkir-3_1";
+
+        # The targets are the directories of compiler/targets/.
+        targets = builtins.attrNames
+          (pkgs.lib.filterAttrs (name: type: type == "directory") (builtins.readDir ./compiler/targets));
+
+        # The flake inputs that provide what a target is built with, named after the
+        # major version of what they provide: onchain-runtime-v<M> for the on-chain
+        # runtime M.x and zkir-v<M> for ZKIR M.x.  A target ocrt-<M>_<m>-zkir-<N>_<n> needs
+        # the inputs onchain-runtime-v<M> and zkir-v<N>, providing M.m and N.n, and an
+        # input is there for a target.
+        input-names = builtins.attrNames inputs;
+        ocrt-inputs = builtins.filter (n: builtins.match "onchain-runtime-v[0-9]+" n != null) input-names;
+        zkir-inputs = builtins.filter (n: builtins.match "zkir-v[0-9]+" n != null) input-names;
+        # the major.minor of "4.0.0-rc.3"
+        major-minor = version:
+          let m = builtins.match "([0-9]+)\\.([0-9]+)\\..*" version;
+          in if m == null then "(unreadable version ${version})" else "${builtins.elemAt m 0}.${builtins.elemAt m 1}";
+        ocrt-input-version = n: major-minor inputs.${n}.packages.${system}.onchain-runtime-wasm.version;
+        zkir-input-version = n: major-minor inputs.${n}.packages.${system}.zkir.version;
+        parse-target = target: builtins.match "ocrt-([0-9]+)_([0-9]+)-zkir-([0-9]+)_([0-9]+)" target;
+
+        target-input-problems =
+          let
+            parsed = builtins.filter (t: parse-target t != null) targets;
+            part = target: i: builtins.elemAt (parse-target target) i;
+            ocrt-of = target: { major = part target 0; version = "${part target 0}.${part target 1}"; };
+            zkir-of = target: { major = part target 2; version = "${part target 2}.${part target 3}"; };
+            # what a target needs from the inputs of one kind
+            problems-of-kind = { kind, prefix, inputs-of-kind, input-version, of }:
+              builtins.concatMap (target:
+                let
+                  need = of target;
+                  name = "${prefix}${need.major}";
+                in
+                  if !(builtins.elem name inputs-of-kind)
+                  then [ "target ${target} needs the flake input ${name}, which provides ${kind} ${need.major}.x, but flake.nix has none (it has: ${builtins.concatStringsSep ", " inputs-of-kind})" ]
+                  else if input-version name != need.version
+                  then [ "target ${target} is for ${kind} ${need.version} but the flake input ${name} provides ${input-version name}" ]
+                  else []
+              ) parsed
+              ++ builtins.concatMap (name:
+                if builtins.any (target: "${prefix}${(of target).major}" == name) parsed
+                then []
+                else [ "the flake input ${name} is used by no target in compiler/targets/ (the targets are: ${builtins.concatStringsSep ", " targets})" ]
+              ) inputs-of-kind;
+          in
+            builtins.concatMap (target: [ "compiler/targets/${target} is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" ])
+              (builtins.filter (t: parse-target t == null) targets)
+            ++ problems-of-kind { kind = "on-chain runtime"; prefix = "onchain-runtime-v"; inputs-of-kind = ocrt-inputs; input-version = ocrt-input-version; of = ocrt-of; }
+            ++ problems-of-kind { kind = "ZKIR"; prefix = "zkir-v"; inputs-of-kind = zkir-inputs; input-version = zkir-input-version; of = zkir-of; };
+
+        target-inputs-checked =
+          if target-input-problems == []
+          then true
+          else throw ''
+            The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:
+            ${builtins.concatStringsSep "\n" (map (p: "  - " + p) target-input-problems)}
+            A target ocrt-<M>_<m>-zkir-<N>_<n> needs the flake inputs onchain-runtime-v<M> (providing
+            on-chain runtime <M>.<m>) and zkir-v<N> (providing ZKIR <N>.<n>), and every such input is
+            for a target.  See "Names that must agree" in compiler.md.
+          '';
+
+        # A target is a directory of compiler/targets/ with a current-target.ss in it.
+        # A name that is none fails the evaluation here, saying what has to agree,
+        # instead of failing the build with "library (current-target) not found".
+        # The targets and the flake inputs have to agree as well (see above).
+        checked-target = target: assert target-inputs-checked;
+          if builtins.pathExists ./compiler/targets/${target}/current-target.ss
+          then target
+          else throw ''
+            compactc target "${target}" does not exist: there is no compiler/targets/${target}/current-target.ss.
+            The targets are: ${builtins.concatStringsSep ", " (builtins.attrNames (builtins.readDir ./compiler/targets))}.
+            A target is the directory of that name in compiler/targets/ (its current-target.ss takes the
+            name of the target, and its on-chain runtime and ZKIR versions, from the name of the directory),
+            and the name has to be the same where flake.nix refers to it (default-compactc-target).
+            See "Names that must agree" in compiler.md.
+          '';
         combined-shell-hook =
           ''
             ${runtime-shell-hook}
@@ -133,7 +211,26 @@
           src = nix/dry-install;
         };
       in
-        rec {
+        let
+          # packages.compactc-<target> and packages.compactc-binary-<target> for every
+          # target, generated so that the name of a package cannot differ from the
+          # target it builds.  The default target's are the default packages.
+          target-packages = builtins.listToAttrs (builtins.concatMap (target: [
+            {
+              name = "compactc-${target}";
+              value = if target == default-compactc-target
+                then outputs.packages.compactc
+                else outputs.lib.compactc-for-target target;
+            }
+            {
+              name = "compactc-binary-${target}";
+              value = if target == default-compactc-target
+                then outputs.packages.compactc-binary
+                else outputs.lib.compactc-binary-for-target target;
+            }
+          ]) targets);
+
+          outputs = rec {
           lib.pretzel-js = pretzel-js;
           overlays.pretzel-fetcher = (import pretzel/fetcher.nix).overlay;
           overlays.pretzel-js = lib.pretzel-js.overlay;
@@ -272,14 +369,15 @@
             '';
           };
 
-          # compactc built for another target in compiler/targets/ (see compiler.md,
-          # "Adding a target").  The target is chosen by the target directory on the
-          # library path, so this only differs from packages.compactc in that path.
+          # compactc built for a target in compiler/targets/ (see compiler.md, "Adding a
+          # target").  The target is chosen by the target directory on the library path,
+          # so this only differs from packages.compactc in that path.  The packages
+          # packages.compactc-<target> are generated from this, for every directory in
+          # compiler/targets/, below.
           lib.compactc-for-target = target: packages.compactc.overrideAttrs (oldAttrs: {
             name = "compactc-${target}";
-            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] oldAttrs.CHEZSCHEMELIBDIRS;
+            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] oldAttrs.CHEZSCHEMELIBDIRS;
           });
-          packages.compactc-ocrt-4_1-zkir-3_1 = lib.compactc-for-target "ocrt-4_1-zkir-3_1";
 
           packages.compactc-binary-nixos = let
             linking-pkgs = if pkgs.lib.hasSuffix "linux" system then pkgs.pkgsMusl else pkgs;
@@ -384,20 +482,15 @@
 
           # The release binary (see packages.compactc-binary) built for a target in
           # compiler/targets/.  The release workflows build packages.compactc-binary-<target>
-          # for every directory in compiler/targets/, so each target needs one of these
-          # (see compiler.md, "Adding a target").
+          # for every directory in compiler/targets/; those packages are generated from
+          # this, below.
           lib.compactc-binary-for-target = target: packages.compactc-binary.overrideAttrs (oldAttrs: {
             name = "compactc-binary-dist-${target}";
             src = packages.compactc-binary-nixos.overrideAttrs (nixosAttrs: {
               name = "compactc-binary-nixos-${target}";
-              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] nixosAttrs.CHEZSCHEMELIBDIRS;
+              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] nixosAttrs.CHEZSCHEMELIBDIRS;
             });
           });
-          packages."compactc-binary-${default-compactc-target}" = packages.compactc-binary;
-          # todo @pataei remove this before merging, this is used solely for testing
-          # NB add a new non-default target here, e.g.:
-          # packages.compactc-binary-ocrt-5_0-zkir-3_1 = lib.compactc-binary-for-target "ocrt-5_0-zkir-3_1";
-          packages.compactc-binary-ocrt-4_1-zkir-3_1 = lib.compactc-binary-for-target "ocrt-4_1-zkir-3_1";
 
           packages.compactc-oci = with pkgs // packages; nix2container.buildImage {
             name = "compactc";
@@ -617,6 +710,8 @@
           };
 
           formatter = pkgs.alejandra;
-        }
+          };
+        in
+          outputs // { packages = outputs.packages // target-packages; }
     );
 }

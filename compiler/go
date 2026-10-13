@@ -62,6 +62,27 @@ then
   fi
 fi
 
+# The target of this run is the compiler/targets/<target> directory on
+# CHEZSCHEMELIBDIRS.  Say so here when there is none, instead of leaving it to
+# scheme to fail with "library (current-target) not found".
+target_dirs=`echo "${CHEZSCHEMELIBDIRS:-}" | tr ':' '\n' | grep '^compiler/targets/' || true`
+if [ -z "$target_dirs" ]
+then
+  echo "error: CHEZSCHEMELIBDIRS has no compiler/targets/<target> entry, so there is no target to test" >&2
+  echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+  exit 1
+fi
+for target_dir in $target_dirs
+do
+  if [ ! -f "$target_dir/current-target.ss" ]
+  then
+    echo "error: target directory $target_dir (from CHEZSCHEMELIBDIRS) has no current-target.ss" >&2
+    echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+    echo "       see \"Names that must agree\" in compiler.md" >&2
+    exit 1
+  fi
+done
+
 rm -rf coverage
 mkdir coverage
 

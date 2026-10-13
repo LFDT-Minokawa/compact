@@ -50,7 +50,10 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --target prints the target this build of the compiler is built for and
     exits.  A target is the pair of the on-chain runtime version and the ZKIR
-    version, e.g., onchain-runtime=4.0, zkir=3.1.
+    version.
+
+  --list-targets prints the targets that exist, one per line, and exits.  A
+    target is named for its on-chain runtime and ZKIR versions.
 
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
@@ -107,6 +110,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [(language-version) (print-language-version)]
     [(ledger-version) (print-ledger-version)]
     [(target) (print-target)]
+    [(list-targets) (print-list-targets)]
     [(runtime-version) (print-runtime-version)]))
 
 (parameterize ([reset-handler abort])
@@ -116,6 +120,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--ledger-version) $ (exit-flag! 'ledger-version)]
              [(--target) $ (exit-flag! 'target)]
+             [(--list-targets) $ (exit-flag! 'list-targets)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              ;; Declared so that a --verbose given with two pathnames still
              ;; matches this clause rather than falling through to the next.
@@ -147,6 +152,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--ledger-version) $ (exit-flag! 'ledger-version)]
              [(--target) $ (exit-flag! 'target)]
+             [(--list-targets) $ (exit-flag! 'list-targets)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              [(--verbose)])
       (string arg) ...)

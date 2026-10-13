@@ -20,13 +20,20 @@
 ;;;
 ;;;   (target-pathname "f")  -- the pathname of f in the target directory.
 ;;;   (include-target "f")   -- like (include "f"), but f is in the target directory.
+;;;   (available-targets)    -- the names of the targets, i.e., the directories of
+;;;                             compiler/targets/ when the compiler is built, sorted.
 ;;;
-;;; include-target also checks, at compile time, that the target directory exists
-;;; and that the target's on-chain runtime version agrees with the
+;;; include-target also checks, at compile time, that the target directory on the
+;;; library path is the one named by current-target.ss (and exists), and that the
+;;; target's on-chain runtime version agrees with the
 ;;; @midnightntwrk/onchain-runtime-v<N> dependency of runtime/package.json.
+;;; available-targets checks that every directory is named like a target.  (The
+;;; name and versions of the current target are those of its directory, see
+;;; target-directory.ss, so the directory check of include-target only fails for
+;;; an object file of another target that is being reused.)
 
 (library (target-include)
-  (export target-pathname include-target)
+  (export target-pathname include-target available-targets)
   (import (chezscheme)
           (for (target) run expand)
           (for (current-target) run expand))
@@ -46,6 +53,21 @@
                  (or (string=? (substring str i (fx+ i m)) sub)
                      (loop (fx+ i 1)))))))
       (define (validate-target! who)
+        ;; The record of the current target is made from the name of its directory,
+        ;; so the directory on the library path and the name of the record can only
+        ;; differ when the compiled (current-target) library is the one of another
+        ;; target, i.e., object files of that target are being reused.
+        (let* ([prefix "compiler/targets/"]
+               [dir* (filter
+                       (lambda (d)
+                         (and (fx>= (string-length d) (string-length prefix))
+                              (string=? (substring d 0 (string-length prefix)) prefix)))
+                       (map car (library-directories)))])
+          (unless (member (string-append prefix (target-name current-target)) dir*)
+            (syntax-error who
+              (format "the target directory on the library path is ~a but the compiled current-target library is the one of target ~a: object files of another target are being reused; remove the object directory (obj/, e.g. with ./clean.sh, or use ./compiler/go --rebuild) and build again"
+                (if (null? dir*) "none" (car dir*))
+                (target-name current-target)))))
         (let ([dir (path "")])
           (unless (file-directory? dir)
             (syntax-error who (format "target directory ~a does not exist" dir))))
@@ -68,4 +90,23 @@
            (validate-target! x)
            (with-syntax ([inc (datum->syntax #'k 'include)]
                          [path (datum->syntax #'k (path (syntax->datum #'name)))])
-             #'(inc path)))]))))
+             #'(inc path)))])))
+
+  ;; Read when the library that uses this is compiled, so the list is the
+  ;; directories of compiler/targets/ of that build.
+  (define-syntax available-targets
+    (lambda (x)
+      (syntax-case x ()
+        [(k)
+         (let ([name* (sort string<?
+                        (filter
+                          (lambda (name) (file-directory? (string-append "compiler/targets/" name)))
+                          (directory-list "compiler/targets")))])
+           (for-each
+             (lambda (name)
+               (unless (parse-target-name name)
+                 (syntax-error x
+                   (format "compiler/targets/~a is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" name))))
+             name*)
+           (with-syntax ([(name ...) (datum->syntax #'k name*)])
+             #'(quote (name ...))))]))))

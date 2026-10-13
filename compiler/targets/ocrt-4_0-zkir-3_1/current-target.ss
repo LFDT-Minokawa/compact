@@ -15,13 +15,12 @@
 
 #!chezscheme
 
-;;; The target name is also the name of this directory.
-;;; todo @pataei add a check that the name of the target matches
-;;; the directory and the onchain-runtime and zkir
+;;; The target of this directory.  Its name and its on-chain runtime and ZKIR
+;;; versions are the ones of the name of the directory; the ledger version is the
+;;; one that cannot be derived from it (see target-directory.ss).
 
 (library (current-target)
   (export current-target)
-  (import (chezscheme) (target))
+  (import (chezscheme) (target) (target-directory))
 
-  (define current-target
-    (make-target "ocrt-4_0-zkir-3_1" "4.0" "3.1" "9.1.0")))
+  (define current-target (make-target-here "9.1.0")))

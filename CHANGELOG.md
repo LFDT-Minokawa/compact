@@ -45,8 +45,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `compactc_v<compiler-version>_<os>.zip`.  **This changes the names of release
   assets:** scripts and tools that download them by name (including the `compact`
   tool, until it learns about targets) must be updated.  Each target also has a
-  release binary package, `nix build .#compactc-binary-<target>`, which a new
-  target must add to `flake.nix`.
+  release binary package, `nix build .#compactc-binary-<target>`, and a compiler
+  package `.#compactc-<target>`; `flake.nix` generates both for every directory of
+  `compiler/targets/`, so a new target needs no change to it.
 - The dev publish workflow (`dev-publish.yml`) takes a `target` input, the name of a
   directory in `compiler/targets/`, `all`, or empty (the default) for the default
   target of `flake.nix` (`default-compactc-target`), and builds, tests and
@@ -56,19 +57,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `compiler/go --build-for-all-targets` runs the tests for every target in
   `compiler/targets/` and so regenerates the ledger ADT documentation of every
   target.
-- A second target, `compiler/targets/ocrt-4_1-zkir-3_1`, is added to show that the
-  mechanism supports more than one target.  It is a copy of `ocrt-4_0-zkir-3_1`
-  and still uses on-chain runtime 4.0 and ZKIR 3.1.  The default build is
-  unchanged; the new one is `nix build .#compactc-ocrt-4_1-zkir-3_1`.
+- `flake.nix` checks, when it evaluates, that the targets of `compiler/targets/` and its
+  flake inputs agree: a target `ocrt-<M>_<m>-zkir-<N>_<n>` needs the inputs
+  `onchain-runtime-v<M>` and `zkir-v<N>`, providing on-chain runtime `<M>.<m>` and ZKIR
+  `<N>.<n>`, and an input `onchain-runtime-v<M>` or `zkir-v<N>` that no target uses is
+  an error.  The failure says what disagrees.  (When the on-chain runtime moves to a new
+  major version, the flake has both inputs, e.g., `onchain-runtime-v4` and
+  `onchain-runtime-v5`, while targets of both exist.)
+- The new `--list-targets` flag prints the targets that exist, one per line (the
+  directories of `compiler/targets/` when the compiler was built).
+- The record of a target (its name and its on-chain runtime and ZKIR versions) is made
+  from the name of its directory, `compiler/targets/ocrt-<M>_<m>-zkir-<N>_<n>`, so
+  they cannot disagree; `current-target.ss` only gives the ledger version.  A
+  directory of `compiler/targets/` that is not named like a target fails the build,
+  as does reusing the object files of another target.
 - To add a target: copy an existing directory in `compiler/targets/`, set the
-  name and versions in its `current-target.ss`, `git add` it, and add
-  `packages.compactc-<target> = lib.compactc-for-target "<target>";` and
-  `packages.compactc-binary-<target> = lib.compactc-binary-for-target "<target>";` to
-  `flake.nix`.  To build the compiler for it, `nix build .#compactc-<target>`; in a
+  name the directory `ocrt-<M>_<m>-zkir-<N>_<n>` (the record of the target comes from
+  it), set the ledger version in its `current-target.ss`, and `git add` it
+  (`flake.nix` generates its packages).  To build the compiler for it, `nix build .#compactc-<target>`; in a
   development shell, replace the target in `CHEZSCHEMELIBDIRS`, clean `obj/`
   (`./clean.sh`), and run `./compiler/go --rebuild`.  To verify it,
   check `compactc --target` and the `target:` line of
-  `compactc --version --verbose`, run `compiler/go --build-for-all-targets`, and diff the
+  `compactc --version --verbose` and `compactc --list-targets`,
+  run `compiler/go --build-for-all-targets`, and diff the
   output of both builds on `examples/` (only the `sources` in `.js.map` files and
   the manifest hashes should differ for a copy).  This is documented in
   "Targets" in `compiler.md`.
