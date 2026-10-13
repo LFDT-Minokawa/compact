@@ -53,7 +53,7 @@
                   [versions (parse-target-name name)])
              (unless versions
                (syntax-error x
-                 (format "the target directory ~a is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" dir)))
+                 (format "~a is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" dir)))
              (with-syntax ([name (datum->syntax #'k name)]
                            [ocrt (datum->syntax #'k (car versions))]
                            [zkir (datum->syntax #'k (cadr versions))])

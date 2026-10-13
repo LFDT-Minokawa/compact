@@ -23,14 +23,12 @@
 ;;;   (available-targets)    -- the names of the targets, i.e., the directories of
 ;;;                             compiler/targets/ when the compiler is built, sorted.
 ;;;
-;;; include-target also checks, at compile time, that the target directory on the
-;;; library path is the one named by current-target.ss (and exists), and that the
-;;; target's on-chain runtime version agrees with the
-;;; @midnightntwrk/onchain-runtime-v<N> dependency of runtime/package.json.
-;;; available-targets checks that every directory is named like a target.  (The
-;;; name and versions of the current target are those of its directory, see
-;;; target-directory.ss, so the directory check of include-target only fails for
-;;; an object file of another target that is being reused.)
+;;; include-target also checks, at compile time, that the target directory exists,
+;;; that it is the directory of the compiled (current-target) library (they differ
+;;; only when object files of another target are being reused), and that the target's
+;;; on-chain runtime version agrees with the @midnightntwrk/onchain-runtime-v<N>
+;;; dependency of runtime/package.json.
+;;; available-targets checks that every directory is named like a target.
 
 (library (target-include)
   (export target-pathname include-target available-targets)
@@ -65,7 +63,7 @@
                        (map car (library-directories)))])
           (unless (member (string-append prefix (target-name current-target)) dir*)
             (syntax-error who
-              (format "the target directory on the library path is ~a but the compiled current-target library is the one of target ~a: object files of another target are being reused; remove the object directory (obj/, e.g. with ./clean.sh, or use ./compiler/go --rebuild) and build again"
+              (format "the target directory on the library path is ~a but the compiled current-target library is the one of target ~a: object files of another target are being reused; remove the object directory (rm -rf obj, or use ./compiler/go --rebuild) and build again"
                 (if (null? dir*) "none" (car dir*))
                 (target-name current-target)))))
         (let ([dir (path "")])

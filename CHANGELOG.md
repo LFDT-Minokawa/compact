@@ -15,6 +15,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
   name.  `contract-manifest.json` records the target's `onchain-runtime-version`
   and `zkir-version`.
+- The new `--list-targets` flag prints the targets that exist, one per line (the
+  directories of `compiler/targets/` when the compiler was built).
 
 ### Changed
 
@@ -26,28 +28,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `compiler/targets/ocrt-4_0-zkir-3_1/standard-library.compact`.
 - `--ledger-version` now prints the ledger version recorded for the target
   rather than the version of the `zkir-v3` dependency.
+- **Release assets are renamed.**  The internal release now releases every target:
+  one `compactc` binary per operating system and target (every directory of
+  `compiler/targets/`), named
+  `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
+  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`, instead of
+  `compactc_v<compiler-version>_<os>.zip`.  Scripts and tools that download assets
+  by name must be updated.
 - `doc/ledger-adt.mdx` is now generated per target as
   `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_1.mdx`) and
   states the on-chain runtime and ZKIR versions of that target.  The docs
   workflows check, and copy to the docs repository, every such file.
-  
-### Internal notes
-- **Action required in the docs repository:** the workflows no longer write
+  **Action required in the docs repository:** the workflows no longer write
   `ledger-adt.mdx`, so the old `docs/compact/data-types/ledger-adt.mdx` and
   `docs/compact/reference/ledger-adt.mdx` in `midnightntwrk/midnight-docs` must
   be removed by hand (otherwise stale copies remain), and the links to
   `ledger-adt` (e.g., in `compact-reference.mdx`) must be updated to point at the
   per-target files.
-- The internal release workflow now releases every target: one `compactc` binary
-  per operating system and target (every directory of `compiler/targets/`),
-  named `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
-  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`, instead of
-  `compactc_v<compiler-version>_<os>.zip`.  **This changes the names of release
-  assets:** scripts and tools that download them by name (including the `compact`
-  tool, until it learns about targets) must be updated.  Each target also has a
-  release binary package, `nix build .#compactc-binary-<target>`, and a compiler
-  package `.#compactc-<target>`; `flake.nix` generates both for every directory of
-  `compiler/targets/`, so a new target needs no change to it.
+
+### Internal notes
+
+- Each target has a release binary package, `nix build .#compactc-binary-<target>`,
+  and a compiler package `.#compactc-<target>`; `flake.nix` generates both for every
+  directory of `compiler/targets/`, so a new target needs no change to it for them.
 - The dev publish workflow (`dev-publish.yml`) takes a `target` input, the name of a
   directory in `compiler/targets/`, `all`, or empty (the default) for the default
   target of `flake.nix` (`default-compactc-target`), and builds, tests and
@@ -64,25 +67,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   an error.  The failure says what disagrees.  (When the on-chain runtime moves to a new
   major version, the flake has both inputs, e.g., `onchain-runtime-v4` and
   `onchain-runtime-v5`, while targets of both exist.)
-- The new `--list-targets` flag prints the targets that exist, one per line (the
-  directories of `compiler/targets/` when the compiler was built).
 - The record of a target (its name and its on-chain runtime and ZKIR versions) is made
   from the name of its directory, `compiler/targets/ocrt-<M>_<m>-zkir-<N>_<n>`, so
   they cannot disagree; `current-target.ss` only gives the ledger version.  A
   directory of `compiler/targets/` that is not named like a target fails the build,
   as does reusing the object files of another target.
-- To add a target: copy an existing directory in `compiler/targets/`, set the
-  name the directory `ocrt-<M>_<m>-zkir-<N>_<n>` (the record of the target comes from
-  it), set the ledger version in its `current-target.ss`, and `git add` it
-  (`flake.nix` generates its packages).  To build the compiler for it, `nix build .#compactc-<target>`; in a
-  development shell, replace the target in `CHEZSCHEMELIBDIRS`, clean `obj/`
-  (`./clean.sh`), and run `./compiler/go --rebuild`.  To verify it,
-  check `compactc --target` and the `target:` line of
-  `compactc --version --verbose` and `compactc --list-targets`,
-  run `compiler/go --build-for-all-targets`, and diff the
-  output of both builds on `examples/` (only the `sources` in `.js.map` files and
-  the manifest hashes should differ for a copy).  This is documented in
-  "Targets" in `compiler.md`.
+- To add a target: create the directory `compiler/targets/ocrt-<M>_<m>-zkir-<N>_<n>`
+  (the record of the target comes from the name, so a copy of another target needs
+  no edit unless the ledger version differs in `current-target.ss`), make `flake.nix`
+  agree with it (the inputs `onchain-runtime-v<M>` and `zkir-v<N>` providing those
+  versions), and `git add` it (`flake.nix` generates its packages).  To build the
+  compiler for it, `nix build .#compactc-<target>`; in a development shell, replace
+  the target in `CHEZSCHEMELIBDIRS`, `rm -rf obj`, and run `./compiler/go --rebuild`.
+  To verify it, check `compactc --target`, the `target:` line of
+  `compactc --version --verbose` and `compactc --list-targets`, run
+  `compiler/go --build-for-all-targets`, and diff the output of the builds on
+  `examples/` (the differences should be those the target is meant to introduce, the
+  `sources` of the `.js.map` files and the target's versions and the hashes in the
+  manifest).  A target of another on-chain runtime major than the one
+  `runtime/package.json` depends on cannot be built until the runtime is restructured
+  (CoIP 5, phase 1).  This is documented in "Targets" in `compiler.md`.
 
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
