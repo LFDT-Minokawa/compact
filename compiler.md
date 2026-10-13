@@ -184,7 +184,18 @@ mechanism works for more than one target.
 4. `git add` the new directory: `nix build` only sees files git knows about.
 5. In `flake.nix`, add a package for it next to the existing one:
    `packages.compactc-<new-target> = lib.compactc-for-target "<new-target>";`
+   Also add the package that the release workflows build for it:
+   `packages.compactc-binary-<new-target> = lib.compactc-binary-for-target "<new-target>";`.
    To make it the default, change `default-compactc-target` in `flake.nix` instead.
+
+#### Releasing the targets
+
+`internal-release.yml` builds, tests and releases one `compactc` binary per operating
+system and target, for every directory in `compiler/targets/`.  An asset is named
+`compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
+`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`; the target part is the
+directory name respelled by `scripts/target-artifact-suffix.sh`.  The binary of a
+target can be built locally with `nix build .#compactc-binary-<target>`.
 
 #### Building the compiler for a target
 

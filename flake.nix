@@ -382,6 +382,23 @@
             dontFixup = true;
           };
 
+          # The release binary (see packages.compactc-binary) built for a target in
+          # compiler/targets/.  The release workflows build packages.compactc-binary-<target>
+          # for every directory in compiler/targets/, so each target needs one of these
+          # (see compiler.md, "Adding a target").
+          lib.compactc-binary-for-target = target: packages.compactc-binary.overrideAttrs (oldAttrs: {
+            name = "compactc-binary-dist-${target}";
+            src = packages.compactc-binary-nixos.overrideAttrs (nixosAttrs: {
+              name = "compactc-binary-nixos-${target}";
+              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] nixosAttrs.CHEZSCHEMELIBDIRS;
+            });
+          });
+          packages."compactc-binary-${default-compactc-target}" = packages.compactc-binary;
+          # todo @pataei remove this before merging, this is used solely for testing
+          # NB add a new non-default target here, e.g.:
+          # packages.compactc-binary-ocrt-5_0-zkir-3_1 = lib.compactc-binary-for-target "ocrt-5_0-zkir-3_1";
+          packages.compactc-binary-ocrt-4_1-zkir-3_1 = lib.compactc-binary-for-target "ocrt-4_1-zkir-3_1";
+
           packages.compactc-oci = with pkgs // packages; nix2container.buildImage {
             name = "compactc";
             tag = compactc.version;

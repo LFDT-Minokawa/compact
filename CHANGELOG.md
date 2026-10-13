@@ -30,33 +30,48 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_1.mdx`) and
   states the on-chain runtime and ZKIR versions of that target.  The docs
   workflows check, and copy to the docs repository, every such file.
-  **Action required in the docs repository:** the workflows no longer write
+  
+### Internal notes
+- **Action required in the docs repository:** the workflows no longer write
   `ledger-adt.mdx`, so the old `docs/compact/data-types/ledger-adt.mdx` and
   `docs/compact/reference/ledger-adt.mdx` in `midnightntwrk/midnight-docs` must
   be removed by hand (otherwise stale copies remain), and the links to
   `ledger-adt` (e.g., in `compact-reference.mdx`) must be updated to point at the
   per-target files.
+- The internal release workflow now releases every target: one `compactc` binary
+  per operating system and target (every directory of `compiler/targets/`),
+  named `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
+  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`, instead of
+  `compactc_v<compiler-version>_<os>.zip`.  **This changes the names of release
+  assets:** scripts and tools that download them by name (including the `compact`
+  tool, until it learns about targets) must be updated.  Each target also has a
+  release binary package, `nix build .#compactc-binary-<target>`, which a new
+  target must add to `flake.nix`.
+- The dev publish workflow (`dev-publish.yml`) takes a `target` input, the name of a
+  directory in `compiler/targets/`, `all`, or empty (the default) for the default
+  target of `flake.nix` (`default-compactc-target`), and builds, tests and
+  publishes one binary per selected operating system and target, with the same
+  asset names as the internal release
+  (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
 - `compiler/go --build-for-all-targets` runs the tests for every target in
   `compiler/targets/` and so regenerates the ledger ADT documentation of every
   target.
-
-### Second target (proof of concept)
-
-A second target, `compiler/targets/ocrt-4_1-zkir-3_1`, is added to show that the
-mechanism supports more than one target.  It is a copy of `ocrt-4_0-zkir-3_1`
-and still uses on-chain runtime 4.0 and ZKIR 3.1.  The default build is
-unchanged; the new one is `nix build .#compactc-ocrt-4_1-zkir-3_1`.
-
-To add a target: copy an existing directory in `compiler/targets/`, set the
-name and versions in its `current-target.ss`, `git add` it, and add
-`packages.compactc-<target> = lib.compactc-for-target "<target>";` to
-`flake.nix`.  To build the compiler for it, `nix build .#compactc-<target>`; in a
-development shell, replace the target in `CHEZSCHEMELIBDIRS`, clean `obj/`
-(`./clean.sh`), and run `./compiler/go --rebuild`.  To verify it,
-check `compactc --target` and the `target:` line of
-`compactc --version --verbose`, run `compiler/go --build-for-all-targets`, and diff the
-output of both builds on `examples/` (only the `sources` in `.js.map` files and
-the manifest hashes should differ for a copy).  See "Targets" in `compiler.md`.
+- A second target, `compiler/targets/ocrt-4_1-zkir-3_1`, is added to show that the
+  mechanism supports more than one target.  It is a copy of `ocrt-4_0-zkir-3_1`
+  and still uses on-chain runtime 4.0 and ZKIR 3.1.  The default build is
+  unchanged; the new one is `nix build .#compactc-ocrt-4_1-zkir-3_1`.
+- To add a target: copy an existing directory in `compiler/targets/`, set the
+  name and versions in its `current-target.ss`, `git add` it, and add
+  `packages.compactc-<target> = lib.compactc-for-target "<target>";` and
+  `packages.compactc-binary-<target> = lib.compactc-binary-for-target "<target>";` to
+  `flake.nix`.  To build the compiler for it, `nix build .#compactc-<target>`; in a
+  development shell, replace the target in `CHEZSCHEMELIBDIRS`, clean `obj/`
+  (`./clean.sh`), and run `./compiler/go --rebuild`.  To verify it,
+  check `compactc --target` and the `target:` line of
+  `compactc --version --verbose`, run `compiler/go --build-for-all-targets`, and diff the
+  output of both builds on `examples/` (only the `sources` in `.js.map` files and
+  the manifest hashes should differ for a copy).  This is documented in
+  "Targets" in `compiler.md`.
 
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 

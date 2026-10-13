@@ -10,17 +10,28 @@
 #   - Manual only (workflow_dispatch). Runnable by anyone with write access to
 #     this repository. Not on push/PR/schedule -- this is opt-in, on demand.
 #   - Input `branch` selects the ref to build and publish from.
+#   - Input `target` selects the target(s) to build the binary for, and the
+#     `include_*` inputs select the operating systems.  One binary is built,
+#     tested and published per selected (operating system, target).  `target` is:
+#
+#       | `target` input             | targets built                                     |
+#       | -------------------------- | ------------------------------------------------- |
+#       | empty (the default)        | the default target, `default-compactc-target` in  |
+#       |                            | flake.nix (e.g. ocrt-4_0-zkir-3_1)                |
+#       | `all`                      | every directory in compiler/targets/              |
+#       | a directory name           | just that target (e.g. ocrt-4_1-zkir-3_1)         |
+#       | an unknown name            | the workflow fails, listing the available targets |
 #
 # Coordinates produced (stable, pinnable)
 #   - npm:    @midnight-ntwrk/compact-runtime@<base>-dev.<sha>  (dist-tag `dev`)
 #             registry https://npm.pkg.github.com/  (scope @midnight-ntwrk)
 #   - binary: GitHub *prerelease* on this repo, tag `compactc-dev-<sha>`,
-#             assets compactc_dev-<sha>_<arch>.zip
+#             assets compactc_dev-<sha>_<arch>_ocrt_v<M.m>-zkir_v<M.m>.zip
 #   <sha> is the full 40-char commit SHA.
 #
 # Retention
 #   - npm `dev.*` prereleases publish under dist-tag `dev` and never move `latest`.
-#   - See doc/dev-builds.md for the documented retention/cleanup policy.
+#   - See doc/processes/dev-builds.md for the documented retention/cleanup policy.
 name: On-demand dev publish of compact toolchain
 
 on:
@@ -30,6 +41,14 @@ on:
         description: 'Branch or ref to build and publish from'
         required: true
         type: string
+      target:
+        description: >-
+          Target to build the compactc binary for: the name of a directory in
+          compiler/targets/ (e.g. ocrt-4_0-zkir-3_1), `all` for every target, or
+          empty for the default target (default-compactc-target in flake.nix)
+        required: false
+        type: string
+        default: ''
       publish_runtime:
         description: 'Publish @midnight-ntwrk/compact-runtime to GitHub Packages'
         required: true
@@ -73,6 +92,7 @@ jobs:
       sha: ${{ steps.coord.outputs.sha }}
       bin_tag: ${{ steps.coord.outputs.bin_tag }}
       runtime_version: ${{ steps.coord.outputs.runtime_version }}
+      targets: ${{ steps.targets.outputs.targets }}
       linux_arm: aarch64-unknown-linux-musl
       linux_x86: x86_64-unknown-linux-musl
       macos_arm: aarch64-darwin
@@ -98,10 +118,52 @@ jobs:
           echo "compactc binary tag: dev-${SHA}"
           echo "runtime npm version:  ${RUNTIME_VERSION}"
 
+      # The targets to build for, as a JSON array for the matrix of the build and test
+      # jobs: every directory of compiler/targets/ at the commit being built for `all`,
+      # the default target of flake.nix when none is given, otherwise the one named.
+      - name: Resolve the targets
+        id: targets
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+          if [ -z "$TARGET" ]; then
+            TARGET="$(sed -n 's/^ *default-compactc-target = "\(.*\)";.*$/\1/p' flake.nix)"
+            if [ -z "$TARGET" ] || [ "$(echo "$TARGET" | wc -l)" -ne 1 ]; then
+              echo "::error::could not read default-compactc-target from flake.nix"
+              exit 1
+            fi
+            echo "No target given; using the default target of flake.nix: $TARGET"
+          fi
+          if [ "$TARGET" = "all" ]; then
+            TARGETS="$(find compiler/targets -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort)"
+          else
+            if [ ! -d "compiler/targets/$TARGET" ]; then
+              echo "::error::target '$TARGET' is not a directory of compiler/targets at this commit; available: $(ls compiler/targets | tr '\n' ' ')"
+              exit 1
+            fi
+            TARGETS="$TARGET"
+          fi
+          if [ -z "$TARGETS" ]; then
+            echo "::error::no targets found in compiler/targets"
+            exit 1
+          fi
+          for T in $TARGETS; do
+            # fails the job when a directory is not named like a target
+            echo "$T -> $(./scripts/target-artifact-suffix.sh "$T")"
+          done
+          JSON="$(echo "$TARGETS" | jq -R . | jq -sc .)"
+          echo "Building for targets: $JSON"
+          echo "targets=$JSON" >> "$GITHUB_OUTPUT"
+
   build-linux-x86:
     name: Build compactc binary for Linux x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
     if: ${{ inputs.publish_compiler }}
     permissions:
       contents: read
@@ -109,10 +171,11 @@ jobs:
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-      artifact: dev-linux-x86_64
+      artifact: dev-linux-x86_64-${{ matrix.target }}
+      target: ${{ matrix.target }}
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
-      buildCommand: nix build .\#compactc-binary -L
+      buildCommand: nix build .\#compactc-binary-${{ matrix.target }} -L
       include_release_notes: false
       skipCache: false
 
@@ -120,6 +183,10 @@ jobs:
     name: Build compactc binary for Linux aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
     if: ${{ inputs.publish_compiler && inputs.include_linux_arm }}
     permissions:
       contents: read
@@ -127,10 +194,11 @@ jobs:
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-      artifact: dev-linux-aarch64
+      artifact: dev-linux-aarch64-${{ matrix.target }}
+      target: ${{ matrix.target }}
       platform: ubuntu-24.04-arm
       architecture: ${{ needs.setup.outputs.linux_arm }}
-      buildCommand: nix build .\#compactc-binary -L
+      buildCommand: nix build .\#compactc-binary-${{ matrix.target }} -L
       include_release_notes: false
       skipCache: false
 
@@ -138,6 +206,10 @@ jobs:
     name: Build compactc binary for macOS aarch64 (Arm)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
     if: ${{ inputs.publish_compiler && inputs.include_macos_arm }}
     permissions:
       contents: read
@@ -145,10 +217,11 @@ jobs:
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-      artifact: dev-macos-aarch64
+      artifact: dev-macos-aarch64-${{ matrix.target }}
+      target: ${{ matrix.target }}
       platform: macos-latest-xlarge
       architecture: ${{ needs.setup.outputs.macos_arm }}
-      buildCommand: nix build .\#compactc-binary -L
+      buildCommand: nix build .\#compactc-binary-${{ matrix.target }} -L
       include_release_notes: false
       skipCache: true
 
@@ -156,6 +229,10 @@ jobs:
     name: Build compactc binary for macOS x86_64 (Intel)
     uses: ./.github/workflows/release-build.yml
     needs: [ setup ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
     if: ${{ inputs.publish_compiler && inputs.include_macos_intel }}
     permissions:
       contents: read
@@ -163,10 +240,11 @@ jobs:
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-      artifact: dev-macos-x86_64
+      artifact: dev-macos-x86_64-${{ matrix.target }}
+      target: ${{ matrix.target }}
       platform: macos-15-intel
       architecture: ${{ needs.setup.outputs.macos_x86 }}
-      buildCommand: nix build .\#compactc-binary -L
+      buildCommand: nix build .\#compactc-binary-${{ matrix.target }} -L
       include_release_notes: false
       skipCache: true
 
@@ -174,6 +252,10 @@ jobs:
     name: Test compactc on Linux x86_64 (Intel)
     uses: ./.github/workflows/release-test.yml
     needs: [ setup, build-linux-x86 ]
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ${{ fromJson(needs.setup.outputs.targets) }}
     if: ${{ inputs.publish_compiler }}
     permissions:
       contents: read
@@ -181,7 +263,8 @@ jobs:
     with:
       tag: ${{ needs.setup.outputs.bin_tag }}
       branch: ${{ needs.setup.outputs.branch }}
-      artifact: dev-linux-x86_64
+      artifact: dev-linux-x86_64-${{ matrix.target }}
+      target: ${{ matrix.target }}
       platform: ubuntu-latest
       architecture: ${{ needs.setup.outputs.linux_x86 }}
 
@@ -262,7 +345,7 @@ jobs:
             - Source ref: `${{ needs.setup.outputs.branch }}` @ `${{ needs.setup.outputs.sha }}`
             - Runtime npm: `@midnight-ntwrk/compact-runtime@${{ needs.setup.outputs.runtime_version }}` (dist-tag `dev`)
 
-            Not a supported release. See doc/dev-builds.md for the retention policy.
+            Not a supported release. See doc/processes/dev-builds.md for the retention policy.
 
       - name: Publish the dev prerelease
         if: ${{ steps.tag.outputs.skip == 'false' }}

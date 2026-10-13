@@ -41,6 +41,15 @@ on:
         required: false
         type: string
         default: ''
+      target:
+        description: >-
+          Target the binary is built for, the name of a directory in compiler/targets/
+          (e.g. ocrt-4_0-zkir-3_1).  When set, it is part of the artifact name:
+          compactc_<tag>_<architecture>_ocrt_v<M.m>-zkir_v<M.m>.zip.  The buildCommand
+          is expected to build that target.
+        required: false
+        type: string
+        default: ''
 
 permissions: {}
 
@@ -51,17 +60,24 @@ jobs:
     permissions:
       contents: read
     steps:
-      - name: Set name of artifact
-        env:
-          TAG: ${{ inputs.tag }}
-          ARCH: ${{ inputs.architecture }}
-        run: |
-          echo "ARTIFACT_NAME=compactc_${TAG}_${ARCH}" >> "$GITHUB_ENV"
-
       - name: Checkout compactc repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ inputs.branch }}
+
+      # After the checkout because the target's part of the name is computed by a script
+      # in the repository.
+      - name: Set name of artifact
+        env:
+          TAG: ${{ inputs.tag }}
+          ARCH: ${{ inputs.architecture }}
+          TARGET: ${{ inputs.target }}
+        run: |
+          NAME="compactc_${TAG}_${ARCH}"
+          if [ -n "$TARGET" ]; then
+            NAME="${NAME}_$(./scripts/target-artifact-suffix.sh "$TARGET")"
+          fi
+          echo "ARTIFACT_NAME=$NAME" >> "$GITHUB_ENV"
 
       - name: Setup Nix with cache
         uses: ./.github/actions/setup-nix-cache
