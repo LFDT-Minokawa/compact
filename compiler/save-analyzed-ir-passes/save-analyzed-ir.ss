@@ -16,9 +16,7 @@
 #!chezscheme
 
 (define (save-analyzed-ir ir proof-circuit-name*)
-  (let ([op (get-target-port 'analyzed-ir.sexp)]
-        [sexp (extract-analyzed-ir ir proof-circuit-name*)])
-    ;; One field per line, because the default layout wraps the header at a point that moves with the version strings.
-    (parameterize ([print-brackets #f] [current-output-port op])
-      (pretty-print/formats '((analyzed-ir . (_ #f e ...))) sexp)))
+  (let ([op (get-target-port 'analyzed-ir.sexp)])
+    (parameterize ([print-brackets #f])
+      (pretty-print (extract-analyzed-ir ir proof-circuit-name*) op)))
   ir)
