@@ -212,9 +212,7 @@ type Kind = 'plain' | 'adt';
  * entry: `Feature` then has no members, so every row still tagged with it fails to
  * compile until the tag is removed, and nothing else in the fuzzer names it.
  */
-export const FEATURES = {
-    'zkir-v3': '--feature-zkir-v3',
-} as const;
+export const FEATURES = {} as const;
 
 export type Feature = keyof typeof FEATURES;
 
@@ -249,16 +247,16 @@ const TYPES: TypeRow[] = [
     /* Native types, from compiler/midnight-natives.ss. */
     { kind: 'plain', write: 'JubjubScalar' },
     { kind: 'plain', write: 'JubjubPoint' },
-    /* Native types from compiler/zkir-v3-natives.ss, which need the flag. */
-    { kind: 'plain', write: 'Secp256k1Base', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256k1Scalar', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256k1Point', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256r1Base', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256r1Scalar', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256r1Point', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Curve25519Base', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Curve25519Scalar', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Curve25519Point', feature: 'zkir-v3' },
+    /* Native types, from compiler/zkir-v3-natives.ss. */
+    { kind: 'plain', write: 'Secp256k1Base' },
+    { kind: 'plain', write: 'Secp256k1Scalar' },
+    { kind: 'plain', write: 'Secp256k1Point' },
+    { kind: 'plain', write: 'Secp256r1Base' },
+    { kind: 'plain', write: 'Secp256r1Scalar' },
+    { kind: 'plain', write: 'Secp256r1Point' },
+    { kind: 'plain', write: 'Curve25519Base' },
+    { kind: 'plain', write: 'Curve25519Scalar' },
+    { kind: 'plain', write: 'Curve25519Point' },
 
     /* Exported from compiler/standard-library.compact. */
     { kind: 'plain', write: (s) => ['Maybe<', s.plain, '>'] },
@@ -274,10 +272,10 @@ const TYPES: TypeRow[] = [
     { kind: 'plain', write: 'UserAddress' },
     { kind: 'plain', write: 'PublicAddress' },
     { kind: 'plain', write: 'JubjubSchnorrSignature' },
-    /* Exported from compiler/zkir-v3-library.compact, which needs the flag. */
-    { kind: 'plain', write: 'Secp256k1EcdsaSignature', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Secp256r1EcdsaSignature', feature: 'zkir-v3' },
-    { kind: 'plain', write: 'Ed25519Signature', feature: 'zkir-v3' },
+    /* Exported from compiler/zkir-v3-library.compact. */
+    { kind: 'plain', write: 'Secp256k1EcdsaSignature' },
+    { kind: 'plain', write: 'Secp256r1EcdsaSignature' },
+    { kind: 'plain', write: 'Ed25519Signature' },
 
     /*
      * The ledger ADTs, from compiler/midnight-ledger.ss. Cell is missing on
@@ -1266,7 +1264,6 @@ const STDLIB_CALLS: StdlibCall[] = [
     { name: 'persistentHash', generics: [T], maxArgs: 1 },
     { name: 'persistentCommit', generics: [T], maxArgs: 2 },
     { name: 'hashToCurve', generics: [T], maxArgs: 1 },
-    /* Without --feature-zkir-v3, it is rejected only in exported circuits that use the ledger or emit events. */
     { name: 'keccak256', generics: [T], maxArgs: 1 },
     { name: 'merkleTreePathRoot', generics: [N, T], maxArgs: 2 },
     { name: 'merkleTreePathRootNoLeafHash', generics: [N], maxArgs: 1 },
@@ -1280,21 +1277,21 @@ const STDLIB_CALLS: StdlibCall[] = [
     { name: 'jubjubPointY', generics: [], maxArgs: 1 },
     { name: 'constructJubjubPoint', generics: [], maxArgs: 2 },
     { name: 'jubjubSchnorrVerify', generics: [N], maxArgs: 3 },
-    /* These need --feature-zkir-v3, from compiler/zkir-v3-natives.ss. */
-    { name: 'sha512', generics: [T], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'neg', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'inv', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'secp256k1PointX', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'secp256k1PointY', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'secp256r1PointX', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'secp256r1PointY', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'curve25519PointX', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'curve25519PointY', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    /* These need --feature-zkir-v3, from compiler/zkir-v3-library.compact. */
-    { name: 'secp256k1EcdsaVerify', generics: [], maxArgs: 3, feature: 'zkir-v3' },
-    { name: 'secp256k1EthereumAddress', generics: [], maxArgs: 1, feature: 'zkir-v3' },
-    { name: 'secp256r1EcdsaVerify', generics: [], maxArgs: 3, feature: 'zkir-v3' },
-    { name: 'ed25519Verify', generics: [N], maxArgs: 3, feature: 'zkir-v3' },
+    /* From compiler/zkir-v3-natives.ss. */
+    { name: 'sha512', generics: [T], maxArgs: 1 },
+    { name: 'neg', generics: [], maxArgs: 1 },
+    { name: 'inv', generics: [], maxArgs: 1 },
+    { name: 'secp256k1PointX', generics: [], maxArgs: 1 },
+    { name: 'secp256k1PointY', generics: [], maxArgs: 1 },
+    { name: 'secp256r1PointX', generics: [], maxArgs: 1 },
+    { name: 'secp256r1PointY', generics: [], maxArgs: 1 },
+    { name: 'curve25519PointX', generics: [], maxArgs: 1 },
+    { name: 'curve25519PointY', generics: [], maxArgs: 1 },
+    /* From compiler/zkir-v3-library.compact. */
+    { name: 'secp256k1EcdsaVerify', generics: [], maxArgs: 3 },
+    { name: 'secp256k1EthereumAddress', generics: [], maxArgs: 1 },
+    { name: 'secp256r1EcdsaVerify', generics: [], maxArgs: 3 },
+    { name: 'ed25519Verify', generics: [N], maxArgs: 3 },
     { name: 'nativeToken', generics: [], maxArgs: 1 },
     { name: 'tokenType', generics: [], maxArgs: 2 },
     { name: 'evolveNonce', generics: [], maxArgs: 2 },

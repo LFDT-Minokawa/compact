@@ -16,11 +16,9 @@
 import {
     ENTRY_POINTS,
     TERMINALS,
-    buildGrammar,
     grammar,
     validate,
     validateCategories,
-    type Feature,
     type FuzzerName,
     type Terminal,
 } from '../fuzzer/grammar';
@@ -138,16 +136,15 @@ describe('[UNIT] fuzzer type sizes stay inside the compiler limits', () => {
     });
 });
 
-/* A call that needs a flag is written only by the grammar built for that flag. */
-describe('[UNIT] fuzzer feature-gated calls', () => {
-    const writes = (features: Feature[], name: string): boolean => {
-        const table = buildGrammar(features);
-        return [...table.variable_statement_methods, ...table.no_variable_statement_methods].some(
+/* The ZKIR v3 calls are in scope by default, so the default grammar writes them. */
+describe('[UNIT] fuzzer ZKIR v3 calls', () => {
+    const writes = (name: string): boolean =>
+        [...grammar.variable_statement_methods, ...grammar.no_variable_statement_methods].some(
             (alternative) => Array.isArray(alternative) && alternative[0] === name,
         );
-    };
 
     test.each([
+        'keccak256',
         'sha512',
         'neg',
         'inv',
@@ -161,32 +158,20 @@ describe('[UNIT] fuzzer feature-gated calls', () => {
         'secp256k1EthereumAddress',
         'secp256r1EcdsaVerify',
         'ed25519Verify',
-    ])('%s is written only when zkir-v3 is on', (name) => {
-        expect(writes([], name)).toBe(false);
-        expect(writes(['zkir-v3'], name)).toBe(true);
+    ])('%s is written', (name) => {
+        expect(writes(name)).toBe(true);
     });
-
-    /* keccak256 compiles without the flag in most places, so both grammars write it. */
-    test.each(['keccak256', 'ecNeg', 'jubjubPointX', 'jubjubPointY', 'constructJubjubPoint', 'jubjubSchnorrVerify'])(
-        '%s is written with or without zkir-v3',
-        (name) => {
-            expect(writes([], name)).toBe(true);
-            expect(writes(['zkir-v3'], name)).toBe(true);
-        },
-    );
 });
 
-/* A type that needs a flag is written only by the grammar built for that flag. */
-describe('[UNIT] fuzzer feature-gated types', () => {
+/* The ZKIR v3 types are in scope by default, so the default grammar writes them. */
+describe('[UNIT] fuzzer ZKIR v3 types', () => {
     const TYPE_PRODUCTIONS = ['statement_std_types', 'valid_std_types'];
 
     /* How many of the type productions write a type that starts with this token. */
-    const writers = (features: Feature[], first: string): number => {
-        const table = buildGrammar(features);
-        return TYPE_PRODUCTIONS.filter((production) =>
-            table[production].some((alternative) => Array.isArray(alternative) && alternative[0] === first),
+    const writers = (first: string): number =>
+        TYPE_PRODUCTIONS.filter((production) =>
+            grammar[production].some((alternative) => Array.isArray(alternative) && alternative[0] === first),
         ).length;
-    };
 
     test.each([
         'Secp256k1Base',
@@ -201,14 +186,7 @@ describe('[UNIT] fuzzer feature-gated types', () => {
         'Curve25519Scalar',
         'Curve25519Point',
         'Ed25519Signature',
-    ])('%s is written only when zkir-v3 is on', (name) => {
-        expect(writers([], name)).toBe(0);
-        expect(writers(['zkir-v3'], name)).toBe(TYPE_PRODUCTIONS.length);
-    });
-
-    /* '[' is a tuple of two types; the empty tuple is the single token '[]'. */
-    test.each(['[', 'PublicAddress'])('%s is written with or without zkir-v3', (name) => {
-        expect(writers([], name)).toBe(TYPE_PRODUCTIONS.length);
-        expect(writers(['zkir-v3'], name)).toBe(TYPE_PRODUCTIONS.length);
+    ])('%s is written', (name) => {
+        expect(writers(name)).toBe(TYPE_PRODUCTIONS.length);
     });
 });
