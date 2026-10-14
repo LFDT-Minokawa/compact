@@ -752,6 +752,8 @@
       (cast-from-bytes src type len expr)     => (cast-from-bytes type len #f expr)
       (vector->bytes src len expr)            => (vector->bytes len #f expr)
       (bytes->vector src len expr)            => (bytes->vector len #f expr)
+      (point->bytes src len ctype expr)       => (point->bytes len ctype #f expr)
+      (bytes->point src ctype len expr)       => (bytes->point ctype len #f expr)
 
       ;; type is numeric (tfield or tunsigned), type^ is tenum
       (cast-from-enum src type type^ expr)    => (cast-from-enum type type^ #f expr)
@@ -1105,8 +1107,10 @@
       (bytes-ref triv nat)
       (new type triv* ...)                   => (new type #f triv* ...)
       (elt-ref triv elt-name)
-      (vector->bytes len triv)               => (vector->bytes len triv)
-      (bytes->vector len triv)               => (bytes->vector len triv)
+      (vector->bytes len triv)
+      (bytes->vector len triv)
+      (point->bytes len ctype triv)
+      (bytes->point src ctype len triv)      => (bytes->point ctype len triv)
       (call src function-name triv* ...)     => (call function-name #f triv* ...)
       (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
         (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)

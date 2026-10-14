@@ -646,14 +646,6 @@
        (source-errorf src "cannot cast from ~a to Bytes<~d>" (format-field-type ftype) len))
      (when (= len 0) (source-errorf src "invalid cast from field to Bytes<0>"))
      (with-output-language (Linlined Type) `(tbytes ,src ,len))]
-    [(bytes->vector ,src ,len ,[Care : expr -> * type])
-     (nanopass-case (Linlined Type) type
-       [(tbytes ,src ,len^)
-        (unless (= len^ len)
-          (source-errorf src "mismatch between Bytes lengths ~s and ~s for bytes->vector"
-                         len
-                         len^))])
-     (with-output-language (Linlined Type) `(tvector ,src ,len (tunsigned ,src 255)))]
     [(vector->bytes ,src ,len ,[Care : expr -> * type])
      (define (u8-subtype? type)
        (nanopass-case (Linlined Type) type
@@ -671,6 +663,28 @@
                       len
                       (format-type type)))
      (with-output-language (Linlined Type) `(tbytes ,src ,len))]
+    [(bytes->vector ,src ,len ,[Care : expr -> * type])
+     (nanopass-case (Linlined Type) type
+       [(tbytes ,src ,len^)
+        (unless (= len^ len)
+          (source-errorf src "mismatch between Bytes lengths ~s and ~s for bytes->vector"
+                         len
+                         len^))])
+     (with-output-language (Linlined Type) `(tvector ,src ,len (tunsigned ,src 255)))]
+    [(point->bytes ,src ,len ,ctype ,[Care : expr -> * type])
+     (unless (nanopass-case (Linlined Type) type
+               [(tpoint ,src^ ,ctype^) (same-curve-type? ctype ctype^)]
+               [else #f])
+       (source-errorf src "expected ~a, got ~a for point->bytes"
+         (format-point-type ctype)
+         (format-type type)))
+     (with-output-language (Linlined Type) `(tbytes ,src ,len))]
+    [(bytes->point ,src ,ctype ,len ,[Care : expr -> * type])
+     (unless (nanopass-case (Linlined Type) type
+               [(tbytes ,src^ ,len^) (eqv? len len^)]
+               [else #f])
+       (source-errorf src "expected Bytes<~d>, got ~a for bytes->point" len (format-type type)))
+     (with-output-language (Linlined Type) `(tpoint ,src ,ctype))]
     [(cast-to-field ,src ,ftype ,type ,[Care : expr -> * type^])
      (unless (same-type? type type^)
        (source-errorf src "expected ~a, got ~a for cast-to-field"
