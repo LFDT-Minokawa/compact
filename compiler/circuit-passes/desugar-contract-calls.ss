@@ -21,12 +21,17 @@
 ;; A statement
 ;;   (= test (V* ...) (contract-call ... ((recv* ...) tcontract) triv* ...))
 ;; becomes three statements:
-;;   (= test (V* ... cc-rand ep-mod ep-div) (contract-call ... tcontract'))
-;;     -- tcontract' extends the callee's return type by cc-rand : Field and
-;;        the two circuit name limbs ep-mod : Field<2^8>, ep-div : Field<2^248>
+;;   (= test (V* ... cc-rand) (contract-call ... tcontract'))
+;;     -- tcontract' extends the callee's return type by cc-rand : Field
 ;;   (= test (comm) (call <transientCommit> triv* ... V* ... cc-rand))
 ;;     -- the communication commitment;
-;;   (= test () (public-ledger ... claimContractCall recv* ... ep-mod ep-div comm)).
+;;   (= test () (public-ledger ... claimContractCall recv* ... ep-limb* ... comm))
+;;     -- ep-limb* are the limbs of the callee circuit's entry-point hash.
+;;
+;; The entry point is a compile-time constant of the call site, so the claim
+;; carries it as immediates rather than as witnessed values: a prover supplying
+;; it could claim a call to any other circuit of the callee with the same
+;; argument and result shape, and the ledger would accept the matching pair.
 (define-pass desugar-contract-calls : Lflattened (ir) -> Lflattened ()
   (definitions
     (define synth-natives '())
@@ -89,16 +94,36 @@
         [else
          (internal-errorf 'desugar-contract-calls
            "contract-call primitive-type is not a tcontract")]))
-    ;; Extend a return type by [cc-rand : Field, ep-mod : Field<2^8>, ep-div : Field<2^248>]
+    ;; Extend a return type by [cc-rand : Field]
     (define (extend-ret-type ret-ty)
       (nanopass-case (Lflattened Type) ret-ty
         [(ty (,alignment* ...) (,primitive-type* ...))
          (with-output-language (Lflattened Type)
-           `(ty (,alignment* ... (afield) (afield) (afield))
-                (,primitive-type* ...
-                 (tfield (field-native))
-                 (tunsigned ,(max 0 (- (expt 2 8) 1)))
-                 (tunsigned ,(max 0 (- (expt 2 (* (field-bytes) 8)) 1))))))]))
+           `(ty (,alignment* ... (afield))
+                (,primitive-type* ... (tfield (field-native)))))]))
+    ;; The ledger's entry-point hash of a circuit name (`EntryPointBuf::ep_hash`
+    ;; in midnight-ledger's onchain-state): a persistent commitment under a
+    ;; fixed 32-byte domain separator.
+    (define entry-point-domain-separator
+      (let ([bytes (make-bytevector 32 0)] [tag (string->utf8 "midnight:entry-point")])
+        (bytevector-copy! tag 0 bytes 0 (bytevector-length tag))
+        bytes))
+    (define (entry-point-hash elt-name)
+      (let* ([name (string->utf8 (symbol->string elt-name))]
+             [preimage (make-bytevector (+ 32 (bytevector-length name)))])
+        (bytevector-copy! entry-point-domain-separator 0 preimage 0 32)
+        (bytevector-copy! name 0 preimage 32 (bytevector-length name))
+        (sha256-bytevector preimage)))
+    ;; The limbs of a `Bytes<32>` constant, split as `flatten-datatypes` splits
+    ;; one, so they fill the claim's `Bytes32` entry-point formal.
+    (define (bytes->limbs bytes)
+      (let ([n (bytevector-length bytes)])
+        (let loop ([i 0] [limb* '()])
+          (if (fx= i n)
+              limb*
+              (let ([j (fxmin (fx- n i) (field-bytes))])
+                (loop (fx+ i j)
+                  (cons (bytevector-uint-ref bytes i (endianness little) j) limb*)))))))
     ;; Rebuild a tcontract with circuit `elt-name`'s return type extended.
     (define (extend-tcontract elt-name primitive-type)
       (nanopass-case (Lflattened Primitive-Type) primitive-type
@@ -122,19 +147,18 @@
              "no kernel-declaration with a claimContractCall ADT-op"))
          (let ([tc-name (synth-tc-native! src elt-name primitive-type)]
                [cc-rand (make-temp-id src 'cc-rand)]
-               [ep-mod  (make-temp-id src 'ep-mod)]
-               [ep-div  (make-temp-id src 'ep-div)]
+               [ep-limb* (bytes->limbs (entry-point-hash elt-name))]
                [comm    (make-temp-id src 'comm)]
                [tc^     (extend-tcontract elt-name primitive-type)])
            (with-output-language (Lflattened Statement)
              (list
-               `(= ,test (,var-name* ... ,cc-rand ,ep-mod ,ep-div)
+               `(= ,test (,var-name* ... ,cc-rand)
                    (contract-call ,src ,elt-name ((,recv* ...) ,tc^) ,triv* ...))
                `(= ,test (,comm)
                    (call ,src ,tc-name ,triv* ... ,var-name* ... ,cc-rand))
                `(= ,test ()
                    (public-ledger ,src ,kernel-ledger-field-name #f () ,src
-                     ,kernel-claim-adt-op ,recv* ... ,ep-mod ,ep-div ,comm)))))]
+                     ,kernel-claim-adt-op ,recv* ... ,ep-limb* ... ,comm)))))]
         [else (list stmt)]))
     (define (rewrite-pelt pelt)
       (nanopass-case (Lflattened Program-Element) pelt

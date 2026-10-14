@@ -831,8 +831,8 @@
                         (length primitive-type*) (length var-name*)))
                     ;; The `desugar-contract-calls` circuit pass has already rewritten this
                     ;; cross-contract call into an extended contract-call whose result
-                    ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
-                    ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
+                    ;; vector carries cc-rand as an extra witnessed value, plus an explicit
+                    ;; transientCommit `call` and a kernel.claimContractCall
                     ;; `public-ledger`. So all that remains here is to witness the
                     ;; (extended) result vector — the transient hash and the claim are
                     ;; lowered by the generic call / public-ledger handlers.

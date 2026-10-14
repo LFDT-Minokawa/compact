@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
+
+### Security
+
+- A cross-contract call's proof now binds the callee circuit named at the call
+  site. Previously the entry point in the caller's `claimContractCall` was a
+  prover-supplied value that nothing compared with the circuit name, so whoever
+  submitted the transaction could redirect the call to any other circuit of the
+  callee with the same argument and result shape, and the ledger accepted the
+  matching claim (GHSA-7v3r-pgmw-h29c). The compiler now emits the entry-point
+  hash as a constant of the call site, and `compact-runtime` no longer supplies
+  it as a private transcript output. Contracts that make cross-contract calls
+  must be recompiled to get the fix; a caller compiled with an earlier toolchain
+  stays exposed whatever its callees do.
+
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
 - Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).
