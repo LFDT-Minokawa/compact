@@ -84,6 +84,12 @@ const KNOWN_SIGNATURE_TAGS: { readonly [K in SignatureType['tag']]: true } = {
   Secp256k1Base: true,
   Secp256k1Scalar: true,
   Secp256k1Point: true,
+  Secp256r1Base: true,
+  Secp256r1Scalar: true,
+  Secp256r1Point: true,
+  Curve25519Base: true,
+  Curve25519Scalar: true,
+  Curve25519Point: true,
   Uint: true,
   Bytes: true,
   Opaque: true,
@@ -134,6 +140,12 @@ const firstUnreadableTag = (t: SignatureType): string | undefined => {
     case 'Secp256k1Base':
     case 'Secp256k1Scalar':
     case 'Secp256k1Point':
+    case 'Secp256r1Base':
+    case 'Secp256r1Scalar':
+    case 'Secp256r1Point':
+    case 'Curve25519Base':
+    case 'Curve25519Scalar':
+    case 'Curve25519Point':
     case 'Uint':
     case 'Bytes':
     case 'Opaque':
@@ -278,6 +290,12 @@ export function signatureTypesEqual(a: SignatureType, b: SignatureType): boolean
     case 'Secp256k1Base':
     case 'Secp256k1Scalar':
     case 'Secp256k1Point':
+    case 'Secp256r1Base':
+    case 'Secp256r1Scalar':
+    case 'Secp256r1Point':
+    case 'Curve25519Base':
+    case 'Curve25519Scalar':
+    case 'Curve25519Point':
       return b.tag === a.tag;
     case 'Uint':
       return b.tag === 'Uint' && a.maxval === b.maxval;

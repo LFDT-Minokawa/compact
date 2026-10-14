@@ -34,6 +34,22 @@ const FIELD: SignatureType = { tag: 'Field' };
 const BOOL: SignatureType = { tag: 'Boolean' };
 const UNIT: SignatureType = { tag: 'Tuple', types: [] };
 
+// Every curve type the compiler writes into a signature (`format-field-type` and
+// `format-point-type` in print-typescript.ss).
+const CURVE_TYPES: readonly SignatureType[] = [
+  { tag: 'JubjubScalar' },
+  { tag: 'JubjubPoint' },
+  { tag: 'Secp256k1Base' },
+  { tag: 'Secp256k1Scalar' },
+  { tag: 'Secp256k1Point' },
+  { tag: 'Secp256r1Base' },
+  { tag: 'Secp256r1Scalar' },
+  { tag: 'Secp256r1Point' },
+  { tag: 'Curve25519Base' },
+  { tag: 'Curve25519Scalar' },
+  { tag: 'Curve25519Point' },
+];
+
 const uint = (maxval: string): SignatureType => ({ tag: 'Uint', maxval });
 const bytes = (length: number): SignatureType => ({ tag: 'Bytes', length });
 const opaque = (tsType: string): SignatureType => ({ tag: 'Opaque', tsType });
@@ -71,15 +87,7 @@ const MAX_U128 = '340282366920938463463374607431768211455';
 const MAX_U128_LESS_ONE = '340282366920938463463374607431768211454';
 
 describe('signatureTypesEqual: scalars', () => {
-  const scalars: readonly SignatureType[] = [
-    { tag: 'Boolean' },
-    { tag: 'Field' },
-    { tag: 'JubjubScalar' },
-    { tag: 'JubjubPoint' },
-    { tag: 'Secp256k1Base' },
-    { tag: 'Secp256k1Scalar' },
-    { tag: 'Secp256k1Point' },
-  ];
+  const scalars: readonly SignatureType[] = [BOOL, FIELD, ...CURVE_TYPES];
 
   test('every scalar equals itself', () => {
     for (const s of scalars) {
@@ -286,6 +294,12 @@ describe('checkConformance', () => {
 
   test('a module that implements the declaration conforms', () => {
     expect(checkConformance(declaration, conforming)).toEqual({ outcome: 'Conformant' });
+  });
+
+  test('a circuit over every curve type the compiler emits conforms', () => {
+    const curves: InterfaceDescriptor = { verify: decl(false, CURVE_TYPES, tuple(...CURVE_TYPES)) };
+    const impl: CircuitSignatures = { verify: sig(false, true, CURVE_TYPES, tuple(...CURVE_TYPES)) };
+    expect(checkConformance(curves, impl)).toEqual({ outcome: 'Conformant' });
   });
 
   test('an empty declaration conforms against anything', () => {

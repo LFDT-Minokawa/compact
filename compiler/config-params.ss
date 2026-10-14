@@ -39,8 +39,5 @@
 
   (export-parameter trace-search #f)
 
-  ; feature flags
-  (export-parameter feature-zkir-v3 #f)
-
   (export-parameter write-analyzed-ir #f)
 )

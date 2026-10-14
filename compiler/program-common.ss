@@ -91,10 +91,10 @@
              "~a\n"
              runtime-version-string))
 
-  (define (print-ledger-version zkir-v3)
+  (define (print-ledger-version)
     (fprintf (current-output-port)
              "~a\n"
-             (cdr (assoc (if zkir-v3 "zkir-v3" "zkir-v2") ledger-version-strings))))
+             (cdr (assoc "zkir-v3" ledger-version-strings))))
 
   (define (check-pathname pathname)
     (when (and (>= (string-length pathname) 1)
