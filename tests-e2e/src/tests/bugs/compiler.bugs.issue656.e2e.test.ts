@@ -26,17 +26,10 @@ type ZkirCircuit = {
 const CONTRACT = buildPathTo('/bugs/issue-656/communications-commitment.compact');
 
 const cases = [
-    { name: 'v2 default', args: [], version: 2, expected: true },
+    { name: 'v3 default', args: [], version: 3, expected: true },
     {
-        name: 'v2 disabled',
+        name: 'a single vkir-v3 available',
         args: [Arguments.NO_COMMUNICATIONS_COMMITMENT],
-        version: 2,
-        expected: false,
-    },
-    { name: 'v3 default', args: [Arguments.FEATURE_V3], version: 3, expected: true },
-    {
-        name: 'v3 disabled',
-        args: [Arguments.FEATURE_V3, Arguments.NO_COMMUNICATIONS_COMMITMENT],
         version: 3,
         expected: false,
     },

@@ -389,20 +389,6 @@
         (lambda (type)
           (T type
             [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]))))
-    (define (check-zkir-v3-curve type)
-      (define (is-zkir-v3-only-curve? ctype)
-        (nanopass-case (Ltypes Curve-Type) ctype
-          [(curve-jubjub) #f]
-          [else #t]))
-      (define (contains-zkir-v3-only-curve? type)
-        (type-contains? type
-          (lambda (type)
-            (T type
-              [(tfield ,src (field-base ,ctype)) (is-zkir-v3-only-curve? ctype)]
-              [(tfield ,src (field-scalar ,ctype)) (is-zkir-v3-only-curve? ctype)]
-              [(tpoint ,src ,ctype) (is-zkir-v3-only-curve? ctype)]))))
-      (assertf (or (feature-zkir-v3) (not (contains-zkir-v3-only-curve? type)))
-               "foreign fields and points should arise only via the zkir v3 standard library"))
     (define (do-call src fold? fun actual-type* build-call)
       (define compatible-args?
         (let ([nactual (length actual-type*)])
@@ -1014,13 +1000,11 @@
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      (build-function (native-entry-class native-entry) #t function-name arg* type)]
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     (check-zkir-v3-curve type)
      (build-function 'witness #f function-name arg* type)]
     [(public-ledger-declaration ,src ,ledger-field-name ,[type])
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
-     (check-zkir-v3-curve type)
      (set-idtype! ledger-field-name (Idtype-Base type))]
     [else (void)])
   (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -1036,8 +1020,6 @@
        `(constructor ,src (,arg* ...) ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-     (for-each check-zkir-v3-curve (map arg->type arg*))
-     (check-zkir-v3-curve type)
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
        `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
