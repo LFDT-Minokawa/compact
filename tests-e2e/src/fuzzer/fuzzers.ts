@@ -13,8 +13,23 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ENTRY_POINTS, validate, type FuzzerName } from './grammar';
+import { ENTRY_POINTS, FEATURES, buildGrammar, validate, validateCatalogue, type Feature, type FuzzerName } from './grammar';
 import { Fuzzer } from './utils/fuzzer';
+
+/** A generated contract and the compiler flags it has to be compiled with. */
+export interface GeneratedContract {
+    file: string;
+    flags: string[];
+}
+
+/*
+ * One run with no flags, then one per opt-in compiler feature. The list follows
+ * `FEATURES`, so a backend arriving or shipping as the default changes nothing here.
+ */
+const variants = (): { label: string; features: Feature[] }[] => [
+    { label: '', features: [] },
+    ...(Object.keys(FEATURES) as Feature[]).map((feature) => ({ label: feature, features: [feature] })),
+];
 
 export const DEFAULT_CONTRACTS_PER_FUZZER = 1000;
 
@@ -28,13 +43,25 @@ export function resolveContractCount(raw: string | undefined): number {
     return requested;
 }
 
-export function generate(outputDir: string, amount: number): void {
-    const problems = validate();
+export function generate(outputDir: string, amount: number): GeneratedContract[] {
+    /* Build every grammar first: a type may be reachable only under a feature flag. */
+    const built = variants().map((variant) => ({ ...variant, table: buildGrammar(variant.features) }));
+
+    const problems = [...built.flatMap(({ table }) => validate({ table })), ...validateCatalogue()];
     if (problems.length > 0) {
-        throw new Error(`fuzzer grammar is invalid:\n  ${problems.join('\n  ')}`);
+        throw new Error(`fuzzer grammar is invalid:\n  ${[...new Set(problems)].join('\n  ')}`);
     }
 
-    for (const name of Object.keys(ENTRY_POINTS) as FuzzerName[]) {
-        new Fuzzer(name, outputDir, amount).saveContracts();
+    const written: GeneratedContract[] = [];
+    for (const { label, features, table } of built) {
+        const flags = features.map((feature) => FEATURES[feature]);
+        for (const name of Object.keys(ENTRY_POINTS) as FuzzerName[]) {
+            const fuzzer = new Fuzzer(name, outputDir, amount, {
+                grammar: table,
+                label: label ? `${name}_${label}` : name,
+            });
+            for (const file of fuzzer.saveContracts()) written.push({ file, flags });
+        }
     }
+    return written;
 }
