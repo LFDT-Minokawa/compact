@@ -52,9 +52,6 @@ The following flags, if present, affect the compiler's behavior as follows:
     is the version of the Compact runtime JavaScript package that is used by
     generated contract code.
 
-  --feature-zkir-v3 causes the compiler to generate circuits using ZKIR version 3,
-    overriding the default (version 2).
-
   --vscode causes error messages to be printed on a single line so they are
     rendered properly within the VS Code extension for Compact.
 
@@ -92,20 +89,19 @@ The following flags, if present, affect the compiler's behavior as follows:
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
 
 ;; The first of these flags on the command line is the one that acts, but a flag
-;; action runs as that flag is parsed -- before a later --verbose or
-;; --feature-zkir-v3 has been seen -- so each one records itself here instead and
-;; the clause body prints.
+;; action runs as that flag is parsed -- before a later --verbose has been seen --
+;; so each one records itself here instead and the clause body prints.
 (define first-exit-flag #f)
 
 (define (exit-flag! which)
   (unless first-exit-flag (set! first-exit-flag which)))
 
-(define (print-exit-flag verbose? feature-zkir-v3?)
+(define (print-exit-flag verbose?)
   (case first-exit-flag
     [(help) (print-help)]
     [(version) (print-compiler-version verbose?)]
     [(language-version) (print-language-version)]
-    [(ledger-version) (print-ledger-version feature-zkir-v3?)]
+    [(ledger-version) (print-ledger-version)]
     [(runtime-version) (print-runtime-version)]))
 
 (parameterize ([reset-handler abort])
@@ -124,19 +120,17 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--sourceRoot) (string source-root)]
              [(--compact-path) (string search-list)]
              [(--trace-search)]
-             [(--trace-passes)]
-             [(--feature-zkir-v3)])
+             [(--trace-passes)])
       (string source-pathname)
       (string target-directory-pathname))
      (when first-exit-flag
-       (print-exit-flag ?--verbose ?--feature-zkir-v3)
+       (print-exit-flag ?--verbose)
        (exit))
      (check-pathname source-pathname)
      (check-pathname target-directory-pathname)
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
-                    [feature-zkir-v3 ?--feature-zkir-v3]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
@@ -147,9 +141,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--ledger-version) $ (exit-flag! 'ledger-version)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
-             [(--verbose)]
-             [(--feature-zkir-v3)])
+             [(--verbose)])
       (string arg) ...)
      (unless first-exit-flag (print-usage #t) (exit 1))
-     (print-exit-flag ?--verbose ?--feature-zkir-v3)
+     (print-exit-flag ?--verbose)
      (exit)]))

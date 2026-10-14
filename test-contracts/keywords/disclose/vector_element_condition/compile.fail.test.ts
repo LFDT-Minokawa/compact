@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2026 Midnight Foundation
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -15,8 +15,7 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// The ledger write makes this provable, and zkir v2 has no keccak256, so it
-// must fail without the flag. The same source compiles in ../impure_with_v3.
 export default defineCompileTest(import.meta.url, {
-    expectedError: /keccak256 is not supported in ZKIR v2/,
+    expectedError:
+        /line 22 char 3:\s+potential witness-value disclosure must be declared but is not:[\s\S]*the return value of witness secret[\s\S]*the value returned from exported circuit disclose_vector_element_condition might\s+disclose the witness value/,
 });
