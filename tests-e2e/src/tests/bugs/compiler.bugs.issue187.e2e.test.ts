@@ -28,9 +28,10 @@ type CircuitName = 'less_than' | 'less_than_or_equal' | 'greater_than' | 'greate
 
 type ZkirInstruction = {
     op: string;
-    var?: number;
-    a?: number;
-    b?: number;
+    val?: string;
+    output?: string;
+    a?: string;
+    b?: string;
     bits?: number;
 };
 
@@ -57,21 +58,19 @@ function getZkir(outputDir: string, circuitName: CircuitName): ZkirCircuit {
     return JSON.parse(getFileContent(`${outputDir}/zkir/${circuitName}.zkir`)) as ZkirCircuit;
 }
 
-function getUint8PrivateInputVars(zkir: ZkirCircuit): number[] {
-    return zkir.instructions.flatMap((instruction, index, instructions) => {
-        const nextInstruction = instructions[index + 1];
+function getUint8PrivateInputVars(zkir: ZkirCircuit): string[] {
+    const privateInputOutputs = new Set(
+        zkir.instructions.filter(({ op }) => op === 'private_input').map(({ output }) => output),
+    );
 
-        if (
-            instruction.op === 'private_input' &&
-            nextInstruction?.op === 'constrain_bits' &&
-            nextInstruction.var !== undefined &&
-            nextInstruction.bits === 8
-        ) {
-            return [nextInstruction.var];
-        }
-
-        return [];
-    });
+    return zkir.instructions.flatMap((instruction) =>
+        instruction.op === 'constrain_bits' &&
+        instruction.val !== undefined &&
+        instruction.bits === 8 &&
+        privateInputOutputs.has(instruction.val)
+            ? [instruction.val]
+            : [],
+    );
 }
 
 function getLessThanInstruction(zkir: ZkirCircuit): ZkirInstruction {

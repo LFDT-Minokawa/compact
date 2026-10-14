@@ -98,9 +98,7 @@
                   (strict-nanopass-case (Lcircuit Curve-Type) ctype
                     [(curve-curve25519) (cons `(anative "Curve25519Scalar") a*)]
                     [(curve-jubjub)
-                     (if (feature-zkir-v3)
-                         (cons `(anative "JubjubScalar") a*)
-                         (cons `(afield) a*))]
+                     (cons `(anative "JubjubScalar") a*)]
                     [(curve-secp256k1) (cons `(anative "Secp256k1Scalar") a*)]
                     [(curve-secp256r1) (cons `(anative "Secp256r1Scalar") a*)])])]
               [(tunsigned ,src ,nat)
@@ -109,17 +107,12 @@
               [(tpoint ,src ,ctype)
                (strict-nanopass-case (Lcircuit Curve-Type) ctype
                  [(curve-curve25519)
-                  (assert (feature-zkir-v3))
                   (cons `(anative "Curve25519Point") a*)]
                  [(curve-jubjub)
-                  (if (feature-zkir-v3)
-                      (cons `(anative "JubjubPoint") a*)
-                      (cons* `(afield) `(afield) a*))]
+                  (cons `(anative "JubjubPoint") a*)]
                  [(curve-secp256k1)
-                  (assert (feature-zkir-v3))
                   (cons `(anative "Secp256k1Point") a*)]
                  [(curve-secp256r1)
-                  (assert (feature-zkir-v3))
                   (cons `(anative "Secp256r1Point") a*)])]
               [(tbytes ,src ,len) (cons `(abytes ,len) a*)]
               [(topaque ,src ,opaque-type) (cons `(acompress) a*)]
@@ -238,10 +231,6 @@
     [(tstruct ,src ,struct-name (,elt-name* ,[Type->Wump : type -> * wump*]) ...)
      (Wump-struct elt-name* wump*)]
     [(tunknown) (assert cannot-happen)]
-    [(tpoint ,src (curve-jubjub)) (guard (not (feature-zkir-v3)))
-     (Wump-bytes
-       (with-output-language (Lflattened Primitive-Type)
-         (list `(tfield (field-native)) `(tfield (field-native)))))]
     [else (Wump-single (Single-Type ir))])
   (Type : Type (ir) -> Type ()
     [else (build-type ir (wump->elts (Type->Wump ir)))])
@@ -299,12 +288,7 @@
                        (strict-nanopass-case (Lcircuit Curve-Type) ctype
                          [(curve-curve25519) (make-zkir-default "Curve25519Point")]
                          [(curve-jubjub)
-                          (if (feature-zkir-v3)
-                              (make-zkir-default "JubjubPoint")
-                              (let* ([t1 (make-new-id var-name)] [t2 (make-new-id var-name)])
-                                (values
-                                  (Wump-vector (list (Wump-single t1) (Wump-single t2)))
-                                  (list `(= ,test (,t1 ,t2) (default "JubjubPoint"))))))]
+                          (make-zkir-default "JubjubPoint")]
                          [(curve-secp256k1) (make-zkir-default "Secp256k1Point")]
                          [(curve-secp256r1) (make-zkir-default "Secp256r1Point")]))]
                     [(tbytes ,src ,len)
