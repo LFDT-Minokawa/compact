@@ -12,7 +12,6 @@
   "author": "IOG",
   "license": "Apache-2.0",
   "nixDependencies": [
-    "@midnightntwrk/zkir-v2",
     "@midnightntwrk/zkir-v3"
   ],
   "devDependencies": {
