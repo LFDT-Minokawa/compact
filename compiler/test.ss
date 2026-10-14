@@ -84460,8 +84460,9 @@ groups than for single tests.
      ; Keep the version lines dynamic because version strings change.
      (output-file "compiler/testdir/testfile/compiler/analyzed-ir.sexp"
        `(
-         ,(format "(analyzed-ir (compiler-version ~s) (language-version ~s)"
-            compiler-version-string language-version-string)
+         "(analyzed-ir"
+         ,(format "  (compiler-version ~s)" compiler-version-string)
+         ,(format "  (language-version ~s)" language-version-string)
          ,(format "  (runtime-version ~s)" runtime-version-string)
          "  (exports (digest . %digest.5) (pause . %pause.6)"
          "    (record . %record.3) (reg_add . %add.4)"
