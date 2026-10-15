@@ -106,18 +106,15 @@
               chmod u+w -R test-center/node_modules
             fi
           '';
-        # The target built by packages.compactc and used by the dev shells.  Other
-        # targets in compiler/targets/ are built with packages.compactc-<target>, which
-        # are generated for every target below.
+        # The target built by packages.compactc and used by the dev shells.
         default-compactc-target = checked-target "ocrt-4_0-zkir-3_1";
 
-        # The targets are the directories of compiler/targets/.
+        # Other targets in compiler/targets/ are built with packages.compactc-<target>, which
+        # are generated for every target below.
         targets = builtins.attrNames
           (pkgs.lib.filterAttrs (name: type: type == "directory") (builtins.readDir ./compiler/targets));
 
-        # The flake inputs that provide what a target is built with, named after the
-        # major version of what they provide: onchain-runtime-v<M> for the on-chain
-        # runtime M.x and zkir-v<M> for ZKIR M.x.  A target ocrt-<M>_<m>-zkir-<N>_<n> needs
+        # A target ocrt-<M>_<m>-zkir-<N>_<n> needs
         # the inputs onchain-runtime-v<M> and zkir-v<N>, providing M.m and N.n, and an
         # input is there for a target.
         input-names = builtins.attrNames inputs;
@@ -175,7 +172,6 @@
         # A target is a directory of compiler/targets/ with a current-target.ss in it.
         # A name that is none fails the evaluation here, saying what has to agree,
         # instead of failing the build with "library (current-target) not found".
-        # The targets and the flake inputs have to agree as well (see above).
         checked-target = target: assert target-inputs-checked;
           if builtins.pathExists ./compiler/targets/${target}/current-target.ss
           then target

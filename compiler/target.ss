@@ -27,8 +27,7 @@
 ;;; ocrt-4_0-zkir-3_1, and the name has to agree with the versions of the record:
 ;;; make-target rejects a record whose on-chain runtime or ZKIR version is not the
 ;;; one its name says (and a name that is not of that form).  The record of a
-;;; target is made from the name of its directory (see target-directory.ss), so it
-;;; always does.
+;;; target is made from the name of its directory.
 
 (library (target)
   (export make-target target? target-name target-onchain-runtime-version

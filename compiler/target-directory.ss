@@ -20,10 +20,8 @@
 ;;;   (make-target-here ledger-version)
 ;;;
 ;;; is the record for the target whose directory, compiler/targets/<target>/, is on
-;;; the library path while the library it is used in is compiled: its name is the
-;;; name of the directory and its on-chain runtime and ZKIR versions are the ones
-;;; the name says, so they cannot disagree.  The ledger version cannot be derived
-;;; and is given.  It is an error for no directory, or more than one, of
+;;; the library path while the library it is used in is compiled.
+;;; It is an error for no directory, or more than one, of
 ;;; compiler/targets/ to be on the library path, and for the directory not to be
 ;;; named ocrt-<major>_<minor>-zkir-<major>_<minor>.
 

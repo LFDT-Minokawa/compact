@@ -15,10 +15,6 @@
 
 #!chezscheme
 
-;;; The target of this directory.  Its name and its on-chain runtime and ZKIR
-;;; versions are the ones of the name of the directory; the ledger version is the
-;;; one that cannot be derived from it (see target-directory.ss).
-
 (library (current-target)
   (export current-target)
   (import (chezscheme) (target) (target-directory))

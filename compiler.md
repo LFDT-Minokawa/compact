@@ -145,13 +145,12 @@ of this document.
 ### Targets
 
 A `compactc` build is built for exactly one *target*, the pair of the on-chain
-runtime and ZKIR versions the compiler depends on (see
-[CoIP-5](./coips/coip-0005.md)).  A target is named
+runtime and ZKIR versions the compiler depends on.  A target is named
 `ocrt-<major>_<minor>-zkir-<major>_<minor>`, e.g., `ocrt-4_0-zkir-3_1`.
 The files that depend on the target live in
 [compiler/targets/<target>/](./compiler/targets): the TypeScript and ZKIR
 passes, the standard library (`standard-library.compact` and
-`zkir-v3-library.compact`), and `midnight-ledger.ss`, `midnight-natives.ss` and
+`zkir-v3-library.compact`), `midnight-ledger.ss`, and `midnight-natives.ss` and
 `zkir-v3-natives.ss`.
 Each target directory also contains a `current-target.ss` library that
 instantiates the target record defined in [compiler/target.ss](./compiler/target.ss).
@@ -160,6 +159,7 @@ The record is made from the name of the directory
 target and its on-chain runtime and ZKIR versions are the ones of
 `compiler/targets/<target>/`, so they cannot disagree, and `current-target.ss` only
 gives what cannot be derived, the ledger version.
+
 Which target a build uses is fixed at build time by which target directory is
 on the Chez library path (`CHEZSCHEMELIBDIRS`, set by `flake.nix`).
 [compiler/target-include.ss](./compiler/target-include.ss) provides
@@ -168,9 +168,9 @@ through the directory of the current target; `include-target` also checks, when
 the compiler is built, that the target directory exists, that it is the directory
 of the compiled `current-target` library (row 6 below), and that the target
 agrees with the on-chain runtime dependency of `runtime/package.json` (row 2).
+
 `compactc --target` prints the target of a build, and `contract-manifest.json`
 records it in the generated contract.
-
 `compactc --list-targets` prints the targets that exist (the directories of
 `compiler/targets/` when the compiler was built), one per line.  The repository
 currently has one target, `ocrt-4_0-zkir-3_1`, which is also the default.
@@ -178,8 +178,28 @@ currently has one target, `ocrt-4_0-zkir-3_1`, which is also the default.
 The name of a target says its versions: `ocrt-4_0-zkir-3_1` is the target of
 on-chain runtime 4.0 and ZKIR 3.1, and the record of the target has exactly these
 versions because it is made from the name.  A directory in `compiler/targets/` that
-is not named like a target, `ocrt-<major>_<minor>-zkir-<major>_<minor>`, fails the build
-(and `--list-targets` checks the names of all of them).
+is not named like a target fails the build.
+
+The chart below summarizes how targets work:
+
+```
+flake.nix  default-compactc-target  (or compactc-<target>)
+   │  sets, after checking that the dir exists and the flake inputs agree
+   ▼
+CHEZSCHEMELIBDIRS = compiler/ : compiler/targets/<T>/ : third_party/ : ...
+   │
+   ├─ import (typescript-passes) (zkir-v3-passes) (current-target)
+   │      └─ found only in compiler/targets/<T>/  ── same names for every target
+   │
+   ├─ (current-target)  =  (make-target-here "9.1.0")
+   │      └─ reads <T> from the library path → name, ocrt M.m, zkir N.n → record in the binary
+   │             └─ used by --target, --ledger-version, contract-manifest.json
+   │
+   └─ (include-target "midnight-ledger.ss")      expands to
+          (include "compiler/targets/<T>/midnight-ledger.ss")   [from the record's name]
+
+nix build .#compactc-<T>  =  same build with <T> swapped in
+```
 
 #### Names that must agree
 
@@ -225,23 +245,21 @@ the name of the target.
 1. Create the directory of the new target, named `ocrt-<M>_<m>-zkir-<N>_<n>`, e.g.,
    by copying an existing one:
    `cp -R compiler/targets/ocrt-4_0-zkir-3_1 compiler/targets/<new-target>`.
-2. The name of the target and its on-chain runtime and ZKIR versions come from the
-   name of the directory, so `current-target.ss` needs no edit unless the ledger
-   version, the one thing it says, differs.  See "Names that must agree" above for
-   everything that has to match.
+2. `current-target.ss` needs no edit unless the ledger version differs.
 3. Make `flake.nix` agree with the new name (row 5).  The flake needs the inputs
-   `onchain-runtime-v<M>` and `zkir-v<N>`, and they have to provide on-chain runtime
-   `<M>.<m>` and ZKIR `<N>.<n>`.  So the versions of the new target have to be the
+   `onchain-runtime-v<M>` and `zkir-v<N>`.
+   So the versions of the new target have to be the
    ones the existing inputs provided, unless the inputs are changed, and a new
    on-chain runtime or ZKIR *major* version needs a new input, e.g.,
-   `onchain-runtime-v5` or `zkir-v4`, next to the old one.  (Copying a target under
-   a new name is therefore not enough: its versions come from its name.)
+   `onchain-runtime-v5` or `zkir-v4`, next to the old one.
 4. `runtime/package.json` has to depend on the matching
    `@midnightntwrk/onchain-runtime-v<M>` (row 2), and there is a single
    `runtime/package.json` so far, so a target of another on-chain runtime major
    cannot be built yet (see above).
 5. Make the target-specific changes in the new directory (passes, standard
-   library, `midnight-*.ss`, ...).
+   library, `midnight-*.ss`, ...).  Build the compiler for the new target and
+   run your tests (see
+   [Building the compiler for a target](#building-the-compiler-for-a-target)).
 6. Create the standard library API documents of the new target.  They are written by
    hand, not generated: copy
    `doc/api/CompactStandardLibrary-<existing-target>` to
@@ -257,71 +275,11 @@ the name of the target.
    the release workflows build) for every directory of `compiler/targets/`.  To make
    the new target the default, change `default-compactc-target` in `flake.nix`.
 
-#### Deprecating a target
-
-There is no deprecation flag in the compiler: a target is built, tested, and released
-for as long as its directory is in `compiler/targets/`, and it is gone when the
-directory is.  Deprecating a target is therefore a two-step process, the first of which
-only announces it.
-
-**Step 1: announce.**  Do this in a release before the one that removes the target.
-
-1. If the target is the default (`default-compactc-target` in `flake.nix`), make
-   another target the default first.  The default target cannot be removed
-   (`flake.nix` fails the evaluation if `default-compactc-target` has no directory).
-2. Say in `CHANGELOG.md` (under "Changed" or a "Deprecated" heading) that the target is
-   deprecated, which release removes it, and which target to move to.  Binaries,
-   packages, and documents of the target are produced as before.
-3. Tell the owners of the tools that download the release assets by name (e.g.,
-   `compact` devtools), since the asset names carry the target.
-
-**Step 2: remove.**  In the release that removes the target:
-
-1. Delete the directory: `git rm -r compiler/targets/<target>`.  The release workflows
-   (`internal-release.yml`, `dev-publish.yml` with `target=all`), `flake.nix` (the
-   `compactc-<target>` and `compactc-binary-<target>` packages), `compiler/go
-   --build-for-all-targets`, `--list-targets`, and `test-contracts/coverage` all read
-   the directory, so none of them needs an edit for the target to disappear from them.
-   Assets already released stay where they are.
-2. Delete the documents generated per target: `doc/ledger-adt-<target>.mdx` and
-   `doc/api/CompactStandardLibrary-<target>/`.  Running
-   `./compiler/go --build-for-all-targets` no longer regenerates the first.  Remove
-   the corresponding files from `docs/compact/` in `midnightntwrk/midnight-docs` by
-   hand (the docs workflows only add and update files), and fix the links that point at
-   them.
-3. Make `flake.nix` agree with the targets that remain (row 5): an input
-   `onchain-runtime-v<M>` or `zkir-v<N>` that no remaining target uses has to be
-   removed, and the evaluation fails, naming it, until it is.  Conversely, an input a
-   remaining target needs must stay.  Check the places that use an input by name, such
-   as `nixDependenciesMap`.
-4. If no remaining target uses the on-chain runtime major of the removed one, drop its
-   `@midnightntwrk/onchain-runtime-v<M>` dependency from `runtime/package.json`
-   (row 2), and with it any runtime code that was only for that major.
-5. Remove references to the target by name elsewhere (e.g., docs, `RELEASING.md`
-   examples, tests that name it); `git grep <target>` finds them.
-6. Note the removal in `CHANGELOG.md`, including that the release no longer has assets
-   for the target.
-7. Check as in "Verifying a new target": `--list-targets` no longer lists it,
-   `nix build .#compactc` and `./compiler/go --build-for-all-targets` pass, and
-   `nix flake check` reports no disagreement between the targets and the flake inputs.
-
-The last remaining target cannot be removed: at least one target has to exist for
-the compiler to build.
-
-#### Releasing the targets
-
-`internal-release.yml` builds, tests and releases one `compactc` binary per operating
-system and target, for every directory in `compiler/targets/`.  An asset is named
-`compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
-`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`; the target part is the
-directory name respelled by `scripts/target-artifact-suffix.sh`.  The binary of a
-target can be built locally with `nix build .#compactc-binary-<target>`.
-
 #### Building the compiler for a target
 
 ```
-nix build .#compactc                      # the default target (default-compactc-target in flake.nix)
-nix build .#compactc-<target>              # another target
+nix build .#compactc           # the default target (default-compactc-target in flake.nix)
+nix build .#compactc-<target>  # another target
 ```
 
 Which target a build uses is just which `compiler/targets/<target>` directory is
@@ -364,6 +322,62 @@ Run `nix build .#compactc-<new-target>`, then:
   `doc/ledger-adt-<target>.mdx` per target, each stating the on-chain runtime and
   ZKIR versions of its target; check that the new target's file exists and
   looks right.
+
+#### Releasing the targets
+
+`internal-release.yml` builds, tests and releases one `compactc` binary per operating
+system and target, for every directory in `compiler/targets/`.  An asset is named
+`compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
+`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`; the target part is the
+directory name respelled by `scripts/target-artifact-suffix.sh`.
+
+#### Deprecating a target
+
+There is no deprecation flag in the compiler: a target is built, tested, and released
+for as long as its directory is in `compiler/targets/`, and it is gone when the
+directory is.  Deprecating a target is therefore a two-step process, the first of which
+only announces it.
+
+**Step 1: announce.**  Do this in a release before the one that removes the target.
+
+1. If the target is the default (`default-compactc-target` in `flake.nix`), make
+   another target the default first.  The default target cannot be removed
+   (`flake.nix` fails the evaluation if `default-compactc-target` has no directory).
+2. Say in `CHANGELOG.md` that the target is
+   deprecated, which release removes it, and which target to move to.
+3. Tell the owners of the tools that download the release assets by name (e.g.,
+   `compact` devtools), since the asset names carry the target.
+
+**Step 2: remove.**  In the release that removes the target:
+
+1. Delete the directory: `git rm -r compiler/targets/<target>`.  The release workflows
+   need no edits for the target to disappear from them.
+   Assets already released stay where they are.
+2. Delete the documents generated per target: `doc/ledger-adt-<target>.mdx` and
+   `doc/api/CompactStandardLibrary-<target>/`.  Running
+   `./compiler/go --build-for-all-targets` no longer regenerates the first.  Remove
+   the corresponding files from `docs/compact/` in `midnightntwrk/midnight-docs` by
+   hand (the docs workflows only add and update files), and fix the links that point at
+   them. Alternatively and in the future, the team could provide a workflow to remove
+   or archive these files.
+3. Make `flake.nix` agree with the targets that remain (row 5): an input
+   `onchain-runtime-v<M>` or `zkir-v<N>` that no remaining target uses has to be
+   removed, and the evaluation fails, naming it, until it is.  Conversely, an input a
+   remaining target needs must stay.  Check the places that use an input by name, such
+   as `nixDependenciesMap`.
+4. If no remaining target uses the on-chain runtime major of the removed one, drop its
+   `@midnightntwrk/onchain-runtime-v<M>` dependency from `runtime/package.json`
+   (row 2), and with it any runtime code that was only for that major.
+5. Remove references to the target by name elsewhere (e.g., docs, `RELEASING.md`
+   examples, tests that name it); `git grep <target>` finds them.
+6. Note the removal in `CHANGELOG.md`, including that the release no longer has assets
+   for the target.
+7. Check as in "Verifying a new target": `--list-targets` no longer lists it,
+   `nix build .#compactc` and `./compiler/go --build-for-all-targets` pass, and
+   `nix flake check` reports no disagreement between the targets and the flake inputs.
+
+The last remaining target cannot be removed: at least one target has to exist for
+the compiler to build.
 
 ## Intermediate languages
 
