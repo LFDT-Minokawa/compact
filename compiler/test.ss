@@ -84409,6 +84409,21 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
     )
+
+  (test
+    '(
+      "pragma language_version >= 0.25;"
+      ""
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger flag: Boolean;"
+      ""
+      "export circuit go(output: Bytes<1>): Boolean {"
+      "  return flag || deserialize<Boolean, 1>(output);"
+      "}"
+      )
+    (returns what)
+    )
 )
 
 (run-javascript)
