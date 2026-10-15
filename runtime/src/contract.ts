@@ -655,9 +655,6 @@ export const crossContractCall = async ({
     const calleeCallProofData = circuitContext.callProofDataTrace[circuitContext.callProofDataTrace.length - 1];
     const commCommData = createCommCommData(calleeCallProofData.input, calleeCallProofData.output);
     calleeCallProofData.commCommData = commCommData;
-    // The caller's circuit witnesses the callee's result and the commitment randomness; the entry
-    // point is a constant of the call site, so it reaches the claim through the public transcript
-    // alone.
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
     kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);

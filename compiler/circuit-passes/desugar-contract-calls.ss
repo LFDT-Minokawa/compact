@@ -27,11 +27,6 @@
 ;;     -- the communication commitment;
 ;;   (= test () (public-ledger ... claimContractCall recv* ... ep-limb* ... comm))
 ;;     -- ep-limb* are the limbs of the callee circuit's entry-point hash.
-;;
-;; The entry point is a compile-time constant of the call site, so the claim
-;; carries it as immediates rather than as witnessed values: a prover supplying
-;; it could claim a call to any other circuit of the callee with the same
-;; argument and result shape, and the ledger would accept the matching pair.
 (define-pass desugar-contract-calls : Lflattened (ir) -> Lflattened ()
   (definitions
     (define synth-natives '())

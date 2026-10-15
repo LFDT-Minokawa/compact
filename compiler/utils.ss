@@ -316,36 +316,46 @@
     (lambda (x)
       (fold-right (lambda (f x) (f x)) x f*)))
 
-  (define (shell command)
-    (let-values ([(to-stdin from-stdout from-stderr pid)
-                  (open-process-ports
-                    command
-                    (buffer-mode block)
-                    (native-transcoder))])
-      (close-port to-stdin)
-      (let* ([stdout-stuff (get-string-all from-stdout)]
-             [stderr-stuff (get-string-all from-stderr)])
-        (close-port from-stdout)
-        (close-port from-stderr)
-        (values
-          (if (eof-object? stdout-stuff) "" stdout-stuff)
-          (if (eof-object? stderr-stuff) "" stderr-stuff)))))
+  (define shell
+    (case-lambda
+      [(command) (shell command #vu8())]
+      [(command bv)
+       (let-values ([(to-stdin from-stdout from-stderr pid)
+                     (open-process-ports command (buffer-mode block) #f)])
+         (put-bytevector to-stdin bv)
+         (close-port to-stdin)
+         (let ([from-stdout (transcoded-port from-stdout (native-transcoder))]
+               [from-stderr (transcoded-port from-stderr (native-transcoder))])
+           (let* ([stdout-stuff (get-string-all from-stdout)]
+                  [stderr-stuff (get-string-all from-stderr)])
+             (close-port from-stdout)
+             (close-port from-stderr)
+             (values
+               (if (eof-object? stdout-stuff) "" stdout-stuff)
+               (if (eof-object? stderr-stuff) "" stderr-stuff)))))]))
 
-  ;; SHA-256 over bytes, as a 32-byte bytevector (`sha256-bytevector`) or over a file's raw bytes
-  ;; as lowercase hex (`sha256-file`). The file form is the definition the midnight-js stack uses
-  ;; for verifier-key fingerprints (`hashVerifierKey` == sha256 of the bytes, hex), so a hash
-  ;; produced here over a `.verifier` file matches the runtime's hash of the deployed verifier key
-  ;; byte-for-byte. Hash in-process through Common Crypto or OpenSSL when available, retaining the
-  ;; external-command implementation as a fallback.
+  ;; SHA-256
+  ;; sha256-bytevector takes a bytevector `bytes` of arbitrary size and returns a 32-byte
+  ;; bytevector containing the sha256 hash of the contents of `bytes`.
+  ;;
+  ;; sha256-file takes a pathname and returns a 64-character string containing the
+  ;; lower-case hex-encoded sha256 hash of the binary contents of the file specified
+  ;; by `pathname`.
+  ;;
+  ;; Hashing occurs in-process through Common Crypto or OpenSSL when available, otherwise
+  ;; via an external program that implements SHA-256.
   (module (sha256-bytevector sha256-file)
     (define (bytevector->hex bytes)
-      (format "~(~{~2,'0x~}~)" (bytevector->u8-list bytes)))
+      (let* ([n (bytevector-length bytes)]
+             [v (bytevector-uint-ref bytes 0 'big n)])
+        ; lower-case hex encoding of v padded to 2n characters
+        (format "~(~v,'0x~)" (fx* n 2) v)))
 
     (define (hex->bytevector hex)
-      (let* ([n (quotient (string-length hex) 2)] [bytes (make-bytevector n)])
-        (do ([i 0 (fx+ i 1)]) ((fx= i n) bytes)
-          (bytevector-u8-set! bytes i
-            (string->number (substring hex (fx* 2 i) (fx+ (fx* 2 i) 2)) 16)))))
+      (let* ([n (quotient (string-length hex) 2)]
+             [bytes (make-bytevector n)])
+        (bytevector-uint-set! bytes 0 (string->number hex 16) 'big n)
+        bytes))
 
     (define (read-bytevector pathname)
       (let ([bytes (call-with-port (open-file-input-port pathname) get-bytevector-all)])
@@ -429,28 +439,20 @@
         (or (char<=? #\0 c #\9)
             (char<=? #\a c #\f)
             (char<=? #\A c #\F)))
-      (define (hash-file pathname)
-        (let try ([command* commands-to-try]
-                  [rfailure* '()])
-          (if (null? command*)
-              (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
-                               (reverse rfailure*))
-              (let ([command (car command*)] [command* (cdr command*)])
-                (let-values ([(stdout stderr) (shell (format "exec ~a '~a'" command pathname))])
-                  (if (string=? stderr "")
-                      (if (>= (string-length stdout) 64)
-                          (let ([hash (substring stdout 0 64)])
-                            (if (andmap hex-digit? (string->list hash))
-                                (hex->bytevector (string-downcase hash))
-                                (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*))))
-                          (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
-                      (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
-      (let ([pathname (format "~a/compact-sha256-~a" (or (getenv "TMPDIR") "/tmp") (random 1000000000))])
-        (call-with-port (open-file-output-port pathname (file-options replace))
-          (lambda (op) (put-bytevector op bytes)))
-        (let ([digest (hash-file pathname)])
-          (delete-file pathname)
-          digest)))
+      (let try ([command* commands-to-try] [rfailure* '()])
+        (if (null? command*)
+            (external-errorf "failed to find working sha256 implementation:~{\n  ~a~}"
+                             (reverse rfailure*))
+            (let ([command (car command*)] [command* (cdr command*)])
+              (let-values ([(stdout stderr) (shell (format "exec ~a" command) bytes)])
+                (if (string=? stderr "")
+                    (if (>= (string-length stdout) 64)
+                        (let ([hash (substring stdout 0 64)])
+                          (if (andmap hex-digit? (string->list hash))
+                              (hex->bytevector (string-downcase hash))
+                              (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*))))
+                        (try command* (cons (format "~a produced unexpected output: ~a" command stdout) rfailure*)))
+                    (try command* (cons (format "~a failed with message ~a" command stderr) rfailure*))))))))
 
     (define sha256-implementation
       (delay
