@@ -57,6 +57,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Internal notes
 
+- Releasing this version of the compiler will not break the devtools as the 
+  devtools only hardcodes the OS name when looking up artifacts.
 - Each target has a release binary package, `nix build .#compactc-binary-<target>`,
   and a compiler package `.#compactc-<target>`; `flake.nix` generates both for every
   directory of `compiler/targets/`, so a new target needs no change to it for them.
