@@ -107,6 +107,15 @@ const ledgerOperations = (source: string): string[] => {
     return names;
 };
 
+/** The directories of `compiler/targets/`: what depends on the on-chain runtime and ZKIR lives there. */
+const targetDirectories = (): string[] => {
+    const targets = path.join(REPO_ROOT, 'compiler', 'targets');
+
+    return readdirSync(targets, { withFileTypes: true })
+        .filter((entry) => entry.isDirectory())
+        .map((entry) => path.join(targets, entry.name));
+};
+
 /** All compiler sources concatenated; naming files per macro silently missed some. */
 const readCompilerSources = (): string =>
     [...walk(path.join(REPO_ROOT, 'compiler'), '.ss')]
@@ -119,7 +128,13 @@ const buildGroups = (compilerSources: string): NameGroup[] => {
     const compilerFile = (name: string): string =>
         readFileSync(path.join(REPO_ROOT, 'compiler', name), 'utf8');
 
-    const stdlib = COMPACT_LIBRARIES.map(compilerFile).join('\n');
+    // A library is in the directory of every target; a name offered by any of them counts.
+    const libraryFile = (name: string): string =>
+        targetDirectories()
+            .map((directory) => readFileSync(path.join(directory, name), 'utf8'))
+            .join('\n');
+
+    const stdlib = COMPACT_LIBRARIES.map(libraryFile).join('\n');
     const dataTypes =
         /keywordDataTypes[\s\S]*?\(TITLE[^)]*\)\s*\(([^)]*)\)/.exec(
             compilerFile('parser.ss'),
@@ -206,7 +221,11 @@ const assertEveryDeclarationSiteIsClaimed = (
             'Add a group in buildGroups, or list the macro in NOT_NAME_SOURCES.',
     );
 
-    const unreadLibraries = readdirSync(path.join(REPO_ROOT, 'compiler'))
+    const unreadLibraries = [
+        path.join(REPO_ROOT, 'compiler'),
+        ...targetDirectories(),
+    ]
+        .flatMap((directory) => readdirSync(directory))
         .filter((entry) => entry.endsWith('.compact'))
         .filter((entry) => !COMPACT_LIBRARIES.includes(entry));
 

@@ -34,10 +34,15 @@ be matched to its coordinate without trusting the filename.
 - **Who:** anyone with write access to this repository.
 - **Inputs:**
   - `branch` (required) -- branch or ref to build and publish from.
+  - `target` (default empty) -- the target to build the compactc binary for: a
+    directory name in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_1`), `all`, or
+    empty for the default target (`default-compactc-target` in `flake.nix`).
+    Combined with the operating systems below, one binary is built, tested and
+    published per (operating system, target).
   - `publish_runtime` (default true) -- publish the runtime npm package.
   - `publish_compiler` (default true) -- publish the compactc binary prerelease.
   - `include_linux_arm` (default true), `include_macos_arm` (default true),
-    `include_macos_intel` (default false) -- extra binary targets. Linux x86_64
+    `include_macos_intel` (default false) -- extra operating systems. Linux x86_64
     is always built and is the gate for publishing the binary prerelease. The
     defaults cover the platforms consumers actually need (Linux x86_64 + aarch64
     for Docker, macOS aarch64 for local dev); macOS x86_64 is off as it is slow
@@ -58,14 +63,20 @@ with an `.npmrc` mapping the scope to GitHub Packages:
 //npm.pkg.github.com/:_authToken=${NODE_AUTH_TOKEN}
 ```
 
-compactc binary, download the per-arch asset from the
+compactc binary, download the per-arch, per-target asset from the
 `compactc-dev-<sha>` prerelease, e.g.:
 
 ```
 gh release download compactc-dev-<full-commit-sha> \
   --repo LFDT-Minokawa/compact \
-  --pattern 'compactc_dev-<full-commit-sha>_x86_64-unknown-linux-musl.zip'
+  --pattern 'compactc_dev-<full-commit-sha>_x86_64-unknown-linux-musl_ocrt_v4.0-zkir_v3.1.zip'
 ```
+
+The `target` input of the workflow selects the target(s) the binary is built for: the
+name of a directory in `compiler/targets/` (e.g. `ocrt-4_0-zkir-3_1`), `all` for
+every one, or empty (the default) for the default target of `flake.nix`. One asset is published per selected operating system
+and target; the target part of the name is the directory name respelled as
+`ocrt_v<M.m>-zkir_v<M.m>`.
 
 ## Retention policy
 

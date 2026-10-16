@@ -106,6 +106,83 @@
               chmod u+w -R test-center/node_modules
             fi
           '';
+        # The target built by packages.compactc and used by the dev shells.
+        default-compactc-target = checked-target "ocrt-4_0-zkir-3_1";
+
+        # Other targets in compiler/targets/ are built with packages.compactc-<target>, which
+        # are generated for every target below.
+        targets = builtins.attrNames
+          (pkgs.lib.filterAttrs (name: type: type == "directory") (builtins.readDir ./compiler/targets));
+
+        # A target ocrt-<M>_<m>-zkir-<N>_<n> needs
+        # the inputs onchain-runtime-v<M> and zkir-v<N>, providing M.m and N.n, and an
+        # input is there for a target.
+        input-names = builtins.attrNames inputs;
+        ocrt-inputs = builtins.filter (n: builtins.match "onchain-runtime-v[0-9]+" n != null) input-names;
+        zkir-inputs = builtins.filter (n: builtins.match "zkir-v[0-9]+" n != null) input-names;
+        # the major.minor of "4.0.0-rc.3"
+        major-minor = version:
+          let m = builtins.match "([0-9]+)\\.([0-9]+)\\..*" version;
+          in if m == null then "(unreadable version ${version})" else "${builtins.elemAt m 0}.${builtins.elemAt m 1}";
+        ocrt-input-version = n: major-minor inputs.${n}.packages.${system}.onchain-runtime-wasm.version;
+        zkir-input-version = n: major-minor inputs.${n}.packages.${system}.zkir.version;
+        parse-target = target: builtins.match "ocrt-([0-9]+)_([0-9]+)-zkir-([0-9]+)_([0-9]+)" target;
+
+        target-input-problems =
+          let
+            parsed = builtins.filter (t: parse-target t != null) targets;
+            part = target: i: builtins.elemAt (parse-target target) i;
+            ocrt-of = target: { major = part target 0; version = "${part target 0}.${part target 1}"; };
+            zkir-of = target: { major = part target 2; version = "${part target 2}.${part target 3}"; };
+            # what a target needs from the inputs of one kind
+            problems-of-kind = { kind, prefix, inputs-of-kind, input-version, of }:
+              builtins.concatMap (target:
+                let
+                  need = of target;
+                  name = "${prefix}${need.major}";
+                in
+                  if !(builtins.elem name inputs-of-kind)
+                  then [ "target ${target} needs the flake input ${name}, which provides ${kind} ${need.major}.x, but flake.nix has none (it has: ${builtins.concatStringsSep ", " inputs-of-kind})" ]
+                  else if input-version name != need.version
+                  then [ "target ${target} is for ${kind} ${need.version} but the flake input ${name} provides ${input-version name}" ]
+                  else []
+              ) parsed
+              ++ builtins.concatMap (name:
+                if builtins.any (target: "${prefix}${(of target).major}" == name) parsed
+                then []
+                else [ "the flake input ${name} is used by no target in compiler/targets/ (the targets are: ${builtins.concatStringsSep ", " targets})" ]
+              ) inputs-of-kind;
+          in
+            builtins.concatMap (target: [ "compiler/targets/${target} is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" ])
+              (builtins.filter (t: parse-target t == null) targets)
+            ++ problems-of-kind { kind = "on-chain runtime"; prefix = "onchain-runtime-v"; inputs-of-kind = ocrt-inputs; input-version = ocrt-input-version; of = ocrt-of; }
+            ++ problems-of-kind { kind = "ZKIR"; prefix = "zkir-v"; inputs-of-kind = zkir-inputs; input-version = zkir-input-version; of = zkir-of; };
+
+        target-inputs-checked =
+          if target-input-problems == []
+          then true
+          else throw ''
+            The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:
+            ${builtins.concatStringsSep "\n" (map (p: "  - " + p) target-input-problems)}
+            A target ocrt-<M>_<m>-zkir-<N>_<n> needs the flake inputs onchain-runtime-v<M> (providing
+            on-chain runtime <M>.<m>) and zkir-v<N> (providing ZKIR <N>.<n>), and every such input is
+            for a target.  See "Names that must agree" in compiler.md.
+          '';
+
+        # A target is a directory of compiler/targets/ with a current-target.ss in it.
+        # A name that is none fails the evaluation here, saying what has to agree,
+        # instead of failing the build with "library (current-target) not found".
+        checked-target = target: assert target-inputs-checked;
+          if builtins.pathExists ./compiler/targets/${target}/current-target.ss
+          then target
+          else throw ''
+            compactc target "${target}" does not exist: there is no compiler/targets/${target}/current-target.ss.
+            The targets are: ${builtins.concatStringsSep ", " (builtins.attrNames (builtins.readDir ./compiler/targets))}.
+            A target is the directory of that name in compiler/targets/ (its current-target.ss takes the
+            name of the target, and its on-chain runtime and ZKIR versions, from the name of the directory),
+            and the name has to be the same where flake.nix refers to it (default-compactc-target).
+            See "Names that must agree" in compiler.md.
+          '';
         combined-shell-hook =
           ''
             ${runtime-shell-hook}
@@ -130,7 +207,26 @@
           src = nix/dry-install;
         };
       in
-        rec {
+        let
+          # packages.compactc-<target> and packages.compactc-binary-<target> for every
+          # target, generated so that the name of a package cannot differ from the
+          # target it builds.  The default target's are the default packages.
+          target-packages = builtins.listToAttrs (builtins.concatMap (target: [
+            {
+              name = "compactc-${target}";
+              value = if target == default-compactc-target
+                then outputs.packages.compactc
+                else outputs.lib.compactc-for-target target;
+            }
+            {
+              name = "compactc-binary-${target}";
+              value = if target == default-compactc-target
+                then outputs.packages.compactc-binary
+                else outputs.lib.compactc-binary-for-target target;
+            }
+          ]) targets);
+
+          outputs = rec {
           lib.pretzel-js = pretzel-js;
           overlays.pretzel-fetcher = (import pretzel/fetcher.nix).overlay;
           overlays.pretzel-js = lib.pretzel-js.overlay;
@@ -200,7 +296,7 @@
 
           packages.compactc = pkgs.stdenv.mkDerivation {
             name = "compactc";
-            version = "0.35.106"; # NB: also update compiler-version in compiler/compiler-version.ss
+            version = "0.35.107"; # NB: also update compiler-version in compiler/compiler-version.ss
             src = inclusive.lib.inclusive ./. [
               ./compiler
               ./examples
@@ -212,7 +308,7 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
             COMPACT_LIBCRYPTO = libcrypto;
 
             NODE_PATH = "${packages.runtime.node-modules}/node_modules";
@@ -269,6 +365,16 @@
             '';
           };
 
+          # compactc built for a target in compiler/targets/ (see compiler.md, "Adding a
+          # target").  The target is chosen by the target directory on the library path,
+          # so this only differs from packages.compactc in that path.  The packages
+          # packages.compactc-<target> are generated from this, for every directory in
+          # compiler/targets/, below.
+          lib.compactc-for-target = target: packages.compactc.overrideAttrs (oldAttrs: {
+            name = "compactc-${target}";
+            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] oldAttrs.CHEZSCHEMELIBDIRS;
+          });
+
           packages.compactc-binary-nixos = let
             linking-pkgs = if pkgs.lib.hasSuffix "linux" system then pkgs.pkgsMusl else pkgs;
             platformSpecificInputs = with linking-pkgs; {
@@ -291,7 +397,7 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
 
             buildInputs = [
               chez-exe
@@ -370,6 +476,18 @@
             dontFixup = true;
           };
 
+          # The release binary (see packages.compactc-binary) built for a target in
+          # compiler/targets/.  The release workflows build packages.compactc-binary-<target>
+          # for every directory in compiler/targets/; those packages are generated from
+          # this, below.
+          lib.compactc-binary-for-target = target: packages.compactc-binary.overrideAttrs (oldAttrs: {
+            name = "compactc-binary-dist-${target}";
+            src = packages.compactc-binary-nixos.overrideAttrs (nixosAttrs: {
+              name = "compactc-binary-nixos-${target}";
+              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] nixosAttrs.CHEZSCHEMELIBDIRS;
+            });
+          });
+
           packages.compactc-oci = with pkgs // packages; nix2container.buildImage {
             name = "compactc";
             tag = compactc.version;
@@ -430,7 +548,7 @@
               ];
 
               TEST_COMPACT_PATH = ./test-center/compact/test.compact;
-              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/compiler:third_party/compiler::obj/third_party/compiler";
+              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler";
 
               buildPhase = ''
                 ln -s ${packages.compact-vscode-extension-node-modules}/node_modules
@@ -514,7 +632,7 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
             WASM_BINDGEN_WEAKREF = 1;
             WASM_BINDGEN_EXTERNREF = 1;
@@ -535,7 +653,7 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 
@@ -548,7 +666,7 @@
               packages.zkir-v3-bin
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
           devShells.test-contracts = pkgs.mkShell {
@@ -561,7 +679,7 @@
             ];
 
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 
@@ -588,6 +706,8 @@
           };
 
           formatter = pkgs.alejandra;
-        }
+          };
+        in
+          outputs // { packages = outputs.packages // target-packages; }
     );
 }

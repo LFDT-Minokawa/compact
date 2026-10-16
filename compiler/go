@@ -31,18 +31,63 @@ then
   if [ "$1" == "--help" ]
   then
     program=`basename $0`
-    echo "usage: $program               # recompile compiler as needed, then run tests"
-    echo "       $program --rebuild     # recompile entire compiler, then run tests"
-    echo "       $program --help        # show this message"
+    echo "usage: $program                           # recompile compiler as needed, then run tests"
+    echo "       $program --rebuild                 # recompile entire compiler, then run tests"
+    echo "       $program --build-for-all-targets   # recompile and run tests for each target in compiler/targets"
+    echo "       $program --help                    # show this message"
     echo "   NB: use --rebuild for complete coverage info and stats"
+    echo "   NB: without --build-for-all-targets only the target on CHEZSCHEMELIBDIRS is tested"
     exit
   elif [ "$1" == "--rebuild" ]
   then
     rm -rf obj/profiled-compiler
+  elif [ "$1" == "--build-for-all-targets" ]
+  then
+    # Run the tests, from scratch, once per target directory.  The target a
+    # build uses is the compiler/targets/<target> directory on CHEZSCHEMELIBDIRS,
+    # and object files of different targets share names, hence --rebuild.  Each
+    # run regenerates doc/ledger-adt-<target>.mdx.  The coverage report left
+    # behind is that of the last target.
+    if ! echo "${CHEZSCHEMELIBDIRS:-}" | tr ':' '\n' | grep -q '^compiler/targets/'
+    then
+      echo "error: CHEZSCHEMELIBDIRS has no compiler/targets/<target> entry to replace with each target" >&2
+      echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+      exit 1
+    fi
+    status=0
+    for target_dir in compiler/targets/*/
+    do
+      target=`basename "$target_dir"`
+      echo "====================== TARGET $target ========================"
+      CHEZSCHEMELIBDIRS=`echo "$CHEZSCHEMELIBDIRS" | sed -E "s|compiler/targets/[^:]+|compiler/targets/$target|g"` \
+        "$0" --rebuild || status=1
+    done
+    exit $status
   else
     exec $0 --help
   fi
 fi
+
+# The target of this run is the compiler/targets/<target> directory on
+# CHEZSCHEMELIBDIRS.  Say so here when there is none, instead of leaving it to
+# scheme to fail with "library (current-target) not found".
+target_dirs=`echo "${CHEZSCHEMELIBDIRS:-}" | tr ':' '\n' | grep '^compiler/targets/' || true`
+if [ -z "$target_dirs" ]
+then
+  echo "error: CHEZSCHEMELIBDIRS has no compiler/targets/<target> entry, so there is no target to test" >&2
+  echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+  exit 1
+fi
+for target_dir in $target_dirs
+do
+  if [ ! -f "$target_dir/current-target.ss" ]
+  then
+    echo "error: target directory $target_dir (from CHEZSCHEMELIBDIRS) has no current-target.ss" >&2
+    echo "       the targets are: `ls compiler/targets | tr '\n' ' '`" >&2
+    echo "       see \"Names that must agree\" in compiler.md" >&2
+    exit 1
+  fi
+done
 
 rm -rf coverage
 mkdir coverage
@@ -57,12 +102,28 @@ mkdir coverage
 (library-directories
   ; redirect compiler object code to obj/profiled-compiler, leaving obj/compiler
   ; for unprofiled code produced by compiling compiler/compactc.ss
+  ;
+  ; Two library-directory entries hold compiler code: compiler/ and the
+  ; directory of the one target on CHEZSCHEMELIBDIRS, compiler/targets/<target>/
+  ; (e.g., the typescript and zkir passes and current-target).  Chez finds a
+  ; library only directly in an entry's directory, so the target directory is an
+  ; entry of its own and must be redirected too, or the target's code would be
+  ; compiled without profiling and missing from the coverage report.  Entries
+  ; for other code (third_party, nanopass, srcMaps) are left alone.
   (let f ([a* (library-directories)])
     (assert (not (null? a*)))
     (let ([a (car a*)] [a* (cdr a*)])
-      (if (equal? a '("compiler" . "obj/compiler"))
-          (cons '("compiler" . "obj/profiled-compiler") a*)
-          (cons a (f a*))))))
+      (define (compiler-dir? dir)
+        (or (string=? dir "compiler")
+            (let ([prefix "compiler/targets/"])
+              (and (fx>= (string-length dir) (string-length prefix))
+                   (string=? (substring dir 0 (string-length prefix)) prefix)))))
+      (let ([a (if (and (compiler-dir? (car a)) (equal? (cdr a) "obj/compiler"))
+                   (cons (car a) "obj/profiled-compiler")
+                   a)])
+        (if (null? a*)
+            (list a)
+            (cons a (f a*)))))))
 (compile-library-handler
   ; enable profiling for and only for code redirected to obj/profiled-compiler
   (lambda (src-path obj-path)
