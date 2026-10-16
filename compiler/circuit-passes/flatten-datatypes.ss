@@ -19,16 +19,8 @@
   (definitions
     (define fun-ht (make-eq-hashtable))
     (define var-ht (make-eq-hashtable))
-    ;; Maps byte variables produced by an unconditional Bytes<32> -> Vector<32,
-    ;; Uint<8>> conversion to (source-limbs . byte-index).  Vector and tuple
-    ;; construction preserve the variables, so this metadata survives the
-    ;; source-level reverse idiom.
+    ;; Provenance entries have the form (source-limbs . byte-index).
     (define byte-provenance-ht (make-eq-hashtable))
-    ;; Track only the additional provenance needed for the exact numeric ABI
-    ;; word idiom. A qualifying source is the low limb produced by an
-    ;; unconditional native field->Bytes<16> conversion. Its exploded byte
-    ;; variables are tagged with byte-string indices. Bytes exploded from a
-    ;; literal-zero limb are tracked separately as proven zero.
     (define bytes16-cast-ht (make-eq-hashtable))
     (define numeric-byte-provenance-ht (make-eq-hashtable))
     (define zero-byte-ht (make-eq-hashtable))
@@ -36,10 +28,8 @@
       (let loop ([var-name* var-name*] [index 0])
         (unless (null? var-name*)
           (hashtable-set! byte-provenance-ht (car var-name*)
-                          (cons source-triv* index))
+            (cons source-triv* index))
           (loop (cdr var-name*) (fx1+ index)))))
-    ;; Return the original high/low limbs when triv* is exactly the reversal of
-    ;; one recorded Bytes<32> value; otherwise return #f.
     (define (reversed-bytes32-source triv*)
       (and (fx= (length triv*) 32)
            (let loop ([triv* triv*] [index 31] [source-triv* #f])
@@ -58,17 +48,16 @@
       (let loop ([var-name* var-name*] [index 0])
         (unless (null? var-name*)
           (hashtable-set! numeric-byte-provenance-ht (car var-name*)
-                          (cons source index))
+            (cons source index))
           (loop (cdr var-name*) (fx1+ index)))))
-    ;; Return the checked Bytes<16> limb when triv* is exactly sixteen zero
-    ;; bytes followed by bytes 15 through 0 from that one source.
     (define (numeric-abi-word-source triv*)
       (and (fx= (length triv*) 32)
-           (andmap (lambda (triv)
-                     (or (eqv? triv 0)
-                         (and (id? triv)
-                              (hashtable-contains? zero-byte-ht triv))))
-                   (list-head triv* 16))
+           (andmap
+             (lambda (triv)
+               (or (eqv? triv 0)
+                   (and (id? triv)
+                        (hashtable-contains? zero-byte-ht triv))))
+             (list-head triv* 16))
            (let loop ([triv* (list-tail triv* 16)]
                       [index 15]
                       [source #f])
@@ -76,8 +65,7 @@
                  source
                  (let ([provenance
                         (and (id? (car triv*))
-                             (hashtable-ref numeric-byte-provenance-ht
-                                            (car triv*) #f))])
+                             (hashtable-ref numeric-byte-provenance-ht (car triv*) #f))])
                    (and provenance
                         (fx= (cdr provenance) index)
                         (or (not source)
@@ -228,9 +216,7 @@
     ;; tcontract cases of the (default …) Rhs handler.
     (define (bytes-default-limbs len)
       (make-list (quotient (+ len (- (field-bytes) 1)) (field-bytes)) 0))
-    ;; Convert one retained source segment into flattened limbs in byte-string
-    ;; order.  Wump-bytes stores its limbs high-first, while serialization
-    ;; consumes the low/full limbs first and the short high limb last.
+    ;; Wump-bytes stores limbs high-first; serialization consumes them low-first.
     (define (serialize-segment->width.triv* width wump)
       (Wump-case wump
         [(Wump-single triv)
@@ -251,9 +237,6 @@
         [else
          (internal-errorf 'flatten-datatypes
            "serialize-pack operand is not a byte or Bytes value")]))
-    ;; Collapse adjacent literal segments without crossing the native 31-byte
-    ;; limb width.  This preserves little-endian byte-string order and avoids
-    ;; emitting long mul/add chains for compiler-generated event tags/padding.
     (define (coalesce-constant-serialize-segments width.triv*)
       (let loop ([width.triv* width.triv*] [rwidth.triv* '()])
         (cond
@@ -579,9 +562,7 @@
        (let loop ([len len] [triv* (reverse source-triv*)] [rvar-name** '()] [stmt* '()])
          (if (fx= len 0)
              (let ([var-name* (apply append (reverse rvar-name**))])
-               ;; Guarded conversions remain on the existing lowering path.  The
-               ;; native ZKIR reverse has no guard, so only record provenance that
-               ;; can later produce an unconditional reverse.
+               ;; ZKIR reverse_bytes has no guard.
                (when (and (eqv? test 1)
                           (fx= (length var-name*) 32)
                           (fx= (length source-triv*) 2))

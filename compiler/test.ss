@@ -51089,9 +51089,6 @@ groups than for single tests.
                  "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir")
   )
 
-  ;; Preserve the checked Uint<128> -> Bytes<16> conversion, but lower the
-  ;; exact numeric ABI zero-pad/reverse/rebuild shape through ZKIR's native
-  ;; 32-byte reversal.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -51136,8 +51133,6 @@ groups than for single tests.
         "}"))
     )
 
-  ;; A direct Bytes<16> source has the same apparent byte permutation but not
-  ;; the checked Uint -> Bytes cast provenance, so it must stay generic.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -51161,7 +51156,6 @@ groups than for single tests.
             "\"op\": \"div_mod_power_of_two\""))))
     )
 
-  ;; Any nonzero leading byte breaks the ABI-word shape and must stay generic.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -51185,8 +51179,6 @@ groups than for single tests.
             "\"op\": \"reconstitute_field\""))))
     )
 
-  ;; Boundary constants remain on the existing constant-folding path. This
-  ;; also pins the flattened Bytes<32> limb values for zero and 2^128 - 1.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -51246,8 +51238,6 @@ groups than for single tests.
         "}"))
     )
 
-  ;; Recovering a let-bound aggregate must not evaluate an effectful Bytes
-  ;; producer a second time. The single impact group pins one ledger write.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -51282,8 +51272,6 @@ groups than for single tests.
         "}"))
     )
 
-  ;; Pin segment order, split direction, shift direction, and high-first output
-  ;; storage across Compact's 31-byte field-limb boundary.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59350,8 +59338,6 @@ groups than for single tests.
         "}"))
     )
 
-  ;; Compiler-generated serialization retains bounded Bytes segments and
-  ;; splits only the segment that crosses a 31-byte output-limb boundary.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59393,12 +59379,9 @@ groups than for single tests.
           (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
             "\"op\": \"add\"")
           (not (file-contains? "compiler/testdir/zkir/packSerializedPair.zkir"
-                 "\"op\": \"reconstitute_field\""))))
-    )
+                 "\"op\": \"reconstitute_field\"")))))
     )
 
-  ;; Scalar-only composite serialization uses the same path; each source
-  ;; element's Uint8 bound is re-checked by check-types/Lflattened.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59418,13 +59401,9 @@ groups than for single tests.
           (not (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
                  "\"op\": \"div_mod_power_of_two\""))
           (not (file-contains? "compiler/testdir/zkir/packScalarVector.zkir"
-                 "\"op\": \"reconstitute_field\""))))
-    )
+                 "\"op\": \"reconstitute_field\"")))))
     )
 
-  ;; A-normalized emit serialization recovers a direct literal aggregate and
-  ;; evaluates the payload field selection once without exploding Bytes limbs
-  ;; into bytes.  This is the shape emitted for named Misc events.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59442,12 +59421,9 @@ groups than for single tests.
           (file-contains? "compiler/testdir/zkir/emitSerializedMisc.zkir"
             "\"op\": \"impact\"")
           (not (file-contains? "compiler/testdir/zkir/emitSerializedMisc.zkir"
-                 "\"op\": \"reconstitute_field\""))))
-    )
+                 "\"op\": \"reconstitute_field\"")))))
     )
 
-  ;; Guarded serialization keeps the established bytewise fallback until the
-  ;; specialized operation has explicit conditional ZKIR semantics.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59471,8 +59447,6 @@ groups than for single tests.
             "\"op\": \"reconstitute_field\""))))
     )
 
-  ;; Exact Bytes<32> explode/reverse/rebuild idiom uses the native ZKIR
-  ;; reverse instead of splitting and reconstituting each byte.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59518,8 +59492,6 @@ groups than for single tests.
         "}"))
     )
 
-  ;; A different 32-byte permutation must not select native reverse_bytes; it
-  ;; remains eligible for the general bounded segment packer.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59548,8 +59520,7 @@ groups than for single tests.
           (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
             "\"op\": \"add\"")
           (not (file-contains? "compiler/testdir/zkir/runRotate32.zkir"
-                 "\"op\": \"reconstitute_field\""))))
-    )
+                 "\"op\": \"reconstitute_field\"")))))
     )
 
   ;; LFDT-Minokawa/compact issue #609.  Two calls to secp256k1EcdsaVerify
@@ -59733,8 +59704,6 @@ groups than for single tests.
         "}"))
       )
 
-  ;; A Bytes<32> value split into low/high limbs and immediately rebuilt is
-  ;; identical to the original typed ZKIR value.
   (test
     '(
       "import CompactStandardLibrary;"
@@ -59805,8 +59774,6 @@ groups than for single tests.
                 ("Point<Secp256k1>" . #f)
                 ("Point<Secp256r1>" . #f))))))))
 
-  ;; The split must remain when either limb is consumed elsewhere, while the
-  ;; rebuilt typed alias can still be eliminated.
   (test
     '(
       "import CompactStandardLibrary;"

@@ -257,8 +257,7 @@
         (let ([full-max (- (expt 2 (* (field-bytes) 8)) 1)])
           (if (fx= r 0)
               (make-list q full-max)
-              (cons (- (expt 2 (* r 8)) 1)
-                    (make-list q full-max))))))
+              (cons (- (expt 2 (* r 8)) 1) (make-list q full-max))))))
     )
   (Program : Program (ir) -> Program ()
     [(program ,src ((,export-name* ,name*) ...) ,pelt* ...)
@@ -483,8 +482,6 @@
     [(= ,test (,var-name1 ,var-name2)
         (reverse-bytes32 ,[* type1] ,[* type2]))
      (verify-test program-src test)
-     ;; This operation is introduced only for the exact flattened Bytes<32>
-     ;; representation: one high byte followed by 31 low bytes.
      (let ([hi-max (- (expt 2 8) 1)]
            [lo-max (- (expt 2 (* (field-bytes) 8)) 1)])
        (unless (and (T type1 [(tunsigned ,nat) (<= nat hi-max)])

@@ -15,8 +15,6 @@
 
 #!chezscheme
 
-;; Record how often each SSA variable is consumed. The cancellation pass uses
-;; this information to retain a bytes_into_natives whose limbs are shared.
 (define-pass record-zkir-input-uses : Lzkir (ir use-count-ht) -> Lzkir ()
   (Input : Input (ir) -> Input ()
     [,var-name
@@ -34,8 +32,7 @@
         [,var-name (hashtable-ref type-ht var-name #f)]
         [,fr "Scalar<BLS12-381>"]))
 
-    ;; Track only enough types to establish Bytes<32>; unknown producers stay
-    ;; untouched. In particular, to_bytes on a secp point produces Bytes<33>.
+    ;; to_bytes does not always produce Bytes<32> (e.g., secp points).
     (define (record-type! instr)
       (define (set-type! var-name type) (hashtable-set! type-ht var-name type))
       (nanopass-case (Lzkir Instruction) instr
@@ -72,8 +69,6 @@
              inp)]
         [else inp]))
 
-    ;; Only cancel immediately adjacent inverse conversions. This deliberately
-    ;; avoids reasoning about intervening instructions or their effects.
     (define (cancel-adjacent instr*)
       (if (or (null? instr*) (null? (cdr instr*)))
           instr*

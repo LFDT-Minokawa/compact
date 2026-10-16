@@ -729,7 +729,6 @@
                 [output-var* (reverse var-name*)]
                 [new-instr* '()])
             (define (emit! instr)
-              ;; Statement accumulates instructions in reverse order.
               (set! new-instr* (cons instr new-instr*)))
             (define (shift-and-add accumulator piece byte-offset)
               (let ([piece
@@ -1021,8 +1020,6 @@
                (loop (cdr var-name*) quo
                  (cons `(div_mod_power_of_two ,quo ,(car var-name*) ,var ,8) instr*))))))]
     [(= ,test (,var-name1 ,var-name2) (numeric-abi-word ,triv))
-     ;; `triv` is the checked Bytes<16> limb from the exact unconditional
-     ;; numeric ABI-word shape.
      (assert (eqv? test 1))
      (with-output-language (Lzkir Instruction)
        (let ([bytes-in (make-temp-id default-src 'bytes)]
@@ -1038,8 +1035,6 @@
      (emit-serialize-pack src len var-name* nat* triv* instr*)]
     [(= ,test (,var-name1 ,var-name2)
         (reverse-bytes32 ,triv1 ,triv2))
-     ;; reverse_bytes is unconditional in ZKIR.  flatten-datatypes deliberately
-     ;; introduces this operation only when both source conversions have test 1.
      (assert (eqv? test 1))
      (with-output-language (Lzkir Instruction)
        (let ([bytes-in (make-temp-id default-src 'bytes)]

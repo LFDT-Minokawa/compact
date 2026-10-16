@@ -18,10 +18,6 @@
 (define-pass reduce-to-circuit : Lnovectorref (ir) -> Lcircuit ()
   (definitions
     (define fun-ht (make-eq-hashtable))
-    ;; Unconditional A-normalization can separate compiler-generated
-    ;; vector->bytes(vector(...)) shapes into several let-bound definitions.
-    ;; Retain just enough exact provenance to recover those shapes without
-    ;; changing evaluation: recovered leaves must already be trivial values.
     (define aggregate-provenance-ht (make-eq-hashtable))
     (define bytes-vector-provenance-ht (make-eq-hashtable))
     (define default-src)
@@ -54,7 +50,7 @@
                 [(bytes->vector ,src ,len ,expr^)
                  (when (trivial-expression? expr^)
                    (hashtable-set! bytes-vector-provenance-ht var-name
-                                   (cons len expr^)))]
+                     (cons len expr^)))]
                 [else (void)])))
           local*
           expr*)))
@@ -93,10 +89,6 @@
             (Tuple-Argument (car tuple-arg*) test
               (lambda (tuple-arg)
                 (f (cdr tuple-arg*) (cons tuple-arg rtuple-arg*)))))))
-    ;; expand-serialize emits vector->bytes of a vector whose elements are
-    ;; either individual bytes or exact spreads of bytes->vector.  Recognize
-    ;; only that shape: it lets the circuit backend retain bounded byte-string
-    ;; segments while every other vector->bytes keeps the established lowering.
     (define (serialize-tuple-argument? tuple-arg)
       (nanopass-case (Lnovectorref Tuple-Argument) tuple-arg
         [(single ,src ,expr) #t]
@@ -106,10 +98,6 @@
                 [(bytes->vector ,src^ ,len ,expr^) (fx= nat len)]
                 [else #f]))]))
     (define (serialize-tuple-argument*? tuple-arg* len)
-      ;; The vector->bytes type check has already proved every single element is
-      ;; Uint8.  Spreads are accepted only when their declared width exactly
-      ;; matches the underlying Bytes conversion, and check-types/Lflattened
-      ;; independently re-proves every retained segment bound.
       (and (not (null? tuple-arg*))
            (andmap serialize-tuple-argument? tuple-arg*)
            (fx= len
@@ -121,10 +109,6 @@
                      [(spread ,src ,nat ,expr) nat])))
                0
                tuple-arg*))))
-    ;; Leave exact native byte-operation idioms on the established lowering
-    ;; path so flatten-datatypes can validate their provenance before selecting
-    ;; a native ZKIR operation. Other scalar-only serializer shapes remain
-    ;; eligible for serialize-pack.
     (define (reverse-vector32? tuple-arg*)
       (and (fx= (length tuple-arg*) 32)
            (let loop ([tuple-arg* tuple-arg*] [kindex 31] [base-var-name #f])
@@ -196,10 +180,6 @@
     (define (special-byte-vector32? tuple-arg*)
       (or (reverse-vector32? tuple-arg*)
           (numeric-abi-vector32? tuple-arg*)))
-    ;; Resolve an A-normalized aggregate back to bounded segments.  Every leaf
-    ;; is a variable or literal that was already evaluated by its original
-    ;; statement, so replacing the pure aggregate/conversion chain cannot
-    ;; duplicate effects.  The optimizer later removes the now-dead chain.
     (define (provenance-serialize-segments expr len)
       (define (segments-width segment*)
         (fold-left (lambda (n segment) (fx+ n (car segment))) 0 segment*))
@@ -207,10 +187,7 @@
         (or
           (nanopass-case (Lnovectorref Expression) expr
             [(bytes->vector ,src ,len^ ,expr^)
-             ;; An operand recovered from a recorded aggregate was already
-             ;; evaluated by its let binding, so only reuse it when it is
-             ;; trivial. A spread inside the aggregate currently being lowered
-             ;; may evaluate an arbitrary producer exactly once.
+             ;; Do not re-evaluate a producer recovered from a let binding.
              (and (fx= len len^)
                   (or (not recovered?) (trivial-expression? expr^))
                   (list (cons len expr^)))]
@@ -282,9 +259,6 @@
               (lambda (triv)
                 (loop (cdr segment*)
                       (cons (cons (caar segment*) triv) rwidth.triv*)))))))
-    ;; Lower recognized segments left-to-right, matching Tuple-Argument*'s
-    ;; evaluation order.  Spread operands bypass bytes->vector but retain its
-    ;; statically checked byte width alongside the underlying Bytes value.
     (define (Serialize-Segment* tuple-arg* test k)
       (let f ([tuple-arg* tuple-arg*] [rwidth.triv* '()])
         (if (null? tuple-arg*)
