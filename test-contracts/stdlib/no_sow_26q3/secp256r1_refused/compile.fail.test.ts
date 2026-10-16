@@ -18,5 +18,5 @@ import { defineCompileTest } from '@test/compact-test';
 export default defineCompileTest(import.meta.url, {
     compilerArgs: ['--no-sow-26q3'],
     expectedError:
-        /line 19 char 55:\s+Secp256r1Point is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later/,
+        /line 19 char 55:\s+Secp256r1Point is 2026-Q3 functionality, which --no-sow-26q3 excludes/,
 });
