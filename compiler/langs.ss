@@ -1107,6 +1107,7 @@
       (elt-ref triv elt-name)
       (vector->bytes len triv)               => (vector->bytes len triv)
       (bytes->vector len triv)               => (bytes->vector len triv)
+      (serialize-pack src len (nat* triv*) ...)
       (call src function-name triv* ...)     => (call function-name #f triv* ...)
       (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
         (public-ledger ledger-field-name (path-elt* ...) adt-op #f triv* ...)
@@ -1209,6 +1210,7 @@
          (elt-ref triv elt-name)
          (vector->bytes len triv)
          (bytes->vector len triv)
+         (serialize-pack src len (nat* triv*) ...)
          (call src function-name triv* ...)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...)
          (emit src event-version event-tag len triv vm-code)
@@ -1236,6 +1238,9 @@
          (default zkir-type)
          (field->bytes src len ftype triv)         => (field->bytes len ftype #f triv)
          (bytes->vector triv)                      => (bytes->vector #f triv) ; triv holds one field's worth of bytes
+         (numeric-abi-word triv) ; checked Bytes<16> limb to high/low Bytes<32> limbs
+         (serialize-pack src len (nat* triv*) ...) ; low-first segments, high-first results
+         (reverse-bytes32 triv1 triv2) ; high/low limbs
          (div-mod-power-of-two triv bits)
          (public-ledger src ledger-field-name (maybe sugar) (path-elt* ...) src^ adt-op triv* ...) =>
            (public-ledger ledger-field-name (path-elt* 0 ...) adt-op #f triv* ...)
