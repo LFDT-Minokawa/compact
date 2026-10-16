@@ -461,8 +461,36 @@
                  [(hashtable-ref (env-rib p) sym #f) => cdr]
                  [else (loop (env-p p))])))))
     (define (lookup p src sym)
-      (or (lookup/no-error p sym)
-          (source-errorf src "unbound identifier ~s" sym)))
+      (let ([info (or (lookup/no-error p sym)
+                      (source-errorf src "unbound identifier ~s" sym))])
+        (check-sow-26q3 src sym (list info))
+        info))
+    ;; Standard-library names that are 2026-Q3 functionality.  Everything else Q3 is built on
+    ;; these, so refusing them at their first use in user code is enough; the standard library
+    ;; itself still refers to them freely.
+    (define sow-26q3-name*
+      '(Curve25519Base Curve25519Scalar Curve25519Point curve25519PointX curve25519PointY
+        Ed25519Signature ed25519Verify
+        Secp256r1Base Secp256r1Scalar Secp256r1Point secp256r1PointX secp256r1PointY
+        Secp256r1EcdsaSignature secp256r1EcdsaVerify
+        sha512))
+    (define (sow-26q3-stdlib-info? info)
+      (Info-case info
+        [(Info-native-type src type-name type p) #t]
+        [(Info-struct src struct-name type-param* elt-name* type* p) (stdlib-src? src)]
+        [(Info-functions name info-fun+)
+         (andmap (lambda (info-fun) (stdlib-src? (info-fun-src info-fun))) info-fun+)]
+        [(Info-fixup-alias aliased-name info) (sow-26q3-stdlib-info? info)]
+        [else #f]))
+    (define (check-sow-26q3 src sym info*)
+      ; info* holds every binding visible for sym.  A user definition among them shadows
+      ; or overloads the standard library's, so only an all-stdlib set is refused.
+      (when (and (no-sow-26q3)
+                 (memq sym sow-26q3-name*)
+                 (not (stdlib-src? src))
+                 (not (null? info*))
+                 (andmap sow-26q3-stdlib-info? info*))
+        (source-errorf src "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" sym)))
     (define (lookup-fun p src function-name info*)
       ; lookup-fun checks whether each visible function binding for function-name is
       ; compatible with the generic arguments represented by info*.  those that are
@@ -557,6 +585,7 @@
             (let ([a (eq-hashtable-cell ht info-fun #f)])
               (or (cdr a) (begin (set-cdr! a #t) #f))))))
       (let-values ([(rinfo-functions* rmaybe-alias* maybe-info) (find-functions function-name)])
+        (check-sow-26q3 src function-name rinfo-functions*)
         ; check to see if any of the function names are renamings of standard-library routines
         ; (per standard-library-aliases.ss) and if so, record the alias or say why not
         (let ([alias-name (ormap values rmaybe-alias*)])

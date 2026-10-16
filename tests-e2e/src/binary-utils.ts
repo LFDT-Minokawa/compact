@@ -24,6 +24,7 @@ import { Compilation, CompilationPaths } from './types';
 
 export enum Arguments {
     SKIP_ZK = '--skip-zk',
+    NO_SOW_26Q3 = '--no-sow-26q3',
     NO_COMMUNICATIONS_COMMITMENT = '--no-communications-commitment',
     TRACE_PASSES = '--trace-passes',
     HELP = '--help',

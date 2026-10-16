@@ -26,6 +26,10 @@
 
   (export-parameter no-communications-commitment #f)
 
+  ; refuse 2026-Q3 functionality (Secp256r1, Curve25519, SHA-512), which
+  ; ledgers before 10 do not accept
+  (export-parameter no-sow-26q3 #f)
+
   (export-parameter skip-zk #t)
 
   ; default source path

@@ -59873,6 +59873,90 @@ groups than for single tests.
   )
 )
 
+; --no-sow-26q3 refuses 2026-Q3 functionality at its first use in user code,
+; while the standard library that defines it still compiles.
+(parameterize ([no-sow-26q3 #t])
+(run-tests infer-types
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(pk: Secp256r1Point): Secp256r1Point {"
+      "  return pk;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 22" "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" (Secp256r1Point))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(x: Bytes<32>): Curve25519Scalar {"
+      "  return x as Curve25519Scalar;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 33" "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" (Curve25519Scalar))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(x: Bytes<32>): Bytes<64> {"
+      "  return disclose(sha512<Bytes<32>>(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 19" "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" (sha512))))
+
+  ; a call without explicit generic arguments resolves the same way
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(x: Bytes<32>): Bytes<64> {"
+      "  return disclose(sha512(x));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 19" "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" (sha512))))
+
+  ; the struct and the circuit are both refused at their first use
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(msg: Bytes<32>, sig: Secp256r1EcdsaSignature): Boolean {"
+      "  return secp256r1EcdsaVerify(msg, sig, default<Secp256r1Point>);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 39" "~s is 2026-Q3 functionality, which --no-sow-26q3 excludes; it needs ledger 10 or later" (Secp256r1EcdsaSignature))))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit f(x: Bytes<32>, y: Secp256k1Point): Bytes<32> {"
+      "  return disclose(keccak256<[Bytes<32>, Secp256k1Point]>([x, y]));"
+      "}"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit sha512(x: Bytes<32>): Bytes<32> {"
+      "  return x;"
+      "}"
+      "export circuit f(x: Bytes<32>): Bytes<32> {"
+      "  return disclose(sha512(x));"
+      "}"
+      )
+    (succeeds))
+  )
+)
+
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
   ; change: " --> ' for message of assert
