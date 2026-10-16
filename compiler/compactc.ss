@@ -61,6 +61,12 @@ The following flags, if present, affect the compiler's behavior as follows:
     printing a warning message, the generation of proving keys when it cannot
     find zkir.
 
+  --no-sow-26q3 rejects uses of 2026-Q3 functionality (the Secp256r1 and
+    Curve25519 types and the circuits built on them, such as
+    secp256r1EcdsaVerify and ed25519Verify, and sha512).  Ledgers before
+    version 10 refuse contracts that use it, so this reports the problem at
+    compile time instead.
+
   --no-communications-commitment omits the contract communications commitment
     that enables data integrity for contract-to-contract calls.
 
@@ -117,6 +123,7 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--vscode)]
              [(--skip-zk)]
              [(--no-communications-commitment)]
+             [(--no-sow-26q3)]
              [(--sourceRoot) (string source-root)]
              [(--compact-path) (string search-list)]
              [(--trace-search)]
@@ -131,6 +138,7 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
+                    [no-sow-26q3 ?--no-sow-26q3]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))

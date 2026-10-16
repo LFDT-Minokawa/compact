@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.102]
+
+### Added
+
+- A `--no-sow-26q3` flag that rejects uses of 2026-Q3 functionality: the
+  Secp256r1 and Curve25519 types, the circuits built on them such as
+  `secp256r1EcdsaVerify` and `ed25519Verify`, and `sha512`.  Ledgers before
+  version 10 refuse contracts that use them, so the flag reports the problem
+  at compile time instead.  Secp256k1 and the other 2026-Q2 functionality are
+  unaffected, and the standard library itself still compiles with the flag.
+
+### Internal notes
+
+- For the devtool tests to pass, upon a final release of the toolchain,
+  `tools/compact/output/compile/compact_help.txt` needs the `--no-sow-26q3`
+  paragraph added.
+
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
 - Fix issue [#847](https://github.com/LFDT-Minokawa/compact/issues/847).
@@ -22,13 +39,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   removed. The compiler now defaults to ZKIR-v3. Passing
   `--feature-zkir-v3` is now an error. `--ledger-version` now always prints
   the version of the `zkir-v3` dependency.
-  
+
 ### Internal notes
 
 - For the devtool tests to pass, upon a final release of the toolchain,
-  the `tools/compact/output/compile/compact_help.txt` 
+  the `tools/compact/output/compile/compact_help.txt`
   needs to be updated to drop `--feature-zkir-v3` flag.
-  
+
 ## [Toolchain 0.35.104, language 0.27.0, runtime 0.20.102]
 
 ### Fixed
@@ -361,7 +378,7 @@ value to be either 0 or 1.
   * `circuitSignatures` — one entry per external circuit name, carrying `pure`,
     `provable`, `argumentTypes` and `resultType`. This is the callee side of
     that comparison.
-    Both appear in the emitted `.d.ts`. The `expectedVk` table is unchanged, 
+    Both appear in the emitted `.d.ts`. The `expectedVk` table is unchanged,
     but is now checked past the called circuit — see below.
 - Adds the runtime machinery behind the above. New modules, all re-exported
   from the package index:
@@ -544,14 +561,14 @@ and Compact runtime versions in the range between 0.18.100 and 0.19.0.
   alignment cannot appear in the ledger.  Consequently, we translate this into
   ledger alignments and ZKIR encoding instructions (essentially, flattening
   further) in the ZKIR v3 backend.
-  
+
   There were three places that had near duplicates of this code: (1) for ZKIR
   hashing instructions that need an alignment, (2) for Impact `popeq`, (3) and
   for all other Impact instructions.  Only number (1) of those correctly handled
   nested ZKIR-typed values.
-  
+
   The fix is to reuse the correct code everywhere.
-  
+
   This revealed a different issue with the descriptors for secp256k1 points and
   field types, they did not properly nest inside Compact types because they did
   not consume the FAB encoding in `fromValue`.
@@ -746,7 +763,7 @@ and Compact runtime versions in the range between 0.18.100 and 0.19.0.
   `Uint<0..1>`), we used an alignment of `bytes:0`.  The ledger and ZKIR expects
   **no** values for such an alignment, but we provided one (always zero) value
   in the transcripts.
-  
+
 ### Internal notes
 
 - The fix is to use an alignment of `bytes:1` for the type `Uint<0..1>`, so that
@@ -1134,7 +1151,7 @@ and Compact runtime versions in the range between 0.17.100 and 0.18.0.
 - The onchain-runtime requires the argument passed to `emit` to be serialized.
   Compact's standard library provides a generic `serialize<T,n>` and
   `deserialize<T,n>`.  The end user cannot see their definition,
-  but they can see their type signature in Compact's standard library. 
+  but they can see their type signature in Compact's standard library.
 
 ### Changed
 
@@ -1373,7 +1390,7 @@ compiler workarounds have been removed.
 
 ## [Toolchain 0.30.101, language 0.22.0, runtime 0.15.101]
 
-- Changes the format of the first argument passed to `convertBytesToUint` in `print-typescript` 
+- Changes the format of the first argument passed to `convertBytesToUint` in `print-typescript`
 - Improves format of error messages for `convertBytesToUint` and `convertBytesToField`
 - Changes the type of `maxval` to `bigint` to avoid JavaScript silently losing precision
   when comparing `x > maxval` for larg `Uint`s
@@ -1408,11 +1425,11 @@ and Compact runtime versions in the range between 0.14.100 and 0.15.0.
   not work in circuit due to the representation of these types.  Previously,
   such code would crash the `zkir` process if it tried to generate prover and
   verifier keys.  Now it is a compiler error instead.
-  
+
   This also affects the standard library operation `merkleTreePathRoot` (because
   it calls `persistentHash` in its implementation), and ledger `MerkleTree`
   insertion operations, because they implicitly use `persistentHash`.
-  
+
   This is a **breaking** change because the error is signaled early, and so it
   is now an error to use any of these circuits or ADT operations, even for
   circuits that don't need prover and verifier key generation which would
@@ -1630,7 +1647,7 @@ compatible with 2.0.0.
 ### Fixed
 
 - An issue that caused transactions involving `mintShieldedToken`, `sendShielded`, `mintUnshieldedToken`, or
-  `sendUnshielded` to fail validation with `RealUnshieldedSpendsSubsetCheckFailure` when the caller was also the 
+  `sendUnshielded` to fail validation with `RealUnshieldedSpendsSubsetCheckFailure` when the caller was also the
   recipient of the newly minted token.
 
 ## [Unreleased compiler 0.28.106, language 0.20.100]
@@ -1682,7 +1699,7 @@ compatible with 2.0.0.
 
 ### Fixed
 
-- A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which 
+- A bug reported in issue [#34](https://github.com/LFDT-Minokawa/compact/issues/34) in which
   `ChargedState` was not properly copied resulting in junk metadata being passed to contract deployments.
 
 ## [Unreleased compiler 0.28.103, language 0.20.100]
@@ -1726,7 +1743,7 @@ There are no user-visible changes.
 - Instead of pulling test contracts from the separate (private) repository
   `midnight-contracts`, they are added to this repository under
   `test-center/test-contracts`.
-  
+
 ## [Unreleased compiler 0.28.100, language 0.20.0]
 
 ### Changed
@@ -1741,7 +1758,7 @@ There are no user-visible changes.
 
 This release includes all changes for compiler versions in the range 0.27.100
 (inclusive) and 0.28.0 (exclusive); and language versions in the range 0.19.100
-(inclusive) and 0.20.0.  It uses compact-runtime 0.14.0-rc.0 and 
+(inclusive) and 0.20.0.  It uses compact-runtime 0.14.0-rc.0 and
 on-chain runtime 2.0.0-alpha.1.
 
 ## [Unreleased compiler version 0.27.113, language version 0.19.103]

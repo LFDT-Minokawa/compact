@@ -134,6 +134,13 @@ when debugging only the Typescript output.  The compiler also skips,
 after printing a warning message, the generation of proving keys when
 it cannot find zkir.
 
+**--no-sow-26q3**
+
+Rejects uses of 2026-Q3 functionality: the Secp256r1 and Curve25519 types
+and the circuits built on them, such as `secp256r1EcdsaVerify` and
+`ed25519Verify`, and `sha512`.  Ledgers before version 10 refuse contracts
+that use it, so this reports the problem at compile time instead.
+
 **--no-communications-commitment**
 
 Omits the contract communications commitment that enables data integrity for contract-to-contract calls.
