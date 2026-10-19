@@ -23,7 +23,6 @@ ledger counter: Counter;
 ledger bool: Boolean;
 
 witness antonio(): Boolean;
-witness brad(): Field;
 
 export circuit toby(a: Field): Field {
   field.write((() => { const p = disclose([a]); field.write(p[0]); return field.read();})());
@@ -64,15 +63,6 @@ export circuit alan(a: Uint<8>, b: Uint<8>) :[] {
 
   const z = disclose(a) + disclose(b) > 0 ? field.write(1 as Field) : field.write(2 as Field);
   const f = disclose(antonio()) ? field.read() : field.read();
-}
-
-// there is no need to disclose the parameters of unexported circuits.
-circuit graham(a: Field, b: Field): Field {
-  return a - b;
-}
-
-export circuit paulo() : Field{
-  return graham(disclose(brad()), disclose(brad()));
 }
 
 constructor(f: Uint<8>, z: Uint<8>, u: Vector<1, Uint<8>>) {

@@ -100,6 +100,15 @@ export default defineRuntimeTest<typeof Contract>(
 );
 ```
 
+A contract whose constructor takes parameters receives them as the fourth
+argument of `createTestContract`, after the witnesses and private state:
+
+```ts
+const { contract, ctx } = await createTestContract(Contract, {}, undefined, [
+    [1n, 2n, 3n],
+]);
+```
+
 The callback's second argument is the generated `pureCircuits` record. A
 contract whose circuits are all pure exposes nothing on the contract instance,
 so such a fixture reads them straight off `pureCircuits` and never calls
