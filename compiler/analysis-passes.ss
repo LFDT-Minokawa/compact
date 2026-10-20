@@ -34,7 +34,7 @@
           (parser)
           (frontend-passes)
           (standard-library-aliases)
-          (target-include))
+          (target))
 
   (include "analysis-passes/expand-modules-and-types.ss")
 

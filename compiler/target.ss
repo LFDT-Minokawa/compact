@@ -30,74 +30,80 @@
 ;;; target is made from the name of its directory.
 
 (library (target)
-  (export make-target target? target-name target-onchain-runtime-version
-          target-zkir-version target-ledger-version parse-target-name
-          target-directory-prefix target-library-directories)
-  (import (chezscheme))
+  (export target? target-name target-onchain-runtime-version target-zkir-version
+          target-pathname
+          current-target)
+  (import (except (chezscheme) errorf)
+          (utils))
 
-  (define target-directory-prefix "compiler/targets/")
+  (define-syntax target-directory-prefix (identifier-syntax "compiler/targets/"))
 
-  ;; the entries of the library path that are target directories,
-  ;; compiler/targets/<target>, as strings
-  (define (target-library-directories)
-    (filter
-      (lambda (d)
-        (and (fx>= (string-length d) (string-length target-directory-prefix))
-             (string=? (substring d 0 (string-length target-directory-prefix))
-                       target-directory-prefix)))
-      (map car (library-directories))))
-
-  ;; "4_0" -> "4.0" when both parts are non-empty strings of digits, else #f.
-  (define (version-from-slug slug)
-    (let loop ([i 0])
-      (cond
-        [(fx= i (string-length slug)) #f]
-        [(char=? (string-ref slug i) #\_)
-         (let ([major (substring slug 0 i)]
-               [minor (substring slug (fx+ i 1) (string-length slug))])
-           (and (digits? major) (digits? minor)
-                (string-append major "." minor)))]
-        [else (loop (fx+ i 1))])))
-
-  (define (digits? s)
-    (and (fx> (string-length s) 0)
-         (let loop ([i 0])
-           (or (fx= i (string-length s))
-               (and (char-numeric? (string-ref s i)) (loop (fx+ i 1)))))))
-
-  (define (split-on-dash s)
-    (let loop ([i 0] [start 0] [part* '()])
-      (cond
-        [(fx= i (string-length s)) (reverse (cons (substring s start i) part*))]
-        [(char=? (string-ref s i) #\-) (loop (fx+ i 1) (fx+ i 1) (cons (substring s start i) part*))]
-        [else (loop (fx+ i 1) start part*)])))
-
-  ;; "ocrt-4_0-zkir-3_1" -> ("4.0" "3.1"); #f for any other name.
-  (define (parse-target-name name)
-    (let ([part* (split-on-dash name)])
-      (and (= (length part*) 4)
-           (string=? (car part*) "ocrt")
-           (string=? (caddr part*) "zkir")
-           (let ([ocrt (version-from-slug (cadr part*))]
-                 [zkir (version-from-slug (cadddr part*))])
-             (and ocrt zkir (list ocrt zkir))))))
+  (define (target-pathname name)
+    (format "~a~a/~a" target-directory-prefix (target-name current-target) name))
 
   (define-record-type target
-    (fields name onchain-runtime-version zkir-version ledger-version)
-    (protocol
-      (lambda (new)
-        (lambda (name onchain-runtime-version zkir-version ledger-version)
-          (let ([versions (parse-target-name name)])
-            (unless versions
-              (assertion-violation 'make-target
-                "target name is not of the form ocrt-<major>_<minor>-zkir-<major>_<minor>"
-                name))
-            (unless (string=? (car versions) onchain-runtime-version)
-              (assertion-violation 'make-target
-                (format "target ~a names on-chain runtime version ~a but its on-chain runtime version is ~a"
-                  name (car versions) onchain-runtime-version)))
-            (unless (string=? (cadr versions) zkir-version)
-              (assertion-violation 'make-target
-                (format "target ~a names ZKIR version ~a but its ZKIR version is ~a"
-                  name (cadr versions) zkir-version))))
-          (new name onchain-runtime-version zkir-version ledger-version))))))
+    (nongenerative)
+    (fields name onchain-runtime-version zkir-version))
+
+  (module (current-target)
+    (define-syntax make-current-target
+      (lambda (x)
+        (define (target-library-directories)
+          (filter
+            (lambda (d) (string-prefix? target-directory-prefix d))
+            (map car (library-directories))))
+        ;; "4_0" -> "4.0" when both parts are non-empty strings of digits, else #f.
+        (define (version-from-slug slug)
+          (let loop ([i 0])
+            (cond
+              [(fx= i (string-length slug)) #f]
+              [(char=? (string-ref slug i) #\_)
+               (let ([major (substring slug 0 i)]
+                     [minor (substring slug (fx+ i 1) (string-length slug))])
+                 (and (digits? major) (digits? minor)
+                      (string-append major "." minor)))]
+              [else (loop (fx+ i 1))])))
+
+        (define (digits? s)
+          (and (fx> (string-length s) 0)
+               (let loop ([i 0])
+                 (or (fx= i (string-length s))
+                     (and (char-numeric? (string-ref s i)) (loop (fx+ i 1)))))))
+
+        (define (split-on-dash s)
+          (let loop ([i 0] [start 0] [part* '()])
+            (cond
+              [(fx= i (string-length s)) (reverse (cons (substring s start i) part*))]
+              [(char=? (string-ref s i) #\-) (loop (fx+ i 1) (fx+ i 1) (cons (substring s start i) part*))]
+              [else (loop (fx+ i 1) start part*)])))
+
+        ;; "ocrt-4_0-zkir-3_1" -> ("4.0" "3.1"); #f for any other name.
+        (define (parse-target-name name)
+          (let ([part* (split-on-dash name)])
+            (and (= (length part*) 4)
+                 (string=? (car part*) "ocrt")
+                 (string=? (caddr part*) "zkir")
+                 (let ([ocrt (version-from-slug (cadr part*))]
+                       [zkir (version-from-slug (cadddr part*))])
+                   (and ocrt zkir (list ocrt zkir))))))
+
+        (syntax-case x ()
+          [(k)
+           (let ([dir* (target-library-directories)])
+             (unless (= (length dir*) 1)
+               (syntax-error x
+                 (format "expected exactly one target directory, compiler/targets/<target>, on the library path (CHEZSCHEMELIBDIRS) but found ~a"
+                         (if (null? dir*) "none" dir*))))
+             (let* ([dir (car dir*)]
+                    [name (substring dir (string-length target-directory-prefix) (string-length dir))]
+                    [versions (parse-target-name name)])
+               (unless versions
+                 (syntax-error x
+                   (format "~a is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" dir)))
+               (with-syntax ([name name]
+                             [ocrt (car versions)]
+                             [zkir (cadr versions)])
+                 #'(make-target name ocrt zkir))))])))
+
+    (define current-target (make-current-target)))
+)

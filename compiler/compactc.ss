@@ -108,9 +108,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [(help) (print-help)]
     [(version) (print-compiler-version verbose?)]
     [(language-version) (print-language-version)]
-    [(ledger-version) (print-ledger-version)]
     [(target) (print-target)]
-    [(list-targets) (print-list-targets)]
     [(runtime-version) (print-runtime-version)]))
 
 (parameterize ([reset-handler abort])
@@ -118,9 +116,7 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (exit-flag! 'help)]
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]
-             [(--ledger-version) $ (exit-flag! 'ledger-version)]
              [(--target) $ (exit-flag! 'target)]
-             [(--list-targets) $ (exit-flag! 'list-targets)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              ;; Declared so that a --verbose given with two pathnames still
              ;; matches this clause rather than falling through to the next.
@@ -150,7 +146,6 @@ The following flags, if present, affect the compiler's behavior as follows:
     [((flags [(--help) $ (exit-flag! 'help)]
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]
-             [(--ledger-version) $ (exit-flag! 'ledger-version)]
              [(--target) $ (exit-flag! 'target)]
              [(--list-targets) $ (exit-flag! 'list-targets)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]

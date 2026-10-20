@@ -169,16 +169,16 @@
             for a target.  See "Names that must agree" in compiler.md.
           '';
 
-        # A target is a directory of compiler/targets/ with a current-target.ss in it.
+        # A target is a directory of compiler/targets/ with a standard-library.compact in it.
         # A name that is none fails the evaluation here, saying what has to agree,
         # instead of failing the build with "library (current-target) not found".
         checked-target = target: assert target-inputs-checked;
-          if builtins.pathExists ./compiler/targets/${target}/current-target.ss
+          if builtins.pathExists ./compiler/targets/${target}/standard-library.compact
           then target
           else throw ''
-            compactc target "${target}" does not exist: there is no compiler/targets/${target}/current-target.ss.
+            compactc target "${target}" does not exist: there is no compiler/targets/${target}/standard-library.compact.
             The targets are: ${builtins.concatStringsSep ", " (builtins.attrNames (builtins.readDir ./compiler/targets))}.
-            A target is the directory of that name in compiler/targets/ (its current-target.ss takes the
+            A target is the directory of that name in compiler/targets/ (its standard-library.compact takes the
             name of the target, and its on-chain runtime and ZKIR versions, from the name of the directory),
             and the name has to be the same where flake.nix refers to it (default-compactc-target).
             See "Names that must agree" in compiler.md.

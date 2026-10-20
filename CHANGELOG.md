@@ -15,9 +15,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
   in the same form.  `contract-manifest.json` records the target's `onchain-runtime-version`
   and `zkir-version`.
-- The new `--list-targets` flag prints the targets that exist, one per line.
-  The targets come from the directories of `compiler/targets/` when the
-  compiler was built.
+
+### Removed
+
+- The `compactc` `--ledger-version` option has been eliminated.
 
 ### Changed
 
@@ -67,24 +68,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onchain-runtime-v<M>` and `zkir-v<N>` 
   and an input `onchain-runtime-v<M>` or `zkir-v<N>` that no target uses is
   an error.
-- The record of a target (its name and its on-chain runtime and ZKIR versions) is made
-  from the name of its directory, `compiler/targets/ocrt-<M>_<m>-zkir-<N>_<n>`, so
-  they cannot disagree; `current-target.ss` only gives the ledger version.  A
-  directory of `compiler/targets/` that is not named like a target fails the build,
-  as does reusing the object files of another target.
-- To add a target: create the directory `compiler/targets/ocrt-<M>_<m>-zkir-<N>_<n>`
-  (the only edit required is the ledger version if it differs in `current-target.ss`),
-  make `flake.nix` agree with it (the inputs `onchain-runtime-v<M>` and `zkir-v<N>`
-  providing those versions), and `git add` it (`flake.nix` generates its packages).
-  To build the compiler for it, `nix build .#compactc-<target>`;
-  in a development shell, replace the target in `CHEZSCHEMELIBDIRS`, `rm -rf obj`,
-  and run `./compiler/go --rebuild`.
-  Alternatively, you can set the new target as the default target in `flake.nix`;
-  in a development shell run `./compilre/go --rebuild`.  If the new target is not
-  the default target undo the change in `flake.nix` before submitting your changes.
-  A target of another on-chain runtime major than the one
-  `runtime/package.json` depends on cannot be built until the runtime is restructured
-  (CoIP 5, phase 1).  This is documented in "Targets" in `compiler.md` in more details.
 - `compiler/go --build-for-all-targets` runs the tests for every target in
   `compiler/targets/` and so regenerates the ledger ADT documentation of every
   target.
@@ -94,6 +77,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   publishes one binary per selected operating system and target, with the same
   asset names as the internal release
   (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
+- ./compact.md now contains detailed information about targets and how to create
+  new ones.
 
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 

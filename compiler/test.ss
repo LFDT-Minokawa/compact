@@ -103,7 +103,7 @@ groups than for single tests.
         (runtime-version)
         (language-version)
         (compiler-version)
-        (target-include))
+        (target))
 
 #|
 (module ()
