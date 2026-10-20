@@ -29,14 +29,15 @@ Replaces: None
 
 ## Abstract
 
-There are three different ways to serialize and deserialize Compact values as arrays of bytes in the Midnight Network:
+There are three different binary serialization formats for Compact values:
 the public ledger encoding,
-the in-language serialization format,
-and ad hoc casts between some types and Compact `Bytes<N>` byte vector values.
+the standard library event serialization format,
+and ad hoc casts between some types and Compact byte vectors.
 
-All three of these formats are currently considered implementation details,
-with no official definition other then the implementation itself.
-The are not versioned, and could change between Compact toolchain releases.
+With the exception of some of the byte vector casts,
+these formats are currently considered inmplementation details.
+There is no official definition other than the implementation itself.
+They are not versioned and can change between Compact releases.
 The three formats do not necessarily agree with each other.
 
 This CoIP proposes a single defined and versioned serialization format used to encode all Compact values.
@@ -56,36 +57,41 @@ In a `StateValue`, Compact values are held in individual `Cell`s that each conta
 *Field-Aligned Binary* (FAB) `AlignedValue`.
 The FAB binary format is defined by the Midnight ledger's [Field-Aligned Binary specification](https://github.com/midnightntwrk/midnight-ledger/blob/ledger-10/spec/field-aligned-binary.md).
 The binary encoding of the on-chain runtime's `StateValue` and the ledger's FAB `AlignedValue` are determined by the ledger
-and out of the Compact toolchain's control.
+and out of Compact's control.
 
-However, the serialization of Compact typed values into FAB `AlignedValue`s is fully under the Compact toolchain's control.
-The toolchain can determing its own serialization format, and the ledger will store whatever serialized data it is given.
+However, the serialization of Compact typed values into FAB `AlignedValue`s is fully under Compact's control.
+The Compact compiler and runtime can determine their own serialization format,
+and the ledger will simply store and retrieve whatever serialized data it is given.
+
+An `AlignedValue` is a sequence of pairs of `ValueAtom`s and `AlignmentAtoms`.
+A `ValueAtom` is a blob of bytes, in JavaScript it is a `Uint8Array`.
+An `AlignmentAtom` is a tag telling how to deserialize the `ValueAtom`.
+
 The actual implementation of `AlignedValue` serialization and deserialization is in the Compact runtime,
 using so-called *descriptor* objects.
-
-Descriptors are JavaScript objects that have `toValue` and `alignment` function properties used for serialization.
+Descriptors are JavaScript objects that have `toValue` and `alignment` function properties used for serialization as FAB `AlignedValue`s.
 `toValue` converts a Compact value's JavaScript representation into a FAB `Value`
-(an array of value atoms, i.e., byte arrays).
+(an array of `ValueAtoms`, i.e., byte arrays).
 `alignment` converts a Compact value's JavaScript representation into a FAB `Alignment`
-(an array of alignment segments, but the segments are always alignment atoms).
+(an array of alignment segments, but for Compact the segments are always alignment atoms).
 Together a descriptor's `toValue` and `alignment` properties can be used to convert a Compact value to a FAB `AlignedValue`
 by zipping together pairs of value atoms and alignment atoms.
 
 Descriptors also have a `fromValue` function property used for deserialization.
-The alignment atoms are not used during deserialization.
-They exist as instructions to define an intended conversion from the binary value atoms to
-sequences of the Midnight ledger's native field values.
-`fromValue` converts a FAB `Value` (an array of value atoms) into the JavaScript representation of a Compact value.
+`fromValue` converts a FAB `Value` (an array of value atoms) into the JavaScript representation of a Compact value,
+using the descriptor's alignment.
 
 The ledger serialization format is defined for all Compact values.
 There is no specification other than the Compact runtime's implementation of descriptors.
 It is not versioned, and there is no compatibility guarantee made between versions of the Compact runtime.
 
 **Note:** the encoding of a contract's public ledger state into an on-chain runtime `StateValue` containing individual `Cell`s
-is also fully under the Compact toolchain's control.
+is also fully under the Compact's control.
 Specifying that encoding is outside the scope of this CoIP.
 
 Compact code does not have explicit access to FAB `Value` serialization of Compact typed values.
+Serialization and deserialization is implicit,
+and happens whenever values are written into or read from the ledger.
 
 ### The event serialization format
 
@@ -93,7 +99,7 @@ The [CoIP-3 events](https://github.com/LFDT-Minokawa/compact/blob/main/coips/coi
 which has been implemented,
 adds generic `serialize<T,#N>` and `deserialize<T,#N>` circuits.
 These are required to be defined at least for all the standard event types defined in CoIP-3.
-They are additionally required to be performed in circuit.
+They are additionally required by CoIP-3 to be able to be performed in circuit.
 
 `serialize` and `deserialize` have been implemented for all Compact data types,
 though there are some current exceptions (e.g., foreign curve points) where they are intended to be but are not yet implemented.
@@ -102,9 +108,10 @@ The `expand-serialize` pass in [compiler/analysis-passes/expand-serialize.ss](ht
 generates an intermediate representation which is further compiled to JavaScript and ZKIR.
 `serialize` produces a flat Compact byte vector (`Bytes<N>`) containing the serialized representation.
 
-The serialization format is intended to be defined for all Compact values, but CoIP-3 does not require this.
+The serialization format is intended to be defined for all Compact values,
+though CoIP-3 does not require this.
 There is no specification other than the Compact compiler's code generation implementation.
-It is not versioned, and there is no compatibility guarantee made between versions of the Compact toolchain.
+It is not versioned, and there is no compatibility guarantee made between versions of Compact.
 It is not required to be the same as the ledger serialization format, and it has a separate implementation.
 Where it does agree with the ledger serialization format, that agreement is coincidental and not something that is guaranteed.
 
@@ -115,8 +122,7 @@ and some types support casting to and from Compact byte vectors (`Bytes<N>` obje
 These casts are ad hoc and not necessarily defined for all types.
 
 The available casts are defined in the [Compact Reference](https://github.com/LFDT-Minokawa/compact/blob/main/doc/compact-reference.mdx).
-The serialization format is not specified and is an implementation detail.
-There is no compatibility guarantee made between versions of the Compact toolchain.
+There is no compatibility guarantee made between versions of Compact.
 
 ### A note on hashing
 
@@ -138,7 +144,7 @@ always produce the same hash.
 This is **not** what is actually guaranteed.
 `persistentHash` is implemented by using the SHA-256 algorithm on the FAB serialization of the Compact data.
 Since the serialization of Compact data into FAB is **not stable**,
-the hash would change if the Compact toolchain ever changed this serialization format.
+the hash would change if Compact ever changed this serialization format.
 
 ### A note on the in-circuit representation of the ledger serialization
 
@@ -167,6 +173,128 @@ The exception is that the public inputs representing Impact code have a specific
 in-circuit that the ledger relies on.
 
 ## Specification
+
+This CoIP proposes a specified binary serialization format for in-language event serialization.
+The ledger serialization agrees with this format.
+The format is designed to be efficient in circuit.
+It agrees with Compact `Bytes` casts where they are available.
+The format is versioned, with major and minor versions.
+
+### Version bytes
+
+The result of a call to `serialize` is a byte vector that starts with a pair of **major** and **minor** version bytes, followed by the raw serialized representation of the Compact object.
+
+```
+ Byte 0  Byte 1
++-------+-------+-----------------------------------+
+| MAJOR | MINOR | RAW SERIALIZED REPRESENTATION ... |
++-------+-------+-----------------------------------+
+```
+
+The format defined in this CoIP is version 1.0, so a serialized object will start with the pair of bytes `[0x1,0x0]`.
+The format currently implemented by the compiler, as of this time of writing this proposal, is version 0.0.
+**This CoIP proposes adding the pair of bytes `[0x0,0x0]` to every object serialized by the current implementation.**
+
+The minor version will be incremented whenever there is a **non-breaking** format change.
+A change from version X to version Y is non-breaking if and only if:
+
+1. the version Y serializer can serialize all Compact values that the version X serializer can,
+   and produces the same raw serialized representation
+2. the version Y deserializer can deserialize all byte vectors produced by the version X serializer.
+
+So for instance, if X is 1.4 and Y is 1.5, then this implies that the version 1.5 deserializer will
+be able to deserialize binary data tagged with version 1.4.
+In fact, the version 1.5 deserializer will be able to deserialize all versions 1.x
+where x is less than or equal to 5.
+
+Practically speaking, for the 1.0 format defined in this proposal,
+the only non-breaking changes will be to add serialization of new types.
+That format needs a minor version increment, because the previous version's deserializer will not
+be able to recognize the new types.
+
+The major version will be incremented and the minor version will be set to 0 whenever there is a
+**breaking** format change.
+
+It is desirable to minimize the disruption of minor version changes,
+such as providing support for deserializing older versions or a migration path.
+However, this CoIP does not propose or mandate any specific approach.
+
+### Raw serialized representations
+
+The raw serialized representation is specified by the type-directed rules below.
+The ledger serialization format is also defined below.
+It will agree with the raw serialization representation in the following sense:
+if the ledger alignment atoms are dropped so that there is a sequence of value atoms (`Uint8Array`s),
+trailing zeros are added back using the alignment atoms,
+and the value atoms are then concatenated,
+then this produces exactly the same bytes as raw event serialization.
+
+Raw serialization followed by raw deserialization of a value of type `T` is the identity on `T`,
+producing an equal value.
+Raw deserialization followed by raw serialization of a byte vector `Bytes<N>` is not necessarily
+the identity on `Bytes<N>`, however if `Bytes<N>` was produced by serialization then
+this **is** the identity on `Bytes<N>`.
+
+#### Boolean
+
+The raw serialization is a single-element byte vector.
+`true` is serialized as `[1]` and `false` is serialized as `[0]`.
+Raw deserialization fails on any other byte vector than the canonical ones `[0x0]` and `[0x1]`.
+
+The ledger serialization has `{ tag: 'bytes', length: 1 }`,
+and the serialization is the same except that the trailing zero is dropped as required by the ledger
+(so `false` is serialized as an empty `Uint8Array`).
+Ledger deserialization fails on any other `Uint8Array` than the canonical ones `[]` and `[0x1]`.
+
+There is currently no in-language cast from `Boolean` to `Bytes<1>`.
+There are transitive casts through `Field` and `Uint` types,
+for instance if `b:Boolean` then `b as Uint<1> as Bytes<1>` will work.
+It is also possible to simply write `Bytes [b ? 1 : 0]`.
+Likewise, there are transitive casts from `Bytes<1>` to `Boolean`,
+for instance if `b:Bytes<1>` then `b as Uint<1> as Boolean` will work.
+It is also possible to simply write `assert(b[0] <= 1, "deserialization failure"), b[0] == 1`.
+
+#### Uint<0..N>
+
+The raw serialization is a byte vector `Bytes<M>`,
+where `M` is the maximum of 1 and the number of bytes required to represent the maximum value `N-1`
+(so `M` is at least 1).
+The byte vector contains the little-endian encoding of the `Uint`'s value.
+Raw deserialization fails if the little endian encoding represents an
+unsigned integer greater than or equal to `N`.
+
+The ledger serialization has `{ tag: 'bytes', length: M }` for the same `M` as above,
+and the serialization is the little endian encoding of the value with trailing zeros dropped.
+Ledger deserialization fails on a `Uint8Array` that represents an unsigned integer
+greater than or equal to `N`.
+
+There is a cast from `Uint<0..N>` to `Bytes<M>` that produces the raw serialized representation.
+There is also a cast from `Bytes<M>` to `Uint<0..N>` that fails if the byte vector represents
+the little-endian encoding of an unsigned integer greater than or equal to `N`.
+
+Compact sized integer types `Uint<N>`behave exactly as the bounded unsigned integer type `Uint<0..M>` where `M` is `2^N`.
+So for instance, `Uint<8>` is serialized as `Bytes<1>` and `Uint<16>` is serialized as (little-endian) `Bytes<2>`, etc.
+
+#### Field
+
+The raw serialization is a byte vector `Bytes<32>`.
+The byte vector contains the little-endian encoding of the `Field`'s value.
+Raw deserialization converts a byte vector to an unsigned integer,
+and then reduces that number modulo the field order.
+
+The ledger serialization has `{ tag: 'field' }`.
+This will accept a `Uint8Array` up to length 32 and deserialize it as
+an unsigned integer, reduced modulo the field order.
+
+There is a cast from `Field` to `Bytes<32>` that obeys these rules[^1].
+
+#### Bytes<N>
+
+The raw serialization is the byte vector itself.
+
+The ledger serialization has `{ tag: 'bytes', length: N }`.
+
+#### Opaque<'Uint8Array'>
 
 Key ideas:
 
@@ -221,64 +349,6 @@ we use `Bytes<N>` to mean that it is serialized as a byte vector (with the align
 
 Serialization is defined in terms of the serialization of **base types**.
 These include some of the Compact primitive types and standard library-defined types.
-
-#### Boolean
-
-This is a Compact primitive type.
-
-The ledger serialization is `Bytes<1>`, where `true` is serialized as `[0x1]` and `false` is serialized as `[0x0]`.
-Ledger deserialization fails if the value is not the canonical encoding of one of those two byte arrays.
-(Note here and below:
-the ledger serialization of a byte array drops trailing zeros and recovers them using the length of the alignment.
-Therefore, `[0x0]` is serialized as an empty array.)
-See `CompactTypeBoolean`.
-
-The event serialization is `Bytes<1>`, where `true` is serialized as `[0x1]` and `false` is serialized as `[0x0]`.
-(Note here that the serialized representation of `[0x0]` is a single byte, not no bytes as in the ledger serialization format.
-However, if the `Bytes<1>` serialized representation is written into the ledger then it will have the **same**
-representation as serializing the original Compact `Boolean` value).
-
-#### Uint<0..N>
-
-These are Compact primitive types.
-
-The ledger serialization is `Bytes<M>`, where `M` is the number of bytes required to represent the maximum value `N-1`
-but at least one byte
-(`Uint<0..1>` can only represent the value 0, it is serialized as `Bytes<1>`;
-however, the 1-byte (little-endian) encoding of 0 is `[0x0]` which is stored in the ledger as an empty byte vector).
-The byte vector contains the little-endian encoding of the `Uint`'s value.
-Note: the descriptor code uses the serialization code for the Compact type `Field`,
-which produces a little-endian encoding as a byte vector of length at most `M` and relies on the ledger serialization
-dropping trailing zeros to recover them from the alignment length `M`.
-Deserialization computes the number encoded as a little endian byte vector,
-and fails if it is greater than the maximum value `N-1`.
-See `CompactTypeUnsignedInteger`.
-
-Note that sized usigned integer types like `Uint<8>`, `Uint<16>` behave exactly as the bounded unsigned integer type
-they correspond to (for example, `Uint<0..256>`, `Uint<0..65536>`).
-Specifically, according to this rule, the type `Uint<16>` is serialized as `Bytes<2>` containing a little-endian encoding
-of the unsigned integer value.
-
-The event serialization of `Uint<0..1>` is `Bytes<0>`, an empty byte vector.
-Otherwise, the event serialization of a number `n` of type `Uint<0..N>` is `n as Field as Bytes<M>`,
-where `M` is the number of bytes required to represent the maximum value `N-1`.
-
-#### Field
-
-This is a Compact primitive type.
-
-The ledger serialization is `Field`.
-The descriptor implementation uses the on-chain runtime (code from the ledger) to serialize and deserialize `Field`s.
-This code will serialize the value as a byte vector containing the little-endian encoding of the value.
-As usual, trailing zeros are in this byte vector are dropped and recovered on deserialization using a length.
-For `Field`, the length is implicitly the length of the maxumum value of the native field at any time in the Midnight network's history.
-Currently, that is 32 bytes.
-On deserialization, the number represented by the byte vector is reduced by the field modulus (also known as the field order).
-See `CompactTypeField`.
-
-The event serialization is `Bytes<32>`.
-It is serialized **exactly** as the Compact source expression `f as Bytes<32>`,
-which gives a (full) 32-byte little-endian encoding, including any trailing zeros in the byte vector.
 
 #### Bytes<N>
 
@@ -471,8 +541,7 @@ This CoIP is licensed under [Apache 2.0](https://www.apache.org/licenses/LICENSE
 
 ## Footnotes
 
-If necessary, include footnotes in the CoIP text using GitHub's footnote
-syntax[^1].  Keep the footnote heading at the bottom of the document.
-
-[^1]: See the [GitHub Markdown guide](https://docs.github.com/en/get-started/writing-on-github/getting-started-with-writing-and-formatting-on-github/basic-writing-and-formatting-syntax#footnotes).
+[^1]: As of this writing, casts from `Bytes<N>` to `Field` will fail if the byte vector represents
+a value outside the range of `Field`.  This CoIP is proposing that we change that in the language
+definition.
 
