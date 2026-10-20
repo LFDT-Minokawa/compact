@@ -2266,6 +2266,18 @@
         (nanopass-case (Ltypescript Argument) arg
           [(,var-name ,type) (format-compact-type type)]))
 
+      ;; The parameter's name as written, for a reader showing a value by its name; the
+      ;; signature's position is what a call is encoded against.
+      (define (format-argument-name arg)
+        (nanopass-case (Ltypescript Argument) arg
+          [(,var-name ,type) (format-javascript-string (symbol->string (id-sym var-name)))]))
+
+      ;; Both lists from the one walk of the parameters, so they cannot drift apart.
+      (define (format-argument-lists arg*)
+        (format "argumentTypes: [~a], argumentNames: [~a]"
+          (comma-separated (map format-argument-type arg*))
+          (comma-separated (map format-argument-name arg*))))
+
       (define (print-table name entry*)
         (if (null? entry*)
             (printf "export const ~a = {};\n" name)
@@ -2286,13 +2298,13 @@
                  (fold-right
                    (lambda (external-name entry*)
                      (cons
-                       (format "~a: {pure: ~a, provable: ~a, argumentTypes: [~a], resultType: ~a}"
+                       (format "~a: {pure: ~a, provable: ~a, ~a, resultType: ~a}"
                          (format-javascript-string external-name)
                          (if pure? "true" "false")
                          (if (memq (string->symbol external-name) (proof-circuit-names))
                              "true"
                              "false")
-                         (comma-separated (map format-argument-type arg*))
+                         (format-argument-lists arg*)
                          (format-compact-type type))
                        entry*))
                    entry*
@@ -2343,9 +2355,9 @@
                    (comma-separated (cdr interface))))
                (host-interface-entries xpelt*
                  (lambda (name arg* type)
-                   (format "~a: {argumentTypes: [~a], resultType: ~a}"
+                   (format "~a: {~a, resultType: ~a}"
                      (format-javascript-string name)
-                     (comma-separated (map format-argument-type arg*))
+                     (format-argument-lists arg*)
                      (format-compact-type type)))))))
 
       ;; The ledger constructor's parameter types, in order: what a deploy's arguments are
@@ -2356,8 +2368,8 @@
           [(XPelt-public-ledger pl-array lconstructor external-names)
            (nanopass-case (Ltypescript Ledger-Constructor) lconstructor
              [(constructor ,src (,arg* ...) ,stmt)
-              (printf "export const constructorSignature = {argumentTypes: [~a]};\n\n"
-                (comma-separated (map format-argument-type arg*)))])]
+              (printf "export const constructorSignature = {~a};\n\n"
+                (format-argument-lists arg*))])]
           [else (assert cannot-happen)]))
 
       ;; every program has exactly one public ledger element
@@ -2465,9 +2477,9 @@
                      (fold-right
                        (lambda (external-name entry*)
                          (cons
-                           (format "~a: {argumentTypes: [~a], resultType: ~a, readsLedger: ~a}"
+                           (format "~a: {~a, resultType: ~a, readsLedger: ~a}"
                              (format-javascript-string external-name)
-                             (comma-separated (map format-argument-type arg*))
+                             (format-argument-lists arg*)
                              (format-compact-type type)
                              (if (id-reads-ledger? internal-id) "true" "false"))
                            entry*))

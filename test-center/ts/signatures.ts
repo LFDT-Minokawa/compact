@@ -38,7 +38,7 @@ const ORACLE = {
 };
 
 test('constructorSignature lists the constructor parameters in order', () => {
-  expect(contractCode.constructorSignature).toEqual({ argumentTypes: [BYTES32, CALLEE, COLOR] });
+  expect(contractCode.constructorSignature).toEqual({ argumentTypes: [BYTES32, CALLEE, COLOR], argumentNames: ['o', 'c', 'color'] });
 });
 
 test('ledgerSignatures names exactly the fields ledger() exposes, with their storage and types', async () => {
@@ -75,8 +75,8 @@ test('localStateSignatures names exactly the fields and functions localState() e
       seen: { storage: 'Set', type: BYTES32 },
     },
     functions: {
-      remaining: { argumentTypes: [], resultType: { tag: 'Uint', maxval: '15' }, readsLedger: false },
-      quote: { argumentTypes: [{ tag: 'Uint', maxval: '255' }, U64], resultType: U64, readsLedger: true },
+      remaining: { argumentTypes: [], argumentNames: [], resultType: { tag: 'Uint', maxval: '15' }, readsLedger: false },
+      quote: { argumentTypes: [{ tag: 'Uint', maxval: '255' }, U64], argumentNames: ['k', 'fallback'], resultType: U64, readsLedger: true },
     },
   });
   const { fields, functions } = contractCode.localStateSignatures;
@@ -100,8 +100,8 @@ test('hostInterfaceSignatures carries the declared types of exactly the function
   // the unused block is in neither
   expect(signatures).toEqual({
     'test:oracle/data@1.0.0': {
-      credential: { argumentTypes: [BYTES32, U64], resultType: OUTER },
-      random: { argumentTypes: [], resultType: { tag: 'Field' } },
+      credential: { argumentTypes: [BYTES32, U64], argumentNames: ['subject', 'nonce'], resultType: OUTER },
+      random: { argumentTypes: [], argumentNames: [], resultType: { tag: 'Field' } },
     },
   });
 });

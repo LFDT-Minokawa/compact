@@ -69,11 +69,19 @@ export type InterfaceCircuitDeclaration = {
 /** External circuit name to declaration, for one contract type. */
 export type InterfaceDescriptor = Readonly<Record<string, InterfaceCircuitDeclaration>>;
 
+/** The parameter names, in `argumentTypes` order, for a reader showing a value by its name. They
+ *  are documentation, never a key: calls are positional, and nothing may match or grant on a name.
+ *  Absent from a module compiled before they were emitted. */
+export type ArgumentNames = {
+  readonly argumentNames?: readonly string[];
+};
+
 /** One circuit as *implemented*. `pure` is inferred purity; `provable` means a proof can be
  *  generated for it. Disjoint but not exhaustive: a circuit that only calls a host function is neither. */
-export type CircuitSignature = InterfaceCircuitDeclaration & {
-  readonly provable: boolean;
-};
+export type CircuitSignature = InterfaceCircuitDeclaration &
+  ArgumentNames & {
+    readonly provable: boolean;
+  };
 
 /** The `circuitSignatures` export of a generated contract module. */
 export type CircuitSignatures = Readonly<Record<string, CircuitSignature>>;
@@ -85,7 +93,7 @@ export type DeclaredInterfaces = Readonly<Record<string, InterfaceDescriptor>>;
 /** The `constructorSignature` export: the ledger constructor's parameters in order, which is
  *  what a deploy's arguments are encoded against. Every contract has one; a contract without
  *  a `constructor` declaration takes no arguments. */
-export type ConstructorSignature = {
+export type ConstructorSignature = ArgumentNames & {
   readonly argumentTypes: readonly SignatureType[];
 };
 
@@ -108,7 +116,7 @@ export type LedgerSignatures = {
 
 /** An exported local function as `localState()` exposes it. `readsLedger` means the accessor
  *  needs a ledger state to run it. */
-export type LocalFunctionSignature = {
+export type LocalFunctionSignature = ArgumentNames & {
   readonly argumentTypes: readonly SignatureType[];
   readonly resultType: SignatureType;
   readonly readsLedger: boolean;
@@ -123,7 +131,7 @@ export type LocalStateSignatures = {
 };
 
 /** One host function as a `host` block declares it. */
-export type HostFunctionSignature = {
+export type HostFunctionSignature = ArgumentNames & {
   readonly argumentTypes: readonly SignatureType[];
   readonly resultType: SignatureType;
 };
