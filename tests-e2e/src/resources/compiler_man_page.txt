@@ -19,9 +19,6 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --language-version prints the language version and exits.
 
-  --ledger-version prints the ledger version and exits.  The ledger version
-    is the version of the ledger that is expected by the generated code.
-
   --target prints the target this build of the compiler is built for and
     exits.  A target is the pair of the on-chain runtime version and the ZKIR
     version.

@@ -40,7 +40,7 @@ then
     exit
   elif [ "$1" == "--rebuild" ]
   then
-    rm -rf obj/profiled-compiler
+    rm -rf obj/profiled
   elif [ "$1" == "--build-for-all-targets" ]
   then
     # Run the tests, from scratch, once per target directory.  The target a
@@ -90,14 +90,16 @@ mkdir coverage
 (keyboard-interrupt-handler (lambda () (reset)))
 (print-extended-identifiers #t)
 (library-directories
-  ; redirect compiler object code to obj/profiled-compiler, leaving obj/compiler
-  ; for unprofiled code produced by compiling compiler/compactc.ss
+  ; redirect compiler object code to a separate directory for profiled object files
   (let f ([a* (library-directories)])
     (assert (not (null? a*)))
     (map
       (lambda (a)
-        (if (equal? (cdr a) "obj/compiler")
-            (cons (car a) "obj/profiled-compiler")
+        (if (or (string=? (car a) "compiler")
+                (string=? (path-first (car a)) "compiler"))
+            (begin
+              (assert (string=? (path-first (cdr a)) "obj"))
+              (cons (car a) (format "obj/profiled/~a" (path-rest (cdr a)))))
             a))
       a*)))
 (compile-library-handler
@@ -105,7 +107,7 @@ mkdir coverage
   (lambda (src-path obj-path)
     (parameterize ([compile-profile
                     (and (string=? (path-first obj-path) "obj")
-                         (string=? (path-first (path-rest obj-path)) "profiled-compiler"))])
+                         (string=? (path-first (path-rest obj-path)) "profiled"))])
       (when (compile-profile)
         (printf "compiling w/profiling ~a to ~a\n" src-path obj-path))
       (compile-library src-path obj-path))))

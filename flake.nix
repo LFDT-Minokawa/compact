@@ -107,7 +107,7 @@
             fi
           '';
         # The target built by packages.compactc and used by the dev shells.
-        default-compactc-target = checked-target "ocrt-4_0-zkir-3_1";
+        default-compactc-target = "ocrt-4_0-zkir-3_1";
 
         # Other targets in compiler/targets/ are built with packages.compactc-<target>, which
         # are generated for every target below.
@@ -169,20 +169,6 @@
             for a target.  See "Names that must agree" in compiler.md.
           '';
 
-        # A target is a directory of compiler/targets/ with a standard-library.compact in it.
-        # A name that is none fails the evaluation here, saying what has to agree,
-        # instead of failing the build with "library (current-target) not found".
-        checked-target = target: assert target-inputs-checked;
-          if builtins.pathExists ./compiler/targets/${target}/standard-library.compact
-          then target
-          else throw ''
-            compactc target "${target}" does not exist: there is no compiler/targets/${target}/standard-library.compact.
-            The targets are: ${builtins.concatStringsSep ", " (builtins.attrNames (builtins.readDir ./compiler/targets))}.
-            A target is the directory of that name in compiler/targets/ (its standard-library.compact takes the
-            name of the target, and its on-chain runtime and ZKIR versions, from the name of the directory),
-            and the name has to be the same where flake.nix refers to it (default-compactc-target).
-            See "Names that must agree" in compiler.md.
-          '';
         combined-shell-hook =
           ''
             ${runtime-shell-hook}
@@ -308,7 +294,7 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/${default-compactc-target}";
             COMPACT_LIBCRYPTO = libcrypto;
 
             NODE_PATH = "${packages.runtime.node-modules}/node_modules";
@@ -322,10 +308,10 @@
             ] ++ pkgs.lib.optional (!isDarwin) pkgs.openssl;
 
             buildPhase = ''
-              mkdir -p obj/compiler
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/compactc.ss > obj/compiler/compactc.ss
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/compiler/format-compact.ss
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/compiler/fixup-compact.ss
+              mkdir -p obj/${default-compactc-target}
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/compactc.ss > obj/${default-compactc-target}/compactc.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/${default-compactc-target}/format-compact.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/${default-compactc-target}/fixup-compact.ss
               patchShebangs --host .
 
               scheme -q << END
@@ -335,12 +321,12 @@
                 (generate-wpo-files #t)
                 (generate-inspector-information #f)
                 (compile-profile #f)
-                (compile-program "obj/compiler/compactc.ss" "obj/compiler/compactc.so")
-                (compile-program "obj/compiler/format-compact.ss" "obj/compiler/format-compact.so")
-                (compile-program "obj/compiler/fixup-compact.ss" "obj/compiler/fixup-compact.so")
-                (compile-whole-program "obj/compiler/compactc.wpo" "obj/compactc")
-                (compile-whole-program "obj/compiler/format-compact.wpo" "obj/format-compact")
-                (compile-whole-program "obj/compiler/fixup-compact.wpo" "obj/fixup-compact")
+                (compile-program "obj/${default-compactc-target}/compactc.ss" "obj/${default-compactc-target}/compactc.so")
+                (compile-program "obj/${default-compactc-target}/format-compact.ss" "obj/${default-compactc-target}/format-compact.so")
+                (compile-program "obj/${default-compactc-target}/fixup-compact.ss" "obj/${default-compactc-target}/fixup-compact.so")
+                (compile-whole-program "obj/${default-compactc-target}/compactc.wpo" "obj/compactc")
+                (compile-whole-program "obj/${default-compactc-target}/format-compact.wpo" "obj/format-compact")
+                (compile-whole-program "obj/${default-compactc-target}/fixup-compact.wpo" "obj/fixup-compact")
               END
             '';
 
@@ -372,7 +358,7 @@
           # compiler/targets/, below.
           lib.compactc-for-target = target: packages.compactc.overrideAttrs (oldAttrs: {
             name = "compactc-${target}";
-            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] oldAttrs.CHEZSCHEMELIBDIRS;
+            CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] oldAttrs.CHEZSCHEMELIBDIRS;
           });
 
           packages.compactc-binary-nixos = let
@@ -397,29 +383,29 @@
               ./third_party/compiler
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/compiler";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps::obj/${default-compactc-target}";
 
             buildInputs = [
               chez-exe
             ] ++ platformSpecificInputs;
 
             buildPhase = ''
-              mkdir -p obj/compiler
+              mkdir -p obj/${default-compactc-target}
 
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/compactc.ss > obj/compiler/compactc.ss
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/compiler/format-compact.ss
-              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/compiler/fixup-compact.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/compactc.ss > obj/${default-compactc-target}/compactc.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/format-compact.ss > obj/${default-compactc-target}/format-compact.ss
+              sed -e 's;/usr/bin/env .*;'`command -v scheme`' --program;' compiler/fixup-compact.ss > obj/${default-compactc-target}/fixup-compact.ss
 
-              compile-chez-program --optimize-level 2 obj/compiler/compactc.ss
-              compile-chez-program --optimize-level 2 obj/compiler/format-compact.ss
-              compile-chez-program --optimize-level 2 obj/compiler/fixup-compact.ss
+              compile-chez-program --optimize-level 2 obj/${default-compactc-target}/compactc.ss
+              compile-chez-program --optimize-level 2 obj/${default-compactc-target}/format-compact.ss
+              compile-chez-program --optimize-level 2 obj/${default-compactc-target}/fixup-compact.ss
             '';
 
             installPhase = ''
               mkdir -p $out/bin
 
               for exe in compactc format-compact fixup-compact; do
-                cp "obj/compiler/$exe" $out/bin
+                cp "obj/${default-compactc-target}/$exe" $out/bin
                 chmod +x "$out/bin/$exe"
               done
             '' + (if isDarwin then ''
@@ -484,7 +470,7 @@
             name = "compactc-binary-dist-${target}";
             src = packages.compactc-binary-nixos.overrideAttrs (nixosAttrs: {
               name = "compactc-binary-nixos-${target}";
-              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [(checked-target target)] nixosAttrs.CHEZSCHEMELIBDIRS;
+              CHEZSCHEMELIBDIRS = builtins.replaceStrings [default-compactc-target] [target] nixosAttrs.CHEZSCHEMELIBDIRS;
             });
           });
 
@@ -548,7 +534,7 @@
               ];
 
               TEST_COMPACT_PATH = ./test-center/compact/test.compact;
-              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler";
+              CHEZSCHEMELIBDIRS = "${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps:compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler";
 
               buildPhase = ''
                 ln -s ${packages.compact-vscode-extension-node-modules}/node_modules
@@ -632,7 +618,8 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            DEFAULTCOMPACTCTARGET = "${default-compactc-target}";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
             WASM_BINDGEN_WEAKREF = 1;
             WASM_BINDGEN_EXTERNREF = 1;
@@ -653,7 +640,7 @@
             ];
             shellHook = combined-shell-hook;
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 
@@ -666,7 +653,7 @@
               packages.zkir-v3-bin
             ];
 
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
           devShells.test-contracts = pkgs.mkShell {
@@ -679,7 +666,7 @@
             ];
 
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
-            CHEZSCHEMELIBDIRS = "compiler::obj/compiler:compiler/targets/${default-compactc-target}::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
+            CHEZSCHEMELIBDIRS = "compiler::obj/${default-compactc-target}:compiler/targets/${default-compactc-target}::obj/${default-compactc-target}:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };
 
