@@ -109,10 +109,10 @@ and the remaining passes are defined in
 [compiler/frontend-passes.ss](./compiler/frontend-passes.ss),
 [compiler/analysis-passes.ss](./compiler/analysis-passes.ss),
 [compiler/save-contract-info-passes.ss](./compiler/save-contract-info-passes.ss),
-[compiler/targets/ocrt-4_0-zkir-3_1/typescript-passes.ss](./compiler/targets/ocrt-4_0-zkir-3_1/typescript-passes.ss),
+[compiler/targets/<target>/typescript-passes.ss](./compiler/targets/<target>/typescript-passes.ss),
 [compiler/circuit-passes.ss](./compiler/circuit-passes.ss),
 and
-[compiler/targets/ocrt-4_0-zkir-3_1/zkir-v3-passes.ss](./compiler/targets/ocrt-4_0-zkir-3_1/zkir-v3-passes.ss).
+[compiler/targets/<target>/zkir-v3-passes.ss](./compiler/targets/<target>/zkir-v3-passes.ss).
 
 As implied by the existence of two final passes, there are actually two
 paths through the compiler, one leading from `parse-file` to `print-typescript`
@@ -157,9 +157,6 @@ on the Chez library path (`CHEZSCHEMELIBDIRS`, set by `flake.nix`).
 
 `compactc --target` prints the target of a build, and `contract-manifest.json`
 records it in the generated contract.
-`compactc --list-targets` prints the targets that exist (the directories of
-`compiler/targets/` when the compiler was built), one per line.  The repository
-currently has one target, `ocrt-4_0-zkir-3_1`, which is also the default.
 
 The name of a target says its versions: `ocrt-4_0-zkir-3_1` is the target of
 on-chain runtime 4.0 and ZKIR 3.1, and the record of the target has exactly these
@@ -196,7 +193,6 @@ A target is referred to by name in several places, and they have to agree.  Take
 | 3 | The default target, `default-compactc-target` in `flake.nix` | a target of 1 | `flake.nix` (`checked-target`) when it evaluates | the same message as 1, at `nix build` |
 | 4 | The `compiler/targets/<target>` entry of `CHEZSCHEMELIBDIRS` (set by `flake.nix` from 3, or by hand): exactly one | a target of 1 | `compiler/go`; `make-target-here` and `include-target` when the compiler is built | `error: target directory compiler/targets/<target> (from CHEZSCHEMELIBDIRS) has no compiler/targets/<target> entry`; `expected exactly one target directory, compiler/targets/<target>, on the library path (CHEZSCHEMELIBDIRS) but found ...` |
 | 5 | The flake inputs of `flake.nix`: `onchain-runtime-v<M>` and `zkir-v<N>` | for every target `ocrt-<M>_<m>-zkir-<N>_<n>`: both exist, `onchain-runtime-v<M>` provides on-chain runtime `<M>.<m>` and `zkir-v<N>` provides ZKIR `<N>.<n>` (the version of the input's package, e.g., `4.0.0-rc.3`); and every such input is for some target | `flake.nix` (`target-inputs-checked`) when it evaluates | `The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:` followed by, for example, `target ocrt-5_0-zkir-3_1 needs the flake input onchain-runtime-v5, ... but flake.nix has none`, `target ocrt-4_1-zkir-3_1 is for on-chain runtime 4.1 but the flake input onchain-runtime-v4 provides 4.0`, or `the flake input onchain-runtime-v5 is used by no target` |
-| 6 | The object files of the compiler | the ones of the target of 4: the object files of different targets have the same names | unchecked | unknown |
 
 Until the runtime is restructured (CoIP 5, phase 1) there is a single
 `runtime/package.json`, so row 2 can hold for only one on-chain runtime major
@@ -227,7 +223,7 @@ the name of the target.
 
 1. Create the directory of the new target, named `ocrt-<M>_<m>-zkir-<N>_<n>`, e.g.,
    by copying an existing one:
-   `cp -R compiler/targets/ocrt-4_0-zkir-3_1 compiler/targets/<new-target>`.
+   `cp -R compiler/targets/<target> compiler/targets/<new-target>`.
 2. Make `flake.nix` agree with the new name (row 5).  The flake needs the inputs
    `onchain-runtime-v<M>` and `zkir-v<N>`.
    So the versions of the new target have to be the
@@ -270,15 +266,11 @@ shell, point the variable at it:
 
 ```
 nix develop
-export CHEZSCHEMELIBDIRS=$(echo "$CHEZSCHEMELIBDIRS" | sed 's/ocrt-4_0-zkir-3_1/<target>/g')
+export CHEZSCHEMELIBDIRS=$(echo "$CHEZSCHEMELIBDIRS" | sed 's/<target>/<new-target>/g')
 rm -rf obj                 # object files of different targets have the same names
 ./compiler/go --rebuild    # run the compiler tests for that target
 ```
 
-Clean `obj/` (or use `compiler/go --rebuild`) whenever you switch targets, since
-object files for different targets share names and could otherwise be reused (the
-build fails if they are, see row 6).  `rm -rf obj` is enough; `./clean.sh` also
-removes `coverage/` and the `result` link.
 To test every target, run `./compiler/go --build-for-all-targets`; it does the
 above for each directory in `compiler/targets/` in turn (the coverage report
 left behind is that of the last target).
@@ -1213,7 +1205,7 @@ top to bottom (left to right) and handles each kind of program element as follow
          [standard-library.ss](./compiler/standard-library.ss) and precompiled
          Lpreexpand records (specifically `define-adt` forms) produced by syntactic
          abstractions in [ledger.ss](./compiler/ledger.ss) from the ADT descriptions
-         in [midnight-ledger.ss](./compiler/targets/ocrt-4_0-zkir-3_1/midnight-ledger.ss) and proceeds to step
+         in [midnight-ledger.ss](./compiler/targets/<target>/midnight-ledger.ss) and proceeds to step
          2 with `R`.  If `M` is not the name of the standard library, the compiler
          proceeds with step 1c.
 

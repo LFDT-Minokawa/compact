@@ -181,6 +181,10 @@
                        (let ()
                          (import (only (langs) max-bytes/vector-length))
                          (write (max-bytes/vector-length)))]
+                      [(current-target)
+                       (let ()
+                         (import (target))
+                         (display-string (target-name current-target)))]
                       [else (errorf who
                                     "unrecognized parameter in @~s on line ~d"
                                     x

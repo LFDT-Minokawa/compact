@@ -40,20 +40,14 @@ The following flags, if present, affect the compiler's behavior as follows:
     commit follow the version with that commit and its date in parentheses.
 
   --verbose, given with --version in either order, prints the version, commit,
-    commit date, language and runtime versions, and target as separate fields,
+    commit date, language version, runtime version, and target as separate fields,
     showing unknown for anything the build did not record.
 
   --language-version prints the language version and exits.
 
-  --ledger-version prints the ledger version and exits.  The ledger version
-    is the version of the ledger that is expected by the generated code.
-
   --target prints the target this build of the compiler is built for and
     exits.  A target is the pair of the on-chain runtime version and the ZKIR
     version.
-
-  --list-targets prints the targets that exist, one per line, and exits.  A
-    target is named for its on-chain runtime and ZKIR versions.
 
   --runtime-version prints the runtime version and exits.  The runtime version
     is the version of the Compact runtime JavaScript package that is used by
