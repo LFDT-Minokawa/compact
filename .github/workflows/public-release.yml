@@ -251,7 +251,9 @@ jobs:
           CLEAN="${INTERNAL_VERSION#v}"
           gh release download "$INTERNAL_TAG" --repo midnight-ntwrk/artifacts \
             --pattern '*x86_64-unknown-linux-musl*' --dir check
-          unzip -q check/*.zip -d check/bin
+          # There is one zip per target now; the compiler and language versions are the
+          # same in all of them, so any one will do.
+          unzip -q "$(ls check/*.zip | sort | head -n 1)" -d check/bin
           chmod +x check/bin/* || true
           got="$(check/bin/compactc --version)"
           expected="${CLEAN} (${RELEASED_SHA:0:9} "

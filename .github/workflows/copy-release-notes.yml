@@ -61,7 +61,9 @@ jobs:
             echo "::error::no compactc-${TOOLCHAIN} release in midnight-ntwrk/artifacts; the language version is read from that build, so it has to exist"
             exit 1
           fi
-          unzip -q check/*.zip -d check/bin
+          # There is one zip per target now; the compiler and language versions are the
+          # same in all of them, so any one will do.
+          unzip -q "$(ls check/*.zip | sort | head -n 1)" -d check/bin
           chmod +x check/bin/* || true
           LANGUAGE="$(check/bin/compactc --language-version)"
           if [[ ! "$LANGUAGE" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then

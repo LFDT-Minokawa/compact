@@ -23,8 +23,8 @@
 ;;; variable is expected or an ordinary variable used where a type variable is expected.
 ;;; a full description of the pass and how it works is in ../compiler.md.
 
-(define-syntax standard-library-path (identifier-syntax "compiler/standard-library.compact"))
-(define-syntax zkir-v3-library-path (identifier-syntax "compiler/zkir-v3-library.compact"))
+(define-syntax standard-library-path (identifier-syntax (target-pathname "standard-library.compact")))
+(define-syntax zkir-v3-library-path (identifier-syntax (target-pathname "zkir-v3-library.compact")))
 
 (define-pass expand-modules-and-types : Lpreexpand (ir) -> Lexpanded ()
   (definitions

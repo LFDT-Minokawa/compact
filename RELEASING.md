@@ -616,7 +616,7 @@ ones you start by hand; the second are called by them and never run directly.
 | [**Release publish of compact-runtime**](https://github.com/LFDT-Minokawa/compact/actions/workflows/release-runtime.yml) (`release-runtime.yml`) | You need to publish the runtime and the version in `runtime/package.json` is already correct on the branch. | Builds and publishes the runtime package to GitHub Packages (§3 — npmjs.org is a further step). |
 | [**Copy Compact docs to midnight-docs**](https://github.com/LFDT-Minokawa/compact/actions/workflows/copy-docs.yml) (`copy-docs.yml`) | You want the language reference, API docs, grammar and so on updated without doing a release. | Opens a pull request on `midnight-docs`. |
 | [**Copy release notes to midnight-docs**](https://github.com/LFDT-Minokawa/compact/actions/workflows/copy-release-notes.yml) (`copy-release-notes.yml`) | You want just the release-notes pages updated without doing a release. | Opens a separate pull request on `midnight-docs`. |
-| [**On-demand dev publish**](https://github.com/LFDT-Minokawa/compact/actions/workflows/dev-publish.yml) (`dev-publish.yml`) | Somebody needs an installable build of a branch that is not a release at all. | Publishes `compactc-dev-<commit>` as a prerelease reporting `x.y.10z-dev (<commit> <date>)`, and optionally the runtime as a `dev` package. Not part of releasing; `doc/dev-builds.md` covers coordinates, consumption and retention. |
+| [**On-demand dev publish**](https://github.com/LFDT-Minokawa/compact/actions/workflows/dev-publish.yml) (`dev-publish.yml`) | Somebody needs an installable build of a branch that is not a release at all. | Publishes `compactc-dev-<commit>` as a prerelease reporting `x.y.10z-dev (<commit> <date>)`, and optionally the runtime as a `dev` package. Not part of releasing; `doc/processes/dev-builds.md` covers coordinates, consumption and retention. |
 | [**Compact Tool Release**](https://github.com/LFDT-Minokawa/compact/actions/workflows/compact-release.yml) (`compact-release.yml`) | Never by hand. It fires on every pull request, and when you push a `compact-v*` tag (§4). | Builds and publishes the `compact` CLI binaries. The tag filter dist generates for it matches every `compact`-prefixed tag, so `compactc-*` and `compact-vsc-plugin-*` are excluded from it explicitly — without those exclusions a toolchain or plugin release starts a run of this workflow that can only fail. |
 
 Called by the above, never dispatched by hand: `release-build.yml` (one platform's
@@ -635,6 +635,18 @@ copy workflows exist for when you need one without the other.
 ## 9. Reference: internal release, every field
 
 [Run the workflow](https://github.com/LFDT-Minokawa/compact/actions/workflows/internal-release.yml).
+
+**What it releases.** One `compactc` binary for every combination of operating system
+and *target*, where the targets are the directories of `compiler/targets/` on the
+branch being built (see "Targets" in `compiler.md`). Each asset is named
+`compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip` — e.g.
+`compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip` — the last part being the
+target's directory name `ocrt-4_0-zkir-3_1` respelled by
+`scripts/target-artifact-suffix.sh`. A directory not named like a target fails the
+`list-targets` job. A new target needs no change to the workflow or to `flake.nix`, which
+generates `packages.compactc-binary-<target>` for every directory of `compiler/targets/`
+(`compiler.md`, "Adding a target"). The release is only created when
+the build and the tests of every target pass on every required system.
 
 **Use workflow from** — GitHub's own selector for which ref the workflow definition
 comes from. Keep it on the branch you are releasing (§2 step 5).

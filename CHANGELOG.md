@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
+
+### Added
+
+- The compiler is now built for a *target*, the pair of the on-chain runtime
+  and ZKIR versions it is built against (CoIP 5, phase 0).  The new
+  `--target` flag prints the target, e.g.,
+  `onchain-runtime=4.0, zkir=3.1`, and `--version --verbose` shows the target
+  in the same form.  `contract-manifest.json` records the target's `onchain-runtime-version`
+  and `zkir-version`.
+
+### Removed
+
+- The `compactc` `--ledger-version` option has been eliminated.
+
+### Changed
+
+- The files that depend on the on-chain runtime and ZKIR (the TypeScript and
+  ZKIR passes, the standard library, and the ledger and native declarations) now
+  live in `compiler/targets/<target>/`.  As a consequence, the standard library
+  files listed among the `sources` of generated source maps (`.js.map`) have
+  new paths, e.g.,
+  `compiler/targets/ocrt-4_0-zkir-3_1/standard-library.compact`.
+- `--ledger-version` now prints the ledger version recorded for the target
+  rather than the version of the `zkir-v3` dependency.
+- **Release assets are renamed.**  The internal release now releases every target:
+  one `compactc` binary per operating system and target, named
+  `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
+  `compactc_v0.36.0_aarch64-darwin_ocrt_v4.0-zkir_v3.1.zip`, instead of
+  `compactc_v<compiler-version>_<os>.zip`.  Scripts and tools that download assets
+  by hardcoding name must be updated.
+- `doc/ledger-adt.mdx` is now generated per target as
+  `doc/ledger-adt-<target>.mdx` (e.g., `doc/ledger-adt-ocrt-4_0-zkir-3_1.mdx`) and
+  in the title it states the on-chain runtime and ZKIR versions of that target.
+  The docs workflows check, and copy to the docs repository, every such file.
+  **Action required in the docs repository:** the workflows no longer write
+  `ledger-adt.mdx`, so the old `docs/compact/data-types/ledger-adt.mdx` and
+  `docs/compact/reference/ledger-adt.mdx` in `midnightntwrk/midnight-docs` must
+  be removed by hand (otherwise stale copies remain).
+- The standard library API documents moved from `doc/api/CompactStandardLibrary/`
+  to `doc/api/CompactStandardLibrary-<target>/` (e.g.,
+  `doc/api/CompactStandardLibrary-ocrt-4_0-zkir-3_1/`), and their links to the
+  ledger data types point at the target's `doc/ledger-adt-<target>.mdx`.  The docs
+  workflows check and copy each directory to
+  `docs/compact/standard-library/CompactStandardLibrary-<target>/` in the docs
+  repository. **Action required in the docs repository:** the old
+  `docs/compact/standard-library/exports.md` and `README.md` must be removed
+  by hand.
+  `compiler/compact-reference.mdx` links to `ledger-adt-ocrt-4_0-zkir-3_1`
+  but it does not state there will be potentially more than one ledger-adt.
+
+### Internal notes
+
+- Releasing this version of the compiler will not break the devtools as the 
+  devtools only hardcodes the OS name when looking up artifacts.
+- Each target has a release binary package, `nix build .#compactc-binary-<target>`,
+  and a compiler package `.#compactc-<target>`; `flake.nix` generates both for every
+  directory of `compiler/targets/`, so a new target needs no change to it for them.
+- `flake.nix` checks, when it evaluates, that the targets of `compiler/targets/` and its
+  flake inputs agree: a target `ocrt-<M>_<m>-zkir-<N>_<n>` needs the inputs
+  `onchain-runtime-v<M>` and `zkir-v<N>` 
+  and an input `onchain-runtime-v<M>` or `zkir-v<N>` that no target uses is
+  an error.
+- `compiler/go --build-for-all-targets` runs the tests for every target in
+  `compiler/targets/` and so regenerates the ledger ADT documentation of every
+  target.
+- The dev publish workflow (`dev-publish.yml`) takes a `target` input, `all`, or empty
+  (the default) for the default
+  target of `flake.nix` (`default-compactc-target`), and builds, tests and
+  publishes one binary per selected operating system and target, with the same
+  asset names as the internal release
+  (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
+- ./compact.md now contains detailed information about targets and how to create
+  new ones.
+
 ## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
 
 ### Fixed
