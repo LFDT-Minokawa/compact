@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.102]
+## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 
 ### Added
 
@@ -79,6 +79,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
 - ./compact.md now contains detailed information about targets and how to create
   new ones.
+
+## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
+
+### Fixed
+
+- A cross-contract call's proof now binds the callee circuit named at the call
+  site. The compiler now emits the entry-point hash as a constant of the call
+  site.  Contracts that make cross-contract calls must be recompiled to get the
+  fix.
 
 ## [Toolchain 0.35.106, language 0.27.0, runtime 0.20.102]
 
