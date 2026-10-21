@@ -52,6 +52,7 @@
           (filter
             (lambda (d) (string-prefix? target-directory-prefix d))
             (map car (library-directories))))
+
         ;; "4_0" -> "4.0" when both parts are non-empty strings of digits, else #f.
         (define (version-from-slug slug)
           (let loop ([i 0])
