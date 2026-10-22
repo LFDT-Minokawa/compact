@@ -39,14 +39,14 @@ jobs:
           nix develop .#compiler --command yarn test:fuzzer
 
       - name: Upload failed contracts
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: failure()
         with:
           name: failed-contracts
           path: tests-e2e/failed-contracts/
 
       - name: Publish Test Report
-        uses: dorny/test-reporter@a43b3a5f7366b97d083190328d2c652e1a8b6aa2 # v3.0.0
+        uses: dorny/test-reporter@d1b5dff021aa968b288b02285a8bf47471c5928a # v3.2.0
         if: always()
         with:
           name: Compactc E2E Tests Report
@@ -55,7 +55,7 @@ jobs:
           reporter: jest-junit
 
       - name: Publish Test Summary
-        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
+        uses: EnricoMi/publish-unit-test-result-action@7622c5bf3d112a72ab4fa3951c2aa5723d8ab92d # v2.25.0
         if: always()
         with:
           check_name: Compactc E2E Tests Results
@@ -64,7 +64,7 @@ jobs:
             !(node_modules)/**/test-report.xml
 
       - name: Publish Test Summary Results
-        uses: ctrf-io/github-test-reporter@7974087018bf4857cf5a9d78723e152038c3fa31 # v1.3.0
+        uses: ctrf-io/github-test-reporter@dbb08957b5b2af918b39136ab2c5532002c7649b # v1.3.2
         with:
           report-path: 'tests-e2e/reports/ctrf-report.json'
           flaky-rate-report: 'true'
