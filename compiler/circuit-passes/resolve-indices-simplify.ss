@@ -179,6 +179,14 @@
           [else (values
                   `(elt-ref ,src ,expr ,elt-name)
                   (CTV-unknown no-var-name))])))
+    (define (constant-field-type? type)
+      ; Only these field types have values that can be represented by a quote.  The foreign field
+      ; types do not, so simplification must not produce constants of those types.
+      (nanopass-case (Lnovectorref Type) type
+        [(tfield ,src (field-native)) #t]
+        [(tfield ,src (field-scalar (curve-jubjub))) #t]
+        [(tfield ,src ,ftype) #f]
+        [else #t]))
     (define (handle-binop src proc expr1 expr2 special-cases build-expr)
       ; handle-binop processes expr1 and expr2 to get residual expr1 and expr2 and CTVs ctv1 and ctv2.
       ; If the ctvs are both CTV-const, it applies proc to the constants to effect constant folding.
@@ -488,7 +496,7 @@
        (lambda (ctv1 ctv2)
          (cond
            [(ifconstant ctv2 iszero?) ctv1]
-           [(same-var-name? ctv1 ctv2) (CTV-const no-var-name 0)]
+           [(and (same-var-name? ctv1 ctv2) (constant-field-type? type)) (CTV-const no-var-name 0)]
            [else #f]))
        (lambda (expr1 expr2)
          `(- ,src ,type ,expr1 ,expr2)))]
