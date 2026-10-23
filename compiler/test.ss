@@ -81606,6 +81606,50 @@ groups than for single tests.
         )))
     )
 
+  ; Issue #866: x - x on a foreign field was folded to a Uint<0..1> constant.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger k1: Secp256k1Scalar;"
+      "export ledger r1: Secp256r1Base;"
+      "export ledger c: Curve25519Scalar;"
+      "circuit diff(a: Secp256k1Scalar, b: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return a - b;"
+      "}"
+      "export circuit selfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k - k);"
+      "  return k1;"
+      "}"
+      "export circuit inlinedSelfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(diff(k, k));"
+      "  return k1;"
+      "}"
+      "export circuit mulSelfSub(k: Secp256k1Scalar, z: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k * (z - z));"
+      "  return k1;"
+      "}"
+      "export circuit selfSubR1(k: Secp256r1Base): Secp256r1Base {"
+      "  r1 = disclose(k - k);"
+      "  return r1;"
+      "}"
+      "export circuit selfSubC(k: Curve25519Scalar): Curve25519Scalar {"
+      "  c = disclose(k - k);"
+      "  return c;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('foreign field self-subtraction', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.selfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.inlinedSelfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.mulSelfSub(context, 12345n, 678n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubR1(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubC(context, 12345n)).result).toEqual(0n);"
+        "  });"
+        ))
+    )
+
 
   (test
     '(

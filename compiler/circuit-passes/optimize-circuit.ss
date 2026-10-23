@@ -426,6 +426,14 @@
     (definitions
       (define == (lambda (x y) (if (= x y) 1 0)))
       (define lessthan (lambda (x y) (if (< x y) 1 0)))
+      (define (constant-field-type? primitive-type)
+        ; Only these field types have values that can be represented by a nat.  The foreign field
+        ; types do not, so optimization must not produce constants of those types.
+        (nanopass-case (Lflattened Primitive-Type) primitive-type
+          [(tfield (field-native)) #t]
+          [(tfield (field-scalar (curve-jubjub))) #t]
+          [(tfield ,ftype) #f]
+          [else #t]))
       (module (add subtract multiply)
         (define (add primitive-type)
           (lambda (x y)
@@ -515,7 +523,8 @@
      (let ([- (subtract primitive-type)])
        (fold2 - primitive-type triv1 triv2 #f
          [(_ ,triv ,nat) (and (eqv? nat 0) triv)]
-         [(_ ,var-name ,var-name^) (and (eq? var-name var-name^) 0)]))]
+         [(_ ,var-name ,var-name^)
+          (and (eq? var-name var-name^) (constant-field-type? primitive-type) 0)]))]
     [(* ,primitive-type ,triv1 ,triv2)
      (let ([* (multiply primitive-type)])
        (fold2 * primitive-type triv1 triv2 #t
