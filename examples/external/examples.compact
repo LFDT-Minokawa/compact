@@ -29,6 +29,6 @@ export circuit nativeMethods(): [] {
   const i: JubjubPoint = ecMulGenerator(default<JubjubScalar>);
   const j: JubjubPoint = hashToCurve<Field>(default<Field>);
   const k: ZswapCoinPublicKey = ownPublicKey();
-  const l: [] = createZswapInput(default<QualifiedShieldedCoinInfo>);
+  const l: [] = createZswapInput(default<ShieldedCoinInfo>);
   const m: [] = createZswapOutput(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
 }

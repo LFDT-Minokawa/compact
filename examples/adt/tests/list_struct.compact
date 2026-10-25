@@ -22,7 +22,6 @@ export struct Complex {
   uint: Uint<64>;
   vector: Vector<2, Field>;
   coin: ShieldedCoinInfo;
-  qcoin: QualifiedShieldedCoinInfo;
 }
 
 export ledger c: List<Complex>;
@@ -34,8 +33,7 @@ circuit construct(bool: Boolean): Complex {
                    field: (42 as Field) * 42 * 42,
                    uint: 1234567890,
                    vector: [8 as Field, (128 as Field) * 128],
-                   coin: coin_info,
-                   qcoin: QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 9, 8 } };
+                   coin: coin_info };
 }
 
 export circuit test(): [] {

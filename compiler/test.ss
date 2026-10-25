@@ -1664,7 +1664,7 @@ groups than for single tests.
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedShieldedCoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -1769,7 +1769,7 @@ groups than for single tests.
       "                  seedCoin: ShieldedCoinInfo): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
       "{"
       ""
-      "pot.writeCoin(mergeCoinImmediate(pot, seedCoin),"
+      "treasury.insert(mergeCoin(pot, seedCoin),"
       "                      right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
       "return mintShieldedToken("
       "           dao_token_domain_separator(),"
@@ -1843,8 +1843,8 @@ groups than for single tests.
         "          ): [] // Really minor - why not moving the closing paren and return type declaration to next line and why moving opening brace to the next line in this case?"
         "{"
         ""
-        "  pot.writeCoin("
-        "    mergeCoinImmediate(pot, seedCoin),"
+        "  treasury.insert("
+        "    mergeCoin(pot, seedCoin),"
         "    right<ZswapCoinPublicKey, ContractAddress>(kernel.self())"
         "    );"
         "  return mintShieldedToken("
@@ -4635,7 +4635,7 @@ groups than for single tests.
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedShieldedCoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -9096,7 +9096,7 @@ groups than for single tests.
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedShieldedCoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -9693,7 +9693,7 @@ groups than for single tests.
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedShieldedCoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -9985,7 +9985,7 @@ groups than for single tests.
           (type-ref MerkleTreeDigest))
         (public-ledger-declaration #f #f
           x11
-          (type-ref QualifiedShieldedCoinInfo))
+          (type-ref ShieldedCoinInfo))
         (public-ledger-declaration #f #f
           x13
           (type-ref ContractAddress))
@@ -10428,11 +10428,11 @@ groups than for single tests.
         (public-ledger-declaration
           %x11.28
           (__compact_Cell
-            (tstruct QualifiedShieldedCoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
         (public-ledger-declaration
           %x13.29
           (__compact_Cell
@@ -13387,10 +13387,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger field1: QualifiedShieldedCoinInfo;"
+      "export ledger field1: ShieldedCoinInfo;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = nul(QualifiedShieldedCoinInfo);"
+      "    field1 = nul(ShieldedCoinInfo);"
       "  }"
       "}")
     (oops
@@ -13400,10 +13400,10 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export ledger field1: QualifiedShieldedCoinInfo;"
+      "export ledger field1: ShieldedCoinInfo;"
       "export circuit foo(b: Boolean): [] {"
       "  if (b) {"
-      "    field1 = blah(QualifiedShieldedCoinInfo);"
+      "    field1 = blah(ShieldedCoinInfo);"
       "  }"
       "}")
     (oops
@@ -13442,18 +13442,14 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       ""
-      "ledger c: QualifiedShieldedCoinInfo;"
+      "ledger c: ShieldedCoinInfo;"
       ""
       "export circuit resetToDefault(): [] {"
       "  c.resetToDefault();"
       "}"
       ""
-      "export circuit write(value: QualifiedShieldedCoinInfo): [] {"
+      "export circuit write(value: ShieldedCoinInfo): [] {"
       "  return c.write(value);"
-      "}"
-      ""
-      "export circuit writeCoin(coin: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>): [] {"
-      "  return c.writeCoin(coin, recipient);"
       "}"
        )
     (succeeds))
@@ -17468,10 +17464,10 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: ShieldedCoinInfo;"
+      "ledger field8: Set<ShieldedCoinInfo>;"
+      "ledger field9: Map<Field, ShieldedCoinInfo>;"
+      "ledger field10: List<ShieldedCoinInfo>;"
       ""
       "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
@@ -17499,18 +17495,18 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.write(ci);"
       "  const q2 = field7.read();"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insert(ci);"
       "  assert(field8.member(q2), 'oops 8a');"
       "  field8.remove(q2);"
       "  assert(!field8.member(q2), 'oops 8b');"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insert(x, ci);"
       "  const q4 = field9.lookup(x);"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFront(ci);"
       "  const q5 = field10.head();"
       "  return b;"
       "}"
@@ -17518,150 +17514,137 @@ groups than for single tests.
     (returns
       (program
         (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %right.1 ([%value.2 (tstruct ContractAddress
-                                       (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.2))
-        (public-ledger-declaration %field0.3 (Counter))
+        (public-ledger-declaration %field0.1 (Counter))
         (public-ledger-declaration
-          %field1.4
+          %field1.2
           (__compact_Cell (tboolean)))
         (public-ledger-declaration
-          %field2.5
+          %field2.3
           (Set (tfield (field-native))))
         (public-ledger-declaration
-          %field3.6
+          %field3.4
           (Map (tfield (field-native))
                (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field4.7
+          %field4.5
           (List (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field5.8
+          %field5.6
           (MerkleTree
             10
             (tstruct Foo (bar (tbytes 32)) (baz (tboolean)))))
         (public-ledger-declaration
-          %field6.9
+          %field6.7
           (HistoricMerkleTree 10 (tfield (field-native))))
         (public-ledger-declaration
-          %field7.10
+          %field7.8
           (__compact_Cell
-            (tstruct QualifiedShieldedCoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
         (public-ledger-declaration
-          %field8.11
-          (Set (tstruct QualifiedShieldedCoinInfo
+          %field8.9
+          (Set (tstruct ShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
-                 (value (tunsigned 340282366920938463463374607431768211455))
-                 (mt_index (tunsigned 18446744073709551615)))))
+                 (value (tunsigned
+                          340282366920938463463374607431768211455)))))
         (public-ledger-declaration
-          %field9.12
+          %field9.10
           (Map (tfield (field-native))
-               (tstruct QualifiedShieldedCoinInfo
+               (tstruct ShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
-                 (value (tunsigned 340282366920938463463374607431768211455))
-                 (mt_index (tunsigned 18446744073709551615)))))
+                 (value (tunsigned
+                          340282366920938463463374607431768211455)))))
         (public-ledger-declaration
-          %field10.13
+          %field10.11
           (List
-            (tstruct QualifiedShieldedCoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %foo.14 ([%x.15 (tfield (field-native))]
-                          [%ci.16 (tstruct ShieldedCoinInfo
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
+        (circuit %foo.12 ([%x.13 (tfield (field-native))]
+                          [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
                                              340282366920938463463374607431768211455)))])
              (tboolean)
           (seq
-            (ledger-call resetToDefault %field0.3)
+            (ledger-call resetToDefault %field0.1)
             (ledger-call increment
-              %field0.3
+              %field0.1
               (safe-cast (tunsigned 65535) (tunsigned 5) 5))
             (ledger-call decrement
-              %field0.3
+              %field0.1
               (safe-cast (tunsigned 65535) (tunsigned 2) 2))
             (assert
               (ledger-call lessThan
-                %field0.3
+                %field0.1
                 (safe-cast (tunsigned 18446744073709551615)
                            (tunsigned 4)
                   4))
               "oops 1")
-            (ledger-call write %field1.4 #t)
-            (let* ([[%b.17 (tboolean)] (ledger-call read %field1.4)])
+            (ledger-call write %field1.2 #t)
+            (let* ([[%b.15 (tboolean)] (ledger-call read %field1.2)])
               (seq
-                (ledger-call resetToDefault %field2.5)
-                (assert (ledger-call isEmpty %field2.5) "oops 2a")
+                (ledger-call resetToDefault %field2.3)
+                (assert (ledger-call isEmpty %field2.3) "oops 2a")
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 0)
                         0))
                   "oops 2b")
                 (assert
-                  (if (ledger-call member %field2.5 %x.15) #f #t)
+                  (if (ledger-call member %field2.3 %x.13) #f #t)
                   "oops 2c")
-                (ledger-call insert %field2.5 %x.15)
+                (ledger-call insert %field2.3 %x.13)
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                 (ledger-call insert
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 3)
                         3))
                   "oops 2d")
                 (ledger-call remove
-                  %field2.5
+                  %field2.3
                   (+ (tfield (field-native))
-                     %x.15
+                     %x.13
                      (safe-cast (tfield (field-native)) (tunsigned 1) 1)))
                 (assert
-                  (== (ledger-call size %field2.5)
+                  (== (ledger-call size %field2.3)
                       (safe-cast (tunsigned 18446744073709551615)
                                  (tunsigned 2)
                         2))
                   "oops 2e")
                 (assert
-                  (if (ledger-call isEmpty %field2.5) #f #t)
+                  (if (ledger-call isEmpty %field2.3) #f #t)
                   "oops 2f")
-                (assert (ledger-call member %field2.5 %x.15) "oops 2g")
+                (assert (ledger-call member %field2.3 %x.13) "oops 2g")
                 (assert
                   (if (ledger-call member
-                        %field2.5
+                        %field2.3
                         (+ (tfield (field-native))
-                           %x.15
+                           %x.13
                            (safe-cast (tfield (field-native))
                                       (tunsigned 1)
                              1)))
@@ -17670,68 +17653,50 @@ groups than for single tests.
                   "oops 2h")
                 (assert
                   (ledger-call member
-                    %field2.5
+                    %field2.3
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 2) 2)))
                   "oops 2i")
-                (ledger-call resetToDefault %field3.6)
-                (ledger-call resetToDefault %field4.7)
-                (ledger-call resetToDefault %field5.8)
-                (ledger-call resetToDefault %field6.9)
-                (ledger-call writeCoin
-                  %field7.10
-                  %ci.16
-                  (call %right.1 (ledger-call self %kernel.0)))
-                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
+                (ledger-call resetToDefault %field3.4)
+                (ledger-call resetToDefault %field4.5)
+                (ledger-call resetToDefault %field5.6)
+                (ledger-call resetToDefault %field6.7)
+                (ledger-call write %field7.8 %ci.14)
+                (let* ([[%q2.16 (tstruct ShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
-                                           340282366920938463463374607431768211455))
-                                  (mt_index (tunsigned 18446744073709551615)))]
-                        (ledger-call read %field7.10)])
+                                           340282366920938463463374607431768211455)))]
+                        (ledger-call read %field7.8)])
                   (seq
-                    (ledger-call resetToDefault %field8.11)
-                    (ledger-call insertCoin
-                      %field8.11
-                      %ci.16
-                      (call %right.1 (ledger-call self %kernel.0)))
-                    (assert (ledger-call member %field8.11 %q2.18) "oops 8a")
-                    (ledger-call remove %field8.11 %q2.18)
+                    (ledger-call resetToDefault %field8.9)
+                    (ledger-call insert %field8.9 %ci.14)
+                    (assert (ledger-call member %field8.9 %q2.16) "oops 8a")
+                    (ledger-call remove %field8.9 %q2.16)
                     (assert
-                      (if (ledger-call member %field8.11 %q2.18) #f #t)
+                      (if (ledger-call member %field8.9 %q2.16) #f #t)
                       "oops 8b")
-                    (ledger-call resetToDefault %field9.12)
-                    (ledger-call insertCoin
-                      %field9.12
-                      %x.15
-                      %ci.16
-                      (call %right.1 (ledger-call self %kernel.0)))
-                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
+                    (ledger-call resetToDefault %field9.10)
+                    (ledger-call insert %field9.10 %x.13 %ci.14)
+                    (let* ([[%q4.17 (tstruct ShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
-                                               340282366920938463463374607431768211455))
-                                      (mt_index (tunsigned
-                                                  18446744073709551615)))]
-                            (ledger-call lookup %field9.12 %x.15)])
+                                               340282366920938463463374607431768211455)))]
+                            (ledger-call lookup %field9.10 %x.13)])
                       (seq
-                        (ledger-call resetToDefault %field10.13)
-                        (ledger-call pushFrontCoin
-                          %field10.13
-                          %ci.16
-                          (call %right.1 (ledger-call self %kernel.0)))
-                        (let* ([[%q5.20 (tstruct Maybe
+                        (ledger-call resetToDefault %field10.11)
+                        (ledger-call pushFront %field10.11 %ci.14)
+                        (let* ([[%q5.18 (tstruct Maybe
                                           (is_some (tboolean))
-                                          (value (tstruct QualifiedShieldedCoinInfo
+                                          (value (tstruct ShieldedCoinInfo
                                                    (nonce (tbytes 32))
                                                    (color (tbytes 32))
                                                    (value (tunsigned
-                                                            340282366920938463463374607431768211455))
-                                                   (mt_index (tunsigned
-                                                               18446744073709551615)))))]
-                                (ledger-call head %field10.13)])
-                          %b.17)))))))))))
+                                                            340282366920938463463374607431768211455)))))]
+                                (ledger-call head %field10.11)])
+                          %b.15)))))))))))
     )
 
   (test
@@ -20092,219 +20057,6 @@ groups than for single tests.
 
   (test
     '(
-      "import CompactStandardLibrary;"
-      "export ledger fld: List<QualifiedShieldedCoinInfo>;"
-      "export circuit bar(): QualifiedShieldedCoinInfo {"
-      "  const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "  const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
-      "  fld.pushFrontCoin(coin, rcpnt);"
-      "  assert(!fld.isEmpty(), 'oops empty');"
-      "  assert(fld.length() == 1, 'oops length');"
-      "  return fld.head().value;"
-      "}"
-      )
-    (returns
-      (program
-        (public-ledger-declaration %kernel.0 (Kernel))
-        (public-ledger-declaration
-          %fld.1
-          (List
-            (tstruct QualifiedShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %bar.2 ()
-             (tstruct QualifiedShieldedCoinInfo
-               (nonce (tbytes 32))
-               (color (tbytes 32))
-               (value (tunsigned 340282366920938463463374607431768211455))
-               (mt_index (tunsigned 18446744073709551615)))
-          (let* ([[%coin.3 (tstruct ShieldedCoinInfo
-                             (nonce (tbytes 32))
-                             (color (tbytes 32))
-                             (value (tunsigned
-                                      340282366920938463463374607431768211455)))]
-                  (new (tstruct ShieldedCoinInfo
-                         (nonce (tbytes 32))
-                         (color (tbytes 32))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))
-                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                         0 0 0 0 0)
-                    #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                         0 0 0 0 0)
-                    (safe-cast (tunsigned 340282366920938463463374607431768211455)
-                               (tunsigned 73)
-                      73))])
-            (let* ([[%rcpnt.4 (tstruct Either
-                                (is_left (tboolean))
-                                (left (tstruct ZswapCoinPublicKey
-                                        (bytes (tbytes 32))))
-                                (right (tstruct ContractAddress
-                                         (bytes (tbytes 32)))))]
-                    (new (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
-                                   (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
-                                    (bytes (tbytes 32)))))
-                      #t
-                      (default
-                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (default
-                        (tstruct ContractAddress (bytes (tbytes 32)))))])
-              (seq
-                (ledger-call pushFrontCoin %fld.1 %coin.3 %rcpnt.4)
-                (assert
-                  (if (ledger-call isEmpty %fld.1) #f #t)
-                  "oops empty")
-                (assert
-                  (== (ledger-call length %fld.1)
-                      (safe-cast (tunsigned 18446744073709551615)
-                                 (tunsigned 1)
-                        1))
-                  "oops length")
-                (elt-ref (ledger-call head %fld.1) value 1)))))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "module M {"
-      "  struct QualifiedShieldedCoinInfo {"
-      "    nonce: Bytes<32>;"
-      "    color: Bytes<32>;"
-      "    value: Uint<128>;"
-      "    mt_index: Uint<64>;"
-      "  }"
-      "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
-      "  export circuit bar(): QualifiedShieldedCoinInfo {"
-      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
-      "    fld.pushFrontCoin(coin, rcpnt);"
-      "    assert(!fld.isEmpty(), 'oops empty');"
-      "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
-      "  }"
-      "}"
-      "import M;"
-      "export { bar }"
-      )
-    ; should produce same output as above, since M's definition of  QualifiedShieldedCoinInfo
-    ; matches the one from the CompactStandardLibrary
-    (returns
-      (program
-        (public-ledger-declaration %kernel.0 (Kernel))
-        (public-ledger-declaration
-          %fld.1
-          (List
-            (tstruct QualifiedShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %bar.2 ()
-             (tstruct QualifiedShieldedCoinInfo
-               (nonce (tbytes 32))
-               (color (tbytes 32))
-               (value (tunsigned 340282366920938463463374607431768211455))
-               (mt_index (tunsigned 18446744073709551615)))
-          (let* ([[%coin.3 (tstruct ShieldedCoinInfo
-                             (nonce (tbytes 32))
-                             (color (tbytes 32))
-                             (value (tunsigned
-                                      340282366920938463463374607431768211455)))]
-                  (new (tstruct ShieldedCoinInfo
-                         (nonce (tbytes 32))
-                         (color (tbytes 32))
-                         (value (tunsigned
-                                  340282366920938463463374607431768211455)))
-                    #vu8(97 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                         0 0 0 0 0)
-                    #vu8(98 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0
-                         0 0 0 0 0)
-                    (safe-cast (tunsigned 340282366920938463463374607431768211455)
-                               (tunsigned 73)
-                      73))])
-            (let* ([[%rcpnt.4 (tstruct Either
-                                (is_left (tboolean))
-                                (left (tstruct ZswapCoinPublicKey
-                                        (bytes (tbytes 32))))
-                                (right (tstruct ContractAddress
-                                         (bytes (tbytes 32)))))]
-                    (new (tstruct Either
-                           (is_left (tboolean))
-                           (left (tstruct ZswapCoinPublicKey
-                                   (bytes (tbytes 32))))
-                           (right (tstruct ContractAddress
-                                    (bytes (tbytes 32)))))
-                      #t
-                      (default
-                        (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                      (default
-                        (tstruct ContractAddress (bytes (tbytes 32)))))])
-              (seq
-                (ledger-call pushFrontCoin %fld.1 %coin.3 %rcpnt.4)
-                (assert
-                  (if (ledger-call isEmpty %fld.1) #f #t)
-                  "oops empty")
-                (assert
-                  (== (ledger-call length %fld.1)
-                      (safe-cast (tunsigned 18446744073709551615)
-                                 (tunsigned 1)
-                        1))
-                  "oops length")
-                (elt-ref (ledger-call head %fld.1) value 1)))))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "module M {"
-      "  export ledger fld: List<ShieldedCoinInfo>;"
-      "  export circuit bar(): QualifiedShieldedCoinInfo {"
-      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
-      "    fld.pushFrontCoin(coin, rcpnt);"
-      "    assert(!fld.isEmpty(), 'oops empty');"
-      "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
-      "  }"
-      "}"
-      "import M;"
-      "export { bar }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct ShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>>>")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "module M {"
-      "  struct QualifiedShieldedCoinInfo { nonce: Bytes<16>, color: Bytes<16>, Value: Field }"
-      "  export ledger fld: List<QualifiedShieldedCoinInfo>;"
-      "  export circuit bar(): QualifiedShieldedCoinInfo {"
-      "    const coin = ShieldedCoinInfo { nonce: pad(32,'a'), color: pad(32, 'b'), value: 73 };"
-      "    const rcpnt = Either<ZswapCoinPublicKey,ContractAddress> { is_left: true, left: default<ZswapCoinPublicKey>, right: default<ContractAddress> };"
-      "    fld.pushFrontCoin(coin, rcpnt);"
-      "    assert(!fld.isEmpty(), 'oops empty');"
-      "    assert(fld.length() == 1, 'oops length');"
-      "    return fld.head().value;"
-      "  }"
-      "}"
-      "import M;"
-      "export { bar }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 8 char 8" "operation ~a undefined for ledger field type ~a" (pushFrontCoin "List<struct QualifiedShieldedCoinInfo<nonce: Bytes<16>, color: Bytes<16>, Value: Field>>")))
-    )
-
-  (test
-    '(
       "export ledger fld: Vector<3, Field>;"
       "export circuit bar(n: Uint<0..3>): Field {"
       "  return n == 0 ? fld[0] : n == 1 ? fld[1] : fld[2];"
@@ -20327,19 +20079,6 @@ groups than for single tests.
 
   (test
     '(
-      "import CompactStandardLibrary;"
-      "export ledger fld: QualifiedShieldedCoinInfo;"
-      "export circuit bar(coin: ShieldedCoinInfo): [] {"
-      "  fld.insertCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 4 char 6" "operation ~a undefined for ledger field type ~a" (insertCoin "struct QualifiedShieldedCoinInfo<nonce: Bytes<32>, color: Bytes<32>, value: Uint<128>, mt_index: Uint<64>>")))
-    )
-
-  (test
-    '(
       "module M<T> {"
       "  export circuit foo(x: T): T { return x; }"
       "}"
@@ -20349,52 +20088,6 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 4 char 10" "unbound identifier ~s" (S)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger fld: QualifiedShieldedCoinInfo;"
-      "export circuit bar(coin: ShieldedCoinInfo): [] {"
-      "  fld.writeCoin(coin, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (returns
-      (program
-        (public-ledger-declaration %kernel.0 (Kernel))
-        (circuit %right.1 ([%value.2 (tstruct ContractAddress
-                                       (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.2))
-        (public-ledger-declaration
-          %fld.3
-          (__compact_Cell
-            (tstruct QualifiedShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
-        (circuit %bar.4 ([%coin.5 (tstruct ShieldedCoinInfo
-                                    (nonce (tbytes 32))
-                                    (color (tbytes 32))
-                                    (value (tunsigned
-                                             340282366920938463463374607431768211455)))])
-             (ttuple)
-          (seq
-            (ledger-call writeCoin
-              %fld.3
-              %coin.5
-              (call %right.1 (ledger-call self %kernel.0)))
-            (tuple)))))
     )
 
   (test
@@ -25019,81 +24712,6 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "type QSCI = QualifiedShieldedCoinInfo;"
-      "export ledger F: Set<QSCI>;"
-      "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
-      "export circuit foo(x: ShieldedCoinInfo): Boolean {"
-      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "  return F.member(default<QSCI>);"
-      "}"
-      )
-    (returns
-      (program
-        (public-ledger-declaration %kernel.0 (Kernel))
-        (public-ledger-declaration
-          %F.1
-          (Set (talias #f QSCI
-                 (tstruct QualifiedShieldedCoinInfo
-                   (nonce (tbytes 32))
-                   (color (tbytes 32))
-                   (value (tunsigned 340282366920938463463374607431768211455))
-                   (mt_index (tunsigned 18446744073709551615))))))
-        (circuit %bar.2 ()
-             (tstruct ShieldedCoinInfo
-               (nonce (tbytes 32))
-               (color (tbytes 32))
-               (value (tunsigned 340282366920938463463374607431768211455)))
-          (default
-            (tstruct ShieldedCoinInfo
-              (nonce (tbytes 32))
-              (color (tbytes 32))
-              (value (tunsigned
-                       340282366920938463463374607431768211455)))))
-        (circuit %foo.3 ([%x.4 (tstruct ShieldedCoinInfo
-                                 (nonce (tbytes 32))
-                                 (color (tbytes 32))
-                                 (value (tunsigned
-                                          340282366920938463463374607431768211455)))])
-             (tboolean)
-          (seq
-            (ledger-call insertCoin
-              %F.1
-              (disclose %x.4)
-              (default
-                (tstruct Either
-                  (is_left (tboolean))
-                  (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                  (right (tstruct ContractAddress (bytes (tbytes 32)))))))
-            (ledger-call member
-              %F.1
-              (default
-                (talias #f QSCI
-                  (tstruct QualifiedShieldedCoinInfo
-                    (nonce (tbytes 32))
-                    (color (tbytes 32))
-                    (value (tunsigned 340282366920938463463374607431768211455))
-                    (mt_index (tunsigned 18446744073709551615))))))))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "new type QSCI = QualifiedShieldedCoinInfo;"
-      "export ledger F: Set<QSCI>;"
-      "export circuit bar(): ShieldedCoinInfo { return default<ShieldedCoinInfo>; }"
-      "export circuit foo(x: ShieldedCoinInfo): Boolean {"
-      "  F.insertCoin(disclose(x), default<Either<ZswapCoinPublicKey, ContractAddress>>);"
-      "  return F.member(default<QSCI>);"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 4" "operation ~a undefined for ledger field type ~a" (insertCoin "Set<QSCI>")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
       "type Ctr = Counter;"
       "export ledger C: Ctr;"
       "export circuit foo(): [] {"
@@ -28950,10 +28568,10 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: ShieldedCoinInfo;"
+      "ledger field8: Set<ShieldedCoinInfo>;"
+      "ledger field9: Map<Field, ShieldedCoinInfo>;"
+      "ledger field10: List<ShieldedCoinInfo>;"
       ""
       "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
@@ -28981,18 +28599,18 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.write(ci);"
       "  const q2 = field7.read();"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insert(ci);"
       "  assert(field8.member(q2), 'oops 8a');"
       "  field8.remove(q2);"
       "  assert(!field8.member(q2), 'oops 8b');"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insert(x, ci);"
       "  const q4 = field9.lookup(x);"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFront(ci);"
       "  const q5 = field10.head();"
       "  return b;"
       "}"
@@ -29016,47 +28634,34 @@ groups than for single tests.
           (%field6.7 (HistoricMerkleTree 10 (tfield (field-native))))
           (%field7.8
             (__compact_Cell
-              (tstruct QualifiedShieldedCoinInfo
+              (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
-                (value (tunsigned 340282366920938463463374607431768211455))
-                (mt_index (tunsigned 18446744073709551615)))))
+                (value (tunsigned
+                         340282366920938463463374607431768211455)))))
           (%field8.9
-            (Set (tstruct QualifiedShieldedCoinInfo
+            (Set (tstruct ShieldedCoinInfo
                    (nonce (tbytes 32))
                    (color (tbytes 32))
-                   (value (tunsigned 340282366920938463463374607431768211455))
-                   (mt_index (tunsigned 18446744073709551615)))))
+                   (value (tunsigned
+                            340282366920938463463374607431768211455)))))
           (%field9.10
             (Map (tfield (field-native))
-                 (tstruct QualifiedShieldedCoinInfo
+                 (tstruct ShieldedCoinInfo
                    (nonce (tbytes 32))
                    (color (tbytes 32))
-                   (value (tunsigned 340282366920938463463374607431768211455))
-                   (mt_index (tunsigned 18446744073709551615)))))
+                   (value (tunsigned
+                            340282366920938463463374607431768211455)))))
           (%field10.11
             (List
-              (tstruct QualifiedShieldedCoinInfo
+              (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
-                (value (tunsigned 340282366920938463463374607431768211455))
-                (mt_index (tunsigned 18446744073709551615)))))
+                (value (tunsigned
+                         340282366920938463463374607431768211455)))))
           (constructor () (tuple)))
-        (circuit %right.12 ([%value.13 (tstruct ContractAddress
-                                         (bytes (tbytes 32)))])
-             (tstruct Either
-               (is_left (tboolean))
-               (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-               (right (tstruct ContractAddress (bytes (tbytes 32)))))
-          (new (tstruct Either
-                 (is_left (tboolean))
-                 (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                 (right (tstruct ContractAddress (bytes (tbytes 32)))))
-            #f
-            (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-            %value.13))
-        (circuit %foo.14 ([%x.15 (tfield (field-native))]
-                          [%ci.16 (tstruct ShieldedCoinInfo
+        (circuit %foo.12 ([%x.13 (tfield (field-native))]
+                          [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
                                     (color (tbytes 32))
                                     (value (tunsigned
@@ -29076,7 +28681,7 @@ groups than for single tests.
                     4)))
               "oops 1")
             (public-ledger %field1.2 (write #t))
-            (let* ([[%b.17 (tboolean)]
+            (let* ([[%b.15 (tboolean)]
                     (public-ledger %field1.2 (read))])
               (seq
                 (public-ledger %field2.3 (resetToDefault))
@@ -29088,23 +28693,23 @@ groups than for single tests.
                         0))
                   "oops 2b")
                 (assert
-                  (if (public-ledger %field2.3 (member %x.15)) #f #t)
+                  (if (public-ledger %field2.3 (member %x.13)) #f #t)
                   "oops 2c")
-                (public-ledger %field2.3 (insert %x.15))
+                (public-ledger %field2.3 (insert %x.13))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                 (public-ledger %field2.3
                   (insert
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
@@ -29115,7 +28720,7 @@ groups than for single tests.
                 (public-ledger %field2.3
                   (remove
                     (+ (tfield (field-native))
-                       %x.15
+                       %x.13
                        (safe-cast (tfield (field-native)) (tunsigned 1) 1))))
                 (assert
                   (== (public-ledger %field2.3 (size))
@@ -29126,12 +28731,12 @@ groups than for single tests.
                 (assert
                   (if (public-ledger %field2.3 (isEmpty)) #f #t)
                   "oops 2f")
-                (assert (public-ledger %field2.3 (member %x.15)) "oops 2g")
+                (assert (public-ledger %field2.3 (member %x.13)) "oops 2g")
                 (assert
                   (if (public-ledger %field2.3
                         (member
                           (+ (tfield (field-native))
-                             %x.15
+                             %x.13
                              (safe-cast (tfield (field-native))
                                         (tunsigned 1)
                                1))))
@@ -29142,68 +28747,50 @@ groups than for single tests.
                   (public-ledger %field2.3
                     (member
                       (+ (tfield (field-native))
-                         %x.15
+                         %x.13
                          (safe-cast (tfield (field-native)) (tunsigned 2) 2))))
                   "oops 2i")
                 (public-ledger %field3.4 (resetToDefault))
                 (public-ledger %field4.5 (resetToDefault))
                 (public-ledger %field5.6 (resetToDefault))
                 (public-ledger %field6.7 (resetToDefault))
-                (public-ledger %field7.8
-                  (writeCoin
-                    %ci.16
-                    (call %right.12 (public-ledger %kernel.0 (self)))))
-                (let* ([[%q2.18 (tstruct QualifiedShieldedCoinInfo
+                (public-ledger %field7.8 (write %ci.14))
+                (let* ([[%q2.16 (tstruct ShieldedCoinInfo
                                   (nonce (tbytes 32))
                                   (color (tbytes 32))
                                   (value (tunsigned
-                                           340282366920938463463374607431768211455))
-                                  (mt_index (tunsigned 18446744073709551615)))]
+                                           340282366920938463463374607431768211455)))]
                         (public-ledger %field7.8 (read))])
                   (seq
                     (public-ledger %field8.9 (resetToDefault))
-                    (public-ledger %field8.9
-                      (insertCoin
-                        %ci.16
-                        (call %right.12 (public-ledger %kernel.0 (self)))))
+                    (public-ledger %field8.9 (insert %ci.14))
                     (assert
-                      (public-ledger %field8.9 (member %q2.18))
+                      (public-ledger %field8.9 (member %q2.16))
                       "oops 8a")
-                    (public-ledger %field8.9 (remove %q2.18))
+                    (public-ledger %field8.9 (remove %q2.16))
                     (assert
-                      (if (public-ledger %field8.9 (member %q2.18)) #f #t)
+                      (if (public-ledger %field8.9 (member %q2.16)) #f #t)
                       "oops 8b")
                     (public-ledger %field9.10 (resetToDefault))
-                    (public-ledger %field9.10
-                      (insertCoin
-                        %x.15
-                        %ci.16
-                        (call %right.12 (public-ledger %kernel.0 (self)))))
-                    (let* ([[%q4.19 (tstruct QualifiedShieldedCoinInfo
+                    (public-ledger %field9.10 (insert %x.13 %ci.14))
+                    (let* ([[%q4.17 (tstruct ShieldedCoinInfo
                                       (nonce (tbytes 32))
                                       (color (tbytes 32))
                                       (value (tunsigned
-                                               340282366920938463463374607431768211455))
-                                      (mt_index (tunsigned
-                                                  18446744073709551615)))]
-                            (public-ledger %field9.10 (lookup %x.15))])
+                                               340282366920938463463374607431768211455)))]
+                            (public-ledger %field9.10 (lookup %x.13))])
                       (seq
                         (public-ledger %field10.11 (resetToDefault))
-                        (public-ledger %field10.11
-                          (pushFrontCoin
-                            %ci.16
-                            (call %right.12 (public-ledger %kernel.0 (self)))))
-                        (let* ([[%q5.20 (tstruct Maybe
+                        (public-ledger %field10.11 (pushFront %ci.14))
+                        (let* ([[%q5.18 (tstruct Maybe
                                           (is_some (tboolean))
-                                          (value (tstruct QualifiedShieldedCoinInfo
+                                          (value (tstruct ShieldedCoinInfo
                                                    (nonce (tbytes 32))
                                                    (color (tbytes 32))
                                                    (value (tunsigned
-                                                            340282366920938463463374607431768211455))
-                                                   (mt_index (tunsigned
-                                                               18446744073709551615)))))]
+                                                            340282366920938463463374607431768211455)))))]
                                 (public-ledger %field10.11 (head))])
-                          %b.17)))))))))))
+                          %b.15)))))))))))
     )
 
   (test
@@ -32602,45 +32189,6 @@ groups than for single tests.
 
   (test
     '("import CompactStandardLibrary;"
-      "export { sendImmediateShielded }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter target of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the boolean value of the witness value" "\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter input of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter value of exported circuit sendImmediateShielded at <standard library>" ("\n    nature of the disclosure:\n      performing this ledger operation might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value"))))
-    )
-
-  (test
-    '("import CompactStandardLibrary;"
       "export { sendShielded }"
       )
     (oops
@@ -32695,25 +32243,6 @@ groups than for single tests.
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoin at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
-    )
-
-  (test
-    '("import CompactStandardLibrary;"
-      "export { mergeCoinImmediate }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of an addition involving the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter a of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value" "\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value")))
-      message: "~a:\n  ~?"
-      irritants: '("<standard library>" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit mergeCoinImmediate at <standard library>" ("\n    nature of the disclosure:\n      ledger operation might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of an addition involving the witness value"))))
     )
 
   (test
@@ -33400,7 +32929,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(x: QualifiedShieldedCoinInfo, y: Either<ZswapCoinPublicKey, ContractAddress>, z: Uint<128>): [] {"
+      "export circuit foo(x: ShieldedCoinInfo, y: Either<ZswapCoinPublicKey, ContractAddress>, z: Uint<128>): [] {"
       "  sendShielded(x, y, z);"
       "}"
       )
@@ -33408,9 +32937,9 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit foo at line 2 char 20" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a claim of nullifier and the coin with the nullifier given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of a converted form of a hash of a modulus of the witness value\n    via this path through the program:\n      the first argument to sendShielded at line 3 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 50" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter y of exported circuit foo at line 2 char 41" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the boolean value of the witness value\n    via this path through the program:\n      the second argument to sendShielded at line 3 char 3")))
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 98" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
+      irritants: '("testfile.compact line 3 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter z of exported circuit foo at line 2 char 89" ("\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin receive and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose a link between a coin spend and the coin with the commitment given by a hash of the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3" "\n    nature of the disclosure:\n      the call to standard-library circuit sendShielded might disclose the boolean value of the result of a comparison involving the result of a subtraction involving the witness value\n    via this path through the program:\n      the third argument to sendShielded at line 3 char 3"))))
     )
 
   (test
@@ -34652,7 +34181,7 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "witness qcoin(): QualifiedShieldedCoinInfo;"
+      "witness qcoin(): ShieldedCoinInfo;"
       "export circuit foo(coin: ShieldedCoinInfo): [] {"
       "  return createZswapInput(qcoin());"
       "}"
@@ -42382,10 +41911,10 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: ShieldedCoinInfo;"
+      "ledger field8: Set<ShieldedCoinInfo>;"
+      "ledger field9: Map<Field, ShieldedCoinInfo>;"
+      "ledger field10: List<ShieldedCoinInfo>;"
       ""
       "export circuit foo(x: Field, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
@@ -42413,13 +41942,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.write(disclose(ci));"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insert(disclose(ci));"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(disclose(x), disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insert(disclose(x), disclose(ci));"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFront(disclose(ci));"
       "  return q;"
       "}"
       )
@@ -42448,34 +41977,34 @@ groups than for single tests.
            (%field7.8
              (7)
              (__compact_Cell
-               (tstruct QualifiedShieldedCoinInfo
+               (tstruct ShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
-                 (value (tunsigned 340282366920938463463374607431768211455))
-                 (mt_index (tunsigned 18446744073709551615)))))
+                 (value (tunsigned
+                          340282366920938463463374607431768211455)))))
            (%field8.9
              (8)
-             (Set (tstruct QualifiedShieldedCoinInfo
+             (Set (tstruct ShieldedCoinInfo
                     (nonce (tbytes 32))
                     (color (tbytes 32))
-                    (value (tunsigned 340282366920938463463374607431768211455))
-                    (mt_index (tunsigned 18446744073709551615)))))
+                    (value (tunsigned
+                             340282366920938463463374607431768211455)))))
            (%field9.10
              (9)
              (Map (tfield (field-native))
-                  (tstruct QualifiedShieldedCoinInfo
+                  (tstruct ShieldedCoinInfo
                     (nonce (tbytes 32))
                     (color (tbytes 32))
-                    (value (tunsigned 340282366920938463463374607431768211455))
-                    (mt_index (tunsigned 18446744073709551615)))))
+                    (value (tunsigned
+                             340282366920938463463374607431768211455)))))
            (%field10.11
              (10)
              (List
-               (tstruct QualifiedShieldedCoinInfo
+               (tstruct ShieldedCoinInfo
                  (nonce (tbytes 32))
                  (color (tbytes 32))
-                 (value (tunsigned 340282366920938463463374607431768211455))
-                 (mt_index (tunsigned 18446744073709551615)))))))
+                 (value (tunsigned
+                          340282366920938463463374607431768211455)))))))
         (circuit %foo.12 ([%x.13 (tfield (field-native))]
                           [%ci.14 (tstruct ShieldedCoinInfo
                                     (nonce (tbytes 32))
@@ -42556,66 +42085,15 @@ groups than for single tests.
           (= #t %t.75 (public-ledger %field4.5 (4) resetToDefault))
           (= #t %t.76 (public-ledger %field5.6 (5) resetToDefault))
           (= #t %t.77 (public-ledger %field6.7 (6) resetToDefault))
-          (= #t %value.78 (public-ledger %kernel.0 () self))
-          (= #t %t.79
-             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= #t %tmp.80
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               %t.79
-               %value.78))
-          (= #t %t.81
-             (public-ledger %field7.8 (7) writeCoin %ci.14 %tmp.80))
-          (= #t %t.82 (public-ledger %field8.9 (8) resetToDefault))
-          (= #t %value.83 (public-ledger %kernel.0 () self))
+          (= #t %t.78 (public-ledger %field7.8 (7) write %ci.14))
+          (= #t %t.79 (public-ledger %field8.9 (8) resetToDefault))
+          (= #t %t.80 (public-ledger %field8.9 (8) insert %ci.14))
+          (= #t %t.81 (public-ledger %field9.10 (9) resetToDefault))
+          (= #t %t.82
+             (public-ledger %field9.10 (9) insert %x.13 %ci.14))
+          (= #t %t.83 (public-ledger %field10.11 (10) resetToDefault))
           (= #t %t.84
-             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= #t %tmp.85
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               %t.84
-               %value.83))
-          (= #t %t.86
-             (public-ledger %field8.9 (8) insertCoin %ci.14 %tmp.85))
-          (= #t %t.87 (public-ledger %field9.10 (9) resetToDefault))
-          (= #t %value.88 (public-ledger %kernel.0 () self))
-          (= #t %t.89
-             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= #t %tmp.90
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               %t.89
-               %value.88))
-          (= #t %t.91
-             (public-ledger %field9.10 (9) insertCoin
-               %x.13
-               %ci.14
-               %tmp.90))
-          (= #t %t.92 (public-ledger %field10.11 (10) resetToDefault))
-          (= #t %value.93 (public-ledger %kernel.0 () self))
-          (= #t %t.94
-             (default (tstruct ZswapCoinPublicKey (bytes (tbytes 32)))))
-          (= #t %tmp.95
-             (new (tstruct Either
-                    (is_left (tboolean))
-                    (left (tstruct ZswapCoinPublicKey (bytes (tbytes 32))))
-                    (right (tstruct ContractAddress (bytes (tbytes 32)))))
-               #f
-               %t.94
-               %value.93))
-          (= #t %t.96
-             (public-ledger %field10.11 (10) pushFrontCoin
-               %ci.14
-               %tmp.95))
+             (public-ledger %field10.11 (10) pushFront %ci.14))
           %q.22)))
     )
 
@@ -48175,109 +47653,110 @@ groups than for single tests.
       ""
       "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): [] {"
       "  receiveShielded(disclose(coin));"
-      "  const foo = sendImmediateShielded(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(disclose(target)), disclose(coin.value));"
+      "  const foo = sendShielded(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(disclose(target)), disclose(coin.value));"
       "}"
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
+        (native %transientHash.8 ((argument
+                                    (%value.9 %value.10)
+                                    (ty ((afield) (afield))
+                                        ((tfield (field-native))
+                                          (tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+        (native %persistentHash.11 ((argument
+                                      (%value.12 %value.13 %value.14 %value.15 %value.16
+                                        %value.17 %value.18 %value.19
+                                        %value.20)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 32))
                  ((tunsigned 255)
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
-                                          (ty ((abytes 32)
-                                                (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+        (native %degradeToTransient.21 ((argument
+                                          (%x.22 %x.23)
+                                          (ty ((abytes 32))
                                               ((tunsigned 255)
                                                 (tunsigned
-                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                (tunsigned 255)
-                                                (tunsigned
-                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                (tunsigned
-                                                  340282366920938463463374607431768211455)
-                                                (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.24 ((argument
+                                            (%x.25)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %createZswapInput.26 ((argument
+                                        (%coin.27
+                                          %coin.28
+                                          %coin.29
+                                          %coin.30
+                                          %coin.31)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+        (native %createZswapOutput.32 ((argument
+                                         (%coin.33
+                                           %coin.34
+                                           %coin.35
+                                           %coin.36
+                                           %coin.37)
+                                         (ty ((abytes 32)
+                                               (abytes 32)
+                                               (abytes 16))
+                                             ((tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned
+                                                 340282366920938463463374607431768211455))))
+                                       (argument
+                                         (%recipient.38
+                                           %recipient.39
+                                           %recipient.40
+                                           %recipient.41
+                                           %recipient.42)
+                                         (ty ((abytes 1)
+                                               (abytes 32)
+                                               (abytes 32))
+                                             ((tunsigned 1)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (circuit %relay.43 ((argument
+                              (%coin.44 %coin.45 %coin.46 %coin.47 %coin.48)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48288,118 +47767,117 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
                                       452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ())
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.49 %value.50)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.32
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
-               136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
-               0
-               %value.45
-               %value.46))
-          (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
-          (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
-               0))
+               %value.49
+               %value.50))
           (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
-               136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %persistentHash.11
+               136202032268515569762809483864408030127489942841709
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %value.49
+               %value.50))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.51
                %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
+          (= 1 ()
+             (call %createZswapInput.26
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48))
+          (= 1 (%tmp.53 %tmp.54)
+             (call %persistentHash.11
+               136202032272258675798939806962505150809239393167725
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               0
+               %selfAddr.0
+               %selfAddr.2))
+          (= 1 ()
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.53
+               %tmp.54))
+          (= 1 (%t.55)
+             (call %degradeToTransient.21 %coin.44 %coin.45))
+          (= 1 (%t.56)
+             (call %transientHash.8
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.55))
+          (= 1 (%t.57 %t.58) (call %upgradeFromTransient.24 %t.56))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.32
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.59 %tmp.60)
+             (call %persistentHash.11
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.59
+               %tmp.60))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.61 %tmp.62)
+             (call %persistentHash.11
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.62
-               %tmp.63))
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.61
+               %tmp.62))
           ())))
     )
 
@@ -48409,109 +47887,110 @@ groups than for single tests.
       ""
       "export circuit relay(coin: ShieldedCoinInfo, target: ContractAddress): ShieldedSendResult {"
       "  receiveShielded(disclose(coin));"
-      "  return sendImmediateShielded(disclose(coin), disclose(right<ZswapCoinPublicKey, ContractAddress>(target)), disclose(coin.value));"
+      "  return sendShielded(disclose(coin), disclose(right<ZswapCoinPublicKey, ContractAddress>(target)), disclose(coin.value));"
       "}"
       )
     (returns
       (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
+        (kernel-declaration (%kernel.7 () (Kernel)))
         (public-ledger-declaration ())
-        (native %transientHash.1 ((argument
-                                      (%value.2 %value.3)
-                                      (ty ((afield) (afield))
-                                          ((tfield (field-native)) (tfield (field-native))))))
+        (native %transientHash.8 ((argument
+                                    (%value.9 %value.10)
+                                    (ty ((afield) (afield))
+                                        ((tfield (field-native))
+                                          (tfield (field-native))))))
              (ty ((afield)) ((tfield (field-native)))))
-        (native %persistentHash.4 ((argument
-                                       (%value.5 %value.6 %value.7 %value.8 %value.9
-                                         %value.10 %value.11 %value.12
-                                         %value.13)
-                                       (ty ((abytes 21) (abytes 32) (abytes 32)
-                                             (abytes 16) (abytes 1)
-                                             (abytes 32))
-                                           ((tunsigned
-                                              374144419156711147060143317175368453031918731001855) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                             (tunsigned
-                                               340282366920938463463374607431768211455)
-                                             (tunsigned 1) (tunsigned 255)
-                                             (tunsigned
-                                               452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+        (native %persistentHash.11 ((argument
+                                      (%value.12 %value.13 %value.14 %value.15 %value.16
+                                        %value.17 %value.18 %value.19
+                                        %value.20)
+                                      (ty ((abytes 21) (abytes 32) (abytes 32) (abytes 16)
+                                            (abytes 1) (abytes 32))
+                                          ((tunsigned
+                                             374144419156711147060143317175368453031918731001855) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                            (tunsigned
+                                              340282366920938463463374607431768211455)
+                                            (tunsigned 1) (tunsigned 255)
+                                            (tunsigned
+                                              452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty ((abytes 32))
                  ((tunsigned 255)
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %degradeToTransient.14 ((argument
-                                            (%x.15 %x.16)
-                                            (ty ((abytes 32))
-                                                ((tunsigned 255)
-                                                  (tunsigned
-                                                    452312848583266388373324160190187140051835877600158453279131187530910662655)))))
-             (ty ((afield)) ((tfield (field-native)))))
-        (native %upgradeFromTransient.17 ((argument
-                                              (%x.18)
-                                              (ty ((afield)) ((tfield (field-native))))))
-             (ty ((abytes 32))
-                 ((tunsigned 255)
-                   (tunsigned
-                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
-        (native %createZswapInput.19 ((argument
-                                          (%coin.20 %coin.21 %coin.22 %coin.23
-                                            %coin.24 %coin.25)
-                                          (ty ((abytes 32)
-                                                (abytes 32)
-                                                (abytes 16)
-                                                (abytes 8))
+        (native %degradeToTransient.21 ((argument
+                                          (%x.22 %x.23)
+                                          (ty ((abytes 32))
                                               ((tunsigned 255)
                                                 (tunsigned
-                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                (tunsigned 255)
-                                                (tunsigned
-                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                (tunsigned
-                                                  340282366920938463463374607431768211455)
-                                                (tunsigned
-                                                  18446744073709551615)))))
+                                                  452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+             (ty ((afield)) ((tfield (field-native)))))
+        (native %upgradeFromTransient.24 ((argument
+                                            (%x.25)
+                                            (ty ((afield))
+                                                ((tfield (field-native))))))
+             (ty ((abytes 32))
+                 ((tunsigned 255)
+                   (tunsigned
+                     452312848583266388373324160190187140051835877600158453279131187530910662655))))
+        (native %createZswapInput.26 ((argument
+                                        (%coin.27
+                                          %coin.28
+                                          %coin.29
+                                          %coin.30
+                                          %coin.31)
+                                        (ty ((abytes 32)
+                                              (abytes 32)
+                                              (abytes 16))
+                                            ((tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned 255)
+                                              (tunsigned
+                                                452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                              (tunsigned
+                                                340282366920938463463374607431768211455)))))
              (ty () ()))
-        (native %createZswapOutput.26 ((argument
-                                           (%coin.27
-                                             %coin.28
-                                             %coin.29
-                                             %coin.30
-                                             %coin.31)
-                                           (ty ((abytes 32)
-                                                 (abytes 32)
-                                                 (abytes 16))
-                                               ((tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned
-                                                   340282366920938463463374607431768211455))))
-                                         (argument
-                                           (%recipient.32
-                                             %recipient.33
-                                             %recipient.34
-                                             %recipient.35
-                                             %recipient.36)
-                                           (ty ((abytes 1)
-                                                 (abytes 32)
-                                                 (abytes 32))
-                                               ((tunsigned 1)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)
-                                                 (tunsigned 255)
-                                                 (tunsigned
-                                                   452312848583266388373324160190187140051835877600158453279131187530910662655)))))
+        (native %createZswapOutput.32 ((argument
+                                         (%coin.33
+                                           %coin.34
+                                           %coin.35
+                                           %coin.36
+                                           %coin.37)
+                                         (ty ((abytes 32)
+                                               (abytes 32)
+                                               (abytes 16))
+                                             ((tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned
+                                                 340282366920938463463374607431768211455))))
+                                       (argument
+                                         (%recipient.38
+                                           %recipient.39
+                                           %recipient.40
+                                           %recipient.41
+                                           %recipient.42)
+                                         (ty ((abytes 1)
+                                               (abytes 32)
+                                               (abytes 32))
+                                             ((tunsigned 1)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)
+                                               (tunsigned 255)
+                                               (tunsigned
+                                                 452312848583266388373324160190187140051835877600158453279131187530910662655)))))
              (ty () ()))
-        (circuit %relay.37 ((argument
-                              (%coin.38 %coin.39 %coin.40 %coin.41 %coin.42)
+        (circuit %relay.43 ((argument
+                              (%coin.44 %coin.45 %coin.46 %coin.47 %coin.48)
                               (ty ((abytes 32) (abytes 32) (abytes 16))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48522,7 +48001,7 @@ groups than for single tests.
                                     (tunsigned
                                       340282366920938463463374607431768211455))))
                             (argument
-                              (%target.43 %target.44)
+                              (%target.1 %target.3)
                               (ty ((abytes 32))
                                   ((tunsigned 255)
                                     (tunsigned
@@ -48543,113 +48022,112 @@ groups than for single tests.
                    (tunsigned
                      452312848583266388373324160190187140051835877600158453279131187530910662655)
                    (tunsigned 340282366920938463463374607431768211455)))
-          (= 1 (%value.45 %value.46)
-             (public-ledger %kernel.0 () self))
+          (= 1 (%value.49 %value.50)
+             (public-ledger %kernel.7 () self))
           (= 1 ()
-             (call %createZswapOutput.26
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.32
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
                0
                0
                0
-               %value.45
-               %value.46))
-          (= 1 (%tmp.47 %tmp.48)
-             (call %persistentHash.4
-               136202032268515569762809483864408030127489942841709
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
-               0
-               %value.45
-               %value.46))
-          (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.47
-               %tmp.48))
-          (= 1 (%selfAddr.49 %selfAddr.50)
-             (public-ledger %kernel.0 () self))
-          (= 1 ()
-             (call %createZswapInput.19
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
-               0))
+               %value.49
+               %value.50))
           (= 1 (%tmp.51 %tmp.52)
-             (call %persistentHash.4
-               136202032272258675798939806962505150809239393167725
-               %coin.38
-               %coin.39
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %persistentHash.11
+               136202032268515569762809483864408030127489942841709
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %selfAddr.49
-               %selfAddr.50))
+               %value.49
+               %value.50))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapNullifier
+             (public-ledger %kernel.7 () claimZswapCoinReceive
                %tmp.51
                %tmp.52))
-          (= 1 (%t.53)
-             (call %degradeToTransient.14 %coin.38 %coin.39))
-          (= 1 (%t.54)
-             (call %transientHash.1
+          (= 1 (%selfAddr.0 %selfAddr.2)
+             (public-ledger %kernel.7 () self))
+          (= 1 ()
+             (call %createZswapInput.26
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48))
+          (= 1 (%tmp.53 %tmp.54)
+             (call %persistentHash.11
+               136202032272258675798939806962505150809239393167725
+               %coin.44
+               %coin.45
+               %coin.46
+               %coin.47
+               %coin.48
+               0
+               %selfAddr.0
+               %selfAddr.2))
+          (= 1 ()
+             (public-ledger %kernel.7 () claimZswapNullifier
+               %tmp.53
+               %tmp.54))
+          (= 1 (%t.55)
+             (call %degradeToTransient.21 %coin.44 %coin.45))
+          (= 1 (%t.56)
+             (call %transientHash.8
                10685258091935385184760267925849721347998787314052891846880509847917
-               %t.53))
-          (= 1 (%t.55 %t.56) (call %upgradeFromTransient.17 %t.54))
+               %t.55))
+          (= 1 (%t.57 %t.58) (call %upgradeFromTransient.24 %t.56))
           (= 1 ()
-             (call %createZswapOutput.26
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+             (call %createZswapOutput.32
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
                0
                0
-               %target.43
-               %target.44))
-          (= 1 (%tmp.57 %tmp.58)
-             (call %persistentHash.4
+               %target.1
+               %target.3))
+          (= 1 (%tmp.59 %tmp.60)
+             (call %persistentHash.11
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %target.43
-               %target.44))
+               %target.1
+               %target.3))
           (= 1 ()
-             (public-ledger %kernel.0 () claimZswapCoinSpend
-               %tmp.57
-               %tmp.58))
-          (= 1 %t.59 (== %target.43 %selfAddr.49))
-          (= 1 %t.60 (== %target.44 %selfAddr.50))
-          (= 1 %t.61 (select %t.59 %t.60 0))
-          (= %t.61 (%tmp.62 %tmp.63)
-             (call %persistentHash.4
+             (public-ledger %kernel.7 () claimZswapCoinSpend
+               %tmp.59
+               %tmp.60))
+          (= 1 %t.5 (== %target.1 %selfAddr.0))
+          (= 1 %t.4 (== %target.3 %selfAddr.2))
+          (= 1 %t.6 (select %t.5 %t.4 0))
+          (= %t.6 (%tmp.61 %tmp.62)
+             (call %persistentHash.11
                136202032268515569762809483864408030127489942841709
-               %t.55
-               %t.56
-               %coin.40
-               %coin.41
-               %coin.42
+               %t.57
+               %t.58
+               %coin.46
+               %coin.47
+               %coin.48
                0
-               %target.43
-               %target.44))
-          (= %t.61 ()
-             (public-ledger %kernel.0 () claimZswapCoinReceive
-               %tmp.62
-               %tmp.63))
-          (0 0 0 0 0 0 %t.55 %t.56 %coin.40 %coin.41 %coin.42))))
+               %target.1
+               %target.3))
+          (= %t.6 ()
+             (public-ledger %kernel.7 () claimZswapCoinReceive
+               %tmp.61
+               %tmp.62))
+          (0 0 0 0 0 0 %t.57 %t.58 %coin.46 %coin.47 %coin.48))))
     )
 
   (test
@@ -50658,11 +50136,11 @@ groups than for single tests.
         (public-ledger-declaration
           %x11.40
           (__compact_Cell
-            (tstruct QualifiedShieldedCoinInfo
+            (tstruct ShieldedCoinInfo
               (nonce (tbytes 32))
               (color (tbytes 32))
-              (value (tunsigned 340282366920938463463374607431768211455))
-              (mt_index (tunsigned 18446744073709551615)))))
+              (value (tunsigned
+                       340282366920938463463374607431768211455)))))
         (public-ledger-declaration
           %x13.41
           (__compact_Cell
@@ -50732,11 +50210,11 @@ groups than for single tests.
               (tstruct MerkleTreeDigest (field (tfield (field-native))))))
           (%x11.40
             (__compact_Cell
-              (tstruct QualifiedShieldedCoinInfo
+              (tstruct ShieldedCoinInfo
                 (nonce (tbytes 32))
                 (color (tbytes 32))
-                (value (tunsigned 340282366920938463463374607431768211455))
-                (mt_index (tunsigned 18446744073709551615)))))
+                (value (tunsigned
+                         340282366920938463463374607431768211455)))))
           (%x13.41
             (__compact_Cell
               (tstruct ContractAddress (bytes (tbytes 32)))))
@@ -50871,11 +50349,11 @@ groups than for single tests.
              (%x11.40
                (1 4)
                (__compact_Cell
-                 (tstruct QualifiedShieldedCoinInfo
+                 (tstruct ShieldedCoinInfo
                    (nonce (tbytes 32))
                    (color (tbytes 32))
-                   (value (tunsigned 340282366920938463463374607431768211455))
-                   (mt_index (tunsigned 18446744073709551615)))))
+                   (value (tunsigned
+                            340282366920938463463374607431768211455)))))
              (%x13.41
                (1 5)
                (__compact_Cell
@@ -50962,15 +50440,14 @@ groups than for single tests.
              (%x11.40
                (1 4)
                (__compact_Cell
-                 (ty ((abytes 32) (abytes 32) (abytes 16) (abytes 8))
+                 (ty ((abytes 32) (abytes 32) (abytes 16))
                      ((tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
                        (tunsigned 255)
                        (tunsigned
                          452312848583266388373324160190187140051835877600158453279131187530910662655)
-                       (tunsigned 340282366920938463463374607431768211455)
-                       (tunsigned 18446744073709551615)))))
+                       (tunsigned 340282366920938463463374607431768211455)))))
              (%x13.41
                (1 5)
                (__compact_Cell
@@ -54490,10 +53967,10 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: ShieldedCoinInfo;"
+      "ledger field8: Set<ShieldedCoinInfo>;"
+      "ledger field9: Map<Field, ShieldedCoinInfo>;"
+      "ledger field10: List<ShieldedCoinInfo>;"
       ""
       "export circuit foo(x: Field, y: Foo, ci: ShieldedCoinInfo): Boolean {"
       "  field0.resetToDefault();"
@@ -54522,13 +53999,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.write(disclose(ci));"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insert(disclose(ci));"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(disclose(x), disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insert(disclose(x), disclose(ci));"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFront(disclose(ci));"
       "  return q;"
       "}"
      )
@@ -54715,92 +54192,33 @@ groups than for single tests.
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa2\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.34\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.35\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.34\", \"%value.35\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.36\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.34\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.37\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.35\" },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.38\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.36\", \"%data.37\"] },"
-        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.39\", \"%hash.40\"], \"bytes\": \"%bytes.38\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x07\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x33\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.40\", \"%hash.39\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x08\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.41\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.42\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.41\", \"%value.42\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.43\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.41\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.44\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.42\" },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.45\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.43\", \"%data.44\"] },"
-        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.46\", \"%hash.47\"], \"bytes\": \"%bytes.45\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x08\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x34\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.47\", \"%hash.46\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x09\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.48\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.49\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.48\", \"%value.49\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.50\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.48\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.51\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.49\" },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.52\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.50\", \"%data.51\"] },"
-        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.53\", \"%hash.54\"], \"bytes\": \"%bytes.52\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x09\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"-0x02\", \"%x.0\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x35\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.54\", \"%hash.53\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x0a\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x01\", \"0x01\", \"0x08\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.55\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.56\", \"guard\": null },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x32\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x60\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0d\", \"0x01\", \"0x20\", \"%value.55\", \"%value.56\"] },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.57\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.55\" },"
-        "    { \"op\": \"cond_select\", \"output\": \"%data.58\", \"bit\": \"0x00\", \"a\": \"0x00\", \"b\": \"%value.56\" },"
-        "    { \"op\": \"persistent_hash\", \"output\": \"%bytes.59\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [\"0x6d69646e696768743a7a737761702d63635b76315d\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"%data.57\", \"%data.58\"] },"
-        "    { \"op\": \"bytes_into_natives\", \"outputs\": [\"%hash.60\", \"%hash.61\"], \"bytes\": \"%bytes.59\" },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x70\", \"0x01\", \"0x01\", \"0x0a\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x30\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x50\", \"0x01\", \"0x01\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x0e\", \"0x01\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x00\", \"0x00\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x37\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x20\", \"%hash.61\", \"%hash.60\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x61\", \"0x01\", \"0x01\", \"0x01\", \"-0x01\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x17\", \"0x5b\"] },"
-        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0xa1\"] },"
+        "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x33\", \"0x01\", \"0x03\", \"0x20\", \"0x20\", \"0x10\", \"%ci.10\", \"%ci.11\", \"%ci.12\", \"%ci.13\", \"%ci.14\", \"0x00\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x02\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x40\"] },"
@@ -55695,7 +55113,7 @@ groups than for single tests.
       "ledger committed: Set<Bytes<32>>;"
       "ledger revealed: Set<Bytes<32>>;"
       ""
-      "ledger pot: QualifiedShieldedCoinInfo;"
+      "ledger pot: ShieldedCoinInfo;"
       "ledger pot_has_coin: Boolean;"
       ""
       "constructor(organizer_secret_key: Bytes<32>) {"
@@ -56812,20 +56230,20 @@ groups than for single tests.
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
       "module M1 {"
       "  import CompactStandardLibrary;"
-      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
+      "  export { ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
       "  export { left, ownPublicKey, createZswapInput, createZswapOutput };"
       "}"
       "import M1 prefix std$;"
-      "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
+      "circuit foo(input: std$ShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
       "  forceProof();"
-      "  std$createZswapInput(qcoin);"
+      "  std$createZswapInput(input);"
       "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
       "}"
       "module M2 {"
       "  import CompactStandardLibrary;"
-      "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "  export circuit bar(input: ShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "    forceProof();"
-      "    createZswapInput(qcoin);"
+      "    createZswapInput(input);"
       "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "  }"
       "}"
@@ -56839,39 +56257,37 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
-        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.5\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.1\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.2\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.3\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.4\", \"bits\": 128 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.5\", \"bits\": 64 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.6\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.7\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.1\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.2\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.3\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.4\", \"bits\": 128 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.5\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.6\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.7\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.10\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%value.10\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 248 }"
         "  ]"
         "}"))
     (output-file "compiler/testdir/zkir/bar.zkir"
@@ -56919,8 +56335,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
-      "  createZswapInput(qcoin);"
+      "export circuit foo(input: ShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "  createZswapInput(input);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
       )
@@ -56931,9 +56347,9 @@ groups than for single tests.
     '(
       "import CompactStandardLibrary;"
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "export circuit foo(input: ShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
       "  forceProof();"
-      "  createZswapInput(qcoin);"
+      "  createZswapInput(input);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
       )
@@ -56943,39 +56359,37 @@ groups than for single tests.
         "  \"version\": { \"major\": 3, \"minor\": 1 },"
         "  \"do_communications_commitment\": true,"
         "  \"inputs\": ["
-        "    { \"name\": \"%qcoin.0\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.1\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.2\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.3\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.4\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%qcoin.5\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.2\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.3\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%input.4\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%coin.5\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.6\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.7\", \"type\": \"Scalar<BLS12-381>\" },"
         "    { \"name\": \"%coin.8\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" },"
-        "    { \"name\": \"%coin.10\", \"type\": \"Scalar<BLS12-381>\" }"
+        "    { \"name\": \"%coin.9\", \"type\": \"Scalar<BLS12-381>\" }"
         "  ],"
         "  \"outputs\": ["
         "  ],"
         "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.0\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.1\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.2\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.3\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.4\", \"bits\": 128 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%qcoin.5\", \"bits\": 64 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.6\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.7\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.10\", \"bits\": 128 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.0\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.1\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.2\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.3\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%input.4\", \"bits\": 128 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.5\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.6\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.7\", \"bits\": 8 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.8\", \"bits\": 248 },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%coin.9\", \"bits\": 128 },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x10\", \"0x01\", \"0x01\", \"0x01\", \"0x00\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x11\", \"0x01\", \"0x01\", \"-0x02\", \"0x07\"] },"
         "    { \"op\": \"impact\", \"guard\": \"0x01\", \"inputs\": [\"0x91\"] },"
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.10\", \"guard\": null },"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%value.10\", \"bits\": 8 },"
         "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.11\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%value.12\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"val\": \"%value.12\", \"bits\": 248 }"
+        "    { \"op\": \"constrain_bits\", \"val\": \"%value.11\", \"bits\": 248 }"
         "  ]"
         "}"))
     )
@@ -61347,11 +60761,11 @@ groups than for single tests.
 
   (test
     '(
-      "ledger field7: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: List<ShieldedCoinInfo>;"
        )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 21" "unbound identifier ~s" (QualifiedShieldedCoinInfo)))
+      irritants: '("testfile.compact line 1 char 21" "unbound identifier ~s" (ShieldedCoinInfo)))
     )
 
   (test
@@ -64051,10 +63465,10 @@ groups than for single tests.
       "ledger field4: List<Foo>;"
       "ledger field5: MerkleTree<10, Foo>;"
       "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
+      "ledger field7: ShieldedCoinInfo;"
+      "ledger field8: Set<ShieldedCoinInfo>;"
+      "ledger field9: Map<Field, ShieldedCoinInfo>;"
+      "ledger field10: List<ShieldedCoinInfo>;"
       ""
       "export circuit foo(x0: Field, y0: Foo, ci0: ShieldedCoinInfo): Boolean {"
       "  const x = disclose(x0); const y = disclose(y0); const ci = disclose(ci0);"
@@ -64084,13 +63498,13 @@ groups than for single tests.
       "  field4.resetToDefault();"
       "  field5.resetToDefault();"
       "  field6.resetToDefault();"
-      "  field7.writeCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field7.write(ci);"
       "  field8.resetToDefault();"
-      "  field8.insertCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field8.insert(ci);"
       "  field9.resetToDefault();"
-      "  field9.insertCoin(x, ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field9.insert(x, ci);"
       "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(ci, right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
+      "  field10.pushFront(ci);"
       "  return q;"
       "}"
       )
@@ -65894,7 +65308,7 @@ groups than for single tests.
       "ledger committed: Set<Bytes<32>>;"
       "ledger revealed: Set<Bytes<32>>;"
       ""
-      "ledger pot: QualifiedShieldedCoinInfo;"
+      "ledger pot: ShieldedCoinInfo;"
       "export ledger potHasCoin: Boolean;"
       ""
       "constructor(organizerSecretKey: Bytes<32>) {"
@@ -67949,8 +67363,8 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
-      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
-      "  createZswapInput(qcoin);"
+      "export circuit foo(input: ShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
+      "  createZswapInput(input);"
       "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
       "}"
       )
@@ -67958,17 +67372,16 @@ groups than for single tests.
       '(
         "test('check 1', async () => {"
         "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
-        "  const qcoin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 57n, mt_index: 3n };"
+        "  const input = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 57n };"
         "  const coin = { nonce: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), color: new Uint8Array([1,2,3,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]), value: 73n };"
         "  const encodedOwnPublicKey = runtime.encodeCoinPublicKey('0'.repeat(64))"
         "  const expectedRecipient = { is_left: true, left: { bytes: encodedOwnPublicKey }, right: { bytes: new Uint8Array(32) } }"
-        "  const circuitResult = await C.circuits.foo(Ctxt, qcoin, coin)"
+        "  const circuitResult = await C.circuits.foo(Ctxt, input, coin)"
         "  expect(circuitResult.result).toEqual([]);"
         "  expect(circuitResult.context.callContext.currentZswapLocalState).toEqual({"
         "    coinPublicKey: { bytes: runtime.encodeCoinPublicKey('0'.repeat(64)) },"
-        "    currentIndex: 1n,"
         "    outputs: [{ coinInfo: coin, recipient: expectedRecipient}],"
-        "    inputs: [qcoin]"
+        "    inputs: [input]"
         "  })"
         "});"
         ))
@@ -69681,178 +69094,6 @@ groups than for single tests.
         "  var { result, context } = await C.circuits.foo5(context);"
         "  expect(result).toEqual([]);"
         "  });"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  receiveShielded(disclose(dust));"
-      "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion succeeds for lists', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).resolves.toBeDefined();"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: List<QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.pushFrontCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion fails informatively for lists when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).rejects.toThrow(new runtime.CompactError(`testfile.compact line 4 char 3: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`));"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  receiveShielded(disclose(dust));"
-      "  coins.insertCoin(0 as Field, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion succeeds for maps', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).resolves.toBeDefined();"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Map<Field, QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.insertCoin(0 as Field, disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion fails informatively for maps when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).rejects.toThrow(new runtime.CompactError(`testfile.compact line 4 char 3: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`));"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  receiveShielded(disclose(dust));"
-      "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion succeeds for sets', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).resolves.toBeDefined();"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coins: Set<QualifiedShieldedCoinInfo>;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coins.insertCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion fails informatively for sets when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).rejects.toThrow(new runtime.CompactError(`testfile.compact line 4 char 3: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`));"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coin: QualifiedShieldedCoinInfo;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  receiveShielded(disclose(dust));"
-      "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion succeeds for cells', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).resolves.toBeDefined();"
-        "});"
-        ))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger coin: QualifiedShieldedCoinInfo;"
-      "export circuit receiveToken(dust: ShieldedCoinInfo): [] {"
-      "  coin.writeCoin(disclose(dust), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "}"
-      )
-    (stage-javascript
-      '(
-        "test('coin insertion fails informatively for cells when coin commitment does not exit in query context', async () => {"
-        "  const [C, ctxt] = await startContract(contractCode, {}, undefined);"
-        "  await expect(C.circuits.receiveToken(ctxt, {"
-        "    nonce: new Uint8Array(32),"
-        "    color: new Uint8Array(32),"
-        "    value: 5n"
-        "  })).rejects.toThrow(new runtime.CompactError(`testfile.compact line 4 char 3: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`));"
-        "});"
         ))
     )
 

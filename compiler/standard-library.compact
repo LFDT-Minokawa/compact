@@ -96,13 +96,6 @@ export struct ShieldedCoinInfo {
   value: Uint<128>;
 }
 
-export struct QualifiedShieldedCoinInfo {
-  nonce: Bytes<32>;
-  color: Bytes<32>;
-  value: Uint<128>;
-  mt_index: Uint<64>;
-}
-
 export struct ZswapCoinPublicKey { bytes: Bytes<32>; }
 
 export struct ShieldedSendResult {
@@ -156,13 +149,13 @@ export circuit receiveShielded(coin: ShieldedCoinInfo): [] {
 }
 
 export circuit sendShielded(
-  input: QualifiedShieldedCoinInfo,
+  input: ShieldedCoinInfo,
   recipient: Either<ZswapCoinPublicKey, ContractAddress>,
   value: Uint<128>
 ): ShieldedSendResult {
   const selfAddr = kernel.self();
   createZswapInput(input);
-  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(input), selfAddr));
+  kernel.claimZswapNullifier(coinNullifier(input, selfAddr));
   const change = input.value - value;
   const output = ShieldedCoinInfo{
                    nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(input.nonce)])),
@@ -193,23 +186,15 @@ export circuit sendShielded(
   }
 }
 
-export circuit sendImmediateShielded(
-  input: ShieldedCoinInfo,
-  target: Either<ZswapCoinPublicKey, ContractAddress>,
-  value: Uint<128>
-): ShieldedSendResult {
-  return sendShielded(upcastQualifiedCoin(input), target, value);
-}
-
 export circuit mergeCoin(
-  a: QualifiedShieldedCoinInfo,
-  b: QualifiedShieldedCoinInfo
+  a: ShieldedCoinInfo,
+  b: ShieldedCoinInfo
 ): ShieldedCoinInfo {
   const selfAddr = kernel.self();
   createZswapInput(a);
-  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(a), selfAddr));
+  kernel.claimZswapNullifier(coinNullifier(a, selfAddr));
   createZswapInput(b);
-  kernel.claimZswapNullifier(coinNullifier(downcastQualifiedCoin(b), selfAddr));
+  kernel.claimZswapNullifier(coinNullifier(b, selfAddr));
   assert(a.color == b.color, "Can only merge coins of the same color");
   const newCoin = ShieldedCoinInfo{
                      nonce: upgradeFromTransient(transientHash<Vector<2, Field>>(["midnight:kernel:nonce_evolve" as Field, degradeToTransient(a.nonce)])),
@@ -221,21 +206,6 @@ export circuit mergeCoin(
   kernel.claimZswapCoinSpend(cm);
   kernel.claimZswapCoinReceive(cm);
   return newCoin;
-}
-
-export circuit mergeCoinImmediate(
-  a: QualifiedShieldedCoinInfo,
-  b: ShieldedCoinInfo
-): ShieldedCoinInfo {
-  return mergeCoin(a, upcastQualifiedCoin(b));
-}
-
-circuit downcastQualifiedCoin(coin: QualifiedShieldedCoinInfo): ShieldedCoinInfo {
-  return ShieldedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value };
-}
-
-circuit upcastQualifiedCoin(coin: ShieldedCoinInfo): QualifiedShieldedCoinInfo {
-  return QualifiedShieldedCoinInfo{ nonce: coin.nonce, color: coin.color, value: coin.value, mt_index: 0 };
 }
 
 struct CoinPreimage {

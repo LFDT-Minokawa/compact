@@ -17,7 +17,7 @@
   (export vminstr? vminstr-op vminstr-arg*
           VMop? VMop-case
           VMstack VMvoid VMsuppress VM+ VMalign VMaligned-concat VMnull
-          VMmax-sizeof VMvalue->int VMcoin-commit VMleaf-hash VMstate-value-null VMstate-value-cell VMstate-value-ADT
+          VMmax-sizeof VMvalue->int VMleaf-hash VMstate-value-null VMstate-value-cell VMstate-value-ADT
           VMstate-value-map VMstate-value-merkle-tree VMstate-value-array
           check-vm-expr check-vm-code
           expand-vm-expr expand-vm-code)
@@ -39,7 +39,6 @@
     (VMnull x)
     (VMmax-sizeof x)
     (VMvalue->int x)
-    (VMcoin-commit coin recipient)
     (VMleaf-hash x)
     (VMstate-value-null)
     (VMstate-value-cell val)
@@ -251,9 +250,6 @@
 
   (define-function (rt-value->int x)
     (VMvalue->int x))
-
-  (define-function (rt-coin-commit coin recipient)
-    (VMcoin-commit coin recipient))
 
   (define-function (rt-leaf-hash x)
     (VMleaf-hash x))

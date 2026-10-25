@@ -17,11 +17,11 @@ import CompactStandardLibrary;
 
 export ledger counter: Counter;
 
-export ledger set: Set<QualifiedShieldedCoinInfo>;
+export ledger set: Set<ShieldedCoinInfo>;
 
-export ledger maps: Map<Field, QualifiedShieldedCoinInfo>;
+export ledger maps: Map<Field, ShieldedCoinInfo>;
 
-export ledger list: List<QualifiedShieldedCoinInfo>;
+export ledger list: List<ShieldedCoinInfo>;
 
 export ledger mt: MerkleTree<2, Field>;
 
@@ -53,20 +53,14 @@ constructor() {
   counter.read();
   counter.resetToDefault();
 
-  set.insert(default<QualifiedShieldedCoinInfo>);
-  set.insertCoin(default<ShieldedCoinInfo>, default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  set.insert(default<ShieldedCoinInfo>);
   set.isEmpty();
-  set.member(default<QualifiedShieldedCoinInfo>);
-  set.remove(default<QualifiedShieldedCoinInfo>);
+  set.member(default<ShieldedCoinInfo>);
+  set.remove(default<ShieldedCoinInfo>);
   set.resetToDefault();
   set.size();
 
-  maps.insert(1 as Field, default<QualifiedShieldedCoinInfo>);
-  maps.insertCoin(
-    1 as Field,
-    default<ShieldedCoinInfo>,
-    default<Either<ZswapCoinPublicKey, ContractAddress>>
-    );
+  maps.insert(1 as Field, default<ShieldedCoinInfo>);
   maps.insertDefault(1 as Field);
   maps.isEmpty();
   maps.lookup(1 as Field);
@@ -79,11 +73,7 @@ constructor() {
   list.isEmpty();
   list.length();
   list.popFront();
-  list.pushFront(default<QualifiedShieldedCoinInfo>);
-  list.pushFrontCoin(
-    default<ShieldedCoinInfo>,
-    default<Either<ZswapCoinPublicKey, ContractAddress>>
-    );
+  list.pushFront(default<ShieldedCoinInfo>);
   list.resetToDefault();
 
   mt.checkRoot(default<MerkleTreeDigest>);

@@ -1,8 +1,8 @@
 # Compact language usage index
 
-Scanned the **120 fixtures** in `test-contracts/`.
+Scanned the **119 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 148
+## Not covered by any fixture — 150
 
 | name | group |
 |---|---|
@@ -19,9 +19,7 @@ Scanned the **120 fixtures** in `test-contracts/`.
 | `shieldedBurnAddress` | Standard library circuits |
 | `receiveShielded` | Standard library circuits |
 | `sendShielded` | Standard library circuits |
-| `sendImmediateShielded` | Standard library circuits |
 | `mergeCoin` | Standard library circuits |
-| `mergeCoinImmediate` | Standard library circuits |
 | `blockTimeLt` | Standard library circuits |
 | `blockTimeGte` | Standard library circuits |
 | `blockTimeGt` | Standard library circuits |
@@ -35,6 +33,8 @@ Scanned the **120 fixtures** in `test-contracts/`.
 | `unshieldedBalanceGt` | Standard library circuits |
 | `unshieldedBalanceLte` | Standard library circuits |
 | `jubjubSchnorrVerify` | Standard library circuits |
+| `secp256r1EcdsaVerify` | Standard library circuits |
+| `ed25519Verify` | Standard library circuits |
 | `Maybe` | Standard library structs |
 | `Either` | Standard library structs |
 | `MerkleTreeDigest` | Standard library structs |
@@ -42,11 +42,12 @@ Scanned the **120 fixtures** in `test-contracts/`.
 | `MerkleTreePath` | Standard library structs |
 | `ContractAddress` | Standard library structs |
 | `ShieldedCoinInfo` | Standard library structs |
-| `QualifiedShieldedCoinInfo` | Standard library structs |
 | `ZswapCoinPublicKey` | Standard library structs |
 | `ShieldedSendResult` | Standard library structs |
 | `UserAddress` | Standard library structs |
 | `JubjubSchnorrSignature` | Standard library structs |
+| `Secp256r1EcdsaSignature` | Standard library structs |
+| `Ed25519Signature` | Standard library structs |
 | `Kernel.claimZswapNullifier` | Ledger ADT operations |
 | `Kernel.claimZswapCoinSpend` | Ledger ADT operations |
 | `Kernel.claimZswapCoinReceive` | Ledger ADT operations |
@@ -54,6 +55,7 @@ Scanned the **120 fixtures** in `test-contracts/`.
 | `Kernel.checkpoint` | Ledger ADT operations |
 | `Kernel.mintShielded` | Ledger ADT operations |
 | `Kernel.self` | Ledger ADT operations |
+| `Kernel.caller` | Ledger ADT operations |
 | `Kernel.mintUnshielded` | Ledger ADT operations |
 | `Kernel.claimUnshieldedCoinSpend` | Ledger ADT operations |
 | `Kernel.incUnshieldedOutputs` | Ledger ADT operations |
@@ -161,12 +163,12 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:20`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L20) | 37 |
-| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 354 |
+| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 40 |
+| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 351 |
 | `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 182 |
 | `Opaque` | [`test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact:18`](../../test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact#L18) | 3 |
 | `Uint` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:26`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L26) | 114 |
-| `Vector` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:20`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L20) | 99 |
+| `Vector` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:21`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L21) | 100 |
 
 ## Standard library circuits — 2/31 covered
 
@@ -187,9 +189,7 @@ Declared in `shipped Compact libraries — export circuit`.
 | `shieldedBurnAddress` | **no fixture** | 0 |
 | `receiveShielded` | **no fixture** | 0 |
 | `sendShielded` | **no fixture** | 0 |
-| `sendImmediateShielded` | **no fixture** | 0 |
 | `mergeCoin` | **no fixture** | 0 |
-| `mergeCoinImmediate` | **no fixture** | 0 |
 | `blockTimeLt` | **no fixture** | 0 |
 | `blockTimeGte` | **no fixture** | 0 |
 | `blockTimeGt` | **no fixture** | 0 |
@@ -205,8 +205,10 @@ Declared in `shipped Compact libraries — export circuit`.
 | `jubjubSchnorrVerify` | **no fixture** | 0 |
 | `secp256k1EcdsaVerify` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:43`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L43) | 16 |
 | `secp256k1EthereumAddress` | [`test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact:28`](../../test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact#L28) | 2 |
+| `secp256r1EcdsaVerify` | **no fixture** | 0 |
+| `ed25519Verify` | **no fixture** | 0 |
 
-## Standard library structs — 1/13 covered
+## Standard library structs — 1/14 covered
 
 Declared in `shipped Compact libraries — export struct`.
 
@@ -219,14 +221,15 @@ Declared in `shipped Compact libraries — export struct`.
 | `MerkleTreePath` | **no fixture** | 0 |
 | `ContractAddress` | **no fixture** | 0 |
 | `ShieldedCoinInfo` | **no fixture** | 0 |
-| `QualifiedShieldedCoinInfo` | **no fixture** | 0 |
 | `ZswapCoinPublicKey` | **no fixture** | 0 |
 | `ShieldedSendResult` | **no fixture** | 0 |
 | `UserAddress` | **no fixture** | 0 |
 | `JubjubSchnorrSignature` | **no fixture** | 0 |
 | `Secp256k1EcdsaSignature` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:40`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L40) | 12 |
+| `Secp256r1EcdsaSignature` | **no fixture** | 0 |
+| `Ed25519Signature` | **no fixture** | 0 |
 
-## Ledger ADT operations — 1/61 covered
+## Ledger ADT operations — 1/62 covered
 
 Declared in `compiler sources — declare-ledger-adt`.
 
@@ -239,6 +242,7 @@ Declared in `compiler sources — declare-ledger-adt`.
 | `Kernel.checkpoint` | **no fixture** | 0 |
 | `Kernel.mintShielded` | **no fixture** | 0 |
 | `Kernel.self` | **no fixture** | 0 |
+| `Kernel.caller` | **no fixture** | 0 |
 | `Kernel.mintUnshielded` | **no fixture** | 0 |
 | `Kernel.claimUnshieldedCoinSpend` | **no fixture** | 0 |
 | `Kernel.incUnshieldedOutputs` | **no fixture** | 0 |
@@ -324,7 +328,7 @@ Declared in `compiler sources — declare-native-entry`.
 | `persistentCommit` | **no fixture** | 0 |
 | `degradeToTransient` | **no fixture** | 0 |
 | `upgradeFromTransient` | **no fixture** | 0 |
-| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 65 |
+| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 64 |
 | `jubjubPointX` | **no fixture** | 0 |
 | `jubjubPointY` | **no fixture** | 0 |
 | `ecAdd` | **no fixture** | 0 |
@@ -359,7 +363,7 @@ Declared in `compiler sources — declare-native-type`.
 | `Curve25519Point` | **no fixture** | 0 |
 | `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact:18`](../../test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact#L18) | 2 |
 | `Secp256k1Scalar` | **no fixture** | 0 |
-| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 15 |
+| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 14 |
 | `Secp256r1Base` | **no fixture** | 0 |
 | `Secp256r1Scalar` | **no fixture** | 0 |
 | `Secp256r1Point` | **no fixture** | 0 |

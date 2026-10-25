@@ -66,17 +66,13 @@ describe('per-contract Zswap local state', () => {
 
     expect(context.zswapLocalStates[address]).toBe(context.callContext.currentZswapLocalState);
     expect(context.zswapLocalStates[address]!.outputs.length).toBe(1);
-    expect(context.zswapLocalStates[address]!.currentIndex).toBe(1n);
   });
 
   test('createZswapInput writes through to the per-address map', () => {
     const address = ocrt.sampleContractAddress();
     const context = makeContext(address);
 
-    compactRuntime.createZswapInput(context, {
-      ...sampleCoinInfo(100n),
-      mt_index: 0n,
-    });
+    compactRuntime.createZswapInput(context, sampleCoinInfo(100n));
 
     expect(context.zswapLocalStates[address]).toBe(context.callContext.currentZswapLocalState);
     expect(context.zswapLocalStates[address]!.inputs.length).toBe(1);
@@ -115,23 +111,6 @@ describe('per-contract Zswap local state', () => {
     // actually finished with rather than the one it started from.
     expect(entry.zswapLocalState.outputs.length).toBe(1);
     expect(entry.zswapLocalState).toBe(context.callContext.currentZswapLocalState);
-  });
-});
-
-describe('coin commitments', () => {
-  test('a commitment reaches the per-address query context, not only the live one', () => {
-    const address = ocrt.sampleContractAddress();
-    const context = makeContext(address);
-    const coinInfo = sampleCoinInfo(5n);
-    const recipient = contractRecipient(address);
-
-    compactRuntime.createZswapOutput(context, coinInfo, recipient);
-
-    expect(compactRuntime.hasCoinCommitment(context, coinInfo, recipient)).toBe(true);
-    // A commitment goes into the query context, so it needs the same write-back the Zswap local
-    // state gets. The map cell is what a later turn of this contract resumes from, and what a
-    // returning sub-call used to restore the caller from.
-    expect(context.queryContexts[address]).toBe(context.callContext.currentQueryContext);
   });
 });
 

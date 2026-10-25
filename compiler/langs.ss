@@ -439,8 +439,7 @@
       (+ (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code adt-op-cond* ...) =>
            ledger-op))
     (ADT-Op-Class (op-class)
-      (+ ledger-op-class
-         (ledger-op-class nat nat^)))
+      (+ ledger-op-class))
     (ADT-Op-Condition (adt-op-cond)
       (+ (= tvar-name type)))
     (Fixup-Alias-Definition (fixup-alias-defn)
@@ -695,8 +694,7 @@
       (ledger-op op-class ((var-name* type* (maybe discloses?)) ...) type vm-code) =>
         ledger-op)
     (ADT-Op-Class (op-class)
-      ledger-op-class
-      (ledger-op-class nat nat^))
+      ledger-op-class)
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
       type)
@@ -1080,8 +1078,7 @@
       (ledger-op op-class (adt-name (adt-formal* adt-arg*) ...) ((var-name* type*) ...) type vm-code) =>
         ledger-op)
     (ADT-Op-Class (op-class)
-      ledger-op-class
-      (ledger-op-class nat nat^))
+      ledger-op-class)
     (Public-Ledger-ADT-Arg (adt-arg)
       nat
       type)

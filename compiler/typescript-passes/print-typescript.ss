@@ -427,13 +427,6 @@
                 0 (if top-level?
                       ").encode()"
                       ")"))]
-             [(VMcoin-commit coin recipient)
-              (make-Qconcat
-                "__compactRuntime.runtimeCoinCommitment("
-                2 ((make-Qsep ",")
-                    (construct-query-value src coin #f)
-                    (construct-query-value src recipient #f))
-                0 ")")]
              [(VMleaf-hash x)
               (make-Qconcat
                 "__compactRuntime.leafHash("
@@ -463,45 +456,14 @@
                              (vm-code-code vm-code))])
              (vminstr->q-array src vminstr*))]))
 
-      (define (coin-recipient-indices adt-op)
-        (nanopass-case (Ltypescript ADT-Op) adt-op
-          [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
-           (list nat nat^)]))
-
-      (define (should-check-coin-commitment? adt-op)
-        (nanopass-case (Ltypescript ADT-Op) adt-op
-          [(,ledger-op (,ledger-op-class ,nat ,nat^) (,adt-name (,adt-formal* ,adt-arg*) ...) ((,var-name* ,type*) ...) ,type ,vm-code)
-           (eq? ledger-op-class 'update-with-coin-check)]
-          [else #f]))
-
-      (define (coin-commitment-check adt-op expr*)
-        (let* ([indices (coin-recipient-indices adt-op)]
-               [coin-idx (car indices)]
-               [recipient-idx (cadr indices)]
-               [coin-expr (list-ref expr* coin-idx)]
-               [recipient-expr (list-ref expr* recipient-idx)])
-          (make-Qconcat
-           "__compactRuntime.hasCoinCommitment("
-           ((make-Qsep ",") "context" coin-expr recipient-expr)
-           ")")))
-
       (define (construct-query src path-elt* adt-formal* adt-arg* adt-op expr*)
-        (let ([query (make-Qconcat/src src
-                       "__compactRuntime.queryLedgerState("
-                       ((make-Qsep ",")
-                        "context"
-                        "partialProofData"
-                        (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))
-                       ")")])
-          (if (should-check-coin-commitment? adt-op)
-              (make-Qconcat
-                (coin-commitment-check adt-op expr*)
-                " ? "
-                query
-                " : "
-                (format "(() => { throw new __compactRuntime.CompactError(`~a: Coin commitment not found. Check the coin has been received (or call 'createZswapOutput')`); })()" (format-source-object src)))
-              query))
-        ))
+        (make-Qconcat/src src
+          "__compactRuntime.queryLedgerState("
+          ((make-Qsep ",")
+           "context"
+           "partialProofData"
+           (construct-vm-instructions src path-elt* adt-formal* adt-arg* adt-op expr*))
+          ")")))
 
     (define (has-read? adt-op*)
       (ormap (lambda (adt-op)

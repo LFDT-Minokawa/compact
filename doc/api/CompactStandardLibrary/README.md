@@ -17,7 +17,6 @@ Key parts of the API are:
   - [`UserAddress`](exports.md#useraddress)
 - Coin management data types:
   - [`ShieldedCoinInfo`](exports.md#shieldedcoininfo)
-  - [`QualifiedShieldedCoinInfo`](exports.md#qualifiedshieldedcoininfo)
   - [`ShieldedSendResult`](exports.md#shieldedsendresult)
 - Common functions:
   - [`some`](exports.md#some)
@@ -75,9 +74,7 @@ Key parts of the API are:
   - [`evolveNonce`](exports.md#evolvenonce)
   - [`receiveShielded`](exports.md#receiveshielded)
   - [`sendShielded`](exports.md#sendshielded)
-  - [`sendImmediateShielded`](exports.md#sendimmediateshielded)
   - [`mergeCoin`](exports.md#mergecoin)
-  - [`mergeCoinImmediate`](exports.md#mergecoinimmediate)
   - [`shieldedBurnAddress`](exports.md#shieldedburnaddress)
   - [`mintUnshieldedToken`](exports.md#mintunshieldedtoken)
   - [`sendUnshielded`](exports.md#sendunshielded)

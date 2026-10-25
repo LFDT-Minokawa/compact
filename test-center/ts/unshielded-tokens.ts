@@ -363,13 +363,6 @@ const sampleShieldedCoinInfo = (color: Buffer, value: bigint) => ({
   value: value,
 });
 
-const sampleQualifiedShieldedCoinInfo = (color: Buffer, value: bigint) => ({
-  nonce: sampleNonce(),
-  color: color,
-  value: value,
-  mt_index: 0n,
-});
-
 const shieldedTokenColor = (domainSep: Buffer, rawContractAddress: runtime.ContractAddress): Buffer => {
   return Buffer.from(runtime.encodeRawTokenType(runtime.rawTokenType(domainSep, rawContractAddress)));
 };
@@ -488,7 +481,7 @@ test('sendShieldedToSelfTestWithChange', async () => {
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 60n;
-  const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
+  const input = sampleShieldedCoinInfo(color, inputValue);
 
   const result = await c.circuits.sendShieldedToSelfTest(context, input, sendValue);
   context = result.context;
@@ -522,7 +515,7 @@ test('sendShieldedToSelfTestNoChange', async () => {
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 100n; // Same as input, so no change
-  const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
+  const input = sampleShieldedCoinInfo(color, inputValue);
 
   const result = await c.circuits.sendShieldedToSelfTest(context, input, sendValue);
   context = result.context;
@@ -554,7 +547,7 @@ test('sendShieldedToContractTest', async () => {
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 60n;
-  const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
+  const input = sampleShieldedCoinInfo(color, inputValue);
   const recipient = sampleContractRecipient();
 
   const result = await c.circuits.sendShieldedToContractTest(context, input, recipient, sendValue);
@@ -589,7 +582,7 @@ test('sendShieldedToUserTest', async () => {
   const color = shieldedTokenColor(domainSep, rawSelfAddress);
   const inputValue = 100n;
   const sendValue = 60n;
-  const input = sampleQualifiedShieldedCoinInfo(color, inputValue);
+  const input = sampleShieldedCoinInfo(color, inputValue);
   const recipient = sampleZswapCoinPublicKey();
 
   const result = await c.circuits.sendShieldedToUserTest(context, input, recipient, sendValue);
@@ -615,7 +608,7 @@ test('sendShieldedToUserTest', async () => {
   expect(claimedShieldedReceives.length).toBe(1);
 });
 
-test('sendImmediateShieldedToSelfTestNoChange', async () => {
+test('sendShieldedToSelfTestNoChange', async () => {
 
   let [c, context] = await startContract(contractCode, {}, 0);
 
@@ -626,7 +619,7 @@ test('sendImmediateShieldedToSelfTestNoChange', async () => {
   const sendValue = 100n; // Full amount, no change
   const input = sampleShieldedCoinInfo(color, inputValue);
 
-  const result = await c.circuits.sendImmediateShieldedToSelfTest(context, input, sendValue);
+  const result = await c.circuits.sendShieldedToSelfTest(context, input, sendValue);
   context = result.context;
 
   // With auto-receive fix, sending full amount to self also populates claimedShieldedReceives
@@ -647,66 +640,3 @@ test('sendImmediateShieldedToSelfTestNoChange', async () => {
   expect(claimedShieldedReceives[0]).toEqual(claimedShieldedSpends[0]);
 });
 
-test('sendImmediateShieldedToContractTest', async () => {
-
-  let [c, context] = await startContract(contractCode, {}, 0);
-
-  const rawSelfAddress = context.callContext.currentQueryContext.address;
-  const domainSep = sampleDomainSep();
-  const color = shieldedTokenColor(domainSep, rawSelfAddress);
-  const inputValue = 100n;
-  const sendValue = 60n;
-  const input = sampleShieldedCoinInfo(color, inputValue);
-  const recipient = sampleContractRecipient();
-
-  const result = await c.circuits.sendImmediateShieldedToContractTest(context, input, recipient, sendValue);
-  context = result.context;
-
-  // Sending to another contract with change
-  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
-
-  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
-
-  // Verify nullifier claimed for input
-  expect(claimedNullifiers.length).toBe(1);
-
-  // Verify 2 spends: output coin + change coin
-  expect(claimedShieldedSpends.length).toBe(2);
-
-  // Verify 1 receive for change coin
-  expect(claimedShieldedReceives.length).toBe(1);
-});
-
-test('sendImmediateShieldedToUserTest', async () => {
-
-  let [c, context] = await startContract(contractCode, {}, 0);
-
-  const rawSelfAddress = context.callContext.currentQueryContext.address;
-  const domainSep = sampleDomainSep();
-  const color = shieldedTokenColor(domainSep, rawSelfAddress);
-  const inputValue = 100n;
-  const sendValue = 60n;
-  const input = sampleShieldedCoinInfo(color, inputValue);
-  const recipient = sampleZswapCoinPublicKey();
-
-  const result = await c.circuits.sendImmediateShieldedToUserTest(context, input, recipient, sendValue);
-  context = result.context;
-
-  // Sending to user with change
-  expectEmptyEffectsExcept(context.callContext.currentQueryContext.effects, ['claimedNullifiers', 'claimedShieldedSpends', 'claimedShieldedReceives']);
-
-  const claimedNullifiers = context.callContext.currentQueryContext.effects.claimedNullifiers;
-  const claimedShieldedSpends = context.callContext.currentQueryContext.effects.claimedShieldedSpends;
-  const claimedShieldedReceives = context.callContext.currentQueryContext.effects.claimedShieldedReceives;
-
-  // Verify nullifier claimed for input
-  expect(claimedNullifiers.length).toBe(1);
-
-  // Verify 2 spends: output coin + change coin
-  expect(claimedShieldedSpends.length).toBe(2);
-
-  // Verify 1 receive for change coin
-  expect(claimedShieldedReceives.length).toBe(1);
-});

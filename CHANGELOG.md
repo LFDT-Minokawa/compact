@@ -5,6 +5,29 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.108, language 0.27.100, runtime 0.20.104]
+
+### Removed
+
+- `QualifiedShieldedCoinInfo`, `sendImmediateShielded`, `mergeCoinImmediate`,
+  and the ledger operations `writeCoin` (`Cell`), `insertCoin` (`Set`, `Map`)
+  and `pushFrontCoin` (`List`). A contract holds and spends coins as
+  `ShieldedCoinInfo`; `sendShielded`, `mergeCoin` and `createZswapInput` take
+  one, settled or created in this transaction. The removed operations stored
+  the coin's commitment-tree position in ledger state, but the client cannot
+  know that position before the transaction lands, so reading such a cell in
+  the transaction that wrote it failed transcript replay; the ledger never read
+  the position, and the transaction builder now finds a contract-owned coin's
+  leaf by its commitment. Needs `midnight-ledger`'s
+  `ZswapInput.newContractOwned` to take a `ShieldedCoinInfo`, and a
+  `midnight-js` that resolves settled contract inputs by commitment.
+- `compact-runtime`: `EncodedQualifiedShieldedCoinInfo` and the
+  `QualifiedShieldedCoinInfo` encode/decode re-exports; `createZswapInput`
+  takes an `EncodedShieldedCoinInfo` and `ZswapLocalState.inputs` holds
+  `ShieldedCoinInfo`s. `ZswapLocalState.currentIndex` and `hasCoinCommitment`
+  are gone with them: they maintained the client's commitment-to-ordinal map
+  for the removed ledger operations, and nothing reads it now.
+
 ## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
 
 ### Fixed

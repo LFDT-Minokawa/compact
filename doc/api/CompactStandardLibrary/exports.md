@@ -153,7 +153,6 @@ struct MerkleTreePath<#n, T> {
 ### `ContractAddress`
 
 The address of a contract, used as a recipient in [`sendShielded`](#sendshielded),
-[`sendImmediateShielded`](#sendimmediateshielded),
 [`createZswapOutput`](#createzswapoutput), and [`mintShieldedToken`](#mintshieldedtoken).
 
 ```compact
@@ -162,16 +161,16 @@ struct ContractAddress { bytes: Bytes<32>; }
 
 ### `ShieldedCoinInfo`
 
-The description of a newly created shielded coin, used in outputting shielded coins, or
-spending/receiving shielded coins that originate in the current transaction.
+The description of a shielded coin: what a contract creates, receives, stores in its ledger
+state, and spends.
 
 `nonce` can be deterministically derived with [`evolveNonce`](#evolvenonce).
 
 Used in:
 - [`receiveShielded`](#receiveshielded)
-- [`sendImmediateShielded`](#sendimmediateshielded)
+- [`sendShielded`](#sendshielded)
 - [`mergeCoin`](#mergecoin)
-- [`mergeCoinImmediate`](#mergecoinimmediate)
+- [`createZswapInput`](#createzswapinput)
 - [`createZswapOutput`](#createzswapoutput)
 
 ```compact
@@ -182,29 +181,10 @@ struct ShieldedCoinInfo {
 }
 ```
 
-### `QualifiedShieldedCoinInfo`
-
-The description of an existing shielded coin in the ledger, ready to be spent.
-
-Used in:
-- [`sendShielded`](#sendshielded)
-- [`mergeCoin`](#mergecoin)
-- [`mergeCoinImmediate`](#mergecoinimmediate)
-- [`createZswapInput`](#createzswapinput)
-
-```compact
-struct QualifiedShieldedCoinInfo {
-  nonce: Bytes<32>;
-  color: Bytes<32>;
-  value: Uint<128>;
-  mt_index: Uint<64>;
-}
-```
-
 ### `ZswapCoinPublicKey`
 
 The public key used to output a [`ShieldedCoinInfo`](#shieldedcoininfo) to a user, used as a
-recipient in [`sendShielded`](#sendshielded), [`sendImmediateShielded`](#sendimmediateshielded), and
+recipient in [`sendShielded`](#sendshielded) and
 [`createZswapOutput`](#createzswapoutput).
 
 ```compact
@@ -213,7 +193,7 @@ struct ZswapCoinPublicKey { bytes: Bytes<32>; }
 
 ### `ShieldedSendResult`
 
-The output of [`sendShielded`](#sendshielded) and [`sendImmediateShielded`](#sendimmediateshielded),
+The output of [`sendShielded`](#sendshielded),
 detailing the created shielded coin, and the change from spending the input, if
 applicable.
 
@@ -1109,16 +1089,9 @@ public key except for the current user will not lead to this user being
 informed of the coin they've been sent. To send a shielded token to the current contract, pass
 `right<ZswapCoinPublicKey, ContractAddress>(kernel.self())` as the `recipient`.
 
-```compact
-circuit sendShielded(input: QualifiedShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
-```
-
-### `sendImmediateShielded`
-
-Like [`sendShielded`](#sendshielded), but for coins created within this transaction
 
 ```compact
-circuit sendImmediateShielded(input: ShieldedCoinInfo, target: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
+circuit sendShielded(input: ShieldedCoinInfo, recipient: Either<ZswapCoinPublicKey, ContractAddress>, value: Uint<128>): ShieldedSendResult;
 ```
 
 ### `mergeCoin`
@@ -1127,19 +1100,7 @@ Takes two coins stored on the ledger, and combines them into one
 
 ```compact
 circuit mergeCoin(
-  a: QualifiedShieldedCoinInfo,
-  b: QualifiedShieldedCoinInfo
-): ShieldedCoinInfo;
-```
-
-### `mergeCoinImmediate`
-
-Takes one coin stored on the ledger, and one created within this transaction,
-and combines them into one
-
-```compact
-circuit mergeCoinImmediate(
-  a: QualifiedShieldedCoinInfo,
+  a: ShieldedCoinInfo,
   b: ShieldedCoinInfo
 ): ShieldedCoinInfo;
 ```
@@ -1156,21 +1117,20 @@ witness ownPublicKey(): ZswapCoinPublicKey;
 ### `createZswapInput`
 
 Notifies the context to create a new Zswap input originating from this call.
-Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
-[`sendImmediateShielded`](#sendimmediateshielded) instead.
+Should typically not be called manually, prefer [`sendShielded`](#sendshielded) instead.
 
 Like `transientCommit`, this function does not itself disclose its argument, so
 passing witness-derived data to it does not require a `disclose` wrapper.
 
 ```compact
-witness createZswapInput(coin: QualifiedShieldedCoinInfo): [];
+witness createZswapInput(coin: ShieldedCoinInfo): [];
 ```
 
 ### `createZswapOutput`
 
 Notifies the context to create a new Zswap output originating from this call.
 Should typically not be called manually, prefer [`sendShielded`](#sendshielded) and
-[`sendImmediateShielded`](#sendimmediateshielded), and [`receiveShielded`](#receiveshielded) instead.
+[`receiveShielded`](#receiveshielded) instead.
 
 Like `transientCommit`, this function does not itself disclose its argument, so
 passing witness-derived data to it does not require a `disclose` wrapper.

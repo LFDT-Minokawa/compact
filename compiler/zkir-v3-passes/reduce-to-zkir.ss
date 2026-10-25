@@ -414,30 +414,6 @@
              (let ([var* (zkir-val-input* x)])
                (assert (and (list? var*) (= 1 (length var*))))
                (cons (car var*) code*))]
-            [(VMcoin-commit coin recipient)
-             ;; A coin-commit operand is like a call to `coinCommitment` in the standard library.
-             ;; It's implemented by generating the same ZKIR code that would be generated.
-             (assert (and (zkir-val? coin) (zkir-val? recipient)))
-             (with-output-language (Lzkir Instruction)
-               (let ([rvar* (zkir-val-input* recipient)]
-                     [data0 (make-temp-id default-src 'data)]
-                     [data1 (make-temp-id default-src 'data)])
-                 (zkir-instr*
-                   (cons*
-                     `(cond_select ,data1 ,(car rvar*)
-                        ,(list-ref rvar* 2)
-                        ,(list-ref rvar* 4))
-                     `(cond_select ,data0 ,(car rvar*)
-                        ,(list-ref rvar* 1)
-                        ,(list-ref rvar* 3))
-                     (zkir-instr*)))
-                 (let-values ([(sep-val sep-length) (domain-separator "midnight:zswap-cc[v1]")])
-                   (persistent-hash
-                     (with-output-language (Lflattened Alignment)
-                       (list `(abytes ,sep-length) `(abytes ,32) `(abytes ,32) `(abytes ,16)
-                         `(abytes ,1) `(abytes ,32)))
-                     (append (cons sep-val (zkir-val-input* coin)) (list (car rvar*) data0 data1))
-                     code*))))]
             [(VMleaf-hash val)
              (let*-values
                  ([(val* alignment*)

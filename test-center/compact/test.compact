@@ -98,7 +98,7 @@ ledger x5: MerkleTree<32, Field>;
 ledger x6: HistoricMerkleTree<10, Field>;
 ledger x7: ShieldedCoinInfo;
 ledger x10: MerkleTreeDigest;
-ledger x11: QualifiedShieldedCoinInfo;
+ledger x11: ShieldedCoinInfo;
 ledger x13: ContractAddress;
 ledger x14: JubjubScalar;
 ledger x15: JubjubPoint;

@@ -49,10 +49,6 @@
   (type-ref ShieldedCoinInfo)
   "ShieldedCoinInfo")
 
-(declare-ledger-type QualifiedShieldedCoinInfo ()
-  (type-ref QualifiedShieldedCoinInfo)
-  "QualifiedShieldedCoinInfo")
-
 (declare-ledger-type MerkleTreeDigest ()
   (type-ref MerkleTreeDigest) 
   "MerkleTreeDigest")
@@ -158,7 +154,6 @@
 ;; - (rt-null type) output the default instance of the type
 ;; - (rt-max-sizeof type) output the maximum serialized size of a value of the given type
 ;; - (rt-value->int aligned-value) outputs an integer represented by an aligned-value
-;; - (rt-coin-commit coin) outputs a coin commitment
 ;; - (rt-leaf-hash value) outputs the leaf to be placed in a merkle tree for value
 ;;
 ;; type-arg-name must be one of ADT-arg-name or a defined ledger type.
@@ -620,27 +615,7 @@
      (push [storage #f] [value (state-value 'cell (car (reverse f)))])
      (push [storage #t] [value (state-value 'cell (rt-null value_type))])
      (ins [cached #f] [n 1])
-     (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))
-  (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) writeCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
-      "Writes a ShieldedCoinInfo to this Cell, which is transformed into a \
-      QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
-      index. This index must have been allocated within the current \
-      transaction or this write fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
-      ((idx [cached f-cached] [pushPath #t] [path (suppress-null (reverse (cdr (reverse f))))])
-       (push [storage #f] [value (state-value 'cell (car (reverse f)))])
-       ;; Reach to the context in the stack: past the two pushes above, the
-       ;; result, and 2n path items of the idx, and the effects.
-       ;; note that if `f` is longer than 5, this exceeds the limit of 15.
-       (dup [n (+ 3 (* (sub1 (length f)) 2))])
-       (push [storage #f] [value (state-value 'cell (rt-coin-commit coin recipient))])
-       (idx [cached #t] [pushPath #f] [path (list (align 1 1) 'stack)])
-       (push [storage #f] [value (state-value 'cell coin)])
-       (swap [n 0])
-       (concat [cached #t] [n 91])
-       (ins [cached #f] [n 1])
-       (ins [cached #t] [n (suppress-zero (sub1 (length f)))])))))
+     (ins [cached #t] [n (suppress-zero (sub1 (length f)))]))))
 
 (declare-ledger-adt Counter ()
   "a simple counter"
@@ -723,35 +698,7 @@
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell elem)])
      (rem [cached #f])
-     (ins [cached #t] [n (length f)])))
-  (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) insertCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
-      "Inserts a ShieldedCoinInfo into this Set, which is transformed into a \
-      QualifiedShieldedCoinInfo at runtime by looking up the relevant Merkle tree \
-      index. This index must have been allocated within the current \
-      transaction or this insertion fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
-       ;; [context, effects, state]
-       ((idx [cached f-cached] [pushPath #t] [path f])
-       ;; [context, effects, state, path, set]
-       ;; Get qualified `coin` on the stack
-       (dup [n (+ 2 (* (length f) 2))])
-       ;; [context, effects, state, path, set, context]
-       (push [storage #f] [value (state-value 'cell (rt-coin-commit coin recipient))])
-       ;; [context, effects, state, path, set, context, coin_cm]
-       (idx [cached #t] [pushPath #f] [path (list (align 1 1) 'stack)])
-       ;; [context, effects, state, path, set, coin_idx]
-       (push [storage #f] [value (state-value 'cell coin)])
-       ;; [context, effects, state, path, set, coin_idx, coin]
-       (swap [n 0])
-       ;; [context, effects, state, path, set, coin, coin_idx]
-       (concat [cached #t] [n 91])
-       ;; [context, effects, state, path, set, qualified_coin]
-       (push [storage #t] [value (state-value 'null)])
-       ;; [context, effects, state, path, set, qualified_coin, null]
-       (ins [cached #f] [n 1])
-       ;; [context, effects, state, path, set']
-       (ins [cached #t] [n (length f)])))))
+     (ins [cached #t] [n (length f)]))))
        ;; [context, effects, state']
 
 (declare-ledger-adt Map ([Type key_type] [ADT/Type value_type])
@@ -822,35 +769,7 @@
     ((idx [cached f-cached] [pushPath #t] [path f])
      (push [storage #f] [value (state-value 'cell key)])
      (rem [cached #f])
-     (ins [cached #t] [n (length f)])))
-  (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 1 2) insertCoin ([key key_type] [coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
-      "Inserts a ShieldedCoinInfo into this Map at a given key, where the ShieldedCoinInfo is \
-      transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
-      relevant Merkle tree index. This index must have been allocated within \
-      the current transaction or this insertion fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
-       ;; [context, effects, state]
-       ((idx [cached f-cached] [pushPath #t] [path f])
-       ;; [context, effects, state, path, map]
-       (push [storage #f] [value (state-value 'cell key)])
-       ;; [context, effects, state, path, map, key]
-       ;; Get qualified `coin` on the stack
-       (dup [n (+ 3 (* (length f) 2))])
-       ;; [context, effects, state, path, map, key, context]
-       (push [storage #f] [value (state-value 'cell (rt-coin-commit coin recipient))])
-       ;; [context, effects, state, path, map, key, context, coin_cm]
-       (idx [cached #t] [pushPath #f] [path (list (align 1 1) 'stack)])
-       ;; [context, effects, state, path, map, key, coin_idx]
-       (push [storage #f] [value (state-value 'cell coin)])
-       ;; [context, effects, state, path, map, key, coin_idx, coin]
-       (swap [n 0])
-       ;; [context, effects, state, path, map, key, coin, coin_idx]
-       (concat [cached #t] [n 91])
-       ;; [context, effects, state, path, map, key, qualified_coin]
-       (ins [cached #f] [n 1])
-       ;; [context, effects, state, path, map]
-       (ins [cached #t] [n (length f)])))))
+     (ins [cached #t] [n (length f)]))))
        ;; [context, effects, state']
 
 (declare-ledger-adt List ([Type value_type])
@@ -972,60 +891,7 @@
      ;; [context, effects, state, path, [value, null, 1], 1, [null, null, 0]]
      (ins [cached #t] [n (add1 (length f))])))
      ;; [context, effects, state]
-
-  (when (= value_type QualifiedShieldedCoinInfo)
-    (function (update-with-coin-check 0 1) pushFrontCoin ([coin ShieldedCoinInfo] [recipient ShieldedRecipient]) Void
-      "Pushes a ShieldedCoinInfo onto the front of this List, where the ShieldedCoinInfo is \
-      transformed into a QualifiedShieldedCoinInfo at runtime by looking up the \
-      relevant Merkle tree index. This index must have been allocated within \
-      the current transaction or this push fails. \
-      ShieldedCoinInfo, ContractAddress, Either, and ZswapCoinPublicKey are defined in CompactStandardLibrary."
-       ;; [context, effects, state]
-       ((idx [cached f-cached] [pushPath #t] [path f])
-       ;; [context, effects, state, path, list]
-       (dup [n 0])
-       ;; [context, effects, state, path, list, list]
-       (idx [cached #f] [pushPath #f] [path (list (align 2 1))])
-       ;; [context, effects, state, path, list, len(list)]
-       (addi [immediate 1])
-       ;; [context, effects, state, path, list, len(list) + 1]
-       (push [storage #t] [value (state-value 'array ((state-value 'null)
-                                                      (state-value 'null)
-                                                      (state-value 'null)))])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null]]
-       (push [storage #f] [value (state-value 'cell (align 0 1))])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0]
-       ;; Get qualified `coin` on stack
-       (dup [n (+ 5 (* (length f) 2))])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, context]
-       (push [storage #f] [value (state-value 'cell (rt-coin-commit coin recipient))])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, context, coin_cm]
-       (idx [cached #t] [pushPath #f] [path (list (align 1 1) 'stack)])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, coin_idx]
-       (push [storage #f] [value (state-value 'cell coin)])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, coin_idx, coin]
-       (swap [n 0])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, coin, coin_idx]
-       (concat [cached #t] [n 91])
-       ;; [context, effects, state, path, list, len(list) + 1, [null, null, null], 0, qualified_coin]
-       (ins [cached #t] [n 1])
-       ;; [context, effects, state, path, list, len(list) + 1, [qualified_coin, null, null]]
-       (swap [n 0])
-       ;; [context, effects, state, path, list, [qualified_coin, null, null], len(list) + 1]
-       (push [storage #f] [value (state-value 'cell (align 2 1))])
-       ;; [context, effects, state, path, list, [qualified_coin, null, null], len(list) + 1, 2]
-       (swap [n 0])
-       ;; [context, effects, state, path, list, [qualified_coin, null, null], 2, len(list) + 1]
-       (ins [cached #t] [n 1])
-       ;; [context, effects, state, path, list, [qualified_coin, null, len(list) + 1]]
-       (swap [n 0])
-       ;; [context, effects, state, path, [qualified_coin, null, len(list) + 1], list]
-       (push [storage #f] [value (state-value 'cell (align 1 1))])
-       ;; [context, effects, state, path, [qualified_coin, null, len(list) + 1], list, 1]
-       (swap [n 0])
-       ;; [context, effects, state, path, [qualified_coin, null, len(list) + 1], 1, list]
-       (ins [cached #t] [n (add1 (length f))])))))
-        ;; [context, effects, state']
+)
 
 (declare-ledger-adt MerkleTree ([Nat nat] [Type value_type])
   "a bounded Merkle tree of depth nat where 2 `<=` nat `<= 32` containing values of type value_type"

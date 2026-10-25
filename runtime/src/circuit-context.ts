@@ -139,7 +139,7 @@ export interface CircuitContext<PS = any> {
   gasCosts: Record<ocrt.ContractAddress, ocrt.RunningCost>;
   /**
    * The current Zswap local state of every contract in the call tree, keyed like
-   * {@link queryContexts}. Each contract has its own `currentIndex`, `inputs` and `outputs`; only
+   * {@link queryContexts}. Each contract has its own `inputs` and `outputs`; only
    * the submitter's `coinPublicKey` is shared, since one wallet pays for the transaction.
    */
   zswapLocalStates: Record<ocrt.ContractAddress, EncodedZswapLocalState>;
@@ -370,7 +370,6 @@ const isZswapLocalState = (value: any): value is ZswapLocalState => {
     value !== null &&
     'coinPublicKey' in value &&
     typeof value.coinPublicKey === 'string' &&
-    'currentIndex' in value &&
     'inputs' in value &&
     'outputs' in value
   );
@@ -387,7 +386,6 @@ const isEncodedZswapLocalState = (value: any): value is EncodedZswapLocalState =
     typeof value.coinPublicKey === 'object' &&
     value.coinPublicKey !== null &&
     'bytes' in value.coinPublicKey &&
-    'currentIndex' in value &&
     'inputs' in value &&
     'outputs' in value
   );

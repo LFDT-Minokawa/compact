@@ -20,7 +20,7 @@ import CompactStandardLibrary;
 // DAO circuits to be exported
 export {vote_commit, vote_reveal, advance, set_topic, buy_in, cash_out}
 // Re-exports from standard library, these allow TypeScript types to be generated, which makes for nicer TypeScript experience
-export {Maybe, Either, ShieldedCoinInfo, QualifiedShieldedCoinInfo, MerkleTreePath}
+export {Maybe, Either, ShieldedCoinInfo, MerkleTreePath}
 
 // Current phase of voting - stored on-chaining
 export enum LedgerState { setup, commit, reveal, final, }
@@ -44,8 +44,8 @@ export ledger committed_votes: MerkleTree<10, Bytes<32>>; // Merkle tree of vote
 export ledger committed_participants: Set<Bytes<32>>; // Participant nullifier set to prevent committing to multiple votes
 export ledger revealed_participants: Set<Bytes<32>>; // Another participant nullifier set to prevent revealing own votes multiple times
 
-export ledger pot: QualifiedShieldedCoinInfo; // Current pot, it has to be a cell containing `QualifiedShieldedCoinInfo` directly, so that compiler knows to provide `writeCoin` function
-export ledger pot_has_coin: Boolean; // Given the pot has to contain coin data directly, information about whether actual coin is there, has to be stored separately
+export ledger pot: ShieldedCoinInfo; // Current pot
+export ledger pot_has_coin: Boolean; // Whether `pot` holds a coin, since an empty cell holds the default value
 
 export ledger costs: Costs;
 
@@ -74,7 +74,7 @@ circuit vote_commit(ballot: Boolean, votingCoin: ShieldedCoinInfo): [] {
   const nullifier = commitment_nullifier(sk);
   assert(!committed_participants.member(nullifier), "Attempted to double commit a vote");
   receiveShielded(disclose(votingCoin));
-  sendImmediateShielded(disclose(votingCoin), left<ZswapCoinPublicKey, ContractAddress>(ZswapCoinPublicKey{pad(32, "")}), 1); // Burn the token to prevent usage in the future
+  sendShielded(disclose(votingCoin), left<ZswapCoinPublicKey, ContractAddress>(ZswapCoinPublicKey{pad(32, "")}), 1); // Burn the token to prevent usage in the future
   local_record_vote(ballot);
   const vote_commitment = commit_with_sk(ballot ? pad(32, "yes") : pad(32, "no"), sk);
   committed_votes.insert(vote_commitment);
@@ -148,10 +148,10 @@ circuit set_topic(topic_param: Opaque<"string">, beneficiary_param: ZswapCoinPub
   assert(state == LedgerState.setup, "Attempted to set topic after setup phase");
   receiveShielded(disclose(seedCoin));
   if(!pot_has_coin) {
-    pot.writeCoin(disclose(seedCoin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot = disclose(seedCoin);
     pot_has_coin = true;
   } else {
-    pot.writeCoin(mergeCoinImmediate(pot, disclose(seedCoin)), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot = mergeCoin(pot, disclose(seedCoin));
   }
   topic = some<Opaque<"string">>(disclose(topic_param));
   beneficiary = some<ZswapCoinPublicKey>(disclose(beneficiary_param));
@@ -168,10 +168,10 @@ circuit buy_in(coin: ShieldedCoinInfo, amount: Uint<64>): ShieldedCoinInfo {
     "Invalid buy-in, expected configured buy_in for each voting token");
   receiveShielded(disclose(coin));
   if(!pot_has_coin) {
-    pot.writeCoin(disclose(coin), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot = disclose(coin);
     pot_has_coin = true;
   } else {
-    pot.writeCoin(mergeCoinImmediate(pot, disclose(coin)), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));
+    pot = mergeCoin(pot, disclose(coin));
   }
   return mintShieldedToken(
     dao_token_domain_separator(),
@@ -209,7 +209,7 @@ circuit reset_state(reset_pot: Boolean): [] {
   revealed_participants.resetToDefault();
   round.increment(1);
   if (reset_pot) {
-    pot = default<QualifiedShieldedCoinInfo>;
+    pot = default<ShieldedCoinInfo>;
     pot_has_coin = false;
   }
 }

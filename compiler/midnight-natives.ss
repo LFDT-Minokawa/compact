@@ -107,7 +107,7 @@
 
 (declare-native-entry witness createZswapInput
   "__compactRuntime.createZswapInput"
-  ([coin (TypeRef QualifiedShieldedCoinInfo) (discloses nothing)])
+  ([coin (TypeRef ShieldedCoinInfo) (discloses nothing)])
   Void)
 
 (declare-native-entry witness createZswapOutput

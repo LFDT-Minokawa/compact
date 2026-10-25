@@ -15,28 +15,28 @@
 
 import CompactStandardLibrary;
 
-export ledger c: List<QualifiedShieldedCoinInfo>;
+export ledger c: Set<ShieldedCoinInfo>;
 
-export circuit test(): [] {
-  const qcoin = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1, 0 };
-  const qcoin2 = QualifiedShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2, 0 };
+export circuit test_ShieldedCoinInfo(): []  {
+  const coin = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 1 };
+  const coin2 = ShieldedCoinInfo { pad(32, "nonce"), pad(32, "color"), 2 };
 
   assert(c.isEmpty() == true, "Structure should be empty");
-  assert(c.length() == 0, "Size should be 0");
+  assert(c.size() == 0, "Size should be 0");
 
-  c.pushFront(qcoin);
-  assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == qcoin, "Head should have value 1");
+  c.insert(coin);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(coin) == true, "Key coin should be member");
 
-  c.pushFront(qcoin2);
-  assert(c.length() == 2, "Size should be 2");
-  assert(c.head().value == qcoin2, "Head should have value 2");
+  c.insert(coin2);
+  assert(c.size() == 2, "Size should be 2");
+  assert(c.member(coin2) == true, "Key coin2 should be member");
 
-  c.popFront();
-  assert(c.length() == 1, "Size should be 1");
-  assert(c.head().value == qcoin, "Head should have value 0");
+  c.remove(coin);
+  assert(c.size() == 1, "Size should be 1");
+  assert(c.member(coin2) == true, "Key 1 should be member");
 
   c.resetToDefault();
-  assert(c.length() == 0, "Size should be 0");
+  assert(c.size() == 0, "Size should be 0");
   assert(c.isEmpty() == true, "Structure should be empty");
 }

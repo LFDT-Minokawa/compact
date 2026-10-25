@@ -189,19 +189,19 @@ export circuit test10(vara: f10, varb: vector_10_f10): Boolean {
 
 // Test11: default library
 new type FakeShieldedCoinInfo = ShieldedCoinInfo;
-type FakeQualifiedShieldedCoinInfo = QualifiedShieldedCoinInfo;
+type AliasedShieldedCoinInfo = ShieldedCoinInfo;
 
 type vector_of_sci = Vector<10, FakeShieldedCoinInfo>;
 export ledger t11_set: Set<vector_of_sci>;
-export ledger t11_set_coin: Set<QualifiedShieldedCoinInfo>;
-export ledger t11_set_coin_fake: Set<FakeQualifiedShieldedCoinInfo>;
+export ledger t11_set_coin: Set<ShieldedCoinInfo>;
+export ledger t11_set_coin_alias: Set<AliasedShieldedCoinInfo>;
 
-export circuit test11(vara: ShieldedCoinInfo, varb: ShieldedCoinInfo): [] {
+export circuit test11(vara: ShieldedCoinInfo, varb: AliasedShieldedCoinInfo): [] {
   const a = default<vector_of_sci>;
   t11_set.insert(a);
 
-  t11_set_coin.insertCoin(disclose(vara), default<Either<ZswapCoinPublicKey, ContractAddress>>);
-  t11_set_coin_fake.insertCoin(disclose(varb), default<Either<ZswapCoinPublicKey, ContractAddress>>);
+  t11_set_coin.insert(disclose(vara));
+  t11_set_coin_alias.insert(disclose(varb));
 }
 
 // Test 12: vector of custom types and structs
@@ -522,10 +522,10 @@ export circuit test38(a: t38_value, b: t38_value): t38_value {
 
 // Test 39: Custom type aliasing standard library coin types
 new type t39_coin_info = ShieldedCoinInfo;
-new type t39_qualified = QualifiedShieldedCoinInfo;
+new type t39_recipient = Either<ZswapCoinPublicKey, ContractAddress>;
 
-export circuit test39(): [t39_coin_info, t39_qualified] {
-  return [default<t39_coin_info>, default<t39_qualified>];
+export circuit test39(): [t39_coin_info, t39_recipient] {
+  return [default<t39_coin_info>, default<t39_recipient>];
 }
 
 // Test 40: Types with generic Uint
