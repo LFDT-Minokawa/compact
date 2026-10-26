@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.109, language 0.27.0, runtime 0.20.104]
+
+### Added
+
+- The Compact JavaScript runtime's `createCircuitContext` takes an optional
+  `caller`, the value `kernel.caller()` returns in a top-level circuit.  For a
+  top-level call, the ledger derives the caller from the transaction's final
+  intent: `right(owner)` when its unshielded inputs all have the same owner,
+  and `none` otherwise.  A circuit that read `kernel.caller()` could previously
+  only prove `none` off-chain, so the ledger rejected its transcript in the
+  `right(owner)` case.  Omitting `caller` keeps the `none` behavior.  Fixes
+  issue [#871](https://github.com/LFDT-Minokawa/compact/issues/871).
+
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 
 ### Fixed

@@ -164,6 +164,7 @@ export interface CallTransaction<PS, W extends Witnesses<PS>, C extends Contract
   costModel?: ocrt.CostModel;
   time?: number;
   parentBlockHash?: string;
+  caller?: ocrt.PublicAddress;
 }
 
 /**
@@ -308,6 +309,7 @@ export class TestChain implements ContractStateProvider, ContractModuleProvider 
       costModel: tx.costModel,
       time: now,
       parentBlockHash: tx.parentBlockHash ?? DEFAULT_PARENT_BLOCK_HASH,
+      caller: tx.caller,
       crossContract: { stateProvider: this, moduleProvider: this },
     }) as CircuitContext<PS>;
 
