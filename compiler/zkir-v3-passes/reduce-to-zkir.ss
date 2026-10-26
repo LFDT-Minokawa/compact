@@ -868,8 +868,12 @@
        (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
 
-         [("Curve25519Base" "Curve25519Scalar" "Curve25519Point")
-          (assert not-implemented)]
+         [("Curve25519Base") (emit-field-default "Base<Curve25519>" var-name instr*)]
+         [("Curve25519Scalar") (emit-field-default "Scalar<Curve25519>" var-name instr*)]
+         [("Curve25519Point")
+          (let ([tmp (make-temp-id default-src 'tmp)])
+            (cons `(ec_mul_generator ,var-name ,tmp)
+              (emit-field-default "Scalar<Curve25519>" tmp instr*)))]
 
          [("Secp256k1Base") (emit-field-default "Base<Secp256k1>" var-name instr*)]
          [("Secp256k1Scalar") (emit-field-default "Scalar<Secp256k1>" var-name instr*)]
