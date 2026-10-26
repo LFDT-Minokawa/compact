@@ -222,6 +222,8 @@ export type CircuitContextOptions<PS = any> = {
    * the block a cross-contract callee's state is fetched at.
    */
   readonly parentBlockHash?: string;
+  /** What `kernel.caller()` returns; `none` when omitted. Must match what the ledger derives. */
+  readonly caller?: ocrt.PublicAddress;
   /** Present exactly when this execution may make cross-contract calls. */
   readonly crossContract?: CrossContractInputs;
 };
@@ -240,6 +242,7 @@ export const createCircuitContext = <PS>({
   costModel,
   time,
   parentBlockHash,
+  caller,
   crossContract,
 }: CircuitContextOptions<PS>): CircuitContext<PS> => {
   const callContext = createCallContext(
@@ -250,6 +253,7 @@ export const createCircuitContext = <PS>({
     privateState,
     time,
     parentBlockHash,
+    caller,
   );
   // The per-address maps below must alias *this* call context's cells, so a write through either
   // route is visible from the other. (They previously indexed a second, separately-constructed

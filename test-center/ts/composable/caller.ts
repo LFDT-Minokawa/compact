@@ -30,11 +30,17 @@ const calledByContract = (encodedAddress: { bytes: Uint8Array }) => ({
   value: { is_left: true, left: { bytes: encodedAddress.bytes }, right: { bytes: ZERO32 } },
 });
 
+const calledByUser = (address: runtime.UserAddress) => ({
+  is_some: true,
+  value: { is_left: false, left: { bytes: ZERO32 }, right: { bytes: runtime.encodeUserAddress(address) } },
+});
+
 const call = (
   chain: TestChain,
   module: any,
   address: any,
   circuitId: string,
+  caller?: runtime.PublicAddress,
 ): Promise<{ result: any; context: any }> =>
   chain.call({
     module,
@@ -43,6 +49,7 @@ const call = (
     privateState: 0,
     circuitId,
     args: [],
+    caller,
   }) as unknown as Promise<{ result: any; context: any }>;
 
 const deployAll = async () => {
@@ -66,6 +73,13 @@ describe('kernel.caller() through the runtime call path', () => {
     const { chain, inner, outer } = await deployAll();
     expect((await call(chain, innerCode, inner.address, 'whoCalled')).result).toEqual(none());
     expect((await call(chain, outerCode, outer.address, 'direct')).result).toEqual(none());
+  });
+
+  test('a root call sees the caller it is given', async () => {
+    const { chain, outer } = await deployAll();
+    const user = runtime.sampleUserAddress();
+    const { result } = await call(chain, outerCode, outer.address, 'direct', { tag: 'user', address: user });
+    expect(result).toEqual(calledByUser(user));
   });
 
   test('a constructor sees none', async () => {
@@ -96,9 +110,13 @@ describe('kernel.caller() through the runtime call path', () => {
     // The root's own context is the only one a DApp could set today, and it must not leak
     // into callees. Their caller is the parent contract, whatever the root's is.
     const { chain, inner, outer } = await deployAll();
-    const { result, context } = await call(chain, outerCode, outer.address, 'viaInner');
+    const user = runtime.sampleUserAddress();
+    const { result, context } = await call(chain, outerCode, outer.address, 'viaInner', {
+      tag: 'user',
+      address: user,
+    });
     expect(result).toEqual(calledByContract(outer.encodedAddress));
-    expect(context.queryContexts[outer.address].block.caller).toBeUndefined();
+    expect(context.queryContexts[outer.address].block.caller).toEqual({ tag: 'user', address: user });
     const innerCaller = context.queryContexts[inner.address].block.caller;
     expect(innerCaller.tag).toEqual('contract');
     expect(runtime.encodeContractAddress(innerCaller.address)).toEqual(outer.encodedAddress.bytes);
