@@ -911,9 +911,8 @@
                     (let* ([name (hashtable-ref export-name->name elt-name #f)]
                            [type.type* (or (and name (hashtable-ref name->type.type* name #f))
                                            (source-errorf src "contract implements failure:\n  this contract does not export a circuit named ~s" elt-name))])
-                      (when pure-dcl?
-                        (unless (id-pure? name)
-                          (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" elt-name)))
+                      (when (id-pure? name)
+                        (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is declared pure, and a circuit declared in a contract type must have a proof" elt-name))
                       (let ([type^ (car type.type*)] [type^* (cdr type.type*)])
                         (let ([n (length type*)] [n^ (length type^*)])
                           (unless (= n^ n)

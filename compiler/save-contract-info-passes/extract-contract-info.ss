@@ -77,15 +77,14 @@
         (cons
           "circuits"
           (list->vector
-            (map (lambda (elt-name pure-dcl type* type)
+            (map (lambda (elt-name type* type)
                    (list
                      (cons "name" (symbol->string elt-name))
-                     (cons "pure" pure-dcl)
                      (cons
                        "argument-types"
                        (list->vector (map Type type*)))
                      (cons "result-type" (Type type))))
-                 elt-name* pure-dcl* type** type*))))))
+                 elt-name* type** type*))))))
   (Program : Program (ir) -> * (json)
     [(program ,src (,contract-type* ...) ((,export-name* ,name*) ...) ,pelt* ...)
      (list

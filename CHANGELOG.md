@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.109, language 0.27.100, runtime 0.20.104]
+
+### Changed
+
+- Every circuit declared in a contract type must have a proof, since a
+  cross-contract call is matched by the ledger against the called circuit's
+  proof. Marking a circuit declaration in a contract type `pure` is now a
+  compile-time error, since a pure circuit has no proof. Pure logic from
+  another contract should be reused by importing its module. A `contract
+  implements` declaration is likewise rejected when the
+  implementing circuit is declared `pure`. The arguments of every cross-contract
+  call must be disclosed and the exemption for calls declared `pure` is gone with
+  the declarations.
+- `compact-runtime`: conformance of a resolved module checks that every declared
+  circuit is implemented by a provable circuit (the `Provability` check) and
+  nothing about purity. The `PureInterfaceCircuit` failure kind and the `Purity`
+  conformance check are removed, as are the `pure` field of
+  `InterfaceCircuitDeclaration` and the never-read `pureCircuits` field of
+  `Module` (with the `PureCircuit` and `PureCircuits` types); `CircuitSignature`
+  keeps its `pure` field as information. The compiler no longer emits `pure` for
+  the circuits of a contract type in `declaredInterfaces` or in
+  `contract-info.json`.
+
+### Fixed
+
+- An exported circuit whose only public effect is a cross-contract call on an
+  address that is not read from the ledger (for example, an argument) now gets
+  a ZKIR and a verifier key. Previously the call's claim was emitted without a
+  proof to cover it, so the circuit could not be submitted or called.
+
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 
 ### Fixed

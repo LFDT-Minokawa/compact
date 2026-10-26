@@ -876,26 +876,23 @@
           (if (= (length abs*) 1) '(#f) (enumerate abs*)))
         (default-value type)])]
     [(contract-call ,src ,elt-name (,[* abs] ,type) ,[* abs*] ...)
-     (let-values ([(pure? type)
+     (let ([type
             (nanopass-case (Lwithpaths Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-               (let loop ([elt-name* elt-name*]
-                          [pure-dcl* pure-dcl*]
-                          [type* type*])
+               (let loop ([elt-name* elt-name*] [type* type*])
                  (if (eq? (car elt-name*) elt-name)
-                     (values (car pure-dcl*) (car type*))
-                     (loop (cdr elt-name*) (cdr pure-dcl*) (cdr type*))))])])
-       (unless pure?
-         (unless (null? control-witness*)
-           (record-leak! src "making this contract call" control-witness*))
-         (let ([witness* (abs->witnesses abs)])
-           (unless (null? witness*) (record-leak! src "contract call contract reference" witness*)))
-         (for-each
-           (lambda (abs i)
-             (let ([witness* (abs->witnesses abs)])
-               (unless (null? witness*) (record-leak! src (format "contract call argument ~d" (fx+ i 1)) witness*))))
-           abs*
-           (enumerate abs*)))
+                     (car type*)
+                     (loop (cdr elt-name*) (cdr type*))))])])
+       (unless (null? control-witness*)
+         (record-leak! src "making this contract call" control-witness*))
+       (let ([witness* (abs->witnesses abs)])
+         (unless (null? witness*) (record-leak! src "contract call contract reference" witness*)))
+       (for-each
+         (lambda (abs i)
+           (let ([witness* (abs->witnesses abs)])
+             (unless (null? witness*) (record-leak! src (format "contract call argument ~d" (fx+ i 1)) witness*))))
+         abs*
+         (enumerate abs*))
        (default-value type))]
     [(return ,src ,[* abs])
      (when disclosing-function-name?

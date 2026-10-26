@@ -36,9 +36,7 @@ import { CircuitSignatures, InterfaceDescriptor, SignatureType } from './interfa
 export type ConformanceCheck =
   /** The declaration names a circuit the module does not implement. */
   | 'Existence'
-  /** The declaration says `pure` and the implementation is not pure. */
-  | 'Purity'
-  /** The declaration says impure and the implementation is not among the module's provable circuits. */
+  /** The implementation is not among the module's provable circuits, so there is no proof to match a call against. */
   | 'Provability'
   /** The two disagree on how many parameters the circuit takes. */
   | 'Arity'
@@ -231,9 +229,6 @@ const sequenceElements = (t: SignatureType): SequenceView | undefined => {
 /**
  * Structural equality of two encoded contract-type circuit sets.
  *
- * Purity is an equality here, not the top-level implication: this compares two declarations of the
- * same contract type, not a declaration against an implementation.
- *
  * Unlike `sametype?`, the contract type's name is not compared: the two sides come from different
  * compilation units, and the name is local to whichever one declared it.
  */
@@ -249,7 +244,6 @@ const contractCircuitsEqual = (a: InterfaceDescriptor, b: InterfaceDescriptor): 
     const x = a[name];
     const y = b[name];
     return (
-      x.pure === y.pure &&
       x.argumentTypes.length === y.argumentTypes.length &&
       x.argumentTypes.every((t, i) => signatureTypesEqual(t, y.argumentTypes[i])) &&
       signatureTypesEqual(x.resultType, y.resultType)
@@ -340,8 +334,8 @@ export function signatureTypesEqual(a: SignatureType, b: SignatureType): boolean
  * that went wrong, or `Conformant`.
  *
  * A module may implement more circuits than the declaration names, but not fewer and not
- * differently. A declared-`pure` circuit must be implemented pure, and a declared-impure one must be
- * provable — which a pure circuit is not.
+ * differently. A declared circuit must have a proof, so its implementation must be provable; a pure
+ * implementation is not.
  *
  * Only the implementation is screened for readability; the declaration comes from the caller's own
  * module, which is version-locked to this runtime.
@@ -358,16 +352,13 @@ export function checkConformance(declaration: InterfaceDescriptor, implementatio
       return { outcome: 'Violation', circuitId, check: 'Existence' };
     }
     const implemented = implementation[circuitId];
-    // Also a module we didn't compile. `pure` and `provable` need no check — absent reads as false,
-    // which is the conservative answer — but `argumentTypes` is measured and indexed below, and
-    // `resultType` is walked.
+    // Also a module we didn't compile. `provable` needs no check — absent reads as false, which is
+    // the conservative answer — but `argumentTypes` is measured and indexed below, and `resultType`
+    // is walked.
     if (!Array.isArray(asRecord(implemented)?.argumentTypes)) {
       return { outcome: 'Unreadable', circuitId, unreadableTag: MALFORMED };
     }
-    if (declared.pure && !implemented.pure) {
-      return { outcome: 'Violation', circuitId, check: 'Purity' };
-    }
-    if (!declared.pure && !implemented.provable) {
+    if (!implemented.provable) {
       return { outcome: 'Violation', circuitId, check: 'Provability' };
     }
     if (declared.argumentTypes.length !== implemented.argumentTypes.length) {
