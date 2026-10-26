@@ -643,8 +643,11 @@
                  '()
                  (list (combine hi n))))]
 
+          ;; ckpt --> 0xff
+          [("ckpt") (list #xff)]
+
           [else
-            (fprintf (current-error-port) "unimplemented: ~s\n" impact-instr)
+            (fprintf (current-error-port) "unimplemented in zkir-v3: ~s\n" impact-instr)
             (assert not-implemented)])))
 
     ;; We patch up popeq and popeqc instructions.
@@ -828,8 +831,8 @@
                         (length primitive-type*) (length var-name*)))
                     ;; The `desugar-contract-calls` circuit pass has already rewritten this
                     ;; cross-contract call into an extended contract-call whose result
-                    ;; vector carries cc-rand / ep-mod / ep-div as extra witnessed values,
-                    ;; plus an explicit transientCommit `call` and a kernel.claimContractCall
+                    ;; vector carries cc-rand as an extra witnessed value, plus an explicit
+                    ;; transientCommit `call` and a kernel.claimContractCall
                     ;; `public-ledger`. So all that remains here is to witness the
                     ;; (extended) result vector — the transient hash and the claim are
                     ;; lowered by the generic call / public-ledger handlers.
@@ -865,8 +868,12 @@
        (case zkir-type
          [("JubjubPoint") (cons `(from_coordinates ,var-name 0 1) instr*)]
 
-         [("Curve25519Base" "Curve25519Scalar" "Curve25519Point")
-          (assert not-implemented)]
+         [("Curve25519Base") (emit-field-default "Base<Curve25519>" var-name instr*)]
+         [("Curve25519Scalar") (emit-field-default "Scalar<Curve25519>" var-name instr*)]
+         [("Curve25519Point")
+          (let ([tmp (make-temp-id default-src 'tmp)])
+            (cons `(ec_mul_generator ,var-name ,tmp)
+              (emit-field-default "Scalar<Curve25519>" tmp instr*)))]
 
          [("Secp256k1Base") (emit-field-default "Base<Secp256k1>" var-name instr*)]
          [("Secp256k1Scalar") (emit-field-default "Scalar<Secp256k1>" var-name instr*)]

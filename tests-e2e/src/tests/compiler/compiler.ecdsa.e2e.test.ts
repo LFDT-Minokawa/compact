@@ -71,7 +71,7 @@ describe('[ECDSA] examples/ecdsa/example_one.compact', () => {
 
     beforeAll(async () => {
         const outputDir = createTempFolder();
-        const result = await compile([Arguments.FEATURE_V3, EXAMPLE, outputDir]);
+        const result = await compile([EXAMPLE, outputDir]);
         expectCompilerResult(result).toCompileWithoutErrors();
         ({ pureCircuits } = (await import(`${outputDir}contract/index.js`)) as {
             pureCircuits: EcdsaPureCircuits;

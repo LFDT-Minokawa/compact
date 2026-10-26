@@ -657,7 +657,6 @@ export const crossContractCall = async ({
     calleeCallProofData.commCommData = commCommData;
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
-    callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
     kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
     return circuitResult.result;

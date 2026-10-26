@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2026 Midnight Foundation
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,11 +13,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The whole secp256k1 library only exists with the v3 flag, so naming one of
-// its types is enough to fail without it.
+import { defineCompileTest } from '@test/compact-test';
 
-pragma language_version >= 0.25.0;
-
-import CompactStandardLibrary;
-
-export circuit secp256k1_requires_zkir_v3(pk: Secp256k1Point): [] { }
+export default defineCompileTest(import.meta.url, {
+    expectedError:
+        /line 22 char 3:\s+potential witness-value disclosure must be declared but is not:[\s\S]*the return value of witness secret[\s\S]*the value returned from exported circuit disclose_vector_element_condition might\s+disclose the witness value/,
+});
