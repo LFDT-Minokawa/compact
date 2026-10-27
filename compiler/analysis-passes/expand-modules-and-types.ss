@@ -221,6 +221,15 @@
     (define outer-module-rib (make-hashtable equal-hash equal?))
     (define outer-module-next-seqno '(0 -1))
     (define Cell-ADT-env #f)
+    (define (standard-library-env src)
+      (or Cell-ADT-env
+          (let ([p (add-rib empty-env)])
+            (do-import src 'CompactStandardLibrary '() ""
+                       (list (with-output-language (Lpreexpand Import-Element)
+                               `(,src __compact_Cell __compact_Cell)))
+                       p)
+            (set! Cell-ADT-env p)
+            p)))
     (define (env-insert! p src sym info)
       (assert (env? p))
       (let ([a (hashtable-cell (env-rib p) sym #f)])
@@ -861,11 +870,8 @@
                    (handle-fun src 'native pelt exported? function-name type-param*)]
                   [(witness ,src ,exported? ,function-name (,type-param* ...) (,arg* ...) ,type)
                    (handle-fun src 'witness pelt exported? function-name type-param*)]
-                  ;; TODO: reject a true pure-dcl here. A pure cross-contract call has no transcript,
-                  ;; so its result reaches the caller's proof unconstrained, and the callee's module
-                  ;; is unknown until run time so it cannot be inlined instead. The runtime stops the
-                  ;; call; the declaration should not compile. ~121 test.ss cases declare one.
                   [(external-contract ,src ,exported? ,contract-name (,src* ,pure-dcl* ,function-name* ((,src** ,var-name** ,type**) ...) ,type*) ...)
+                   (standard-library-env src)
                    (let ([info (Info-contract src contract-name (map make-ecdecl-circuit function-name* pure-dcl* type** type*) p)])
                      (env-insert! p src contract-name info)
                      (set! ecdecl* (cons (cons pelt p) ecdecl*))
@@ -1184,14 +1190,7 @@
      `(public-ledger-declaration ,src ,id
         ,(if (public-adt? type)
              type
-             (let ([p (or Cell-ADT-env
-                          (let ([p (add-rib empty-env)])
-                            (do-import src 'CompactStandardLibrary '() ""
-                                       (list (with-output-language (Lpreexpand Import-Element)
-                                               `(,src __compact_Cell __compact_Cell)))
-                                       p)
-                            (set! Cell-ADT-env p)
-                            p))])
+             (let ([p (standard-library-env src)])
                (handle-type-ref src 'Cell (list (Info-type src type)) p (lookup p src '__compact_Cell)))))]
     [(constructor ,src (,[arg*] ...) ,expr)
      (let ([var-id* (map arg->id arg*)] [p (add-rib p)])

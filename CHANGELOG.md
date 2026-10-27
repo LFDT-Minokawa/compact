@@ -34,6 +34,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   address that is not read from the ledger (for example, an argument) now gets
   a ZKIR and a verifier key. Previously the call's claim was emitted without a
   proof to cover it, so the circuit could not be submitted or called.
+- A program that declares a contract type no longer has to import
+  `CompactStandardLibrary` for its cross-contract calls to compile. The call's
+  claim is made on the library's `kernel`, and without the import the compiler
+  failed with an internal error once the calling circuit needed a proof.
 
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 

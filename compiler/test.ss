@@ -12279,7 +12279,8 @@ groups than for single tests.
       " circuit bar(): [];"
       "}"
        )
-    (returns (program ())))
+    (returns
+      (program () (public-ledger-declaration %kernel.0 (Kernel)))))
 
   (test
     `(
@@ -25640,7 +25641,8 @@ groups than for single tests.
       "contract C { };"
       "contract implements C;"
       )
-    (returns (program))
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
   ; TODO: `foo` is inferred pure and gets no proof, so it does not implement `C`; only the
@@ -25651,7 +25653,10 @@ groups than for single tests.
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25671,7 +25676,10 @@ groups than for single tests.
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25694,7 +25702,10 @@ groups than for single tests.
       "import M;"
       "export { foo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25723,7 +25734,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25740,7 +25754,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -36506,6 +36523,7 @@ groups than for single tests.
          ))
       (returns
         (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
           (public-ledger-declaration () (constructor () (tuple)))))
     ))
 
@@ -36781,18 +36799,21 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration
            ()
-           (constructor ([%$c.0 (tcontract C
+           (constructor ([%$c.1 (tcontract C
                                   (foo #f ((tfield (field-native))) (ttuple))
                                   (bar #f () (tfield (field-native))))])
              (seq
-               (let* ([[%c.1 (tcontract C (foo #f ((tfield (field-native))) (ttuple)))]
-                       (safe-cast (tcontract C (foo #f ((tfield (field-native))) (ttuple)))
+               (let* ([[%c.2 (tcontract C
+                               (foo #f ((tfield (field-native))) (ttuple)))]
+                       (safe-cast (tcontract C
+                                    (foo #f ((tfield (field-native))) (ttuple)))
                                   (tcontract C
                                     (foo #f ((tfield (field-native))) (ttuple))
                                     (bar #f () (tfield (field-native))))
-                         %$c.0)])
+                         %$c.1)])
                  (tuple))
                (tuple))))))
      ))
@@ -38723,8 +38744,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>, y: Vector<2, S>, z: E): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38738,8 +38760,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38754,6 +38777,7 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration () (constructor () (tuple)))))
      ))
 
