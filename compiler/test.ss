@@ -64340,6 +64340,12 @@ groups than for single tests.
     ((source-file "test-center/composable/Caller/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/caller.ts")))
 
+  (test-group
+    ((source-file "test-center/composable/EntryPoint/Callee.compact")
+     (stage-javascript calleeCode '()))
+    ((source-file "test-center/composable/EntryPoint/Caller.compact")
+     (stage-javascript callerCode "test-center/ts/composable/entry-point.ts")))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/contract/index.d.ts"
@@ -83872,6 +83878,43 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsEqual(context, p1, p4)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
+        "  });"
+        ))
+    )
+
+  ; Issue #868: Curve25519 types had no ZKIR default.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger mp: Maybe<Curve25519Point>;"
+      "export ledger ms: Maybe<Curve25519Scalar>;"
+      "export ledger eb: Either<Curve25519Base, Field>;"
+      "export circuit setNone(): [] {"
+      "  mp = none<Curve25519Point>();"
+      "  ms = none<Curve25519Scalar>();"
+      "  eb = right<Curve25519Base, Field>(1 as Field);"
+      "}"
+      "export circuit setSome(p: Curve25519Point, s: Curve25519Scalar, b: Curve25519Base): [] {"
+      "  mp = some<Curve25519Point>(disclose(p));"
+      "  ms = some<Curve25519Scalar>(disclose(s));"
+      "  eb = left<Curve25519Base, Field>(disclose(b));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519 defaults', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  let r = await contract.circuits.setNone(context);"
+        "  let l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  expect(l.mp).toEqual({ is_some: false, value: runtime.curve25519MulGenerator(0n) });"
+        "  expect(l.ms).toEqual({ is_some: false, value: 0n });"
+        "  expect(l.eb).toEqual({ is_left: false, left: 0n, right: 1n });"
+        "  const p = runtime.curve25519MulGenerator(5n);"
+        "  r = await contract.circuits.setSome(r.context, p, 7n, 9n);"
+        "  l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  expect(l.mp).toEqual({ is_some: true, value: p });"
+        "  expect(l.ms).toEqual({ is_some: true, value: 7n });"
+        "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
         "  });"
         ))
     )
