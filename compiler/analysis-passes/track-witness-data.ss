@@ -880,6 +880,7 @@
             (nanopass-case (Lwithpaths Type) (de-alias type)
               [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
                (let loop ([elt-name* elt-name*] [type* type*])
+                 (assert (not (null? elt-name*)))
                  (if (eq? (car elt-name*) elt-name)
                      (car type*)
                      (loop (cdr elt-name*) (cdr type*))))])])

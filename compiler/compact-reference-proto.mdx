@@ -653,8 +653,7 @@ proper set, without duplicates.  Each circuit declaration must be
 "simple"; that is, it must not make use of generic parameters.  It is
 a static error to mark a circuit declaration `pure`: a cross-contract
 call requires the called circuit to have a proof, and a
-[pure circuit](#pure-and-impure-circuits) has none.  Pure logic from
-another contract is reused by importing its module instead.
+[pure circuit](#pure-and-impure-circuits) has none.
 
 Here is an example of a contract type definition:
 

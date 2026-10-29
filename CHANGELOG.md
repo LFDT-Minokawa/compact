@@ -12,9 +12,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Every circuit declared in a contract type must have a proof, since a
   cross-contract call is matched by the ledger against the called circuit's
   proof. Marking a circuit declaration in a contract type `pure` is now a
-  compile-time error, since a pure circuit has no proof. Pure logic from
-  another contract should be reused by importing its module. A `contract
-  implements` declaration is likewise rejected when the
+  compile-time error, since a pure circuit has no proof.
+  A `contract implements` declaration is likewise rejected when the
   implementing circuit is declared `pure`. The arguments of every cross-contract
   call must be disclosed and the exemption for calls declared `pure` is gone with
   the declarations.

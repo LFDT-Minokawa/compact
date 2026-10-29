@@ -82106,7 +82106,6 @@ groups than for single tests.
      (stage-javascript Adder '()))
     ((create-file "testfile.compact"
        '(
-         "import CompactStandardLibrary;"
          "contract Adder {"
          "  circuit addTo(n: Uint<64>): Uint<64>;"
          "  circuit peek(): Field;"
@@ -82133,7 +82132,39 @@ groups than for single tests.
          "  expect(c.name).toEqual('Adder');"
          "  expect(c.circuits).toEqual(contractCode.declaredInterfaces.Adder);"
          "});"
-         ))))
+         )))
+    )
+
+  (test-group
+    ((create-file "Adder.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit addTo(n: Uint<64>): Uint<64> { return n; }"
+         ))
+     (stage-javascript Adder '()))
+    ((create-file "testfile.compact"
+       '(
+         "contract Adder {"
+         "  circuit addTo(n: Uint<64>): Uint<64>;"
+         "  circuit peek(): Field;"
+         "}"
+         "export circuit useAdder(a: Adder): Uint<64> {"
+         "  return disclose(a).addTo(1 as Uint<64>);"
+         "}"
+         ))
+     (stage-javascript
+       '(
+         "test('declaredInterfaces records the contract types called through', () => {"
+         "  const d = contractCode.declaredInterfaces;"
+         "  expect(Object.keys(d)).toEqual(['Adder']);"
+         "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
+         "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
+         "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
+         "  expect(d.Adder.addTo.resultType).toEqual(u64);"
+         "  expect(d.Adder.peek.argumentTypes).toEqual([]);"
+         "});"
+         )))
+    )
 
   (test
     '(
