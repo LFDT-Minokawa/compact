@@ -1961,7 +1961,8 @@
                             (quote ,src #f)
                             (quote ,src #t)))])]
               [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
-               (guard (T source-type [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
+               ;; replace-enums lowers casts from a field to cast-from-field on the native field.
+               (guard (T source-type [(tfield ,src (field-native)) #t] [(tunsigned ,src ,nat) #t]))
                `(cast-to-enum ,src ,target-type ,source-type ,expr)])
            (source-errorf src "cannot cast from type ~a to type ~a"
                           (format-type source-type)

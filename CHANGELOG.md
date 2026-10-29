@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type
   is now reported as a type error instead of failing with an internal error.
   Fixes issue [#880](https://github.com/LFDT-Minokawa/compact/issues/880).
+- Casting any field type other than `Field`, including `JubjubScalar`, to an
+  enum type is now reported as a type error instead of failing with an
+  internal error.
 
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 

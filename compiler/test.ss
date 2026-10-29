@@ -83945,6 +83945,33 @@ groups than for single tests.
       irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
     )
 
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
