@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.109, language 0.27.0, runtime 0.20.103]
+
+### Fixed
+
+- Casting `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type
+  is now reported as a type error instead of failing with an internal error.
+  Fixes issue [#880](https://github.com/LFDT-Minokawa/compact/issues/880).
+
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 
 ### Fixed

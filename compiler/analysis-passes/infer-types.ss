@@ -1919,6 +1919,12 @@
               [(tunsigned ,src1 ,nat1)
                (T source-type
                   [(tfield ,src2 ,ftype)
+                   ;; Only the field types that resolve-indices-simplify handles for
+                   ;; cast-from-field are allowed.
+                   (guard (nanopass-case (Ltypes Field-Type) ftype
+                            [(field-native) #t]
+                            [(field-scalar (curve-jubjub)) #t]
+                            [else #f]))
                    `(cast-from-field ,src ,nat1 ,ftype ,expr)]
                   [(tunsigned ,src2 ,nat2)
                    (assert (> nat2 nat1))

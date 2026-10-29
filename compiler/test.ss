@@ -83919,6 +83919,32 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
