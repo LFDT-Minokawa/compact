@@ -75821,6 +75821,59 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #881: * or + on a nominal Uint alias was an internal error when the
+  ; result range equaled the alias's range.
+  (test
+    '(
+      "new type Bit = Uint<1>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<1> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 0n)).result).toEqual(0n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Zero = Uint<0..1>;"
+      "export circuit add(x: Zero, y: Zero): Zero {"
+      "  return x + y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..1> addition', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.add(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Bit = Uint<0..2>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..2> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 1n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
   (test
     `(
       "type Q = Field;"
