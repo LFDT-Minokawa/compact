@@ -124,16 +124,8 @@
     [(contract-call ,src ,elt-name (,expr ,type) ,[expr*] ...)
      (nanopass-case (Lnodca Type) (de-alias type)
        [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-        (let loop ([elt-name* elt-name*] [pure-dcl* pure-dcl*])
-          (when (null? elt-name*) (assert cannot-happen))
-          (if (eq? (car elt-name*) elt-name)
-              (if (car pure-dcl*)
-                  ir
-                  (raise (make-impure-condition function-name src
-                           (format "calls impure circuit ~a of external contract ~a"
-                             elt-name
-                             contract-name))))
-              (loop (cdr elt-name*) (cdr pure-dcl*))))]
+        (raise (make-impure-condition function-name src
+                 (format "makes a cross-contract call to circuit ~a of contract ~a" elt-name contract-name)))]
        [else (assert cannot-happen)])])
   (Tuple-Argument : Tuple-Argument (ir function-name) -> Tuple-Argument ())
   (Map-Argument : Map-Argument (ir function-name) -> Map-Argument ())

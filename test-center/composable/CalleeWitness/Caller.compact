@@ -23,6 +23,11 @@ contract Callee {
   circuit leak(): Field;
 }
 
+// Declared separately so the other calls are not judged against `peek`.
+contract Peeker {
+  circuit peek(): Field;
+}
+
 export ledger callee: Callee;
 
 constructor(c: Callee) {
@@ -35,4 +40,8 @@ export circuit callBump(value: Field): Field {
 
 export circuit callLeak(): Field {
   return callee.leak();
+}
+
+export circuit callPeek(p: Peeker): Field {
+  return disclose(p).peek();
 }

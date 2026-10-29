@@ -17,18 +17,11 @@ import { CircuitContext, CircuitId, CircuitResults } from './circuit-context.js'
 import { CircuitSignatures, DeclaredInterfaces } from './interface-descriptor.js';
 
 /**
- * A circuit evaluable outside a transaction: no ledger access, no cross-contract call, no proof
- * obligation.
+ * A circuit that threads the circuit context and produces proof data.
  *
  * `any[]` because parameters are contravariant: `unknown[]` accepts no real circuit and `never[]`
  * can't be called. The result is `any` to match.
  */
-export type PureCircuit = (...args: any[]) => any;
-
-/** A module's pure circuits. */
-export type PureCircuits = Readonly<Record<CircuitId, PureCircuit>>;
-
-/** A circuit that threads the circuit context and produces proof data. `any[]` per {@link PureCircuit}. */
 export type ProvableCircuit = (context: CircuitContext, ...args: any[]) => Promise<CircuitResults>;
 
 /** A module's provable circuits. */
@@ -55,12 +48,6 @@ export type ContractCtor = new (witnesses: any) => ContractInstance;
  */
 export type Module = {
   readonly Contract: ContractCtor;
-  /**
-   * Read nowhere: a pure circuit in a contract type cannot be called, so nothing dispatches through
-   * this, and it is absent from the runtime's required exports so a module need not carry one.
-   * TODO: drop it, unless pure cross-contract calls are made sound — see `PureInterfaceCircuit`.
-   */
-  readonly pureCircuits: PureCircuits;
   /** Verifier-key fingerprints by external circuit name, compared against what is deployed. */
   readonly expectedVk: Readonly<Record<CircuitId, string>>;
   /** What this module implements. */
