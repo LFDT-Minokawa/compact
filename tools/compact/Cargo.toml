@@ -52,7 +52,7 @@ similar = "2.7.0"
 tokio = { version = "1.42.0", features = ["full", "macros"] }
 # Read-only deflate: the launcher never writes an archive, so this avoids the
 # compressor and the second inflate backend that the `deflate' feature pulls in.
-zip = { version = "4", default-features = false, features = ["deflate-flate2"] }
+zip = { version = "9", default-features = false, features = ["deflate-flate2"] }
 
 [dev-dependencies]
 tempfile = "3.20.0"
