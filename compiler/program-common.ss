@@ -18,7 +18,7 @@
           print-usage
           print-compiler-version
           print-language-version
-          print-ledger-version
+          print-target
           print-runtime-version
           check-pathname
           handle-exceptions)
@@ -27,7 +27,7 @@
           (state-case)
           (compiler-version)
           (language-version)
-          (ledger-version)
+          (target)
           (runtime-version))
 
   (define usage (make-parameter #f))
@@ -67,7 +67,8 @@
                (fprintf op "commit-hash:      ~a\n" (or-unknown compiler-version-commit))
                (fprintf op "commit-date:      ~a\n" (or-unknown compiler-version-commit-date))
                (fprintf op "language-version: ~a\n" language-version-string)
-               (fprintf op "runtime-version:  ~a\n" runtime-version-string))
+               (fprintf op "runtime-version:  ~a\n" runtime-version-string)
+               (fprintf op "target:           ~a\n" (target-description)))
              (cond
                [(string=? compiler-version-commit "")
                 (fprintf op "~a\n" compiler-version-string)]
@@ -91,10 +92,13 @@
              "~a\n"
              runtime-version-string))
 
-  (define (print-ledger-version)
-    (fprintf (current-output-port)
-             "~a\n"
-             (cdr (assoc "zkir-v3" ledger-version-strings))))
+  (define (target-description)
+    (format "onchain-runtime=~a, zkir=~a"
+            (target-onchain-runtime-version current-target)
+            (target-zkir-version current-target)))
+
+  (define (print-target)
+    (fprintf (current-output-port) "~a\n" (target-description)))
 
   (define (check-pathname pathname)
     (when (and (>= (string-length pathname) 1)

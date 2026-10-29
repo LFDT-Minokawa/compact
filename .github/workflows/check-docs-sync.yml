@@ -43,15 +43,22 @@ jobs:
             fi
           }
 
-          check doc/ledger-adt.mdx docs/compact/data-types/ledger-adt.mdx
-          check doc/ledger-adt.mdx docs/compact/reference/ledger-adt.mdx
+          # One ledger ADT document per target
+          for DOC in doc/ledger-adt-*.mdx; do
+            check "$DOC" "docs/compact/data-types/$(basename "$DOC")"
+            check "$DOC" "docs/compact/reference/$(basename "$DOC")"
+          done
           check doc/writing.mdx docs/compact/reference/writing.mdx
           check doc/compact-reference.mdx docs/compact/reference/compact-reference.mdx
           check doc/explicit-disclosure.mdx docs/compact/reference/explicit-disclosure.mdx
           check doc/compact-grammar.mdx docs/compact/reference/compact-grammar.mdx
           check doc/compact-keywords.mdx docs/compact/reference/compact-keywords.mdx
-          check doc/api/CompactStandardLibrary/exports.md docs/compact/standard-library/exports.md
-          check doc/api/CompactStandardLibrary/README.md docs/compact/standard-library/README.md
+          # One standard library API document directory per target
+          for DIR in doc/api/CompactStandardLibrary-*/; do
+            NAME="$(basename "$DIR")"
+            check "$DIR/exports.md" "docs/compact/standard-library/$NAME/exports.md"
+            check "$DIR/README.md" "docs/compact/standard-library/$NAME/README.md"
+          done
           check doc/compiler-usage.mdx docs/compact/compilation-and-tooling/compiler-usage.mdx
           check doc/formatter-usage.mdx docs/compact/compilation-and-tooling/formatter-usage.mdx
           check doc/fixup-usage.mdx                        docs/compact/compilation-and-tooling/fixup-usage.mdx

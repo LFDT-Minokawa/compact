@@ -106,7 +106,7 @@ the version with that commit and its date in parentheses.
 **--verbose**
 
 Given together with **--version**, in either order, prints the version, commit,
-commit date, and language and runtime versions as separate fields, showing
+commit date, language version, runtime version, and target as separate fields, showing
 _unknown_ for anything the build did not record.
 
 **--language-version**
@@ -117,9 +117,10 @@ Prints the language version supported by the compiler and exits.
 
 Prints the runtime version required by the compiler and exits.
 
-**--ledger-version**
+**--target**
 
-Prints the ledger version required by the compiler and exits.
+Prints the target this build of the compiler is built for and exits.  A target
+is the pair of the on-chain runtime version and the ZKIR version.
 
 **--vscode**
 
