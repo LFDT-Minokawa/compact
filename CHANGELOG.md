@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
+## [Toolchain 0.35.109, language 0.27.0, runtime 0.20.103]
 
 ### Added
 
@@ -79,6 +79,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
 - ./compact.md now contains detailed information about targets and how to create
   new ones.
+
+## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit needs a
+  default value of type `Curve25519Base`, `Curve25519Scalar`, or
+  `Curve25519Point`, such as in `none<Curve25519Point>()` or the unused side
+  of an `Either`.  Fixes issue
+  [#868](https://github.com/LFDT-Minokawa/compact/issues/868).
 
 ## [Toolchain 0.35.107, language 0.27.0, runtime 0.20.103]
 
