@@ -16,6 +16,4 @@
 import { defineCompileTest } from '@test/compact-test';
 
 // Pure, so no keys are generated, but the secp256k1 library needs the flag.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

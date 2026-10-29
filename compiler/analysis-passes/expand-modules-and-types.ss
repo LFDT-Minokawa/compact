@@ -694,11 +694,9 @@
                                   (let ([info (Info-module
                                                 '()
                                                 (append standard-library-pelt*
-                                                        (if (feature-zkir-v3) zkir-v3-library-pelt* '())
+                                                        zkir-v3-library-pelt*
                                                         (let-values ([(native* zkir-v3-native*) (native-declarations)])
-                                                          (if (feature-zkir-v3)
-                                                              (append native* zkir-v3-native*)
-                                                              native*))
+                                                          (append native* zkir-v3-native*))
                                                         (event-declarations)
                                                         (inline-declarations)
                                                         (map (lambda (adt-defn)

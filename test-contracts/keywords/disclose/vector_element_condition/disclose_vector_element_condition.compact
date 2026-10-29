@@ -1,5 +1,5 @@
 // This file is part of Compact.
-// Copyright (C) 2026 Midnight Foundation
+// Copyright (C) 2025 Midnight Foundation
 // SPDX-License-Identifier: Apache-2.0
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -13,10 +13,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineCompileTest } from '@test/compact-test';
+witness secret(): Boolean;
 
-// The ledger write makes this provable, and zkir v2 has no keccak256, so it
-// must fail without the flag. The same source compiles in ../impure_with_v3.
-export default defineCompileTest(import.meta.url, {
-    expectedError: /keccak256 is not supported in ZKIR v2/,
-});
+// A Boolean read from a vector element is not assumed to equal the first
+// element, so the witness value returned in the else branch must be reported.
+export circuit disclose_vector_element_condition(): Boolean {
+  const values = [true, false, ...default<Vector<0, Boolean>>];
+  return values[1] ? true : secret();
+}

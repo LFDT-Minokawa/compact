@@ -13,16 +13,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Writing to the ledger makes the circuit provable, which sends keccak256
-// through zkir. Version 2 has no keccak256, so this fails without the flag and
-// the same source compiles in ../impure_with_v3 with it.
+import { defineCompileTest } from '@test/compact-test';
 
-pragma language_version >= 0.25.0;
-
-import CompactStandardLibrary;
-
-export ledger digest: Bytes<32>;
-
-export circuit keccak256_writes_ledger(value: Bytes<32>): [] {
-    digest = disclose(keccak256<Bytes<32>>(value));
-}
+export default defineCompileTest(import.meta.url);
