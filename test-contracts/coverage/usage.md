@@ -1,6 +1,6 @@
 # Compact language usage index
 
-Scanned the **139 fixtures** in `test-contracts/`.
+Scanned the **145 fixtures** in `test-contracts/`.
 
 ## Not covered by any fixture — 142
 
@@ -155,7 +155,7 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 40 |
+| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 52 |
 | `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 351 |
 | `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 190 |
 | `Opaque` | [`test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact:18`](../../test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact#L18) | 3 |
@@ -353,14 +353,14 @@ Declared in `compiler sources — declare-native-type`.
 |---|---|---:|
 | `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_enum/jubjub_scalar_casts_to_enum.compact:22`](../../test-contracts/stdlib/jubjub/scalar/casts/to_enum/jubjub_scalar_casts_to_enum.compact#L22) | 2 |
 | `JubjubPoint` | **no fixture** | 0 |
-| `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/casts/to_enum/curve25519_base_casts_to_enum.compact:22`](../../test-contracts/stdlib/curve25519/base/casts/to_enum/curve25519_base_casts_to_enum.compact#L22) | 5 |
-| `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 5 |
+| `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact#L20) | 6 |
+| `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 6 |
 | `Curve25519Point` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:18`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L18) | 3 |
-| `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/casts/to_enum/secp256k1_base_casts_to_enum.compact:22`](../../test-contracts/stdlib/secp256k1/base/casts/to_enum/secp256k1_base_casts_to_enum.compact#L22) | 4 |
-| `Secp256k1Scalar` | [`test-contracts/stdlib/secp256k1/scalar/casts/to_enum/secp256k1_scalar_casts_to_enum.compact:22`](../../test-contracts/stdlib/secp256k1/scalar/casts/to_enum/secp256k1_scalar_casts_to_enum.compact#L22) | 2 |
+| `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/casts/to_boolean/secp256k1_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256k1/base/casts/to_boolean/secp256k1_base_casts_to_boolean.compact#L20) | 5 |
+| `Secp256k1Scalar` | [`test-contracts/stdlib/secp256k1/scalar/casts/to_boolean/secp256k1_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256k1/scalar/casts/to_boolean/secp256k1_scalar_casts_to_boolean.compact#L20) | 3 |
 | `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 14 |
-| `Secp256r1Base` | [`test-contracts/stdlib/secp256r1/base/casts/to_enum/secp256r1_base_casts_to_enum.compact:22`](../../test-contracts/stdlib/secp256r1/base/casts/to_enum/secp256r1_base_casts_to_enum.compact#L22) | 2 |
-| `Secp256r1Scalar` | [`test-contracts/stdlib/secp256r1/scalar/casts/to_enum/secp256r1_scalar_casts_to_enum.compact:22`](../../test-contracts/stdlib/secp256r1/scalar/casts/to_enum/secp256r1_scalar_casts_to_enum.compact#L22) | 2 |
+| `Secp256r1Base` | [`test-contracts/stdlib/secp256r1/base/casts/to_boolean/secp256r1_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256r1/base/casts/to_boolean/secp256r1_base_casts_to_boolean.compact#L20) | 3 |
+| `Secp256r1Scalar` | [`test-contracts/stdlib/secp256r1/scalar/casts/to_boolean/secp256r1_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/secp256r1/scalar/casts/to_boolean/secp256r1_scalar_casts_to_boolean.compact#L20) | 3 |
 | `Secp256r1Point` | **no fixture** | 0 |
 
 ## Inline entries — 0/2 covered
