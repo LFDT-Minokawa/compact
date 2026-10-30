@@ -17,7 +17,7 @@ import type { Contract, PureCircuits } from './.build/contract/index.js';
 import { defineRuntimeTest } from '@test/compact-test';
 import {
     assertCoverage,
-    ED25519,
+    CURVE25519,
     runEddsaKat,
     type EddsaVector,
 } from '@test/crypto';
@@ -68,12 +68,12 @@ export default defineRuntimeTest<typeof Contract, PureCircuits>(
     import.meta.url,
     (_Contract, pure) => {
         const classified = runEddsaKat(
-            ED25519,
+            CURVE25519,
             'SHA-512 in-circuit + verify',
             (vector) => drive(pure, vector),
             ({ driven }) => [`by msg length: ${lengthBreakdown(driven)}`],
         );
 
-        assertCoverage(ED25519.name, classified, ED25519.coverage);
+        assertCoverage(CURVE25519.name, classified, CURVE25519.coverage);
     },
 );

@@ -198,7 +198,7 @@ Declared in `shipped Compact libraries — export circuit`.
 | `secp256k1EcdsaVerify` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:43`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L43) | 16 |
 | `secp256k1EthereumAddress` | [`test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact:28`](../../test-contracts/stdlib/secp256k1/ethereum_address/secp256k1_ethereum_address.compact#L28) | 2 |
 | `secp256r1EcdsaVerify` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:34`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L34) | 17 |
-| `ed25519Verify` | [`test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact:31`](../../test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact#L31) | 31 |
+| `ed25519Verify` | [`test-contracts/stdlib/curve25519/slow/verify_sequential/curve25519_verify_sequential.compact:31`](../../test-contracts/stdlib/curve25519/slow/verify_sequential/curve25519_verify_sequential.compact#L31) | 31 |
 
 ## Standard library structs — 5/15 covered
 
@@ -220,7 +220,7 @@ Declared in `shipped Compact libraries — export struct`.
 | `JubjubSchnorrSignature` | **no fixture** | 0 |
 | `Secp256k1EcdsaSignature` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:40`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L40) | 12 |
 | `Secp256r1EcdsaSignature` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:31`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L31) | 13 |
-| `Ed25519Signature` | [`test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact:27`](../../test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact#L27) | 27 |
+| `Ed25519Signature` | [`test-contracts/stdlib/curve25519/slow/verify_sequential/curve25519_verify_sequential.compact:27`](../../test-contracts/stdlib/curve25519/slow/verify_sequential/curve25519_verify_sequential.compact#L27) | 27 |
 
 ## Ledger ADT operations — 1/62 covered
 
@@ -351,7 +351,7 @@ Declared in `compiler sources — declare-native-type`.
 |---|---|---:|
 | `JubjubScalar` | **no fixture** | 0 |
 | `JubjubPoint` | **no fixture** | 0 |
-| `Curve25519Base` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:22`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L22) | 5 |
+| `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/roundtrip/curve25519_base_roundtrip.compact:18`](../../test-contracts/stdlib/curve25519/base/roundtrip/curve25519_base_roundtrip.compact#L18) | 5 |
 | `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 5 |
 | `Curve25519Point` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:18`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L18) | 30 |
 | `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact:18`](../../test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact#L18) | 2 |

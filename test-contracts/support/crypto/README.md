@@ -44,7 +44,7 @@ SPDX-License-Identifier: Apache-2.0
 | `proveEcdsa{N}`            | the same corpus, SHA-256 in-circuit; one circuit per message length |
 | `Secp256r1Base` round trip | 0, 1, a mid-range value, `MAX_SECP256R1_BASE`                       |
 
-## ed25519
+## curve25519
 
 | circuit                       | vectors                                                                                    |
 | ----------------------------- | ------------------------------------------------------------------------------------------ |

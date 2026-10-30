@@ -33,4 +33,4 @@ export {
     type EcdsaVector,
 } from './ecdsa.ts';
 
-export { ED25519, runEddsaKat, type EddsaVector } from './eddsa.ts';
+export { CURVE25519, runEddsaKat, type EddsaVector } from './eddsa.ts';

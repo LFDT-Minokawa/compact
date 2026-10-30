@@ -53,7 +53,7 @@ export { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
 
 export {
     assertCoverage,
-    ED25519,
+    CURVE25519,
     loadCorpus,
     runCorpusKat,
     runEcdsaKat,

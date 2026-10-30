@@ -15,14 +15,11 @@
 
 import CompactStandardLibrary;
 
-export ledger stored: Curve25519Scalar;
+export ledger stored: Curve25519Base;
 
-// A Curve25519Scalar survives a round trip through the ledger: the assignment
+// A Curve25519Base survives a round trip through the ledger: the assignment
 // writes the two-atom encoding and the return reads it back.
-//
-// The scalar field is encoded differently from the base field, as 204 low
-// bits then 51 high bits.
-export circuit ed25519_scalar_roundtrip(value: Curve25519Scalar): Curve25519Scalar {
+export circuit curve25519_base_roundtrip(value: Curve25519Base): Curve25519Base {
     stored = disclose(value);
     return stored;
 }

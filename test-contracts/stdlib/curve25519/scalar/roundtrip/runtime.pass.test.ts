@@ -38,7 +38,7 @@ export default defineRuntimeTest<typeof Contract>(
 
         for (const value of VALUES) {
             const result = (
-                await contract.circuits.ed25519_scalar_roundtrip(ctx, value)
+                await contract.circuits.curve25519_scalar_roundtrip(ctx, value)
             ).result;
 
             expect(result).toBe(value);

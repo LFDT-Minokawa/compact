@@ -49,7 +49,7 @@ type EddsaSuite = {
     coverage: Coverage;
 };
 
-export const ED25519: EddsaSuite = {
+export const CURVE25519: EddsaSuite = {
     name: 'Ed25519',
     vectorsFile: 'ed25519_test.json',
     abortMessages: [
