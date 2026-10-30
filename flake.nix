@@ -29,12 +29,12 @@
     };
     zkir-v3 = {
       # zkir-v3 key-generation binary for v3 IR format
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1"; # zkir-v3
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.1"; # zkir-v3
       inputs.nixpkgs.follows = "nixpkgs-zkir";
     };
     zkir-v3-wasm = {
       # zkir-v3-wasm for test-center v3 support
-      url = "github:midnightntwrk/midnight-zkir/zkir-3.1.0-rc.1";
+      url = "github:midnightntwrk/midnight-zkir/zkir-3.2.0-rc.1";
     };
     n2c.url = "github:nlewo/nix2container";
     chez-exe.url = "github:tkerber/chez-exe";
