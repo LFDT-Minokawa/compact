@@ -48,4 +48,6 @@
     [(public-ledger ,src ,ledger-field-name ,sugar? (,path-elt* ...) ,src^ ,adt-op ,[expr*] ...)
      (raise 'ledger)]
     [(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
-     (raise 'emit)]))
+     (raise 'emit)]
+    [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
+     (raise 'ledger)]))

@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.35.109, language 0.27.0, runtime 0.20.103]
+## [Toolchain 0.35.110, language 0.27.100, runtime 0.20.104]
 
 ### Fixed
 
@@ -14,6 +14,39 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   range, such as `x * y` where `x` and `y` have type `Bit` declared by
   `new type Bit = Uint<1>`.  Fixes issue
   [#881](https://github.com/LFDT-Minokawa/compact/issues/881).
+
+## [Toolchain 0.35.109, language 0.27.100, runtime 0.20.104]
+
+### Changed
+
+- Every circuit declared in a contract type must have a proof, since a
+  cross-contract call is matched by the ledger against the called circuit's
+  proof. Marking a circuit declaration in a contract type `pure` is now a
+  compile-time error, since a pure circuit has no proof.
+  A `contract implements` declaration is likewise rejected when the
+  implementing circuit is declared `pure`. The arguments of every cross-contract
+  call must be disclosed and the exemption for calls declared `pure` is gone with
+  the declarations.
+- `compact-runtime`: conformance of a resolved module checks that every declared
+  circuit is implemented by a provable circuit (the `Provability` check) and
+  nothing about purity. The `PureInterfaceCircuit` failure kind and the `Purity`
+  conformance check are removed, as are the `pure` field of
+  `InterfaceCircuitDeclaration` and the never-read `pureCircuits` field of
+  `Module` (with the `PureCircuit` and `PureCircuits` types); `CircuitSignature`
+  keeps its `pure` field as information. The compiler no longer emits `pure` for
+  the circuits of a contract type in `declaredInterfaces` or in
+  `contract-info.json`.
+
+### Fixed
+
+- An exported circuit whose only public effect is a cross-contract call on an
+  address that is not read from the ledger (for example, an argument) now gets
+  a ZKIR and a verifier key. Previously the call's claim was emitted without a
+  proof to cover it, so the circuit could not be submitted or called.
+- A program that declares a contract type no longer has to import
+  `CompactStandardLibrary` for its cross-contract calls to compile. The call's
+  claim is made on the library's `kernel`, and without the import the compiler
+  failed with an internal error once the calling circuit needed a proof.
 
 ## [Toolchain 0.35.108, language 0.27.0, runtime 0.20.103]
 
