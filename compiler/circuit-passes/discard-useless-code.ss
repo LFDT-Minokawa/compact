@@ -177,6 +177,14 @@
      (values
        `(bytes->vector ,src ,len ,expr)
        idset)]
+    [(point->bytes ,src ,len ,ctype ,[Value : expr idset])
+     (values
+       `(point->bytes ,src ,len ,ctype ,expr)
+       idset)]
+    [(bytes->point ,src ,ctype ,len ,[Value : expr idset])
+     (values
+       `(bytes->point ,src ,ctype ,len ,expr)
+       idset)]
     [(cast-to-field ,src ,ftype ,type ,[Value : expr idset])
      (values
        `(cast-to-field ,src ,ftype ,type ,expr)
