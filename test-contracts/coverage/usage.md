@@ -1,15 +1,13 @@
 # Compact language usage index
 
-Scanned the **130 fixtures** in `test-contracts/`.
+Scanned the **128 fixtures** in `test-contracts/`.
 
-## Not covered by any fixture — 144
+## Not covered by any fixture — 140
 
 | name | group |
 |---|---|
 | `some` | Standard library circuits |
-| `none` | Standard library circuits |
 | `left` | Standard library circuits |
-| `right` | Standard library circuits |
 | `merkleTreePathRoot` | Standard library circuits |
 | `merkleTreePathRootNoLeafHash` | Standard library circuits |
 | `nativeToken` | Standard library circuits |
@@ -35,8 +33,6 @@ Scanned the **130 fixtures** in `test-contracts/`.
 | `unshieldedBalanceGt` | Standard library circuits |
 | `unshieldedBalanceLte` | Standard library circuits |
 | `jubjubSchnorrVerify` | Standard library circuits |
-| `Maybe` | Standard library structs |
-| `Either` | Standard library structs |
 | `MerkleTreeDigest` | Standard library structs |
 | `MerkleTreePathEntry` | Standard library structs |
 | `MerkleTreePath` | Standard library structs |
@@ -157,23 +153,23 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:20`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L20) | 75 |
-| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 407 |
-| `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 182 |
+| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 78 |
+| `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 404 |
+| `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 185 |
 | `Opaque` | [`test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact:18`](../../test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact#L18) | 3 |
 | `Uint` | [`test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact:26`](../../test-contracts/primitives/boolean/casts/to_boolean/boolean_casts_to_boolean.compact#L26) | 120 |
-| `Vector` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:20`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L20) | 99 |
+| `Vector` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:21`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L21) | 100 |
 
-## Standard library circuits — 4/33 covered
+## Standard library circuits — 6/33 covered
 
 Declared in `shipped Compact libraries — export circuit`.
 
 | name | first usage | uses |
 |---|---|---:|
 | `some` | **no fixture** | 0 |
-| `none` | **no fixture** | 0 |
+| `none` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:30`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L30) | 2 |
 | `left` | **no fixture** | 0 |
-| `right` | **no fixture** | 0 |
+| `right` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:40`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L40) | 1 |
 | `merkleTreePathRoot` | **no fixture** | 0 |
 | `merkleTreePathRootNoLeafHash` | **no fixture** | 0 |
 | `nativeToken` | **no fixture** | 0 |
@@ -204,14 +200,14 @@ Declared in `shipped Compact libraries — export circuit`.
 | `secp256r1EcdsaVerify` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:34`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L34) | 17 |
 | `ed25519Verify` | [`test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact:31`](../../test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact#L31) | 31 |
 
-## Standard library structs — 3/15 covered
+## Standard library structs — 5/15 covered
 
 Declared in `shipped Compact libraries — export struct`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Maybe` | **no fixture** | 0 |
-| `Either` | **no fixture** | 0 |
+| `Maybe` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:18`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L18) | 4 |
+| `Either` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:22`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L22) | 2 |
 | `MerkleTreeDigest` | **no fixture** | 0 |
 | `MerkleTreePathEntry` | **no fixture** | 0 |
 | `MerkleTreePath` | **no fixture** | 0 |
@@ -224,7 +220,7 @@ Declared in `shipped Compact libraries — export struct`.
 | `JubjubSchnorrSignature` | **no fixture** | 0 |
 | `Secp256k1EcdsaSignature` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:40`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L40) | 12 |
 | `Secp256r1EcdsaSignature` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:31`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L31) | 13 |
-| `Ed25519Signature` | [`test-contracts/stdlib/ed25519/requires_zkir_v3/ed25519_requires_zkir_v3.compact:23`](../../test-contracts/stdlib/ed25519/requires_zkir_v3/ed25519_requires_zkir_v3.compact#L23) | 28 |
+| `Ed25519Signature` | [`test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact:27`](../../test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact#L27) | 27 |
 
 ## Ledger ADT operations — 1/62 covered
 
@@ -325,7 +321,7 @@ Declared in `compiler sources — declare-native-entry`.
 | `persistentCommit` | **no fixture** | 0 |
 | `degradeToTransient` | **no fixture** | 0 |
 | `upgradeFromTransient` | **no fixture** | 0 |
-| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 65 |
+| `keccak256` | [`test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact:28`](../../test-contracts/stdlib/keccak256/adt_rejected/keccak256_adt_rejected.compact#L28) | 64 |
 | `jubjubPointX` | **no fixture** | 0 |
 | `jubjubPointY` | **no fixture** | 0 |
 | `ecAdd` | **no fixture** | 0 |
@@ -355,15 +351,15 @@ Declared in `compiler sources — declare-native-type`.
 |---|---|---:|
 | `JubjubScalar` | **no fixture** | 0 |
 | `JubjubPoint` | **no fixture** | 0 |
-| `Curve25519Base` | [`test-contracts/stdlib/ed25519/base/roundtrip/ed25519_base_roundtrip.compact:18`](../../test-contracts/stdlib/ed25519/base/roundtrip/ed25519_base_roundtrip.compact#L18) | 2 |
-| `Curve25519Scalar` | [`test-contracts/stdlib/ed25519/scalar/roundtrip/ed25519_scalar_roundtrip.compact:18`](../../test-contracts/stdlib/ed25519/scalar/roundtrip/ed25519_scalar_roundtrip.compact#L18) | 2 |
-| `Curve25519Point` | [`test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact:28`](../../test-contracts/stdlib/ed25519/slow/verify_sequential/ed25519_verify_sequential.compact#L28) | 27 |
+| `Curve25519Base` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:22`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L22) | 5 |
+| `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 5 |
+| `Curve25519Point` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:18`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L18) | 30 |
 | `Secp256k1Base` | [`test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact:18`](../../test-contracts/stdlib/secp256k1/base/roundtrip/secp256k1_base_roundtrip.compact#L18) | 2 |
 | `Secp256k1Scalar` | **no fixture** | 0 |
-| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 15 |
+| `Secp256k1Point` | [`test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact:41`](../../test-contracts/stdlib/secp256k1/bitcoin_kat/secp256k1_bitcoin_kat.compact#L41) | 14 |
 | `Secp256r1Base` | [`test-contracts/stdlib/secp256r1/base/roundtrip/secp256r1_base_roundtrip.compact:18`](../../test-contracts/stdlib/secp256r1/base/roundtrip/secp256r1_base_roundtrip.compact#L18) | 2 |
 | `Secp256r1Scalar` | **no fixture** | 0 |
-| `Secp256r1Point` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:32`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L32) | 14 |
+| `Secp256r1Point` | [`test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact:32`](../../test-contracts/stdlib/secp256r1/ecdsa_verify/secp256r1_ecdsa_verify.compact#L32) | 13 |
 
 ## Inline entries — 0/2 covered
 

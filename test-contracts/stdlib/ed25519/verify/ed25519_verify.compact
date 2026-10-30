@@ -20,7 +20,7 @@
 // corpus drives, and the runtime test reports a length with no circuit rather
 // than skipping it.
 //
-// Pure, so no keys are generated, but the v3 flag is still needed.
+// Pure, so no keys are generated.
 
 pragma language_version >= 0.25.0;
 

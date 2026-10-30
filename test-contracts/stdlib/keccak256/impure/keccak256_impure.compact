@@ -13,10 +13,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { defineCompileTest } from '@test/compact-test';
+// The ledger write makes this circuit provable, so keccak256 has to compile
+// to ZKIR as well as JavaScript.
 
-// No flag, so the secp256r1 library is missing and naming one of its types
-// fails.
-export default defineCompileTest(import.meta.url, {
-    expectedError: /unbound identifier Secp256r1Point/,
-});
+pragma language_version >= 0.25.0;
+
+import CompactStandardLibrary;
+
+export ledger digest: Bytes<32>;
+
+export circuit keccak256_writes_ledger(value: Bytes<32>): [] {
+    digest = disclose(keccak256<Bytes<32>>(value));
+}

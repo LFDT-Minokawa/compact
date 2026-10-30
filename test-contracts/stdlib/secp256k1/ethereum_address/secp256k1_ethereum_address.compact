@@ -18,7 +18,7 @@
 // It hashes the two coordinates and keeps the last 20 bytes, which is the real
 // Ethereum rule, so the test compares against published addresses.
 //
-// Pure, but the v3 flag is needed for the key type and the hash.
+// Pure, so no keys are generated.
 
 pragma language_version >= 0.25.0;
 

@@ -15,7 +15,4 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// `Curve25519Base` needs the v3 flag.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

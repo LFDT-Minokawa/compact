@@ -13,11 +13,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// The whole ed25519 library only exists with the v3 flag, so naming one of
-// its types is enough to fail without it.
+import { defineCompileTest } from '@test/compact-test';
 
-pragma language_version >= 0.25.0;
-
-import CompactStandardLibrary;
-
-export circuit ed25519_requires_zkir_v3(sig: Ed25519Signature): [] { }
+// Provable, so keccak256 has to compile to ZKIR as well as JavaScript.
+export default defineCompileTest(import.meta.url);
