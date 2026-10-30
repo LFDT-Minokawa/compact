@@ -84,6 +84,10 @@ The following flags, if present, affect the compiler's behavior as follows:
 
   --trace-passes causes the compiler to print tracing information that is
     generally useful only to compiler developers.
+
+  --analyzed-ir writes compiler/analyzed-ir.sexp in the target directory.
+    It contains the analyzed program, with ledger operations and emits expanded
+    into Impact VM instructions. Its format can change between compiler versions.
 "))
 
 (usage "<flag> ... <source-pathname> <target-directory-pathname>")
@@ -120,7 +124,8 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--sourceRoot) (string source-root)]
              [(--compact-path) (string search-list)]
              [(--trace-search)]
-             [(--trace-passes)])
+             [(--trace-passes)]
+             [(--analyzed-ir)])
       (string source-pathname)
       (string target-directory-pathname))
      (when first-exit-flag
@@ -131,6 +136,7 @@ The following flags, if present, affect the compiler's behavior as follows:
      (parameterize ([trace-passes ?--trace-passes]
                     [skip-zk ?--skip-zk]
                     [no-communications-commitment ?--no-communications-commitment]
+                    [write-analyzed-ir ?--analyzed-ir]
                     [compact-path (if ?--compact-path (split-search-path search-list) (compact-path))]
                     [trace-search ?--trace-search])
        (when source-root (register-source-root! source-root))
