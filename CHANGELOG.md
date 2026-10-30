@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.35.110, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- Casting `Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base`, or `Curve25519Scalar` to a `Uint` type
+  is now reported as a type error instead of failing with an internal error.
+  Fixes issue [#880](https://github.com/LFDT-Minokawa/compact/issues/880).
+- Casting any field type other than `Field`, including `JubjubScalar`, to an
+  enum type is now reported as a type error instead of failing with an
+  internal error.
+- Casting any field type other than `Field` to `Boolean` is now always a type
+  error. These casts used to be accepted in pure circuits, and failed when
+  compiled to a ZK circuit.
+
 ## [Toolchain 0.35.109, language 0.27.100, runtime 0.20.104]
 
 ### Changed

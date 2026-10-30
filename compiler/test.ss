@@ -84006,6 +84006,98 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
+  ; Casting any field type other than Field to Boolean is a type error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Secp256r1Base): Boolean {"
+      "  return a as Boolean;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: Curve25519Scalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: JubjubScalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Boolean")))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
