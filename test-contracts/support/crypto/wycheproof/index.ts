@@ -26,4 +26,11 @@ export {
     type Expectation,
 } from './corpus.ts';
 
-export { runEcdsaKat, SECP256K1_BITCOIN, type EcdsaVector } from './ecdsa.ts';
+export {
+    runEcdsaKat,
+    SECP256K1_BITCOIN,
+    SECP256R1,
+    type EcdsaVector,
+} from './ecdsa.ts';
+
+export { CURVE25519, runEddsaKat, type EddsaVector } from './eddsa.ts';

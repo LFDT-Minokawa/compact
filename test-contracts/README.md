@@ -37,7 +37,10 @@ This keeps compilation visible as part of the test suite while allowing runtime
 tests to type against generated `Contract` imports for hover and
 go-to-definition. Fixtures under a `slow/` path segment still run by default,
 but their compile work runs exclusively so expensive proving-key generation does
-not race other compiler jobs.
+not race other compiler jobs. Because a slow fixture can wait for other
+compiles before its own starts, its tests get 10 minutes for each compile it
+may wait behind instead of the usual `testTimeout`. That is at most
+`maxConcurrency` compiles, the number of tests Vitest runs at once.
 
 ## Shared Harness
 
@@ -172,7 +175,8 @@ inside Vitest before importing the generated contract value.
 `yarn lint` prepares generated imports with `--skip-zk`; `yarn test` uses full
 compiler runs so compile tests still cover proving-key generation. Compile hang
 protection is owned by Vitest and CI through `testTimeout` in
-`vitest.config.ts`.
+`vitest.config.ts`, and through `slowCompileTimeoutMs` in
+`compact-test-orchestrator.test.ts` for `slow/` fixtures.
 
 ## The Linked Runtime
 
