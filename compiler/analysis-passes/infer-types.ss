@@ -1945,14 +1945,8 @@
                             (safe-cast ,src ,target-type (tunsigned ,src 0) (quote ,src 0))))])]
               [(tboolean ,src1)
                (T source-type
-                  [(tfield ,src2 ,ftype)
-                   ;; This compares expr with 0, which becomes a plain Uint when drop-safe-casts removes
-                   ;; its safe-cast. Only field types that check-types-Lflattened can compare with a Uint
-                   ;; are allowed.
-                   (guard (nanopass-case (Ltypes Field-Type) ftype
-                            [(field-native) #t]
-                            [(field-scalar (curve-jubjub)) #t]
-                            [else #f]))
+                  ;; Only Field: later passes cannot compare other field types with the 0 below.
+                  [(tfield ,src2 (field-native))
                    `(if ,src
                         (== ,src ,source-type ,expr
                           (safe-cast ,src ,source-type (tunsigned ,src 0) (quote ,src 0)))

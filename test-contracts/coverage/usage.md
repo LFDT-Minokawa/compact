@@ -1,6 +1,6 @@
 # Compact language usage index
 
-Scanned the **145 fixtures** in `test-contracts/`.
+Scanned the **146 fixtures** in `test-contracts/`.
 
 ## Not covered by any fixture — 142
 
@@ -155,7 +155,7 @@ Declared in `parser.ss — keywordDataTypes`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 52 |
+| `Boolean` | [`test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact:16`](../../test-contracts/keywords/disclose/vector_element_condition/disclose_vector_element_condition.compact#L16) | 54 |
 | `Bytes` | [`test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact:21`](../../test-contracts/primitives/bytes/casts/empty/bytes_casts_empty.compact#L21) | 351 |
 | `Field` | [`test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact:19`](../../test-contracts/primitives/boolean/casts/to_field/boolean_casts_to_field.compact#L19) | 190 |
 | `Opaque` | [`test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact:18`](../../test-contracts/primitives/opaque/casts/to_opaque/opaque_casts_to_opaque.compact#L18) | 3 |
@@ -351,7 +351,7 @@ Declared in `compiler sources — declare-native-type`.
 
 | name | first usage | uses |
 |---|---|---:|
-| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_enum/jubjub_scalar_casts_to_enum.compact:22`](../../test-contracts/stdlib/jubjub/scalar/casts/to_enum/jubjub_scalar_casts_to_enum.compact#L22) | 2 |
+| `JubjubScalar` | [`test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact:20`](../../test-contracts/stdlib/jubjub/scalar/casts/to_boolean/jubjub_scalar_casts_to_boolean.compact#L20) | 3 |
 | `JubjubPoint` | **no fixture** | 0 |
 | `Curve25519Base` | [`test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact:20`](../../test-contracts/stdlib/curve25519/base/casts/to_boolean/curve25519_base_casts_to_boolean.compact#L20) | 6 |
 | `Curve25519Scalar` | [`test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact:20`](../../test-contracts/stdlib/curve25519/default/maybe_either/curve25519_default_maybe_either.compact#L20) | 6 |
