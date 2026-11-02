@@ -75880,6 +75880,59 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #881: * or + on a nominal Uint alias was an internal error when the
+  ; result range equaled the alias's range.
+  (test
+    '(
+      "new type Bit = Uint<1>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<1> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 0n)).result).toEqual(0n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Zero = Uint<0..1>;"
+      "export circuit add(x: Zero, y: Zero): Zero {"
+      "  return x + y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..1> addition', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.add(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Bit = Uint<0..2>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..2> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 1n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
   (test
     `(
       "type Q = Field;"
@@ -84116,6 +84169,98 @@ groups than for single tests.
         "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
         "  });"
         ))
+    )
+
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
+  ; Casting any field type other than Field to Boolean is a type error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Secp256r1Base): Boolean {"
+      "  return a as Boolean;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: Curve25519Scalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: JubjubScalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Boolean")))
     )
 
   (test
