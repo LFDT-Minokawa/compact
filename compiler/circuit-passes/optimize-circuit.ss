@@ -568,28 +568,16 @@
                (bitwise-bit-field nat^ start end))))
          `(bytes-ref ,triv ,nat))]
     [(bytes->field ,src ,ftype ,len ,[FWD-Triv : triv*] ...)
-     (let ([maybe-field
-             (ifconstants triv*
-               (lambda (nat*)
-                 (fold-right (lambda (nat field)
-                               (+ (bitwise-arithmetic-shift-left field (* 8 (field-bytes))) nat))
-                   0 nat*)))])
-       (or (and maybe-field
-                (<= maybe-field (strict-nanopass-case (Lflattened Field-Type) ftype
-                                  [(field-native) (max-field)]
-                                  [(field-base ,ctype)
-                                   (strict-nanopass-case (Lflattened Curve-Type) ctype
-                                     [(curve-curve25519) (max-curve25519-base)]
-                                     [(curve-jubjub) (assert cannot-happen)]
-                                     [(curve-secp256k1) (max-secp256k1-base)]
-                                     [(curve-secp256r1) (max-secp256r1-base)])]
-                                  [(field-scalar ,ctype)
-                                   (strict-nanopass-case (Lflattened Curve-Type) ctype
-                                     [(curve-curve25519) (max-curve25519-scalar)]
-                                     [(curve-jubjub) (assert cannot-happen)]
-                                     [(curve-secp256k1) (max-secp256k1-scalar)]
-                                     [(curve-secp256r1) (max-secp256r1-scalar)])])))
-           `(bytes->field ,src ,ftype ,len ,triv* ...)))]
+     (or (nanopass-case (Lflattened Field-Type) ftype
+           [(field-native)
+            (ifconstants triv*
+              (lambda (nat*)
+                (let ([x (fold-left (lambda (field nat)
+                                      (+ (bitwise-arithmetic-shift-left field (* 8 (field-bytes))) nat))
+                           0 nat*)])
+                  (and (<= x (max-field)) x))))]
+           [else #f])
+         `(bytes->field ,src ,ftype ,len ,triv* ...))]
     [(vector->bytes ,[FWD-Triv : triv] ,[FWD-Triv : triv*] ...)
      (or (ifconstant triv
            (lambda (u8)
@@ -640,12 +628,21 @@
           [(== ,triv1 ,triv2) #t]
           [(select ,triv0 ,triv1 ,triv2) #t]
           [(bytes-ref ,triv ,nat) #t]
-          [(bytes->field ,src ,ftype ,len ,triv1 ,triv2)
-           (nanopass-case (Lflattened Field-Type) ftype
-             [(field-base (curve-secp256k1)) #t]
-             [(field-scalar (curve-secp256k1)) #t]
+          [(bytes->field ,src ,ftype ,len ,triv* ...)
+           (strict-nanopass-case (Lflattened Field-Type) ftype
              [(field-native) (<= len (field-bytes))]
-             [else (assert cannot-happen)])]
+             [(field-base ,ctype)
+              (strict-nanopass-case (Lflattened Curve-Type) ctype
+                [(curve-curve25519) #t]
+                [(curve-jubjub) (assert cannot-happen)]
+                [(curve-secp256k1) #t]
+                [(curve-secp256r1) #t])]
+             [(field-scalar ,ctype)
+              (strict-nanopass-case (Lflattened Curve-Type) ctype
+                [(curve-curve25519) #t]
+                [(curve-jubjub) (assert cannot-happen)]
+                [(curve-secp256k1) #t]
+                [(curve-secp256r1) #t])])]
           [(vector->bytes ,triv ,triv* ...) #t]
           [(cast-to-field ,ftype ,primitive-type ,triv) #t]
           [(cast-from-field ,src ,safe ,nat ,ftype ,triv) #f]
