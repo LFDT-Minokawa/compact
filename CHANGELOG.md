@@ -11,6 +11,26 @@ This release includes all changes for compiler versions in the range between
 0.35.100 and 0.36.0; language versions in the range between 0.27.100 and 0.28.0;
 and Compact runtime versions in the range between 0.20.100 and 0.21.0.
 
+## [Toolchain 0.35.114, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit
+  subtracts a foreign field value from itself, such as `k - k` for a
+  `Secp256k1Scalar` `k`, including when the two operands become the same
+  only after inlining.  Fixes issue
+  [#866](https://github.com/LFDT-Minokawa/compact/issues/866).
+
+## [Toolchain 0.35.113, language 0.27.100, runtime 0.20.104]
+
+### Fixed
+
+- The compiler no longer fails with an internal error on a cast to a foreign
+  field type (`Secp256k1Base`, `Secp256k1Scalar`, `Secp256r1Base`,
+  `Secp256r1Scalar`, `Curve25519Base` or `Curve25519Scalar`) when the cast is a
+  constant, such as `(1 as Bytes<32>) as Secp256k1Base`, or when its result is
+  never used, such as a struct field that is never read.
+
 ## [Toolchain 0.35.112, language 0.27.100, runtime 0.20.104]
 
 ### Fixed
