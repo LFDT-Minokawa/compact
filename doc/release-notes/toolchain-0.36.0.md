@@ -31,7 +31,7 @@ Passing `--feature-zkir-v3` is now an error; see [Breaking changes](#the---featu
 
 ### The `zkir-v3` binary is updated
 
-The `zkir-v3` binary shipped with the compiler now comes from midnight-zkir `zkir-3.2.0-rc.2`.  The compiler still generates ZKIR 3.1, so the format of the generated circuits is unchanged.
+The `zkir-v3` binary shipped with the compiler now comes from midnight-zkir `zkir-3.2.0-rc.2`.  The compiler continues to generate ZKIR 3.1.
 
 ### `assert` produces the value `[]`
 
