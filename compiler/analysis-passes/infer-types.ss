@@ -751,11 +751,12 @@
                     (with-output-language (Ltypes Expression)
                       (nanopass-case (Ltypes Type) unaliased-type1
                         [(tunsigned ,src1 ,nat1)
-                         (if (eq? op '-)
-                             result-expr
-                             (let ([result-nat (nanopass-case (Ltypes Type) result-type
-                                                 [(tunsigned ,src ,nat) nat]
-                                                 [else (assert cannot-happen)])])
+                         ;; result-nat is nat1 for -, for + when nat1 is 0, and for * when nat1 is 0 or 1.
+                         (let ([result-nat (nanopass-case (Ltypes Type) result-type
+                                             [(tunsigned ,src ,nat) nat]
+                                             [else (assert cannot-happen)])])
+                           (if (= result-nat nat1)
+                               result-expr
                                `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))]
                         [else `(safe-cast ,src ,type1 ,result-type ,result-expr)]))
                     type1)))))))
