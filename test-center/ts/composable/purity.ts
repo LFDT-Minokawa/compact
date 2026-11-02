@@ -30,10 +30,10 @@ const callLiar = (
   }) as unknown as Promise<{ result: any; context: any }>;
 
 describe('cross-contract conformance gate', () => {
-  test('a callee that is not a provable circuit cannot satisfy an impure declaration', async () => {
+  test('a callee that is not a provable circuit cannot satisfy a declaration', async () => {
     const chain = new TestChain();
-    // `Honest.add` touches no ledger fields, so it is pure; `Liar`'s `contract Honest` declares `add`
-    // without `pure`. A pure circuit cannot satisfy an impure declaration.
+    // `Honest.add` touches no ledger fields, so it is pure and has no proof. Every circuit declared in
+    // a contract type must have one, so `Liar`'s `contract Honest` cannot be satisfied by it.
     const honest = await chain.deploy({ module: honestCode, args: [], initialPrivateState: 0 });
     const liar = await chain.deploy({
       module: liarCode,

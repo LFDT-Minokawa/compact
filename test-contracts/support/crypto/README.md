@@ -38,8 +38,6 @@ SPDX-License-Identifier: Apache-2.0
 
 ## Compile-only
 
-`--feature-zkir-v3` gates: the secp256k1 stdlib is unbound without it, and
-`keccak256` in a provable circuit is rejected by ZKIR v2 and accepted by v3.
 Two secp256k1 contracts also compile through v3 lowering with proving keys.
 
 ## Choosing a reference

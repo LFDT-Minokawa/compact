@@ -383,3 +383,19 @@ describe('input validation', () => {
     );
   });
 });
+
+describe('identity points', () => {
+  test('Secp256k1Point encodes every identity point with zero coordinates', () => {
+    const point = runtime.CompactTypeSecp256k1Point;
+    const other = { ...SECP256K1_G, identity: true };
+    expect(point.toValue(other)).toStrictEqual(point.toValue(SECP256K1_IDENTITY));
+    expect(point.fromValue(point.toValue(other))).toStrictEqual(SECP256K1_IDENTITY);
+  });
+
+  test('Secp256r1Point encodes every identity point with zero coordinates', () => {
+    const point = runtime.CompactTypeSecp256r1Point;
+    const other = { ...SECP256R1_G, identity: true };
+    expect(point.toValue(other)).toStrictEqual(point.toValue(SECP256R1_IDENTITY));
+    expect(point.fromValue(point.toValue(other))).toStrictEqual(SECP256R1_IDENTITY);
+  });
+});

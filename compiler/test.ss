@@ -942,14 +942,14 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       )
     (returns
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))))
+          (#f bar () (tbytes 32)))))
     )
 
   (test
@@ -1424,7 +1424,7 @@ groups than for single tests.
       ""
       "enum E { pepperoni, sausage, onions, /* beans, */ anchovies, peppers/*, mayonaise */}"
       ""
-      "export contract C { circuit foo(x: A): [], pure circuit bar(): A }"
+      "export contract C { circuit foo(x: A): [], circuit bar(): A }"
       ""
       "export /* here are the exports */ { a, b }"
       ""
@@ -1491,7 +1491,7 @@ groups than for single tests.
         (enum #f E pepperoni sausage onions anchovies peppers)
         (external-contract #t C
           (#f foo ([x (type-ref A)]) (ttuple))
-          (#t bar () (type-ref A)))
+          (#f bar () (type-ref A)))
         (export a b)
         (export a b)
         (export a b)
@@ -6313,7 +6313,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -6323,7 +6323,7 @@ groups than for single tests.
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))
+          (#f bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
         (circuit #t #f hello () ()
@@ -6331,6 +6331,18 @@ groups than for single tests.
           (block
             (return
               (elt-call contract_c foo (elt-call contract_c bar)))))))
+    )
+
+  (test
+    '(
+      "contract C {"
+      "  circuit foo(x: Bytes<32>): [];"
+      "  pure circuit bar(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "a contract type cannot declare circuit ~a pure: a cross-contract call requires the called circuit to have a proof, and a pure circuit has none. To reuse pure logic from another contract, import its module" (bar)))
     )
 
   (test
@@ -6475,7 +6487,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -6485,7 +6497,7 @@ groups than for single tests.
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))
+          (#f bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
         (circuit #t #f hello () ()
@@ -6503,7 +6515,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -6516,7 +6528,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A))))
+            (#f bar () (type-ref A))))
         (import m ((tbytes 32)) "")
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6532,7 +6544,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "}"
@@ -6545,7 +6557,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C)))
         (import m ((tbytes 32)) "")
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6561,7 +6573,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "  constructor (c: C) { contract_c = disclose(c); }"
@@ -6574,7 +6586,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C))
           (constructor ([c (type-ref C)]) (block (= contract_c (disclose c)))))
         (import m ((tbytes 32)) "")
@@ -6590,7 +6602,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -6603,7 +6615,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A))))
+            (#f bar () (type-ref A))))
         (import m ((tbytes 32)) "$")
         (public-ledger-declaration #t #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6619,7 +6631,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "}"
@@ -6632,7 +6644,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C)))
         (import m ((tbytes 32)) "$")
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -11967,7 +11979,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -11981,10 +11993,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -11996,7 +12008,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "  circuit blah(x: Field, y: Boolean): Boolean;"
       "}"
       "ledger contract_c: C;"
@@ -12011,11 +12023,11 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32))
+              (bar #f () (tbytes 32))
               (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32))
+                              (bar #f () (tbytes 32))
                               (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ([%x.3 (tfield (field-native))] [%y.4 (tboolean)])
@@ -12027,7 +12039,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -12042,10 +12054,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12060,7 +12072,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -12080,7 +12092,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -12096,10 +12108,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12111,7 +12123,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -12129,7 +12141,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -12146,10 +12158,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12161,7 +12173,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  import CompactStandardLibrary;"
       "  export ledger contract_c: C;"
@@ -12180,7 +12192,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  import CompactStandardLibrary;"
       "  export ledger contract_c: C;"
@@ -12197,10 +12209,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12212,7 +12224,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "  constructor (c: C) { contract_c = disclose(c); }"
@@ -12267,7 +12279,8 @@ groups than for single tests.
       " circuit bar(): [];"
       "}"
        )
-    (returns (program ())))
+    (returns
+      (program () (public-ledger-declaration %kernel.0 (Kernel)))))
 
   (test
     `(
@@ -12397,7 +12410,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: C): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       )
     (oops
@@ -12409,7 +12422,7 @@ groups than for single tests.
     '(
       "contract C1 {"
       "  circuit foo(x: C2): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "contract C2 {"
       "  circuit check(x: C1): [];"
@@ -12424,7 +12437,7 @@ groups than for single tests.
     '(
       "contract C1 {"
       "  circuit foo(x: C2): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "contract C2 {"
       "  circuit check(x: S): [];"
@@ -12442,7 +12455,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: S): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "struct S {"
       "  a: C;"
@@ -12567,7 +12580,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: C): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       )
     (oops
@@ -18441,7 +18454,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
+      irritants: '("testfile.compact line 3 char 10" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (ecAdd #f "\n    four functions are incompatible with the supplied argument types\n      supplied argument types:\n        (Bytes<32>, JubjubPoint)\n      declared argument types for function at <standard library>:\n        (Curve25519Point, Curve25519Point)\n      declared argument types for function at <standard library>:\n        (Secp256r1Point, Secp256r1Point)\n      declared argument types for function at <standard library>:\n        (Secp256k1Point, Secp256k1Point)\n      declared argument types for function at <standard library>:\n        (JubjubPoint, JubjubPoint)" #f)))
     )
 
   (test
@@ -18460,12 +18473,30 @@ groups than for single tests.
         (native %ecMul.4 ([%a.5 (tpoint (curve-jubjub))]
                           [%b.6 (tfield (field-scalar (curve-jubjub)))])
              (tpoint (curve-jubjub)))
-        (circuit %foo.7 ([%c.8 (tpoint (curve-jubjub))])
+        (native %ecAdd.7 ([%a.8 (tpoint (curve-secp256k1))]
+                          [%b.9 (tpoint (curve-secp256k1))])
+             (tpoint (curve-secp256k1)))
+        (native %ecMul.10 ([%a.11 (tpoint (curve-secp256k1))]
+                           [%b.12 (tfield (field-scalar (curve-secp256k1)))])
+             (tpoint (curve-secp256k1)))
+        (native %ecAdd.13 ([%a.14 (tpoint (curve-secp256r1))]
+                           [%b.15 (tpoint (curve-secp256r1))])
+             (tpoint (curve-secp256r1)))
+        (native %ecMul.16 ([%a.17 (tpoint (curve-secp256r1))]
+                           [%b.18 (tfield (field-scalar (curve-secp256r1)))])
+             (tpoint (curve-secp256r1)))
+        (native %ecAdd.19 ([%a.20 (tpoint (curve-curve25519))]
+                           [%b.21 (tpoint (curve-curve25519))])
+             (tpoint (curve-curve25519)))
+        (native %ecMul.22 ([%a.23 (tpoint (curve-curve25519))]
+                           [%b.24 (tfield (field-scalar (curve-curve25519)))])
+             (tpoint (curve-curve25519)))
+        (circuit %foo.25 ([%c.26 (tpoint (curve-jubjub))])
              (tpoint (curve-jubjub))
           (call %ecAdd.1
-            %c.8
+            %c.26
             (call %ecMul.4
-              %c.8
+              %c.26
               (cast-to-field (field-scalar (curve-jubjub)) (tunsigned 3)
                 3))))))
     )
@@ -25610,27 +25641,33 @@ groups than for single tests.
       "contract C { };"
       "contract implements C;"
       )
-    (returns (program))
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
+  ; TODO: `foo` is inferred pure and gets no proof, so it does not implement `C`; only the
+  ; `pure` modifier is checked here, so this still compiles until pure exports must be marked
   (test
     '(
       "contract C { circuit foo(): []; };"
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
     '(
-      "contract C { pure circuit foo(): []; };"
+      "contract C { circuit foo(): []; };"
       "contract implements C;"
-      "export circuit foo(): [] { return; }"
+      "export pure circuit foo(): [] { return; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" (foo)))
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is declared pure, and a circuit declared in a contract type must have a proof" (foo)))
     )
 
   (test
@@ -25639,7 +25676,10 @@ groups than for single tests.
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25662,7 +25702,10 @@ groups than for single tests.
       "import M;"
       "export { foo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25691,7 +25734,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25708,7 +25754,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25803,7 +25852,7 @@ groups than for single tests.
          "  import CompactStandardLibrary;"
          "  export contract C1 {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "}"
          )))
@@ -33978,6 +34027,107 @@ groups than for single tests.
              (tstruct ShieldedSpend (nullifier (tbytes 32)))
           (call %deserialize.1 %x.4))))
     )
+
+  ; the value of an assert is [], so it combines with a [] literal in a conditional
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'x') : [];"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "export circuit foo(b: Boolean): [] {"
+      "  return disclose(b) ? [] : assert(true, 'x');"
+      "}"
+      )
+    (succeeds)
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [true, false, ...default<Vector<0, Boolean>>];"
+      "  return values[1] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [[true, false], [false, true], ...default<Vector<0, [Boolean, Boolean]>>];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [...map((x) => [true, false], default<Vector<1, Uint<8>>>), [false, true]];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [...map((x) => [true, false], default<Vector<1, Uint<8>>>), [true, false]];"
+      "  return values[1][0] ? true : secret();"
+      "}"
+      )
+    (returns
+      (program
+        (public-ledger-declaration () (constructor () (tuple)))
+        (witness %secret.0 () (tboolean))
+        (circuit %entry.1 ()
+             (tboolean)
+          (let* ([[%values.2 (tvector
+                               2
+                               (ttuple (tboolean) (tboolean)))]
+                  (vector
+                    (spread 1
+                      (map
+                        (circuit ([%x.3 (tunsigned 255)])
+                             (ttuple (tboolean) (tboolean))
+                          (tuple #t #f))
+                        (default (tvector 1 (tunsigned 255)))))
+                    (tuple #t #f))])
+            (if (tuple-ref (tuple-ref %values.2 1) 0)
+                #t
+                (call %secret.0))))))
+    )
+
+  (test
+    '(
+      "witness secret(): Boolean;"
+      "export circuit entry(): Boolean {"
+      "  const values = [true, false, ...default<Vector<0, Boolean>>];"
+      "  return values[1] ? secret() : true;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 3" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the return value of witness secret at line 1 char 1" ("\n    nature of the disclosure:\n      the value returned from exported circuit entry might disclose the witness value"))))
+    )
 )
 
 ; examples of where disclose can be placed
@@ -35712,7 +35862,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): C1 { return c; }"
          ))
@@ -35730,7 +35880,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35748,7 +35898,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35766,7 +35916,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35814,7 +35964,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          ))
@@ -35827,7 +35977,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor () (tuple)))))
      ))
 
@@ -35843,7 +35993,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -35858,10 +36008,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -35869,12 +36019,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -35889,7 +36039,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -35904,10 +36054,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -35915,12 +36065,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -35935,7 +36085,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -35958,7 +36108,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "  circuit blah(x: Field, y: Boolean): Boolean;"
          "}"
          "ledger contract_c: C;"
@@ -35974,11 +36124,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))
+                  (bar #f () (tbytes 32))
                   (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32))
+                                 (bar #f () (tbytes 32))
                                  (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ([%x.4 (tfield (field-native))] [%y.5 (tboolean)])
@@ -35987,7 +36137,7 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))
+                   (bar #f () (tbytes 32))
                    (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))
              %x.4
              %y.5))))
@@ -36006,7 +36156,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "  circuit blah(x: Field, y: Boolean): Boolean;"
          "}"
          "ledger contract_c: C;"
@@ -36031,7 +36181,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: A): [];"
-         "    pure circuit bar(): A;"
+         "    circuit bar(): A;"
          "  }"
          "}"
          "import m<Bytes<32>>;"
@@ -36048,10 +36198,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -36059,12 +36209,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))))
+                   (bar #f () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32)))))))))
+                     (bar #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -36081,7 +36231,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36108,7 +36258,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36136,7 +36286,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36154,11 +36304,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))
+                  (bar #f () (tbytes 32))
                   (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32))
+                                 (bar #f () (tbytes 32))
                                  (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ([%x.4 (tfield (field-native))] [%y.5 (tboolean)])
@@ -36167,7 +36317,7 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))
+                   (bar #f () (tbytes 32))
                    (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))
              %x.4
              %y.5))))
@@ -36347,7 +36497,7 @@ groups than for single tests.
        '(
          "export contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          ))
      (oops
@@ -36373,6 +36523,7 @@ groups than for single tests.
          ))
       (returns
         (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
           (public-ledger-declaration () (constructor () (tuple)))))
     ))
 
@@ -36390,7 +36541,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36402,7 +36553,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "constructor(c: C) {"
          "  putc(c);"
@@ -36419,14 +36570,14 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tboolean))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tfield (field-native))) (tboolean))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (call %putc.3 %c.2) (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
                                    (foo #f ((tfield (field-native))) (tboolean))
-                                   (bar #t () (tfield (field-native))))])
+                                   (bar #f () (tfield (field-native))))])
               (ttuple)
            (seq (public-ledger %ledger_c.1 (0) write %c.4) (tuple)))
          (circuit %callc.5 ()
@@ -36435,12 +36586,12 @@ groups than for single tests.
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tfield (field-native))) (tboolean))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tfield (field-native))) (tboolean))
-                     (bar #t () (tfield (field-native))))))))))
+                     (bar #f () (tfield (field-native))))))))))
      ))
 
   (test-group
@@ -36457,7 +36608,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36469,7 +36620,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "  circuit blot(): Bytes<32>;"
          "}"
          "constructor(c: C) {"
@@ -36487,25 +36638,25 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tboolean))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tfield (field-native))) (tboolean))
-                                 (bar #t () (tfield (field-native)))
+                                 (bar #f () (tfield (field-native)))
                                  (blot #f () (tbytes 32)))])
              (seq
                (call %putc.3
                  (safe-cast (tcontract C
                               (foo #f ((tfield (field-native))) (tboolean))
-                              (bar #t () (tfield (field-native))))
+                              (bar #f () (tfield (field-native))))
                             (tcontract C
                               (foo #f ((tfield (field-native))) (tboolean))
-                              (bar #t () (tfield (field-native)))
+                              (bar #f () (tfield (field-native)))
                               (blot #f () (tbytes 32)))
                    %c.2))
                (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
                                    (foo #f ((tfield (field-native))) (tboolean))
-                                   (bar #t () (tfield (field-native))))])
+                                   (bar #f () (tfield (field-native))))])
               (ttuple)
            (seq (public-ledger %ledger_c.1 (0) write %c.4) (tuple)))
          (circuit %callc.5 ()
@@ -36514,12 +36665,12 @@ groups than for single tests.
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tfield (field-native))) (tboolean))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tfield (field-native))) (tboolean))
-                     (bar #t () (tfield (field-native))))))))))
+                     (bar #f () (tfield (field-native))))))))))
      ))
 
   (test-group
@@ -36535,7 +36686,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36556,7 +36707,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 19 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (putc #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (contract C<foo(Field): Boolean>)\n      declared argument types for function at line 8 char 3:\n        (contract C<foo(Field): Boolean, pure bar(): Field>)" #f)))
+       irritants: '("testfile.compact line 19 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (putc #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (contract C<foo(Field): Boolean>)\n      declared argument types for function at line 8 char 3:\n        (contract C<foo(Field): Boolean, bar(): Field>)" #f)))
      ))
 
   (test-group
@@ -36576,7 +36727,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit foo(x: Field): [];"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -36589,7 +36740,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 12 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C<foo(Field): [], pure bar(): Field>" "contract C2<foo(Field): []>")))
+       irritants: '("testfile.compact line 12 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C<foo(Field): [], bar(): Field>" "contract C2<foo(Field): []>")))
      ))
 
   (test-group
@@ -36635,7 +36786,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit foo(x: Field): [];"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -36648,18 +36799,21 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration
            ()
-           (constructor ([%$c.0 (tcontract C
+           (constructor ([%$c.1 (tcontract C
                                   (foo #f ((tfield (field-native))) (ttuple))
-                                  (bar #t () (tfield (field-native))))])
+                                  (bar #f () (tfield (field-native))))])
              (seq
-               (let* ([[%c.1 (tcontract C (foo #f ((tfield (field-native))) (ttuple)))]
-                       (safe-cast (tcontract C (foo #f ((tfield (field-native))) (ttuple)))
+               (let* ([[%c.2 (tcontract C
+                               (foo #f ((tfield (field-native))) (ttuple)))]
+                       (safe-cast (tcontract C
+                                    (foo #f ((tfield (field-native))) (ttuple)))
                                   (tcontract C
                                     (foo #f ((tfield (field-native))) (ttuple))
-                                    (bar #t () (tfield (field-native))))
-                         %$c.0)])
+                                    (bar #f () (tfield (field-native))))
+                         %$c.1)])
                  (tuple))
                (tuple))))))
      ))
@@ -36709,7 +36863,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Field): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit foo(x: Field): [];"
@@ -36720,7 +36874,7 @@ groups than for single tests.
          ))
       (oops
         message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C1<foo(Field): Field, pure bar(): Field>" "contract C2<foo(Field): []>")))
+        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C1<foo(Field): Field, bar(): Field>" "contract C2<foo(Field): []>")))
       ))
 
   (test-group
@@ -36739,7 +36893,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit foo(x: Field): [];"
@@ -36750,7 +36904,7 @@ groups than for single tests.
          ))
       (oops
         message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C2<foo(Field): []>" "contract C1<foo(Field): [], pure bar(): Field>")))))
+        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C2<foo(Field): []>" "contract C1<foo(Field): [], bar(): Field>")))))
 
   (test-group
     ((create-file "C.compact"
@@ -36764,7 +36918,7 @@ groups than for single tests.
          "struct S { c: C }"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "witness check(x: C): [];"
@@ -36777,11 +36931,11 @@ groups than for single tests.
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor () (tuple)))
          (witness %check.2 ([%x.3 (tcontract C
                                     (foo #f () (ttuple))
-                                    (bar #t () (tfield (field-native))))])
+                                    (bar #f () (tfield (field-native))))])
               (ttuple))
          (circuit %hello.4 ()
               (ttuple)
@@ -36810,7 +36964,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(){contract_c = default<C>;}"
@@ -36829,7 +36983,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "circuit foo(c: C): C {return c;}"
          "ledger contract_c: C;"
@@ -36843,21 +36997,21 @@ groups than for single tests.
            ((%contract_c.0
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor ([%c.1 (tcontract C
                                  (foo #f () (ttuple))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.0 (0) write %c.1) (tuple))))
          (circuit %foo.2 ([%c.3 (tcontract C
                                   (foo #f () (ttuple))
-                                  (bar #t () (tfield (field-native))))])
-              (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native))))
+                                  (bar #f () (tfield (field-native))))])
+              (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native))))
            %c.3)
          (circuit %foofoo.4 ()
               (ttuple)
            (let* ([[%x.5 (tcontract C
                            (foo #f () (ttuple))
-                           (bar #t () (tfield (field-native))))]
+                           (bar #f () (tfield (field-native))))]
                    (call %foo.2 (public-ledger %contract_c.0 (0) read))])
              (tuple)))))
       ))
@@ -36873,7 +37027,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(c: C): [] {return;}"
          ))
@@ -36891,7 +37045,7 @@ groups than for single tests.
          "struct S { c: C, b: Boolean }"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(s: S): [] {return;}"
          ))
@@ -36908,7 +37062,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(x: Boolean, c: C): [] {return;}"
          ))
@@ -36926,7 +37080,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -36947,7 +37101,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -36962,10 +37116,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -36973,12 +37127,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -36994,7 +37148,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {c.foo();}"
@@ -37046,11 +37200,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {c2.fooo();}"
@@ -37075,11 +37229,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
-         "pure circuit docall(c: C): Field { return c.bar(); }"
+         "circuit docall(c: C): Field { return c.bar(); }"
          "export circuit hello(): Field { return docall(contract_c); }"
          ))
      (returns
@@ -37091,20 +37245,20 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %docall.3 ([%c.4 (tcontract C
                                      (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                     (bar #t () (tfield (field-native))))])
+                                     (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (contract-call bar
                 (%c.4
                  (tcontract C
                    (foo #f ((tunsigned 255)) (tfield (field-native)))
-                   (bar #t () (tfield (field-native)))))))
+                   (bar #f () (tfield (field-native)))))))
          (circuit %hello.5 ()
               (tfield (field-native))
            (call %docall.3 (public-ledger %contract_c.1 (0) read)))))
@@ -37149,7 +37303,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "calls impure circuit bar of external contract C" "line 9 char 44")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "makes a cross-contract call to circuit bar of contract C" "line 9 char 44")))
      ))
 
   (test-group
@@ -37166,7 +37320,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37175,7 +37329,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "calls impure circuit foo of external contract C" "line 8 char 44")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "makes a cross-contract call to circuit foo of contract C" "line 8 char 44")))
      ))
 
   (test-group
@@ -37192,7 +37346,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37202,7 +37356,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "calls impure circuit foo of external contract C" "line 9 char 39")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "makes a cross-contract call to circuit foo of contract C" "line 9 char 39")))
      ))
 
   (test-group
@@ -37219,7 +37373,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37229,7 +37383,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "calls impure circuit foo of external contract C" "line 8 char 39")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "makes a cross-contract call to circuit foo of contract C" "line 8 char 39")))
      ))
 
   (test-group
@@ -37263,7 +37417,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37273,7 +37427,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (docall foofoo "calls impure circuit foo of external contract C" "line 9 char 39")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (docall foofoo "makes a cross-contract call to circuit foo of contract C" "line 9 char 39")))
      ))
 
   (test-group
@@ -37290,7 +37444,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37309,38 +37463,38 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %V.3 ()
               (tfield (field-native))
            (call %W.4 (public-ledger %contract_c.1 (0) read)))
          (circuit %W.4 ([%c.5 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %X.6 %c.5))
          (circuit %X.6 ([%c.7 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %Y.8 %c.7))
          (circuit %Y.8 ([%c.9 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %Z.10 %c.9))
          (circuit %Z.10 ([%c.11 (tcontract C
                                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                  (bar #t () (tfield (field-native))))])
+                                  (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (contract-call foo
                 (%c.11
                  (tcontract C
                    (foo #f ((tunsigned 255)) (tfield (field-native)))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (safe-cast (tunsigned 255) (tunsigned 17) 17)))))
      ))
 
@@ -37358,7 +37512,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37370,7 +37524,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (W Z "calls impure circuit foo of external contract C" "line 12 char 34")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (W Z "makes a cross-contract call to circuit foo of contract C" "line 12 char 34")))
      ))
 
   (test-group
@@ -38063,7 +38217,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c); c.foo();}"
@@ -38086,7 +38240,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -38099,10 +38253,10 @@ groups than for single tests.
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f () (ttuple))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %foofoo.3 ()
               (ttuple)
@@ -38111,7 +38265,7 @@ groups than for single tests.
                         ((public-ledger %contract_c.1 (0) read)
                          (tcontract C
                            (foo #f () (ttuple))
-                           (bar #t () (tfield (field-native))))))])
+                           (bar #f () (tfield (field-native))))))])
              (tuple)))))
       ))
 
@@ -38127,7 +38281,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2{"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
@@ -38183,7 +38337,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2{"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
@@ -38245,11 +38399,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); c2.fooo();}"
@@ -38278,11 +38432,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); contract_c.foo();}"
@@ -38311,11 +38465,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); const x = c2.baar() + contract_c.bar();}"
@@ -38344,11 +38498,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); return foofoo();}"
@@ -38377,11 +38531,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38412,11 +38566,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38446,11 +38600,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38474,7 +38628,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(baz());}"
@@ -38498,7 +38652,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(blah());}"
@@ -38524,7 +38678,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(id());}"
@@ -38555,11 +38709,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38590,8 +38744,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>, y: Vector<2, S>, z: E): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38605,8 +38760,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38621,6 +38777,7 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration () (constructor () (tuple)))))
      ))
 
@@ -38668,7 +38825,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "module M1 {"
          "  import M<C>;"
@@ -38681,7 +38838,7 @@ groups than for single tests.
          "module M3 {"
          "  contract D {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "  import M<D>;"
          "  export { init, hello };"
@@ -38701,20 +38858,20 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32)))))
+                  (barr #f () (tbytes 32)))))
             (%contract_c.2
               (1)
               (__compact_Cell
                 (tcontract D
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.3 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (call %init.4 %c.3) (tuple))))
          (circuit %init.4 ([%x.5 (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (barr #t () (tbytes 32)))])
+                                   (barr #f () (tbytes 32)))])
               (ttuple)
            (seq (public-ledger %contract_c.1 (0) write %x.5) (tuple)))
          (circuit %hello.6 ()
@@ -38723,12 +38880,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -38749,7 +38906,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "module M1 {"
          "  import M<C>;"
@@ -38757,7 +38914,7 @@ groups than for single tests.
          "}"
          "module M2 {"
          "  contract C {"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "    circuit foo(x: Bytes<32>): [];"
          "  }"
          "  import M<C>;"
@@ -38777,14 +38934,14 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (call %init.3 %c.2) (tuple))))
          (circuit %init.3 ([%x.4 (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (barr #t () (tbytes 32)))])
+                                   (barr #f () (tbytes 32)))])
               (ttuple)
            (seq (public-ledger %contract_c.1 (0) write %x.4) (tuple)))
          (circuit %hello.5 ()
@@ -38793,12 +38950,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -38813,7 +38970,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -38843,7 +39000,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -38863,10 +39020,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (witness %W.3 () (tbytes 32))
          (circuit %foo.4 ()
@@ -38876,13 +39033,13 @@ groups than for single tests.
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32))))
+                     (bar #f () (tbytes 32))))
                (call %W.3))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32)))))))))
+                     (bar #f () (tbytes 32)))))))))
      ))
 
   (test-group ; placement of disclose matters for CC calls
@@ -38897,7 +39054,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -38926,7 +39083,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: [Boolean, Bytes<32>]): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "sealed ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -38940,11 +39097,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((ttuple (tboolean) (tbytes 32))) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.0 (tcontract C
                                  (foo #f ((ttuple (tboolean) (tbytes 32)))
                                    (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq
                (public-ledger %contract_c.1 (0) write %c.0)
                (tuple))))))
@@ -39272,7 +39429,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39301,7 +39458,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39331,7 +39488,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39368,7 +39525,7 @@ groups than for single tests.
          "import M;"
          "contract C {"
          "  circuit foo(x: B32): [];"
-         "  pure circuit bar(): B32;"
+         "  circuit bar(): B32;"
          "}"
          "ledger contract_c: C;"
          ))
@@ -39381,7 +39538,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((talias #t B32 (tbytes 32))) (ttuple))
-                  (bar #t () (talias #t B32 (tbytes 32)))))))
+                  (bar #f () (talias #t B32 (tbytes 32)))))))
            (constructor () (tuple)))))
      ))
 
@@ -39396,7 +39553,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
          "witness W(): C1;"
@@ -39415,7 +39572,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "witness W(): C1;"
@@ -39434,7 +39591,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
          "export circuit foo(): C1 { return default<C1>; }"
@@ -39452,7 +39609,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "export circuit foo(b: Boolean, c: C1): [] { }"
@@ -39470,7 +39627,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "export circuit foo(b: Boolean, c: [ C1, Uint<32> ]): [] { }"
@@ -39488,7 +39645,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "ledger F: C1;"
@@ -39510,7 +39667,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -39528,7 +39685,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32)))))
+                  (bar #f () (tbytes 32)))))
             (%F.2
               (1)
               (__compact_Cell
@@ -39537,10 +39694,10 @@ groups than for single tests.
                   (ttuple
                     (tcontract C
                       (foo #f ((tbytes 32)) (ttuple))
-                      (bar #t () (tbytes 32))))))))
+                      (bar #f () (tbytes 32))))))))
            (constructor ([%c.3 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
          (circuit %foo.4 ()
               (ttuple)
@@ -39550,23 +39707,23 @@ groups than for single tests.
                                (ttuple
                                  (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (bar #t () (tbytes 32)))))]
+                                   (bar #f () (tbytes 32)))))]
                      (flet [%circ.6
                             (circuit ([%x.7 (tcontract C
                                               (foo #f ((tbytes 32)) (ttuple))
-                                              (bar #t () (tbytes 32)))])
+                                              (bar #f () (tbytes 32)))])
                                  (ttuple
                                    (tcontract C
                                      (foo #f ((tbytes 32)) (ttuple))
-                                     (bar #t () (tbytes 32))))
+                                     (bar #f () (tbytes 32))))
                               (tuple %x.7))]
                        (let* ([[%t.8 (ttuple
                                        (tcontract C
                                          (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32)))
+                                         (bar #f () (tbytes 32)))
                                        (tcontract C
                                          (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32))))]
+                                         (bar #f () (tbytes 32))))]
                                (tuple
                                  (public-ledger %contract_c.1 (0) read)
                                  (public-ledger %contract_c.1 (0) read))])
@@ -39590,7 +39747,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -39619,7 +39776,7 @@ groups than for single tests.
                                                  (tunsigned
                                                    452312848583266388373324160190187140051835877600158453279131187530910662655))))
                                     (ty () ()))
-                                  (barr #t ()
+                                  (barr #f ()
                                     (ty ((abytes 32))
                                         ((tunsigned 255)
                                           (tunsigned
@@ -39632,7 +39789,7 @@ groups than for single tests.
                                                  (tunsigned
                                                    452312848583266388373324160190187140051835877600158453279131187530910662655))))
                                     (ty () ()))
-                                  (barr #t ()
+                                  (barr #f ()
                                     (ty ((abytes 32))
                                         ((tunsigned 255)
                                           (tunsigned
@@ -39648,7 +39805,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit fooImpure(x: Bytes<32>): [];"
-         "    pure circuit fooPure(x: Bytes<32>): [];"
+         "    circuit fooOther(x: Bytes<32>): [];"
          "  }"
          "}"
          )
@@ -39660,7 +39817,7 @@ groups than for single tests.
          "contract implements C;"
          "ledger F: Bytes<32>;"
          "export circuit fooImpure(x: Bytes<32>): [] { F = disclose(x); }"
-         "export pure circuit fooPure(x: Bytes<32>): [] { return; }"
+         "export circuit fooOther(x: Bytes<32>): [] { F = disclose(x); }"
          )
        )
      (succeeds))
@@ -39671,7 +39828,7 @@ groups than for single tests.
          "export circuit callFoos(b: Boolean, c: C, x: Bytes<32>): [] {"
          "  if (b) {"
          "    c.fooImpure(x);"
-         "    c.fooPure(x);"
+         "    c.fooOther(x);"
          "  }"
          "}"
          ))
@@ -39681,7 +39838,13 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of exported circuit callFoos at line 3 char 37" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
        message: "~a:\n  ~?"
-       irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+       irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit callFoos at line 3 char 43" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of exported circuit callFoos at line 3 char 37" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
      ))
 
   (test-group
@@ -39690,7 +39853,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit fooImpure(x: Bytes<32>): [];"
-         "    pure circuit fooPure(x: Bytes<32>): [];"
+         "    circuit fooOther(x: Bytes<32>): [];"
          "  }"
          "}"
          )
@@ -39702,7 +39865,7 @@ groups than for single tests.
          "contract implements C;"
          "ledger F: Bytes<32>;"
          "export circuit fooImpure(x: Bytes<32>): [] { F = disclose(x); }"
-         "export pure circuit fooPure(x: Bytes<32>): [] { return; }"
+         "export circuit fooOther(x: Bytes<32>): [] { F = disclose(x); }"
          )
        )
      (succeeds))
@@ -39713,7 +39876,7 @@ groups than for single tests.
          "export circuit callFoos(b: Boolean, c: C, x: Bytes<32>): [] {"
          "  if (disclose(b)) {"
          "    disclose(c).fooImpure(disclose(x));"
-         "    c.fooPure(x);"
+         "    disclose(c).fooOther(disclose(x));"
          "  }"
          "}"
          ))
@@ -39724,7 +39887,7 @@ groups than for single tests.
          (circuit %callFoos.1 ([%b.2 (tboolean)]
                                [%c.3 (tcontract C
                                        (fooImpure #f ((tbytes 32)) (ttuple))
-                                       (fooPure #t ((tbytes 32)) (ttuple)))]
+                                       (fooOther #f ((tbytes 32)) (ttuple)))]
                                [%x.4 (tbytes 32)])
               (ttuple)
            (seq
@@ -39734,13 +39897,13 @@ groups than for single tests.
                         (%c.3
                          (tcontract C
                            (fooImpure #f ((tbytes 32)) (ttuple))
-                           (fooPure #t ((tbytes 32)) (ttuple))))
+                           (fooOther #f ((tbytes 32)) (ttuple))))
                      %x.4)
-                   (contract-call fooPure
+                   (contract-call fooOther
                         (%c.3
                          (tcontract C
                            (fooImpure #f ((tbytes 32)) (ttuple))
-                           (fooPure #t ((tbytes 32)) (ttuple))))
+                           (fooOther #f ((tbytes 32)) (ttuple))))
                      %x.4))
                  (tuple))
              (tuple)))))
@@ -40523,7 +40686,6 @@ groups than for single tests.
     )
 )
 
-(parameterize ([feature-zkir-v3 #t])
 (run-tests unroll-loops
   (test
     '(
@@ -40655,7 +40817,6 @@ groups than for single tests.
                 (tuple-ref %t.8 2)))))))
     )
   )
-)
 
 (run-tests inline-circuits
   (test
@@ -50386,20 +50547,19 @@ groups than for single tests.
              (0)
              (__compact_Cell (ty ((abytes 1)) ((tunsigned 1)))))))
         (native %ecAdd.2 ((argument
-                            (%a.3 %a.4)
-                            (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native)))))
+                            (%a.3)
+                            (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub)))))
                           (argument
-                            (%b.5 %b.6)
-                            (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native)))))
-        (circuit %fisk.7 ((argument
-                            (%pt.8 %pt.9)
-                            (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native))))))
-             (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native))))
+                            (%b.4)
+                            (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
+             (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub)))))
+        (circuit %fisk.5 ((argument
+                            (%pt.6)
+                            (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))))
+             (ty ((anative "JubjubPoint")) ((tpoint (curve-jubjub))))
           (= 1 () (public-ledger %impure.1 (0) write 1))
-          (= 1 (%pt1.10 %pt1.11)
-             (call %ecAdd.2 %pt.8 %pt.9 %pt.8 %pt.9))
-          (%pt1.10 %pt1.11)))))
+          (= 1 (%pt1.7) (call %ecAdd.2 %pt.6 %pt.6))
+          (%pt1.7)))))
 
   (test
     `(
@@ -50429,10 +50589,7 @@ groups than for single tests.
           (= 1 () (public-ledger %F.4 (0) write %t.6 %t.7))
           ())))
     )
-)
 
-(parameterize ([feature-zkir-v3 #t])
-(run-tests optimize-circuit2
   (test ;; FIXME uncomment the composable contract
     "test-center/compact/test.compact"
     (pass-returns infer-types
@@ -50927,9 +51084,8 @@ groups than for single tests.
           (%t.69))))
     )
 )
-)
 
-(run-tests print-zkir
+(run-tests print-zkir-v3
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
@@ -50961,11865 +51117,6 @@ groups than for single tests.
                  "examples/outputs/zerocash.compact/zkir/spend.zkir")
     (output-file "compiler/testdir/zkir/zerocash_mint.zkir"
                  "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir")
-  )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "module M {"
-      "  export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
-      "}"
-      ""
-      "import M prefix A;"
-      "import M prefix B;"
-      "export { Afoo, Bfoo };"
-      )
-    (output-file "compiler/testdir/zkir/Bfoo.zkir"
-                 "compiler/testdir/zkir/Afoo.zkir")
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a == 0; }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a != 0; }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < 5; }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 8, \"bits\": 16 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Uint<16>): Boolean { forceProof(); return a < a + 5; }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 8 },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 9, \"bits\": 17 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Uint<0..1>): Boolean { forceProof(); return a <= 0; }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"less_than\", \"a\": 1, \"b\": 0, \"bits\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "export circuit foo(a : Boolean): Boolean {"
-      "  return a;
-      }"
-      ""
-      "export circuit bar(a: Boolean): Boolean {"
-      "  return foo(a);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir" #f)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Boolean): Boolean {"
-      "  forceProof();"
-      "  return a;
-      }"
-      ""
-      "export circuit bar(a: Boolean): Boolean {"
-      "  return foo(a);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit foo(a : Boolean): Boolean {"
-      "  return a;"
-      "}"
-      ""
-      "export circuit bar(a: Boolean): Boolean {"
-      "  forceProof();"
-      "  return foo(a);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "struct Foo {"
-      "  a: Field;"
-      "  b: Boolean;"
-      "}"
-      "struct Bar {"
-      "  a: Vector<2, Foo>;"
-      "  b: Bytes<0>;"
-      "  c: Uint<32>;"
-      "  d: Opaque<'string'>;"
-      "}"
-      "export circuit foo(): Bar {"
-      "  forceProof();"
-      "  return default<Bar>;"
-      "}"
-      "export circuit bar(x: Opaque<'string'>): Bar {"
-      "  forceProof();"
-      "  return Bar{ a: [Foo{ a: 0 as Field, b: false }, Foo{ a: 0 as Field, b: false }], b: '', c: 0, d: x };"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 3 },"
-        "    { \"op\": \"output\", \"var\": 3 },"
-        "    { \"op\": \"output\", \"var\": 3 },"
-        "    { \"op\": \"output\", \"var\": 3 },"
-        "    { \"op\": \"output\", \"var\": 3 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      ""
-      "export circuit bar(x: Bytes<32>, y: Uint<32>, z: Uint<16>): Field {"
-      "  forceProof();"
-      "  const q = x as Field;"
-      "  return q + y * z - q * (y - z);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 32 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 0, \"modulus\": 1, \"bits\": 248 },"
-        "    { \"op\": \"mul\", \"a\": 2, \"b\": 3 },"
-        "    { \"op\": \"add\", \"a\": 11, \"b\": 12 },"
-        "    { \"op\": \"less_than\", \"a\": 2, \"b\": 3, \"bits\": 32 },"
-        "    { \"op\": \"cond_select\", \"bit\": 14, \"a\": 7, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 15 },"
-        "    { \"op\": \"neg\", \"a\": 3 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 16 },"
-        "    { \"op\": \"mul\", \"a\": 11, \"b\": 17 },"
-        "    { \"op\": \"neg\", \"a\": 18 },"
-        "    { \"op\": \"add\", \"a\": 13, \"b\": 19 },"
-        "    { \"op\": \"output\", \"var\": 20 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit foo(x: Field): Uint<16> {"
-      "  forceProof();"
-      "  return x as Uint<16>;"
-      "}"
-      "export circuit bar(x: Uint<32>): Uint<16> {"
-      "  forceProof();"
-      "  return x as Uint<16>;"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 32 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 16 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit foo(p1: JubjubPoint, p2: JubjubPoint): JubjubPoint {"
-      "  return ecAdd(ecAdd(ecAdd(ecMul(p1, transientHash<Vector<2, Field>>([jubjubPointX(p1), jubjubPointX(p2)]) as JubjubScalar), ecMulGenerator(17 as JubjubScalar)), hashToCurve<ContractAddress>(kernel.self())), hashToCurve<Vector<0, Field>>([]));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"transient_hash\", \"inputs\": [0, 2] },"
-        "    { \"op\": \"copy\", \"var\": 5 },"
-        "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"copy\", \"var\": 9 },"
-        "    { \"op\": \"ec_mul_generator\", \"scalar\": 10 },"
-        "    { \"op\": \"ec_add\", \"a_x\": 7, \"a_y\": 8, \"b_x\": 11, \"b_y\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"60\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"hash_to_curve\", \"inputs\": [18, 19] },"
-        "    { \"op\": \"ec_add\", \"a_x\": 13, \"a_y\": 14, \"b_x\": 22, \"b_y\": 23 },"
-        "    { \"op\": \"hash_to_curve\", \"inputs\": [] },"
-        "    { \"op\": \"ec_add\", \"a_x\": 24, \"a_y\": 25, \"b_x\": 26, \"b_y\": 27 },"
-        "    { \"op\": \"output\", \"var\": 28 },"
-        "    { \"op\": \"output\", \"var\": 29 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field0: Map<Boolean, Field>;"
-      "ledger field1: Map<Boolean, Counter>;"
-      ""
-      "export circuit identity(q: Field): Field {"
-      "  return q + 1;"
-      "}"
-      ""
-      "export circuit init0(b: Boolean): [] {"
-      "  field0.insert(disclose(b), default<Field>);"
-      "}"
-      ""
-      "export circuit ismember(b: Boolean): Boolean {"
-      "  return field1.member(disclose(b));"
-      "}"
-      ""
-      "export circuit init1(b: Boolean): [] {"
-      "  field1.insert(disclose(b), default<Counter>);"
-      "}"
-      ""
-      "export circuit update(b: Boolean, n: Uint<16>): [] {"
-      "  field1.lookup(disclose(b)) += disclose(n);"
-      "}"
-      ""
-      "export circuit get(b: Boolean): Uint<64> {"
-      "  return field1.lookup(disclose(b));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/identity.zkir" #f)
-    (output-file "compiler/testdir/zkir/init0.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/ismember.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"18\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 6 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/init1.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/update.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/get.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 7 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, Field>>;"
-      ""
-      "export circuit init(b: Boolean): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Field>>);"
-      "}"
-      ""
-      "export circuit put(b: Boolean, n: Uint<16>, q: Field): [] {"
-      "  field1.lookup(b).insert(disclose(n), disclose(q));"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): Field {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/init.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/put.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/get.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field): Boolean {"
-      "  const x = !(n == 1 as Field);"
-      "  return ((x) => x && n == 0 as Field)(!x);"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo(n+1) ? n - 1 : n + 1;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 8, \"b\": 3 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 10 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 11, \"b\": 6 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
- (with-compact-path '(".")
-  (test
-    '(
-      "export { foo }"
-      "include \"test-center/compact/bar\";"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 }"
-        "  ]"
-        "}"))
-    )
-  )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Boolean {"
-      "  impure = true;"
-      "  const x = true;"
-      "  return x;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(): Boolean {"
-      "  const x = true;"
-      "  return x;"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo() ? n - 1 : n + 1;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field): Boolean {"
-      "  const x = !(n == 1 as Field);"
-      "  return ((x) => x && n == 0 as Field)(!x);"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo(n+1) ? n - 1 : n + 1;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 6, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 8, \"b\": 3 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 10 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 11, \"b\": 6 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field): Field {"
-      "  const x = n == 0 as Field;"
-      "  return 1 + ((x) => x == false ? n + 7 : n + 13)(!x);"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo(n-1) * foo(n-2) * 3;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"test_eq\", \"a\": 7, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 9, \"b\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 11 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 13 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 12, \"b\": 14 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 15 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"neg\", \"a\": 17 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 18 },"
-        "    { \"op\": \"test_eq\", \"a\": 19, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 20, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 21, \"b\": 3 },"
-        "    { \"op\": \"add\", \"a\": 19, \"b\": 11 },"
-        "    { \"op\": \"add\", \"a\": 19, \"b\": 13 },"
-        "    { \"op\": \"cond_select\", \"bit\": 22, \"a\": 23, \"b\": 24 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 25 },"
-        "    { \"op\": \"mul\", \"a\": 16, \"b\": 26 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"mul\", \"a\": 27, \"b\": 28 },"
-        "    { \"op\": \"output\", \"var\": 29 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(x: Field): Field {"
-      "  return 1 + (() => x)();"
-      "}"
-      "export circuit bar(n: Field): Field {"
-      "  impure = true;"
-      "  return foo(n) * foo(n+1) * 3;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 0 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 6 },"
-        "    { \"op\": \"mul\", \"a\": 6, \"b\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"mul\", \"a\": 8, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean, x: Field): Field {"
-      "  impure = true;"
-      "  return 1 + ((b: Field, x: Boolean): Field => x ? b - 1 : b + 1)(x + 1, !b);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"neg\", \"a\": 2 },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 8 },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 2 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 10, \"b\": 9 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 11 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field, b: Boolean): Field {"
-      "  return b ? n + 1 : n - 1;"
-      "}"
-      "export circuit bar(nv: Vector<7, Field>, bv: Vector<7, Boolean>): Vector<7, Field> {"
-      "  impure = true;"
-      "  return map(foo, nv, bv);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 14,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 7 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 8 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 9 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 10 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 11 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 12 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 13 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 20 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 19, \"b\": 21 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 24 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 23, \"b\": 25 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 28 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 27, \"b\": 29 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 32 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 31, \"b\": 33 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 36 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 35, \"b\": 37 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 40 },"
-        "    { \"op\": \"cond_select\", \"bit\": 12, \"a\": 39, \"b\": 41 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 44 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 43, \"b\": 45 },"
-        "    { \"op\": \"output\", \"var\": 22 },"
-        "    { \"op\": \"output\", \"var\": 26 },"
-        "    { \"op\": \"output\", \"var\": 30 },"
-        "    { \"op\": \"output\", \"var\": 34 },"
-        "    { \"op\": \"output\", \"var\": 38 },"
-        "    { \"op\": \"output\", \"var\": 42 },"
-        "    { \"op\": \"output\", \"var\": 46 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(n: Field, b: Boolean): Field {"
-      "  impure = true;"
-      "  return b ? n + 1 : n - 1;"
-      "}"
-      "export circuit bar(nv: Vector<7, Field>, bv: Vector<7, Boolean>): Vector<7, Field> {"
-      "  impure = true;"
-      "  return map(foo, map(foo, nv, bv), bv);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 14,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 7 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 8 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 9 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 10 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 11 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 12 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 13 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 20 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 19, \"b\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 24 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 23, \"b\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 28 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 27, \"b\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 32 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 31, \"b\": 33 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 36 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 35, \"b\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 40 },"
-        "    { \"op\": \"cond_select\", \"bit\": 12, \"a\": 39, \"b\": 41 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 44 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 43, \"b\": 45 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 22, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 22, \"b\": 48 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 47, \"b\": 49 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 26, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 26, \"b\": 52 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 51, \"b\": 53 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 30, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 30, \"b\": 56 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 55, \"b\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 34, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 34, \"b\": 60 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 59, \"b\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 38, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 38, \"b\": 64 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 63, \"b\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 42, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 42, \"b\": 68 },"
-        "    { \"op\": \"cond_select\", \"bit\": 12, \"a\": 67, \"b\": 69 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 46, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 46, \"b\": 72 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 71, \"b\": 73 },"
-        "    { \"op\": \"output\", \"var\": 50 },"
-        "    { \"op\": \"output\", \"var\": 54 },"
-        "    { \"op\": \"output\", \"var\": 58 },"
-        "    { \"op\": \"output\", \"var\": 62 },"
-        "    { \"op\": \"output\", \"var\": 66 },"
-        "    { \"op\": \"output\", \"var\": 70 },"
-        "    { \"op\": \"output\", \"var\": 74 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness spam(): Bytes<32>;"
-      "export circuit foo(): Field {"
-      "  forceProof();"
-      "  return disclose(spam()) as Field;"
-      "}"
-     )
-      (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 248 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 7, \"modulus\": 8, \"bits\": 248 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(a: Field, n: Field, b: Boolean): Field {"
-      "  impure = true;"
-      "  return a + (b ? n + 1 : n - 1);"
-      "}"
-      "export circuit bar(nv: Vector<7, Field>, bv: Vector<7, Boolean>): Field {"
-      "  impure = true;"
-      "  return fold(foo, 17 as Field, nv, bv);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 14,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 7 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 8 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 9 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 10 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 11 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 12 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 13 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 20 },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 19, \"b\": 21 },"
-        "    { \"op\": \"add\", \"a\": 17, \"b\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 25 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 24, \"b\": 26 },"
-        "    { \"op\": \"add\", \"a\": 23, \"b\": 27 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 2, \"b\": 30 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 29, \"b\": 31 },"
-        "    { \"op\": \"add\", \"a\": 28, \"b\": 32 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 35 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 34, \"b\": 36 },"
-        "    { \"op\": \"add\", \"a\": 33, \"b\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 40 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 39, \"b\": 41 },"
-        "    { \"op\": \"add\", \"a\": 38, \"b\": 42 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 45 },"
-        "    { \"op\": \"cond_select\", \"bit\": 12, \"a\": 44, \"b\": 46 },"
-        "    { \"op\": \"add\", \"a\": 43, \"b\": 47 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 14, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 14 },"
-        "    { \"op\": \"neg\", \"a\": 14 },"
-        "    { \"op\": \"add\", \"a\": 6, \"b\": 50 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 49, \"b\": 51 },"
-        "    { \"op\": \"add\", \"a\": 48, \"b\": 52 },"
-        "    { \"op\": \"output\", \"var\": 53 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Bytes<6> {"
-      "  impure = true;"
-      "  const x = 'hello!';"
-      "  return x;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"68656C6C6F21\" },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Vector<3, Vector<1, Field>> {"
-      "  impure = true;"
-      "  const x = [[7 as Field], [11 as Field], [19 as Field]];"
-      "  return x;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"output\", \"var\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0B\" },"
-        "    { \"op\": \"output\", \"var\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"13\" },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "struct S { x: Field; y: Field; }"
-      "export circuit foo(): S {"
-      "  impure = true;"
-      "  const x = S{ x: 23 as Field, y: 31 as Field };"
-      "  return x;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"17\" },"
-        "    { \"op\": \"output\", \"var\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
-        "    { \"op\": \"output\", \"var\": 6 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "struct S { x: Field; y: Field; }"
-      "witness W(x: S): S;"
-      "export circuit foo(x : S): S {"
-      "  forceProof();"
-      "  return disclose(W(x));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "struct S { x: Field; y: Field; }"
-      "witness state(x: S): S;"
-      "export circuit foo(x : S): S {"
-      "  forceProof();"
-      "  return disclose(state(x));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "enum Weasleys { Bill, Charley, Percy, Fred, George, Ron, Ginny }"
-      "export circuit foo(): Weasleys {"
-      "  impure = true;"
-      "  const x = Weasleys.Fred;"
-      "  return x;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Field): [] {"
-      "  impure = true;"
-      "  assert(x == 17 as Field, 'oops');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 6 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(x: Field): [] {"
-      "  impure = true;"
-      "  assert(x == 17 as Field, 'oops');"
-      "}"
-      "export circuit bar(x: Field): Field {"
-      "  impure = true;"
-      "  return (foo(x), x + 5) as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 7 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(x: Field): [] {"
-      "  impure = true;"
-      "  assert(x == 17 as Field, 'oops');"
-      "}"
-      "export circuit bar(x: Field): Field {"
-      "  impure = true;"
-      "  return (foo(x), x + 5) * 10 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"mul\", \"a\": 8, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "module M {"
-      "  ledger impure: Boolean;"
-      "  export circuit bar(n: Field) : Field {"
-      "    impure = true;"
-      "    return foo() ? foo(n) : 17 as Field;"
-      "}"
-      "  export circuit foo() : Boolean { return true; }"
-      "  export circuit foo(b: Boolean) : Boolean { return b; }"
-      "}"
-      "import M;"
-      "circuit foo() : Boolean { return false; }"
-      "circuit foo(a: Field) : Field { return a; }"
-      "circuit foo(b: Boolean) : Boolean { return b; }"
-      "export {bar}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Opaque<'string'>) : Vector<2, Opaque<'string'>> {"
-      "  impure = true;"
-      "  return map((ignore: Field): Opaque<'string'> => x,"
-      "             [1 as Field, 2 as Field]);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "enum Names { karen, katy, kenny, kulta }"
-      "export circuit foo(x: Names, y: Opaque<'string'>, z: Opaque<'string'>): Field {"
-      "  impure = true;"
-      "  return (x == Names.kenny ? 1 : 0) + (y == z ? 2 : 0) as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 8 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 8, \"b\": 5 },"
-        "    { \"op\": \"add\", \"a\": 9, \"b\": 11 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean, y: Boolean): Field {"
-      "  impure = true;"
-      "  return x == y ? 17 as Field : 23 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"17\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 5, \"b\": 8 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "enum Names { karen, katy, kenny, kulta }"
-      "struct T { name: Names, mt: Vector<0, Names>, eh: Boolean, p: Opaque<'string'>}"
-      "struct S { x: Vector<2, Bytes<3>>, y: T, z: Field, w: Uint<32> }"
-      "circuit foo(s1: S, s2: S) : Boolean { return s1 == s2; }"
-      "export circuit bar1(x: Opaque<'string'>, y: Field) : Boolean {"
-      "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: y as Uint<32> });"
-      "}"
-      "export circuit bar2(x: Opaque<'string'>) : Boolean {"
-      "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'd3f'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
-      "}"
-      "export circuit bar3(x: Opaque<'string'>) : Boolean {"
-      "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.kulta, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 });"
-      "}"
-      "export circuit bar4(x: Opaque<'string'>) : Boolean {"
-      "  impure = true;"
-      "  return foo(S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: true, p: x }, z: 101 as Field, w: 73 },"
-      "             S{ x: ['abc', 'def'], y: T{ name: Names.katy, mt: [], eh: false, p: x }, z: 101 as Field, w: 73 });"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar1.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 32 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar2.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar3.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar4.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(x: Vector<0, Field>) : Field { return x == [] ? 1 as Field : 2 as Field; }"
-      "export circuit bar() : Field {"
-      "  impure = true;"
-      "  return foo([]);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit add(x: Field, y: Field): Field { return x + y; }"
-      "circuit foo(x: Field): Boolean {"
-      "  return x == fold(add, 1 as Field, []);"
-      "}"
-      "export circuit bar() : Boolean {"
-      "  impure = true;"
-      "  return foo(1 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir" #f)
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit bar(x: Field): [] {"
-      "  impure = true;"
-      "  if (!(x == 0 as Field)) assert(x == 1 as Field, 'oops');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 3 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 6, \"a\": 1, \"b\": 7 },"
-        "    { \"op\": \"assert\", \"cond\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean): [] {"
-      "  impure = true;"
-      "  assert(b, 'abc\\u1234def');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean): [] {"
-      "  impure = true;"
-      "  assert(b, 'abc\\xDCdef');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean): [] {"
-      "  impure = true;"
-      "  assert(b, 'bob\\'s \\\"fish\\\"\\r\\0\\b\\f\\t\\v\\n');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean): [] {"
-      "  impure = true;"
-      "  assert(b, 'abc\\x02\\x7f\\x85\\u2028def');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean): [] {"
-      "  impure = true;"
-      "  assert(b, 'abc\"def');"
-      "  assert(!b, \"abc'def\");"
-      "  assert(b, 'abc\\\\def');"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 0 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 6 },"
-        "    { \"op\": \"assert\", \"cond\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field) : Field {"
-      "  impure = true;"
-      "  return x + 3 - x + 4;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"neg\", \"a\": 0 },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"add\", \"a\": 9, \"b\": 10 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Boolean, y: Boolean) : Field {"
-      "  impure = true;"
-      "  return 10 * ((x ? y : false) ? 3 + 4 as Field : y ? 5 + 6 as Field : 17 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 1, \"b\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0B\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 1, \"a\": 8, \"b\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 10, \"b\": 9 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"mul\", \"a\": 12, \"b\": 11 },"
-        "    { \"op\": \"output\", \"var\": 13 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field, y: Field, z: Field) : Boolean {"
-      "  impure = true;"
-      "  return x == y == (y == z);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 2 },"
-        "    { \"op\": \"test_eq\", \"a\": 8, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field, y: Field, z: Field) : Boolean {"
-      "  impure = true;"
-      "  return x == 0 as Field || y == 0 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 5 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 3, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field, y: Field, z: Field) : Boolean {"
-      "  impure = true;"
-      "  return x == 0 as Field && y == 0 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 5 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 9, \"b\": 5 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field, y: Field, z: Field) : Boolean {"
-      "  impure = true;"
-      "  return !(x == 0 as Field && y == 0 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 5 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 9, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 10, \"a\": 5, \"b\": 3 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field) : Boolean {"
-      "  impure = true;"
-      "  return x + x * 3 - 4 == 20 as Field || x == 5 as Field && !(x * 3 + x == 8 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"mul\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"neg\", \"a\": 9 },"
-        "    { \"op\": \"add\", \"a\": 8, \"b\": 10 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"14\" },"
-        "    { \"op\": \"test_eq\", \"a\": 11, \"b\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 14 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"test_eq\", \"a\": 8, \"b\": 16 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 15, \"a\": 18, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 1, \"b\": 19 },"
-        "    { \"op\": \"output\", \"var\": 20 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x : Field) : Vector<3, Field> {"
-      "  impure = true;"
-      "  return [x, x * 3, x * 7];"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"mul\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"mul\", \"a\": 0, \"b\": 8 },"
-        "    { \"op\": \"output\", \"var\": 0 },"
-        "    { \"op\": \"output\", \"var\": 7 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit baz(arg: Bytes<5>) : Field {"
-      "  impure = true;"
-      "  return arg as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit baz(arg: Bytes<40>) : Field {"
-      "  impure = true;"
-      "  return arg as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 72 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 0, \"modulus\": 1, \"bits\": 248 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit baz(arg: Boolean) : Field {"
-      "  impure = true;"
-      "  return arg as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "enum E { a, b, c }"
-      "export circuit baz(arg: E) : Field {"
-      "  impure = true;"
-      "  return arg as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 1, \"bits\": 2 },"
-        "    { \"op\": \"assert\", \"cond\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit baz(arg: Field) : Boolean {"
-      "  impure = true;"
-      "  return arg as Boolean;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 3 },"
-        "    { \"op\": \"cond_select\", \"bit\": 6, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Field) : Vector<1, Field> {"
-      "  impure = true;"
-      "  return foo(x == 0 as Field);"
-      "}"
-      "circuit foo(x: Boolean) : Vector<1, Field> { return x ? [1 as Field] : [2 as Field]; }"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 6, \"a\": 1, \"b\": 7 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(arg: Field) : Bytes<5> {"
-      "  impure = true;"
-      "  return arg as Bytes<5>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
-        "    { \"op\": \"output\", \"var\": 0 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "circuit foo(x: Boolean) : Vector<1, Field> { return x ? [1 as Field] : [2 as Field]; }"
-      "export circuit foo(x: Field) : Vector<1, Field> {"
-      "  impure = true;"
-      "  return foo(x == 0 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 6, \"a\": 1, \"b\": 7 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger field1: Counter;"
-      ""
-      "export circuit foo(): Uint<64> {"
-      "  return field1.read();"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger field1: Counter;"
-      "constructor(state: Uint<16>) { field1 += disclose(state); }"
-      ""
-      "export circuit foo(x: Bytes<32>): Field {"
-      "  kernel.claimZswapNullifier(disclose(x));"
-      "  return field1.read() as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"40\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"80\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "export struct Foo {"
-      "  bar: Bytes<32>;"
-      "  baz: Boolean;"
-      "}"
-      ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
-      ""
-      "ledger field1: Map<Field, Foo>;"
-      "ledger field2: HistoricMerkleTree<10, Foo>;"
-      "ledger field3: Boolean;"
-      ""
-      "export circuit foo(n: Field, foo: Foo): Boolean {"
-      "  field3.write(field1.lookup(disclose(n)).baz);"
-      "  const q = field1.lookup(disclose(n));"
-      "  assert(!(q == default<Foo>), 'entry not found');"
-      "  return field2.checkRoot(disclose(merkle_path_root(q)));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 248 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 18, \"b\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 19, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 21, \"a\": 22, \"b\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 20, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 23, \"a\": 24, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 25, \"a\": 7, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 26 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"18\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 29 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "export struct Foo {"
-      "  bar: Bytes<32>;"
-      "  baz: Boolean;"
-      "}"
-      ""
-      "witness merkle_path_root(foo: Foo): MerkleTreeDigest;"
-      ""
-      "ledger field1: Map<Field, Foo>;"
-      "ledger field2: HistoricMerkleTree<10, Foo>;"
-      "ledger field3: Boolean;"
-      ""
-      "export circuit foo(n: Field, foo: Foo): Boolean {"
-      "  field3.write(field1.lookup(disclose(n)).baz);"
-      "  const q = field1.lookup(disclose(n));"
-      "  assert(q != default<Foo>, 'entry not found');"
-      "  return field2.checkRoot(disclose(merkle_path_root(q)));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 248 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 18, \"b\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 19, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 21, \"a\": 22, \"b\": 7 },"
-        "    { \"op\": \"test_eq\", \"a\": 20, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 23, \"a\": 24, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 25, \"a\": 7, \"b\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 26 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"18\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 29 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Boolean {"
-      "  impure = true;"
-      "  return default<Boolean>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Field {"
-      "  impure = true;"
-      "  return default<Field>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Uint<0..11> {"
-      "  impure = true;"
-      "  return default<Uint<0..11>>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Bytes<10> {"
-      "  impure = true;"
-      "  return default<Bytes<10>>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Bytes<8> {"
-      "  impure = true;"
-      "  return default<Bytes<8>>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "enum E { a, b, c }"
-      "export circuit foo(): E {"
-      "  impure = true;"
-      "  return default<E>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Opaque<'string'> {"
-      "  impure = true;"
-      "  return default<Opaque<'string'>>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(): Vector<10, Field> {"
-      "  impure = true;"
-      "  return default<Vector<10, Field>>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "struct Foo {"
-      "  a: Field;"
-      "  b: Boolean;"
-      "}"
-      "export circuit foo(): Foo {"
-      "  impure = true;"
-      "  return default<Foo>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "struct Foo {"
-      "  a: Vector<2, Field>;"
-      "  b: Boolean;"
-      "}"
-      "struct Bar {"
-      "  a: Vector<3, Foo>;"
-      "  c: Boolean;"
-      "}"
-      "export circuit foo(): Bar {"
-      "  impure = true;"
-      "  return default<Bar>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export { Maybe }"
-      "export circuit foo(x: Maybe<Boolean>): Boolean {"
-      "  impure = true;"
-      "  return x.is_some && x.value;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 1, \"b\": 4 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean, x: Uint<10>): Uint<10> {"
-      "  impure = true;"
-      "  return b ? x + 1023 as Uint<10> : 0;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 10 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"FF03\" },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 8, \"b\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0004\" },"
-        "    { \"op\": \"less_than\", \"a\": 9, \"b\": 10, \"bits\": 11 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 11, \"b\": 2 },"
-        "    { \"op\": \"assert\", \"cond\": 12 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 9, \"b\": 4 },"
-        "    { \"op\": \"output\", \"var\": 13 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export circuit foo(b: Boolean, x: Uint<10>): Uint<10> {"
-      "  impure = true;"
-      "  return b ? x + 1024 as Uint<10> : 0;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 10 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0004\" },"
-        "    { \"op\": \"add\", \"a\": 1, \"b\": 7 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 8, \"b\": 4 },"
-        "    { \"op\": \"less_than\", \"a\": 9, \"b\": 7, \"bits\": 11 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 10, \"b\": 2 },"
-        "    { \"op\": \"assert\", \"cond\": 11 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 9, \"b\": 4 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "struct Foo {"
-      "  bar: Bytes<32>;"
-      "  baz: Boolean;"
-      "  rats: Vector<1, ShieldedCoinInfo>;"
-      "  mice: Uint<16>;"
-      "}"
-      ""
-      "ledger field0: Counter;"
-      "ledger field1: Boolean;"
-      "ledger field2: Set<Field>;"
-      "ledger field3: Map<Field, Foo>;"
-      "ledger field4: List<Foo>;"
-      "ledger field5: MerkleTree<10, Foo>;"
-      "ledger field6: HistoricMerkleTree<10, Field>;"
-      "ledger field7: QualifiedShieldedCoinInfo;"
-      "ledger field8: Set<QualifiedShieldedCoinInfo>;"
-      "ledger field9: Map<Field, QualifiedShieldedCoinInfo>;"
-      "ledger field10: List<QualifiedShieldedCoinInfo>;"
-      ""
-      "export circuit foo(x: Field, y: Foo, ci: ShieldedCoinInfo): Boolean {"
-      "  field0.resetToDefault();"
-      "  field0.increment(5);"
-      "  field0.decrement(2);"
-      "  assert(field0.lessThan(4), 'oops 1');"
-      "  field1.write(true);"
-      "  const q = field1.read();"
-      "  field2.resetToDefault();"
-      "  assert(field2.isEmpty(), 'oops 2a');"
-      "  assert(field2.size() == 0, 'oops 2b');"
-      "  assert(!field2.member(disclose(x)), 'oops 2c');"
-      "  field2.insert(disclose(x));"
-      "  field2.insert(disclose(x) + 1);"
-      "  field2.insert(disclose(x) + 2);"
-      "  field2.insert(disclose(x) + 1);"
-      "  assert(field2.size() == 3, 'oops 2d');"
-      "  field2.remove(disclose(x )+ 1);"
-      "  assert(field2.size() == 2, 'oops 2e');"
-      "  assert(!field2.isEmpty(), 'oops 2f');"
-      "  assert(field2.member(disclose(x)), 'oops 2g');"
-      "  assert(!field2.member(disclose(x )+ 1), 'oops 2h');"
-      "  assert(field2.member(disclose(x )+ 2), 'oops 2i');"
-      "  field3.resetToDefault();"
-      "  field3.insert(disclose(x), disclose(y));"
-      "  field4.resetToDefault();"
-      "  field5.resetToDefault();"
-      "  field6.resetToDefault();"
-      "  field7.writeCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "  field8.resetToDefault();"
-      "  field8.insertCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "  field9.resetToDefault();"
-      "  field9.insertCoin(disclose(x), disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "  field10.resetToDefault();"
-      "  field10.pushFrontCoin(disclose(ci), right<ZswapCoinPublicKey, ContractAddress>(kernel.self()));"
-      "  return q;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 15,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 248 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 3 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 128 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 16 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 10, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 12, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 13, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 14, \"bits\": 128 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0F\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 34 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"test_eq\", \"a\": 35, \"b\": 17 },"
-        "    { \"op\": \"assert\", \"cond\": 36 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"18\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 39 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"cond_select\", \"bit\": 39, \"a\": 17, \"b\": 15 },"
-        "    { \"op\": \"assert\", \"cond\": 40 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 42 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 43 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"test_eq\", \"a\": 43, \"b\": 44 },"
-        "    { \"op\": \"assert\", \"cond\": 45 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"19\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 46 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 47 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"test_eq\", \"a\": 47, \"b\": 25 },"
-        "    { \"op\": \"assert\", \"cond\": 48 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 49 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"cond_select\", \"bit\": 49, \"a\": 17, \"b\": 15 },"
-        "    { \"op\": \"assert\", \"cond\": 50 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 51 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 51 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 52 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"cond_select\", \"bit\": 52, \"a\": 17, \"b\": 15 },"
-        "    { \"op\": \"assert\", \"cond\": 53 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 42 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 54 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 54 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"06\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 55 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"33\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"23\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A4\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 58 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 59 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 55 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 59 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"60\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 64 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 65 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [69, 10, 11, 12, 13, 14, 17, 67, 68] },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 71 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"61\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-01\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 11 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"40\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"17\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"5B\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 77 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 78 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"34\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 79 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 77 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 78 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [82, 10, 11, 12, 13, 14, 17, 80, 81] },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 83 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"09\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 86 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 87 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"35\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 88 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 86 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 87 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [91, 10, 11, 12, 13, 14, 17, 89, 90] },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 92 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 93 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 94 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 95 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"37\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 96 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 94 },"
-        "    { \"op\": \"cond_select\", \"bit\": 17, \"a\": 17, \"b\": 95 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D69646E696768743A7A737761702D63635B76315D\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 21, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 16, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }], \"inputs\": [99, 10, 11, 12, 13, 14, 17, 97, 98] },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 100 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 101 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 15, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 32 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit foo(c: JubjubPoint): JubjubPoint {"
-      "  impure = true;"
-      "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"copy\", \"var\": 7 },"
-        "    { \"op\": \"ec_mul\", \"a_x\": 0, \"a_y\": 1, \"scalar\": 8 },"
-        "    { \"op\": \"ec_add\", \"a_x\": 0, \"a_y\": 1, \"b_x\": 9, \"b_y\": 10 },"
-        "    { \"op\": \"output\", \"var\": 11 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "witness bar(x: Field): Uint<0..36>;"
-      "export circuit foo(x: Uint<0..36>): Uint<0..36> {"
-      "  impure = true;"
-      "  return x - x as Uint<0..36>;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"24\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 1, \"bits\": 6 },"
-        "    { \"op\": \"assert\", \"cond\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export struct Q<a> { x: a, y: Field }"
-      "export enum Names { bill, sally, fred, george, }"
-      "export circuit uno(q: Q<Boolean>): Names {"
-      "  impure = true;"
-      "  return q.x ? Names.sally : Names.fred;"
-      "}"
-      "export circuit dos(q: Q<Field>): Names {"
-      "  impure = true;"
-      "  return q.x == q.y ? Names.bill : Names.george;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 2, \"b\": 7 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/dos.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 7, \"a\": 4, \"b\": 8 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export struct Q<a, b> { x: a, y: b }"
-      "export enum Names { bill, sally, fred, george, }"
-      "export circuit uno(q: Q<Boolean, Vector<3, Uint<32>>>): Names {"
-      "  impure = true;"
-      "  return q.x ? Names.sally : Names.fred;"
-      "}"
-      "export circuit dos(q: Q<Vector<3, Field>,Vector<3,Field>>): Names {"
-      "  impure = true;"
-      "  return q.x == q.y ? Names.bill : Names.george;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 32 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 32 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 32 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 4, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/dos.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 6,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 3 },"
-        "    { \"op\": \"test_eq\", \"a\": 1, \"b\": 4 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 12, \"b\": 8 },"
-        "    { \"op\": \"test_eq\", \"a\": 2, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 13, \"a\": 14, \"b\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"cond_select\", \"bit\": 15, \"a\": 8, \"b\": 16 },"
-        "    { \"op\": \"output\", \"var\": 17 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export struct Q<a, #n> { x: Vector<n, a>, y: Uint<12>, z: Opaque<'string'> }"
-      "export circuit uno(q: Q<Boolean, 3>): Uint<32> {"
-      "  impure = true;"
-      "  return q.x[2] ? q.y + 1 : q.y - 1;"
-      "}"
-      "export circuit dos(q: Q<Field, 2>): Opaque<'string'> {"
-      "  impure = true;"
-      "  assert(q.x[0] == q.x[1], 'oops');"
-      "  return q.z;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 5,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 1 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 2 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 5 },"
-        "    { \"op\": \"less_than\", \"a\": 3, \"b\": 5, \"bits\": 12 },"
-        "    { \"op\": \"cond_select\", \"bit\": 11, \"a\": 7, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 2, \"a\": 5, \"b\": 12 },"
-        "    { \"op\": \"assert\", \"cond\": 13 },"
-        "    { \"op\": \"neg\", \"a\": 5 },"
-        "    { \"op\": \"add\", \"a\": 3, \"b\": 14 },"
-        "    { \"op\": \"cond_select\", \"bit\": 2, \"a\": 10, \"b\": 15 },"
-        "    { \"op\": \"output\", \"var\": 16 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/dos.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 4,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 9 },"
-        "    { \"op\": \"output\", \"var\": 3 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger impure: Boolean;"
-      "export struct Q<a, #n> { x: Vector<n, a>, y: a }"
-      "module M1 {"
-      "  export circuit uno(q: Q<Uint<12>, 2>): Uint<32> {"
-      "    impure = true;"
-      "    return q.x[0] + q.x[1] - q.y;"
-      "  }"
-      "}"
-      "module M2 {"
-      "  export circuit dos(q: Q<Boolean, 2>): Boolean {"
-      "    impure = true;"
-      "    return q.x[0] && q.x[1] || q.y;"
-      "  }"
-      "}"
-      "module M3 {"
-      "  struct Q { x: Vector<2, Uint<12>>, y: Boolean }"
-      "  export circuit tres(q: Q): Uint<32> {"
-      "    impure = true;"
-      "    return q.y ? q.x[0] + q.x[1] : q.x[0] * q.x[1];"
-      "  }"
-      "}"
-      "import M1;"
-      "import M2;"
-      "import M3;"
-      "export { uno, dos, tres }"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"less_than\", \"a\": 8, \"b\": 2, \"bits\": 13 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 5, \"b\": 3 },"
-        "    { \"op\": \"assert\", \"cond\": 10 },"
-        "    { \"op\": \"neg\", \"a\": 2 },"
-        "    { \"op\": \"add\", \"a\": 8, \"b\": 11 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/dos.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 1 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 0, \"a\": 1, \"b\": 5 },"
-        "    { \"op\": \"cond_select\", \"bit\": 8, \"a\": 3, \"b\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/tres.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 12 },"
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"mul\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"cond_select\", \"bit\": 2, \"a\": 8, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "module M0<b> {"
-      "  export struct Q<a, #n> { x: Vector<n, a>, y: b }"
-      "}"
-      "import M0<Uint<12>>;"
-      "export { Q }"
-      "module M1 {"
-      "  ledger impure: Boolean;"
-      "  import M0<Field>;"
-      "  export circuit uno(q: Q<Field, 2>): Field {"
-      "    impure = true;"
-      "    return q.x[0] + q.x[1] - q.y;"
-      "  }"
-      "}"
-      "import M1;"
-      "export { uno }"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"neg\", \"a\": 2 },"
-        "    { \"op\": \"add\", \"a\": 8, \"b\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "module M0<b> {"
-      "  export struct Q<a, #n> { x: Vector<n, a>, y: b }"
-      "}"
-      "import M0<Field>;"
-      "export { Q }"
-      "module M1 {"
-      "  ledger impure: Boolean;"
-      "  import M0<Uint<12>>;"
-      "  export circuit uno(q: Q<Uint<12>, 2>): Uint<32> {"
-      "    impure = true;"
-      "    return q.x[0] + q.x[1] - q.y;"
-      "  }"
-      "}"
-      "import M1;"
-      "export { uno }"
-     )
-    (output-file "compiler/testdir/zkir/uno.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"less_than\", \"a\": 8, \"b\": 2, \"bits\": 13 },"
-        "    { \"op\": \"cond_select\", \"bit\": 9, \"a\": 5, \"b\": 3 },"
-        "    { \"op\": \"assert\", \"cond\": 10 },"
-        "    { \"op\": \"neg\", \"a\": 2 },"
-        "    { \"op\": \"add\", \"a\": 8, \"b\": 11 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export circuit hello(): Opaque<'string'> {"
-      "  return greeting;"
-      "}"
-      "ledger greeting: Opaque<'string'>;"
-      "constructor(x: Opaque<'string'>) { greeting = disclose(x); }"
-     )
-    (output-file "compiler/testdir/zkir/hello.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 4 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export { Maybe }"
-      "ledger rat: Field;"
-      "constructor(witnesses: Field) { rat = disclose(witnesses); }"
-      "witness witnesses(witnesses: Field): Field;"
-      "export circuit state(x: Field): Field { return disclose(witnesses(x)) + 5; }"
-      "export circuit context(x: Field): Field { return state(x + 3); }"
-      "export circuit transcript(x: Field): Field { return context(x + 7); }"
-      "export circuit Contract(x: Field): Field { return transcript(x) + 2; }"
-      "export circuit _arguments(_eval: Field, _arguments: Field, witnesses: Field): Field { return Contract(_eval + _arguments + witnesses) + rat; }"
-      "export circuit functions(Maybe: Maybe<Field>): Field { return Maybe.value + 17; }"
-      "export circuit finalize(): Field { return functions(some<Field>(3 as Field)); }"
-     )
-    (output-file "compiler/testdir/zkir/_arguments.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"add\", \"a\": 4, \"b\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"add\", \"a\": 5, \"b\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"add\", \"a\": 7, \"b\": 8 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"add\", \"a\": 10, \"b\": 11 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"add\", \"a\": 12, \"b\": 13 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 4 },"
-        "    { \"op\": \"add\", \"a\": 14, \"b\": 18 },"
-        "    { \"op\": \"output\", \"var\": 21 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit red_guess(my_guess: Field): [] {"
-      "  impure = true;"
-      "  return my_guess - 1;"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 5 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Field" "[]" "circuit red_guess")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit red_guess(my_guess: Field): Field {"
-      "  impure = true;"
-      "  return my_guess - 1;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/red_guess.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"neg\", \"a\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Uint<12>): Field {"
-      "  impure = true;"
-      "  return transientCommit<Uint<12>>(x, 0 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"transient_hash\", \"inputs\": [3, 0] },"
-        "    { \"op\": \"output\", \"var\": 6 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Uint<12>): Bytes<32> {"
-      "  impure = true;"
-      "  const rand : Bytes<32> = '12345678901234567890123456789012' as Bytes<32>;"
-      "  return persistentCommit<Uint<12>>(x, rand);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 12 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"31323334353637383930313233343536373839303132333435363738393031\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 32, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 2, \"tag\": \"bytes\" } }], \"inputs\": [7, 6, 0] },"
-        "    { \"op\": \"output\", \"var\": 8 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit foo(x: Boolean): JubjubPoint {"
-      "  impure = true;"
-      "  return hashToCurve<Boolean>(x);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"hash_to_curve\", \"inputs\": [0] },"
-        "    { \"op\": \"output\", \"var\": 6 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger foo: Field;"
-      "ledger bar: Set<Field>;"
-      "ledger baz: MerkleTree<2, Field>;"
-      ""
-      "export circuit rat(): [] {"
-      "  foo = 42 as Field;"
-      "  bar.insert(23 as Field);"
-      "  baz.insert(71 as Field);"
-      "}"
-      ""
-      "export circuit root_of(path: MerkleTreePath<2, Field>): MerkleTreeDigest {"
-      "  return merkleTreePathRoot<2, Field>(path);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/rat.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"2A\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"17\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"47\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D646E3A6C68\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [14, 10] },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/root_of.zkir" #f)
-    )
-
-  (test
-    '(
-      "pragma language_version >= 0.4.0;"
-      ""
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit bar(): Field {"
-      "  impure = true;"
-      "  return 3 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "pragma language_version >= 0.4.0 && < 0.99.0;"
-      "pragma compiler_version >= 0.4.2 && < 0.99.0;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit bar(): Field {"
-      "  impure = true;"
-      "  return 3 as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/bar.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "enum LedgerState { setup, commit, reveal, final, }"
-      ""
-      "ledger organizer: Bytes<32>;"
-      "ledger state: LedgerState;"
-      "ledger topic: Maybe<Opaque<'string'>>;"
-      "ledger beneficiary: Maybe<ZswapCoinPublicKey>;"
-      "ledger yes: Counter;"
-      "ledger no: Counter;"
-      "ledger round: Counter;"
-      "ledger committed_votes: MerkleTree<10, Bytes<32>>;"
-      "ledger eligible_voters: HistoricMerkleTree<10, Bytes<32>>;"
-      "ledger committed: Set<Bytes<32>>;"
-      "ledger revealed: Set<Bytes<32>>;"
-      ""
-      "ledger pot: QualifiedShieldedCoinInfo;"
-      "ledger pot_has_coin: Boolean;"
-      ""
-      "constructor(organizer_secret_key: Bytes<32>) {"
-      "  organizer = public_key(disclose(organizer_secret_key));"
-      "  state = LedgerState.setup;"
-      "}"
-      ""
-      "circuit public_key(sk: Bytes<32>): Bytes<32> {"
-      "  return persistentHash<Vector<2, Bytes<32>>>([pad(32, 'lares:udao:pk:'), sk]);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/public_key.zkir" #f)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger eligible_voters: HistoricMerkleTree<10, Bytes<32>>;"
-      ""
-      "circuit foo(pk: Bytes<32>): MerkleTreePath<10, Bytes<32>> {"
-      "  const path = eligible_voters.find_path_for_leaf(pk);"
-      "  return path;"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 31" "~s ~s is a runtime-only method, but was invoked in-circuit" (HistoricMerkleTree find_path_for_leaf)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger rats: MerkleTree<10, Field>;"
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(x: Field): [] {"
-      "  rats.insert(disclose(x));"
-      "}"
-      ""
-      "export circuit root_of(path: MerkleTreePath<10, Field>): MerkleTreeDigest {"
-      "  return merkleTreePathRoot<10, Field>(path);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"6D646E3A6C68\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 6, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"tag\": \"field\" } }], \"inputs\": [7, 0] },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/root_of.zkir" #f)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger bar: List<Field>;"
-      ""
-      "constructor() {"
-      "  bar.pushFront(42 as Field);"
-      "}"
-      ""
-      "export circuit baz(): Field {"
-      "  kernel.mintShielded(pad(32, ''), 5);"
-      "  return bar.length() as Field;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/baz.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"40\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"80\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"31\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"18\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"12\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"32\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"60\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-01\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"14\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 20 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field0: Map<Field, Field>;"
-      ""
-      "export circuit foo(): [] {"
-      "  field0.insert(1 as Field, 1 as Field);"
-      "  field0.insert(2 as Field, 3 as Field);"
-      "  field0.insert(3 as Field, 5 as Field);"
-      "  field0.insert(4 as Field, 7 as Field);"
-      "  field0.insert(5 as Field, 9 as Field);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"09\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field0: List<Field>;"
-      ""
-      "export circuit foo(): Maybe<Field> {"
-      "  field0.pushFront(1 as Field);"
-      "  field0.pushFront(3 as Field);"
-      "  field0.pushFront(5 as Field);"
-      "  field0.pushFront(7 as Field);"
-      "  field0.pushFront(9 as Field);"
-      "  return field0.head();"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"33\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"40\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"03\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"09\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"12\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"16\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"26\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"13\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0B\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 7 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 6 },"
-        "    { \"op\": \"output\", \"var\": 24 },"
-        "    { \"op\": \"output\", \"var\": 25 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, Field>>;"
-      ""
-      "export circuit init(b: Boolean, n: Field): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Field>>);"
-      "  field1.lookup(b).insert(disclose(n), default<Field>);"
-      "}"
-      "export circuit put(b: Boolean, n: Uint<16>, q: Field): [] {"
-      "  field1.lookup(b).lookup(n).write(disclose(q));"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): Field {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n));"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 19" "expected ~:r argument of ~s to have type ~a but received ~a" (1 insert "Uint<16>" "Field")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, Field>>;"
-      ""
-      "export circuit init(b: Boolean, n: Uint<16>): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Field>>);"
-      "  field1.lookup(b).insert(disclose(n), default<Field>);"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): Field {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/get.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "enum E { a, b, c }"
-      "struct S { x: Boolean, y: Bytes<10>, z: Vector<2, E> }"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, S>>;"
-      ""
-      "export circuit init(b: Boolean, n: Uint<16>): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Field>>);"
-      "  field1.lookup(b).insert(disclose(n), default<S>);"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(b).lookup(n);"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 9 char 9" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "Map<Uint<16>, struct S<x: Boolean, y: Bytes<10>, z: Vector<2, Enum<E, a, b, c>>>>" "Map<Uint<16>, Field>")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "enum E { a, b, c }"
-      "struct S { x: Boolean, y: Bytes<10>, z: Vector<2, E> }"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, S>>;"
-      ""
-      "export circuit init(b: Boolean, n: Uint<16>): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, S>>);"
-      "  field1.lookup(b).insert(disclose(n), default<Field>);"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(b).lookup(n);"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 19" "expected ~:r argument of ~s to have type ~a but received ~a" (2 insert "struct S<x: Boolean, y: Bytes<10>, z: Vector<2, Enum<E, a, b, c>>>" "Field")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "enum E { a, b, c }"
-      "struct S { x: Boolean, y: Bytes<10>, z: Vector<2, E> }"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, S>>;"
-      ""
-      "export circuit init(b: Boolean, n: Uint<16>): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, S>>);"
-      "  field1.lookup(b).insert(disclose(n), default<S>);"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): S {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/get.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 10 },"
-        "    { \"op\": \"output\", \"var\": 8 },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 10 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, Field>>;"
-      ""
-      "export circuit init(b: Boolean): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Field>>);"
-      "}"
-      ""
-      "export circuit put(b: Boolean, n: Uint<16>, q: Field): [] {"
-      "  field1.lookup(b).insert(disclose(n), disclose(q));"
-      "}"
-      ""
-      "export circuit get(b: Boolean, n: Uint<16>): Field {"
-      "  return field1.lookup(disclose(b)).lookup(disclose(n));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/put.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/get.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Counter>;"
-      ""
-      "// nested ADT fields must be initialized to null before first use"
-      "export circuit init_nested_counter(b: Boolean): [] {"
-      "  field1.insert(disclose(b), default<Counter>);"
-      "}"
-      ""
-      "// ADT values are not first-class objects, so when accessing a nested"
-      "// ADT, the entire indirection chain must be used"
-      "export circuit incr_nested_counter(b: Boolean, k: Uint<16>): [] {"
-      "  field1.lookup(b).increment(disclose(k));"
-      "}"
-      ""
-      "// when the last lookup is a read of a regular type one can include the read explicitly:"
-      "export circuit read_nested_counter1(b: Boolean): Uint<64> {"
-      "  return field1.lookup(b).read();"
-      "}"
-      ""
-      "// ... or leave it off, in which case the read is implicit:"
-      "export circuit read_nested_counter2(b: Boolean): Uint<64> {"
-      "  return field1.lookup(b);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/incr_nested_counter.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 7 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 7 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 5 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field2: Map<Field, Map<Field, Field>>;"
-      ""
-      "export circuit init_nested_map(n: Field): [] {"
-      "  field2.insert(n, default<Map<Field, Field>>);"
-      "}"
-      ""
-      "export circuit insert_nested_map(n1: Field, n2: Field, n3: Field): [] {"
-      "  field2.lookup(n1).insert(n2, n3);"
-      "}"
-      ""
-      "export circuit lookup_nested_map(n1: Field, n2: Field): Field {"
-      "  return field2.lookup(disclose(n1)).lookup(disclose(n2));"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 9" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit init_nested_map at line 5 char 32" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 6 char 9")))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n2 of exported circuit insert_nested_map at line 9 char 45" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 10 char 20")))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 20" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n3 of exported circuit insert_nested_map at line 9 char 56" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the second argument to insert at line 10 char 20"))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field2: Map<Field, Map<Field, Field>>;"
-      ""
-      "export circuit init_nested_map(n: Field): [] {"
-      "  field2.insert(disclose(n), default<Map<Field, Field>>);"
-      "}"
-      ""
-      "export circuit insert_nested_map(n1: Field, n2: Field, n3: Field): [] {"
-      "  field2.lookup(n1).insert(disclose(n2), disclose(n3));"
-      "}"
-      ""
-      "export circuit lookup_nested_map(n1: Field, n2: Field): Field {"
-      "  return field2.lookup(disclose(n1)).lookup(disclose(n2));"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init_nested_map.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/insert_nested_map.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/lookup_nested_map.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
-      ""
-      "export circuit init_nested_map(b: Boolean): [] {"
-      "  fld.insert(b, default<Map<Field, Counter>>);"
-      "}"
-      ""
-      "export circuit init_nested_counter(b: Boolean, n: Field): [] {"
-      "  fld.lookup(b).insert(n, default<Counter>);"
-      "}"
-      ""
-      "export circuit increment_nested_counter(b: Boolean, n: Field, k: Uint<16>): [] {"
-      "  fld.lookup(b).lookup(n).increment(k);"
-      "}"
-      ""
-      "export circuit read_nested_counter1(b: Boolean, n: Field): Uint<64> {"
-      "  return fld.lookup(b).lookup(n).read();"
-      "}"
-      ""
-      "export circuit read_nested_counter2(b: Boolean, n: Field): Uint<64> {"
-      "  return fld.lookup(b).lookup(n);"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit init_nested_map at line 5 char 32" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 6 char 6")))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 10 char 16" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter n of exported circuit init_nested_counter at line 9 char 48" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the first argument to insert at line 10 char 16")))
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 14 char 26" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter k of exported circuit increment_nested_counter at line 13 char 63" ("\n    nature of the disclosure:\n      ledger operation might disclose the witness value\n    via this path through the program:\n      the argument to increment at line 14 char 26"))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
-      ""
-      "export circuit init_nested_map(b: Boolean): [] {"
-      "  fld.insert(disclose(b), default<Map<Field, Counter>>);"
-      "}"
-      ""
-      "export circuit init_nested_counter(b: Boolean, n: Field): [] {"
-      "  fld.lookup(b).insert(disclose(n), default<Counter>);"
-      "}"
-      ""
-      "export circuit increment_nested_counter(b: Boolean, n: Field, k: Uint<16>): [] {"
-      "  fld.lookup(b).lookup(n).increment(disclose(k));"
-      "}"
-      ""
-      "export circuit read_nested_counter1(b: Boolean, n: Field): Uint<64> {"
-      "  return fld.lookup(b).lookup(n).read();"
-      "}"
-      ""
-      "export circuit read_nested_counter2(b: Boolean, n: Field): Uint<64> {"
-      "  return fld.lookup(b).lookup(n);"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/init_nested_map.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/init_nested_counter.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"71\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A2\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/increment_nested_counter.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 16 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"72\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 10 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A3\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/read_nested_counter1.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"52\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 10 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/read_nested_counter2.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_to_boolean\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"52\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 10 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger fld: Map<Boolean, Map<Field, Counter>>;"
-      ""
-      "export circuit bogus(): [] {"
-      "  fld.lookup(true);"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 6" "incomplete chain of ledger indirects: final result must be a regular type, but received ADT type ~a" ("Map<Field, Counter>")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Set<Counter>;"
-      ""
-      "export circuit foo(): Field {"
-      "  field1.write(default<Counter>);"
-      "  return field1.read();"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 20" "expected ~a but received ~a for generic parameter ~s declared at ~a" ("non-ADT type" "ledger ADT type" value_type "<standard library>")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(): Field {"
-      "  impure = true;"
-      "  return default<Set<Field>>;"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Set<Field>" "Field" "circuit foo")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(): Field {"
-      "  impure = true;"
-      "  return default<MerkleTree<3, Field>>;"
-      "}"
-     )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 7 char 3" "mismatch between actual return type ~a and declared return type ~a of ~a" ("MerkleTree<3, Field>" "Field" "circuit foo")))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(q: Opaque<'string'>): Boolean {"
-      "  impure = true;"
-      "  const x = default<Opaque<'string'>>;"
-      "  return x == q;"
-      "}"
-     )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 3, \"b\": 0 },"
-        "    { \"op\": \"output\", \"var\": 6 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(q: Opaque<'string'>): Boolean {"
-      "  impure = true;"
-      "  const x = default<Opaque<'string'>>;"
-      "  return x != q;"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 3, \"b\": 0 },"
-        "    { \"op\": \"cond_select\", \"bit\": 6, \"a\": 3, \"b\": 1 },"
-        "    { \"op\": \"output\", \"var\": 7 }"
-        "  ]"
-        "}"))
-    )
-
-  (test-group
-    ((create-file "C.compact"
-       '(
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export circuit barr(): Bytes<32> { return pad(32, ''); }"
-         )
-       )
-     (succeeds))
-    ((create-file "UseC.compact"
-       '(
-         "import CompactStandardLibrary;"
-         "contract C {"
-         "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
-         "}"
-         "ledger contract_c: C;"
-         "constructor (c: C) { contract_c = disclose(c); }"
-         "export circuit hello(): [] { return contract_c.foo(contract_c.read().barr()); }"
-         ))
-     (succeeds)))
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "module M1 {"
-      "  import CompactStandardLibrary;"
-      "  export { QualifiedShieldedCoinInfo, ShieldedCoinInfo, ZswapCoinPublicKey, ContractAddress };"
-      "  export { left, ownPublicKey, createZswapInput, createZswapOutput };"
-      "}"
-      "import M1 prefix std$;"
-      "circuit foo(qcoin: std$QualifiedShieldedCoinInfo, coin: std$ShieldedCoinInfo): [] {"
-      "  forceProof();"
-      "  std$createZswapInput(qcoin);"
-      "  std$createZswapOutput(coin, std$left<std$ZswapCoinPublicKey, std$ContractAddress>(std$ownPublicKey()));"
-      "}"
-      "module M2 {"
-      "  import CompactStandardLibrary;"
-      "  export circuit bar(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
-      "    forceProof();"
-      "    createZswapInput(qcoin);"
-      "    createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
-      "  }"
-      "}"
-      "import M2;"
-      "import M2 prefix M2$;"
-      "export { foo, bar, M2$bar };"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 11,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 128 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 64 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 10, \"bits\": 128 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 1 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 19, \"bits\": 248 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/bar.zkir"
-                 "compiler/testdir/zkir/foo.zkir")
-    (output-file "compiler/testdir/zkir/M2$bar.zkir"
-                 "compiler/testdir/zkir/foo.zkir")
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "witness W(): Field;"
-      "module A<#n, t> {"
-      "  export circuit foo(v : Vector<n, t>, b : Bytes<n>): Field {"
-      "    forceProof();"
-      "    return disclose(W()) + 17;"
-      "  }"
-      "}"
-      "module B {"
-      "  circuit foo(x : Field): Field { forceProof(); return x + disclose(W()); }"
-      "  circuit bar(x : Field): Field { forceProof(); return x - disclose(W()); }"
-      "  import A<7, Field> prefix AA;"
-      "  import A<30, Boolean> prefix AAA;"
-      "  export {foo, AAfoo, AAAfoo, bar}"
-      "}"
-      "import B;"
-      "import B prefix BB;"
-      "import B<> prefix BBB;"
-      "export {foo, AAfoo, BBfoo, BBAAfoo, BBAAAfoo, BBBfoo, BBBAAAfoo, bar, BBbar, BBBbar}"
-      )
-    (output-file "compiler/testdir/zkir/BBfoo.zkir"
-                 "compiler/testdir/zkir/foo.zkir")
-    (output-file "compiler/testdir/zkir/BBBfoo.zkir"
-                 "compiler/testdir/zkir/foo.zkir")
-    (output-file "compiler/testdir/zkir/BBAAfoo.zkir"
-                 "compiler/testdir/zkir/AAfoo.zkir")
-    (output-file "compiler/testdir/zkir/BBBAAAfoo.zkir"
-                 "compiler/testdir/zkir/BBAAAfoo.zkir")
-    (output-file "compiler/testdir/zkir/BBbar.zkir"
-                 "compiler/testdir/zkir/bar.zkir")
-    (output-file "compiler/testdir/zkir/BBBbar.zkir"
-                 "compiler/testdir/zkir/bar.zkir")
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit foo(qcoin: QualifiedShieldedCoinInfo, coin: ShieldedCoinInfo): [] {"
-      "  forceProof();"
-      "  createZswapInput(qcoin);"
-      "  createZswapOutput(coin, left<ZswapCoinPublicKey, ContractAddress>(ownPublicKey()));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 11,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 128 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 64 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 248 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 10, \"bits\": 128 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 11, \"count\": 1 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 19, \"bits\": 248 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger allowances: Map<Bytes<32>, Map<Bytes<32>, Uint<32>>>;"
-      "export circuit allowance(b: Boolean, owner: Bytes<32>, spender: Bytes<32>): Uint<32> {"
-      "  return disclose(b) ? allowances.lookup(disclose(owner)).lookup(disclose(spender)) : 0;"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field1: Map<Boolean, Map<Uint<16>, Vector<2, Field>>>;"
-      ""
-      "export circuit init(b: Boolean, n: Uint<16>): [] {"
-      "  field1.insert(disclose(b), default<Map<Uint<16>, Vector<2, Field>>>);"
-      "  field1.lookup(b).insert(disclose(n), default<Vector<2, Field>>);"
-      "}"
-     )
-    (returns
-      (program
-        (kernel-declaration (%kernel.2 () (Kernel)))
-        (public-ledger-declaration
-          ((%field1.3
-             (0)
-             (Map (ty ((abytes 1)) ((tunsigned 1)))
-                  (ty ((aadt))
-                      ((Map (ty ((abytes 2)) ((tunsigned 65535)))
-                            (ty ((afield) (afield)) ((tfield (field-native)) (tfield (field-native)))))))))))
-        (circuit %init.4 ((argument
-                            (%b.0)
-                            (ty ((abytes 1)) ((tunsigned 1))))
-                          (argument (%n.1) (ty ((abytes 2)) ((tunsigned 65535)))))
-             (ty () ())
-          (= 1 () (public-ledger %field1.3 (0) insert %b.0 0))
-          (= 1 ()
-             (public-ledger %field1.3 (0 ((ty ((abytes 1)) ((tunsigned 1)))
-                                           %b.0)) insert
-               %n.1
-               ; two zeros
-               0
-               0))
-          ())))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger field0: S;"
-      "ledger field1: Opaque<'string'>;"
-      ""
-      "struct S { x: Bytes<1024>, y: Bytes<8> }"
-      "export circuit one(x: Field): S {"
-      "  field0 = disclose(S { x * x - 1 as Bytes<1024>, x + x - 1 as Bytes<8> });"
-      "  return field0;"
-      "}"
-      ""
-      "export circuit two(s: Opaque<'string'>, x: Field): Field {"
-      "  field1 = disclose(s);"
-      "  const q = persistentCommit<Field>(x, upgradeFromTransient(x));"
-      "  return transientCommit<Bytes<32>>(q, x);"
-      "}"
-      ""
-      "export circuit three(): [S, Bytes<32>] {"
-      "  return [field0, persistentHash<S>(field0)];"
-      "}"
-     )
-    (succeeds)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger fld: [Field, Field];"
-      ""
-      "export circuit foo(x: Bytes<1024>, y: Bytes<8>): [] {"
-      "  fld = disclose([x as Field, y as Field]);"
-      "}"
-     )
-    (succeeds)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger f00: Field;"
-      "export ledger f01: Field;"
-      "export ledger f02: Field;"
-      "export ledger f03: Field;"
-      "export ledger f04: Field;"
-      "export ledger f05: Field;"
-      "export ledger f06: Field;"
-      "export ledger f07: Field;"
-      "export ledger f08: Field;"
-      "export ledger f09: Field;"
-      "export ledger f10: Field;"
-      "export ledger f11: Field;"
-      "export ledger f12: Field;"
-      "export ledger f13: Field;"
-      "export ledger f14: Field;"
-      "export ledger f15: Field;"
-      "export ledger f16: Field;"
-      "export ledger f17: Field;"
-      "export ledger f18: Field;"
-      "export ledger f19: Field;"
-      "export ledger f20: Field;"
-      "export ledger f21: Field;"
-      "export ledger f22: Field;"
-      "export ledger f23: Field;"
-      "export ledger f24: Field;"
-      "export ledger f25: Field;"
-      "export ledger f26: Field;"
-      "export ledger f27: Field;"
-      "export ledger f28: Field;"
-      "export ledger f29: Field;"
-      "export ledger f30: Field;"
-      "export ledger f31: Field;"
-      "export ledger f32: Field;"
-      "export ledger f33: Field;"
-      "export ledger f34: Field;"
-      "export ledger f35: Field;"
-      "export ledger f36: Field;"
-      "export ledger f37: Field;"
-      "export ledger f38: Field;"
-      "export ledger f39: Field;"
-      "constructor() {"
-      "  f17 = 101 as Field;"
-      "}"
-      "export circuit foo(): [Field, Field] {"
-      "  return [f11, f38];"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger merkleTree: MerkleTree<4, Field>;"
-      "export circuit test(): [] {"
-      "  // Test: insertIndexDefault inserts default value at a specific index"
-      "  const defaultIndex = 3;"
-      "  merkleTree.insertIndexDefault(defaultIndex);"
-      "}"
-      )
-    (succeeds)
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger c: Map<Field, List<Field>>;"
-      ""
-      "export circuit foo1(): [] {"
-      "  assert(c.isEmpty() == true, 'Structure should be empty');"
-      "  assert(c.size() == 0, 'Size should be 0');"
-      "}"
-      ""
-      "export circuit foo2(): [] {"
-      "  c.insert(0 as Field, default<List<Field>>);"
-      "  assert(c.size() == 1, 'Size should be 1');"
-      "  assert(c.lookup(0 as Field).length() == 0, 'Key 0 should have value 1');"
-      "}"
-      ""
-      "export circuit foo3(): [] {"
-      "  c.insertDefault(1 as Field);"
-      "  assert(c.size() == 2, 'Size should be 2');"
-      "  assert(c.lookup(1 as Field).length() == 0, 'Key 1 should have value 0');"
-      "  assert(c.member(1 as Field) == true, 'Key 1 should be member');"
-      "}"
-      ""
-      "export circuit foo4(): [] {"
-      "  c.remove(0 as Field);"
-      "  assert(c.size() == 1, 'Size should be 1');"
-      "  assert(c.lookup(0 as Field).length() == 0, 'What should happen here');"
-      "}"
-      ""
-      "export circuit foo5(): [] {"
-      "  c.resetToDefault();"
-      "  assert(c.size() == 0, 'Size should be 0');"
-      "  assert(c.isEmpty() == true, 'Structure should be empty');"
-      "}"
-      )
-    (succeeds)
-    )
-
-  ;; Regression tests for PM-15412, a bug in indexing parameters that were
-  ;; constrained to be Uint with a size that wasn't a power of two.
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<0..5>): [] {"
-      "  forceProof();"
-      "  assert(x == 0, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 1, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 3, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 6 },"
-        "    { \"op\": \"assert\", \"cond\": 10 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<0..5>, y: Uint<0..6>): [] {"
-      "  forceProof();"
-      "  assert(x == y, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 2, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"06\" },"
-        "    { \"op\": \"less_than\", \"a\": 1, \"b\": 4, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 6, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 13 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<0..5>, y: Uint<0..6>, z: Uint<0..7>): [] {"
-      "  forceProof();"
-      "  assert(x + y == z, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 3,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 3, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"06\" },"
-        "    { \"op\": \"less_than\", \"a\": 1, \"b\": 5, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"less_than\", \"a\": 2, \"b\": 7, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 9, \"count\": 1 },"
-        "    { \"op\": \"add\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 15, \"b\": 2 },"
-        "    { \"op\": \"assert\", \"cond\": 16 }"
-        "  ]"
-        "}"))
-    )
-
-  ;; Mix powers of two with non-powers of two.
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<0..5>, y: Uint<4>): [] {"
-      "  forceProof();"
-      "  assert(x == y, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 0, \"b\": 2, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 3 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<4>, y: Uint<0..5>): [] {"
-      "  forceProof();"
-      "  assert(x == y, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"less_than\", \"a\": 1, \"b\": 2, \"bits\": 4 },"
-        "    { \"op\": \"assert\", \"cond\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 4, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "export circuit test(x: Uint<4>, y: Uint<4>): [] {"
-      "  forceProof();"
-      "  assert(x == y, \"failed\");"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 4 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"07\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"test_eq\", \"a\": 0, \"b\": 1 },"
-        "    { \"op\": \"assert\", \"cond\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger fld: Vector<1, Field>;"
-      "export circuit foo(v: Vector<1, Field>): [] {"
-      "  fld = disclose(v);"
-      "}"
-      "export circuit Foo(x: Field): [] {"
-      "  fld = [disclose(x)];"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "the exported impure circuit name ~a is identical to the exported circuit name ~s at ~a modulo case; please rename to avoid zkir and prover-key filename clashes on case-insensitive filesystems" ("foo" "Foo" "line 5 char 1")))
-    )
-
-  (test
-    '(
-      "ledger fld: Vector<1, Field>;"
-      "circuit Mfoo(v: Vector<1, Field>): [] {"
-      "  fld = disclose(v);"
-      "}"
-      "module M {"
-      "  export circuit Foo(x: Field): [] {"
-      "    fld = [disclose(x)];"
-      "  }"
-      "}"
-      "import M prefix M;"
-      "export { Mfoo, MFoo }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "the exported impure circuit name ~a is identical to the exported circuit name ~s at ~a modulo case; please rename to avoid zkir and prover-key filename clashes on case-insensitive filesystems" ("Mfoo" "MFoo for Foo" "line 6 char 3")))
-    )
-
-  (test
-    '(
-      "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
-      "circuit bar(v: Vector<5, Field>, i: Uint<0..5>): Field {"
-      "  return v[i];"
-      "}"
-      "export circuit foo(v: Vector<5, Field>): Field {"
-      "  forceProof();"
-      "  return bar(v, 3);"
-      "}"
-      )
-    (returns
-      (program
-        (kernel-declaration (%kernel.0 () (Kernel)))
-        (public-ledger-declaration
-          ((%forceField.1
-             (0)
-             (__compact_Cell (ty ((afield)) ((tfield (field-native))))))))
-        (circuit %foo.2 ((argument
-                           (%v.3 %v.4 %v.5 %v.6 %v.7)
-                           (ty ((afield) (afield) (afield) (afield) (afield))
-                               ((tfield (field-native))
-                                 (tfield (field-native))
-                                 (tfield (field-native))
-                                 (tfield (field-native))
-                                 (tfield (field-native))))))
-             (ty ((afield)) ((tfield (field-native))))
-          (= 1 () (public-ledger %forceField.1 (0) write 7))
-          (%v.6))))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "export ledger x: Counter;"
-      "export circuit foo(v: Vector<5, Uint<16>>): [] {"
-      "  for (const i of 2..5) x += disclose(v[i] - v[i-1]);"
-      "}"
-      )
-    (returns
-      (program
-        (kernel-declaration (%kernel.10 () (Kernel)))
-        (public-ledger-declaration ((%x.11 (0) (Counter))))
-        (circuit %foo.12 ((argument
-                            (%v.13 %v.0 %v.1 %v.4 %v.7)
-                            (ty ((abytes 2)
-                                  (abytes 2)
-                                  (abytes 2)
-                                  (abytes 2)
-                                  (abytes 2))
-                                ((tunsigned 65535)
-                                  (tunsigned 65535)
-                                  (tunsigned 65535)
-                                  (tunsigned 65535)
-                                  (tunsigned 65535)))))
-             (ty () ())
-          (= 1 %t.2 (< 16 %v.1 %v.0))
-          (= 1 %t.3 (select %t.2 0 1))
-          (assert %t.3 "result of subtraction would be negative")
-          (= 1 %tmp.14 (- (tunsigned 65535) %v.1 %v.0))
-          (= 1 () (public-ledger %x.11 (0) increment %tmp.14))
-          (= 1 %t.5 (< 16 %v.4 %v.1))
-          (= 1 %t.6 (select %t.5 0 1))
-          (assert %t.6 "result of subtraction would be negative")
-          (= 1 %tmp.15 (- (tunsigned 65535) %v.4 %v.1))
-          (= 1 () (public-ledger %x.11 (0) increment %tmp.15))
-          (= 1 %t.8 (< 16 %v.7 %v.4))
-          (= 1 %t.9 (select %t.8 0 1))
-          (assert %t.9 "result of subtraction would be negative")
-          (= 1 %tmp.16 (- (tunsigned 65535) %v.7 %v.4))
-          (= 1 () (public-ledger %x.11 (0) increment %tmp.16))
-          ())))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger v: Vector<N, Uint<8>>;"
-      "  export circuit foo(bv: Bytes<N>): Vector<N, Uint<8>> {"
-      "    v = disclose(bv) as Vector<N, Uint<8>>;"
-      "    return v;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 0)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 3 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 2 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger v: Vector<N, Uint<8>>;"
-      "  export circuit foo(bv: Bytes<N>): Vector<N, Uint<8>> {"
-      "    v = disclose(bv) as Vector<N, Uint<8>>;"
-      "    return v;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 1)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger v: Vector<N, Uint<8>>;"
-      "  export circuit foo(bv: Bytes<N>): Vector<N, Uint<8>> {"
-      "    v = disclose(bv) as Vector<N, Uint<8>>;"
-      "    return v;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 5)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 13 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 12 },"
-        "    { \"op\": \"output\", \"var\": 17 },"
-        "    { \"op\": \"output\", \"var\": 18 },"
-        "    { \"op\": \"output\", \"var\": 19 },"
-        "    { \"op\": \"output\", \"var\": 20 },"
-        "    { \"op\": \"output\", \"var\": 21 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger v: Vector<N, Uint<8>>;"
-      "  export circuit foo(bv: Bytes<N>): Vector<N, Uint<8>> {"
-      "    v = disclose(bv) as Vector<N, Uint<8>>;"
-      "    return v;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" (field-bytes))
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 10, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 12, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 14, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 16, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 20, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 22, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 24, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 26, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 28, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 32, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 34, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 36, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 38, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 40, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 42, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 44, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 46, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 48, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 50, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 52, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 54, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 56, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 58, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 37 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 39 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 41 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 43 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 45 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 47 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 49 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 51 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 53 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 55 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 57 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 59 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 65 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 67 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 100 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 71 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 77 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 78 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 79 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 80 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 81 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 82 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 83 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 86 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 87 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 88 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 89 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 90 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 91 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 92 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 93 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 94 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 95 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 96 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 97 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 98 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 99 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 64 },"
-        "    { \"op\": \"output\", \"var\": 69 },"
-        "    { \"op\": \"output\", \"var\": 70 },"
-        "    { \"op\": \"output\", \"var\": 71 },"
-        "    { \"op\": \"output\", \"var\": 72 },"
-        "    { \"op\": \"output\", \"var\": 73 },"
-        "    { \"op\": \"output\", \"var\": 74 },"
-        "    { \"op\": \"output\", \"var\": 75 },"
-        "    { \"op\": \"output\", \"var\": 76 },"
-        "    { \"op\": \"output\", \"var\": 77 },"
-        "    { \"op\": \"output\", \"var\": 78 },"
-        "    { \"op\": \"output\", \"var\": 79 },"
-        "    { \"op\": \"output\", \"var\": 80 },"
-        "    { \"op\": \"output\", \"var\": 81 },"
-        "    { \"op\": \"output\", \"var\": 82 },"
-        "    { \"op\": \"output\", \"var\": 83 },"
-        "    { \"op\": \"output\", \"var\": 84 },"
-        "    { \"op\": \"output\", \"var\": 85 },"
-        "    { \"op\": \"output\", \"var\": 86 },"
-        "    { \"op\": \"output\", \"var\": 87 },"
-        "    { \"op\": \"output\", \"var\": 88 },"
-        "    { \"op\": \"output\", \"var\": 89 },"
-        "    { \"op\": \"output\", \"var\": 90 },"
-        "    { \"op\": \"output\", \"var\": 91 },"
-        "    { \"op\": \"output\", \"var\": 92 },"
-        "    { \"op\": \"output\", \"var\": 93 },"
-        "    { \"op\": \"output\", \"var\": 94 },"
-        "    { \"op\": \"output\", \"var\": 95 },"
-        "    { \"op\": \"output\", \"var\": 96 },"
-        "    { \"op\": \"output\", \"var\": 97 },"
-        "    { \"op\": \"output\", \"var\": 98 },"
-        "    { \"op\": \"output\", \"var\": 99 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger v: Vector<N, Uint<8>>;"
-      "  export circuit foo(bv: Bytes<N>): Vector<N, Uint<8>> {"
-      "    v = disclose(bv) as Vector<N, Uint<8>>;"
-      "    return v;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" (+ (field-bytes) 5))
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 40 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 11, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 13, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 15, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 17, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 19, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 21, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 23, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 25, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 27, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 29, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 31, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 33, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 35, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 37, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 39, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 41, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 43, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 45, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 47, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 49, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 51, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 53, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 55, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 57, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 59, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 61, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 63, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 65, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 67, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 71 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"24\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 73 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 36 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 38 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 40 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 42 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 44 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 46 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 48 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 50 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 52 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 54 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 56 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 58 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 60 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 75 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 75 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 76 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 77 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 72 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 114 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 74 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 78 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 79 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 80 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 81 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 82 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 83 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 84 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 85 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 86 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 87 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 88 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 89 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 90 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 91 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 92 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 93 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 94 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 95 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 96 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 97 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 98 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 99 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 100 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 101 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 102 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 103 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 104 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 105 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 106 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 107 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 108 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 109 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 110 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 111 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 112 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 113 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 74 },"
-        "    { \"op\": \"output\", \"var\": 78 },"
-        "    { \"op\": \"output\", \"var\": 79 },"
-        "    { \"op\": \"output\", \"var\": 80 },"
-        "    { \"op\": \"output\", \"var\": 81 },"
-        "    { \"op\": \"output\", \"var\": 82 },"
-        "    { \"op\": \"output\", \"var\": 83 },"
-        "    { \"op\": \"output\", \"var\": 84 },"
-        "    { \"op\": \"output\", \"var\": 85 },"
-        "    { \"op\": \"output\", \"var\": 86 },"
-        "    { \"op\": \"output\", \"var\": 87 },"
-        "    { \"op\": \"output\", \"var\": 88 },"
-        "    { \"op\": \"output\", \"var\": 89 },"
-        "    { \"op\": \"output\", \"var\": 90 },"
-        "    { \"op\": \"output\", \"var\": 91 },"
-        "    { \"op\": \"output\", \"var\": 92 },"
-        "    { \"op\": \"output\", \"var\": 93 },"
-        "    { \"op\": \"output\", \"var\": 94 },"
-        "    { \"op\": \"output\", \"var\": 95 },"
-        "    { \"op\": \"output\", \"var\": 96 },"
-        "    { \"op\": \"output\", \"var\": 97 },"
-        "    { \"op\": \"output\", \"var\": 98 },"
-        "    { \"op\": \"output\", \"var\": 99 },"
-        "    { \"op\": \"output\", \"var\": 100 },"
-        "    { \"op\": \"output\", \"var\": 101 },"
-        "    { \"op\": \"output\", \"var\": 102 },"
-        "    { \"op\": \"output\", \"var\": 103 },"
-        "    { \"op\": \"output\", \"var\": 104 },"
-        "    { \"op\": \"output\", \"var\": 105 },"
-        "    { \"op\": \"output\", \"var\": 106 },"
-        "    { \"op\": \"output\", \"var\": 107 },"
-        "    { \"op\": \"output\", \"var\": 108 },"
-        "    { \"op\": \"output\", \"var\": 109 },"
-        "    { \"op\": \"output\", \"var\": 110 },"
-        "    { \"op\": \"output\", \"var\": 111 },"
-        "    { \"op\": \"output\", \"var\": 112 },"
-        "    { \"op\": \"output\", \"var\": 113 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger bv: Bytes<N>;"
-      "  export circuit foo(v: Vector<N, Uint<8>>): Bytes<N> {"
-      "    bv = disclose(v) as Bytes<N>;"
-      "    return bv;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 0)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 3 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger bv: Bytes<N>;"
-      "  export circuit foo(v: Vector<N, Uint<8>>): Bytes<N> {"
-      "    bv = disclose(v) as Bytes<N>;"
-      "    return bv;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 1)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger bv: Bytes<N>;"
-      "  export circuit foo(v: Vector<N, Uint<8>>): Bytes<N> {"
-      "    bv = disclose(v) as Bytes<N>;"
-      "    return bv;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" 5)
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 5,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 4, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 6, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 7, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 8, \"modulus\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"05\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 5, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 17 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger bv: Bytes<N>;"
-      "  export circuit foo(v: Vector<N, Uint<8>>): Bytes<N> {"
-      "    bv = disclose(v) as Bytes<N>;"
-      "    return bv;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" (field-bytes))
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 31,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 10, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 12, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 13, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 14, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 15, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 16, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 17, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 19, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 20, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 21, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 22, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 23, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 24, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 25, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 26, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 27, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 28, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 29, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 32, \"modulus\": 28, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 33, \"modulus\": 27, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 34, \"modulus\": 26, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 35, \"modulus\": 25, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 36, \"modulus\": 24, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 37, \"modulus\": 23, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 38, \"modulus\": 22, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 39, \"modulus\": 21, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 40, \"modulus\": 20, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 41, \"modulus\": 19, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 42, \"modulus\": 18, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 43, \"modulus\": 17, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 44, \"modulus\": 16, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 45, \"modulus\": 15, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 46, \"modulus\": 14, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 47, \"modulus\": 13, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 48, \"modulus\": 12, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 49, \"modulus\": 11, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 50, \"modulus\": 10, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 51, \"modulus\": 9, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 52, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 53, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 54, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 55, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 56, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 57, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 58, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 59, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 60, \"modulus\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 62 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 64 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 66 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 67 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 68 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 63 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 70 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 65 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 69 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 31, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 69 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    `(
-      "module M<#N> {"
-      "  ledger bv: Bytes<N>;"
-      "  export circuit foo(v: Vector<N, Uint<8>>): Bytes<N> {"
-      "    bv = disclose(v) as Bytes<N>;"
-      "    return bv;"
-      "  }"
-      "}"
-      ,(format "import M<~d>;" (- (* (field-bytes) 2) 1))
-      "export { foo }"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 61,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 10, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 12, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 13, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 14, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 15, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 16, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 17, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 18, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 19, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 20, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 21, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 22, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 23, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 24, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 25, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 26, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 27, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 28, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 29, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 31, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 32, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 33, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 34, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 35, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 36, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 37, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 38, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 39, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 40, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 41, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 42, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 43, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 44, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 45, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 46, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 47, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 48, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 49, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 50, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 51, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 52, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 53, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 54, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 55, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 56, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 57, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 58, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 59, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 60, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 60, \"modulus\": 59, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 62, \"modulus\": 58, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 63, \"modulus\": 57, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 64, \"modulus\": 56, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 65, \"modulus\": 55, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 66, \"modulus\": 54, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 67, \"modulus\": 53, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 68, \"modulus\": 52, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 69, \"modulus\": 51, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 70, \"modulus\": 50, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 71, \"modulus\": 49, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 72, \"modulus\": 48, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 73, \"modulus\": 47, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 74, \"modulus\": 46, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 75, \"modulus\": 45, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 76, \"modulus\": 44, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 77, \"modulus\": 43, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 78, \"modulus\": 42, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 79, \"modulus\": 41, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 80, \"modulus\": 40, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 81, \"modulus\": 39, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 82, \"modulus\": 38, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 83, \"modulus\": 37, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 84, \"modulus\": 36, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 85, \"modulus\": 35, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 86, \"modulus\": 34, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 87, \"modulus\": 33, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 88, \"modulus\": 32, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 89, \"modulus\": 31, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 30, \"modulus\": 29, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 91, \"modulus\": 28, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 92, \"modulus\": 27, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 93, \"modulus\": 26, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 94, \"modulus\": 25, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 95, \"modulus\": 24, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 96, \"modulus\": 23, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 97, \"modulus\": 22, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 98, \"modulus\": 21, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 99, \"modulus\": 20, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 100, \"modulus\": 19, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 101, \"modulus\": 18, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 102, \"modulus\": 17, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 103, \"modulus\": 16, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 104, \"modulus\": 15, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 105, \"modulus\": 14, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 106, \"modulus\": 13, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 107, \"modulus\": 12, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 108, \"modulus\": 11, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 109, \"modulus\": 10, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 110, \"modulus\": 9, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 111, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 112, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 113, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 114, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 115, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 116, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 117, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 118, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 119, \"modulus\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 121 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 122 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"3D\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 123 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 124 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 90 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 120 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 125 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 126 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 127 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 122 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 130 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 61 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 124 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 128 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 129 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 61, \"count\": 5 },"
-        "    { \"op\": \"output\", \"var\": 128 },"
-        "    { \"op\": \"output\", \"var\": 129 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger round: Counter;"
-      "export circuit test10(param1: Vector<1, Uint<8>>): [] {"
-      "  round.increment(disclose(param1[0]));"
-      ""
-      "  const p = param1 as Bytes<1>;"
-      "  round.increment((disclose(p) as Vector<1, Uint<8>>)[0]);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test10.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger round: Counter;"
-      "export circuit test10(param1: Vector<10, Uint<8>>): [] {"
-      "  round.increment(disclose(param1[0]));"
-      ""
-      "  const p = param1 as Bytes<10>;"
-      "  round.increment((disclose(p) as Vector<10, Uint<8>>)[0]);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test10.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 10,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"70\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0E\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 2 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"A1\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 9, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 15, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 16, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 17, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 18, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 19, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 20, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 21, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 22, \"modulus\": 0, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 23, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 24, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 26, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 28, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 30, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 32, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 34, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 36, \"bits\": 8 },"
-        "    { \"op\": \"div_mod_power_of_two\", \"var\": 38, \"bits\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger val5: Bytes<10>;"
-      ""
-      "export circuit test5(param1: Vector<10, Uint<8>>): Bytes<10> {"
-      "  val5 = disclose(param1) as Bytes<10>;"
-      "  return val5;"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test5.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 10,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 3, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 4, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 5, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 6, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 7, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 8, \"bits\": 8 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 9, \"modulus\": 8, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 11, \"modulus\": 7, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 12, \"modulus\": 6, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 13, \"modulus\": 5, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 14, \"modulus\": 4, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 15, \"modulus\": 3, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 16, \"modulus\": 2, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 17, \"modulus\": 1, \"bits\": 8 },"
-        "    { \"op\": \"reconstitute_field\", \"divisor\": 18, \"modulus\": 0, \"bits\": 8 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0A\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 10, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 27 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger m: Map<Field, Map<Field, Field>>;"
-      ""
-      "export circuit test0(): Field {"
-      "  return m.lookup(1000 as Field).lookup(2000 as Field);"
-      "}"
-      "export circuit test1(x: Field): Field {"
-      "  return m.lookup(1000 as Field).lookup(disclose(x));"
-      "}"
-      "export circuit test2(x: Field): Field {"
-      "  return m.lookup(disclose(x)).lookup(1000 as Field);"
-      "}"
-      "export circuit test3(x: Field, y: Field): Field {"
-      "  return m.lookup(disclose(x)).lookup(disclose(y));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test0.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"E803\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"D007\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/test1.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"E803\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/test2.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"E803\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/test3.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"51\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 7 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 4 },"
-        "    { \"op\": \"output\", \"var\": 8 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger impure: Boolean;"
-      "export circuit fisk(): JubjubPoint {"
-      "  impure = true;"
-      "  const pt = default<JubjubPoint>;"
-      "  return ecAdd(pt, pt);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/fisk.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 },"
-        "    { \"op\": \"ec_add\", \"a_x\": 2, \"a_y\": 0, \"b_x\": 2, \"b_y\": 0 },"
-        "    { \"op\": \"output\", \"var\": 5 },"
-        "    { \"op\": \"output\", \"var\": 6 }"
-        "  ]"
-        "}"))
-    )
-
-  (test ; Casts involving JubjubScalar.
-    `(
-      "import CompactStandardLibrary;"
-      ,(format "type MaxUint = Uint<0..~d>;" (1+ (max-unsigned)))
-      "ledger fCell: Field;"
-      "ledger jCell: JubjubScalar;"
-      "ledger uCell: MaxUint;"
-      "export circuit testFtoJ(f: Field): [JubjubScalar, JubjubScalar, Field] {"
-      "  const j0 = f as JubjubScalar;"
-      "  jCell = disclose(j0);"
-      "  const j1 = jCell;"
-      "  return [j0, j1, j1 as Field];"
-      "}"
-      "export circuit testJtoF(j: JubjubScalar): [Field, Field, JubjubScalar] {"
-      "  const f0 = j as Field;"
-      "  fCell = disclose(f0);"
-      "  const f1 = fCell;"
-      "  return [f0, f1, f1 as JubjubScalar];"
-      "}"
-      "export circuit testUtoJ(u: MaxUint): [JubjubScalar, JubjubScalar, MaxUint] {"
-      "  const j0 = u as JubjubScalar;"
-      "  jCell = disclose(j0);"
-      "  const j1 = jCell;"
-      "  return [j0, j1, j1 as MaxUint];"
-      "}"
-      "export circuit testJtoU(j: JubjubScalar): [MaxUint, MaxUint, JubjubScalar] {"
-      "  const u0 = j as MaxUint;"
-      "  uCell = disclose(u0);"
-      "  const u1 = uCell;"
-      "  return [u0, u1, u1 as JubjubScalar];"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/testFtoJ.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"copy\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/testJtoF.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"copy\", \"var\": 10 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 10 },"
-        "    { \"op\": \"output\", \"var\": 12 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/testUtoJ.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"copy\", \"var\": 0 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"-02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 9, \"bits\": 248 },"
-        "    { \"op\": \"output\", \"var\": 2 },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 9 }"
-        "  ]"
-        "}"))
-    (output-file "compiler/testdir/zkir/testJtoU.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 1,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"02\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"1F\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 1, \"count\": 4 },"
-        "    { \"op\": \"copy\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 0 },"
-        "    { \"op\": \"output\", \"var\": 9 },"
-        "    { \"op\": \"output\", \"var\": 11 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "ledger wantProof: Boolean;"
-      "export circuit test0(b: Secp256k1Base): Secp256k1Base {"
-      "  wantProof = true;"
-      "  return b;"
-      "}"
-      "export circuit test1(s: Secp256k1Scalar): Secp256k1Scalar {"
-      "  wantProof = true;"
-      "  return s;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256k1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit test(b: Secp256k1Base): [] { return; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Base)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit test(): Secp256k1Scalar { return default<Secp256k1Scalar>; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256k1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger s: Secp256k1Scalar;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 11" "unbound identifier ~s" (Secp256k1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "ledger m: Map<Uint<64>, Map<Uint<64>, Secp256k1Base>>;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 39" "unbound identifier ~s" (Secp256k1Base)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "witness w(): Secp256k1Scalar;"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 14" "unbound identifier ~s" (Secp256k1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "new type Nt = Secp256k1Scalar;"
-      "export circuit test(n: Nt): [] { return; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 15" "unbound identifier ~s" (Secp256k1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit foo<T>(x: T): [] { return; }"
-      "export circuit test(): [] { foo<Secp256k1Base>(default<Secp256k1Base>); }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 33" "unbound identifier ~s" (Secp256k1Base)))
-    )
-
-  (test
-    '(
-      "ledger wantProof: Boolean;"
-      "export circuit test0(b: Secp256r1Base): Secp256r1Base {"
-      "  wantProof = true;"
-      "  return b;"
-      "}"
-      "export circuit test1(s: Secp256r1Scalar): Secp256r1Scalar {"
-      "  wantProof = true;"
-      "  return s;"
-      "}"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 6 char 25" "unbound identifier ~s" (Secp256r1Scalar)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit test(b: Secp256r1Base): [] { return; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 17" "unbound identifier ~s" (Secp256r1Base)))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "circuit test(pt: Secp256r1Point): [] { return; }"
-      )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 18" "unbound identifier ~s" (Secp256r1Point)))
-    )
-
-  ;; ecNeg: negate a JubjubPoint (ZKIR v2)
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      ""
-      "ledger impure: Boolean;"
-      ""
-      "export circuit foo(a: JubjubPoint): JubjubPoint {"
-      "  impure = true;"
-      "  return ecNeg(a);"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 2,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 2, \"count\": 1 },"
-        "    { \"op\": \"neg\", \"a\": 0 },"
-        "    { \"op\": \"output\", \"var\": 7 },"
-        "    { \"op\": \"output\", \"var\": 1 }"
-        "  ]"
-        "}")))
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "witness bar(): Bytes<32>;"
-      "export struct S { F: Field };"
-      "export circuit foo (): [] {"
-      "  return emit ( disclose (ShieldedSpend {bar()} ));"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/foo.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 0,"
-        "  \"instructions\": ["
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 1, \"bits\": 8 },"
-        "    { \"op\": \"private_input\", \"guard\": null },"
-        "    { \"op\": \"constrain_bits\", \"var\": 2, \"bits\": 248 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"33\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"04\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 15 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"09\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 0, \"count\": 1 }"
-        "  ]"
-        "}"))
-    )
-
-  (test
-    '(
-      "import CompactStandardLibrary;"
-      "struct Embedded {"
-      "  x: Uint<64>;"
-      "  y: Vector<10, Uint<0..1>>;"
-      "  z: Uint<64>;"
-      "}"
-      "ledger hash: Bytes<32>;"
-      "ledger embedded: Embedded;"
-      "export circuit test(e: Embedded): Embedded {"
-      "  hash = disclose(persistentHash<Embedded>(e));"
-      "  embedded = disclose(e);"
-      "  return embedded;"
-      "}"
-      )
-    (output-file "compiler/testdir/zkir/test.zkir"
-      '(
-        "{"
-        "  \"version\": { \"major\": 2, \"minor\": 0 },"
-        "  \"do_communications_commitment\": true,"
-        "  \"num_inputs\": 12,"
-        "  \"instructions\": ["
-        "    { \"op\": \"constrain_bits\", \"var\": 0, \"bits\": 64 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"00\" },"
-        "    { \"op\": \"constrain_eq\", \"a\": 1, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 2, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 3, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 4, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 5, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 6, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 7, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 8, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 9, \"b\": 12 },"
-        "    { \"op\": \"constrain_eq\", \"a\": 10, \"b\": 12 },"
-        "    { \"op\": \"constrain_bits\", \"var\": 11, \"bits\": 64 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"01\" },"
-        "    { \"op\": \"persistent_hash\", \"alignment\": [{ \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 1, \"tag\": \"bytes\" } }, { \"tag\": \"atom\", \"value\": { \"length\": 8, \"tag\": \"bytes\" } }], \"inputs\": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] },"
-        "    { \"op\": \"load_imm\", \"imm\": \"10\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 12 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"11\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"20\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 18 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 14 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 15 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 6 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"91\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 16 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 5 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"0C\" },"
-        "    { \"op\": \"load_imm\", \"imm\": \"08\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 17 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 0 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 1 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 2 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 3 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 4 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 5 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 6 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 7 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 8 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 9 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 10 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 11 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 27 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 19 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"30\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 22 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 1 },"
-        "    { \"op\": \"load_imm\", \"imm\": \"50\" },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 23 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 4 },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"public_input\", \"guard\": null },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 20 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 13 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 21 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 24 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 25 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 26 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 27 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 28 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 29 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 30 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 31 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 32 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 33 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 34 },"
-        "    { \"op\": \"declare_pub_input\", \"var\": 35 },"
-        "    { \"op\": \"pi_skip\", \"guard\": 13, \"count\": 26 },"
-        "    { \"op\": \"output\", \"var\": 24 },"
-        "    { \"op\": \"output\", \"var\": 25 },"
-        "    { \"op\": \"output\", \"var\": 26 },"
-        "    { \"op\": \"output\", \"var\": 27 },"
-        "    { \"op\": \"output\", \"var\": 28 },"
-        "    { \"op\": \"output\", \"var\": 29 },"
-        "    { \"op\": \"output\", \"var\": 30 },"
-        "    { \"op\": \"output\", \"var\": 31 },"
-        "    { \"op\": \"output\", \"var\": 32 },"
-        "    { \"op\": \"output\", \"var\": 33 },"
-        "    { \"op\": \"output\", \"var\": 34 },"
-        "    { \"op\": \"output\", \"var\": 35 }"
-        "  ]"
-        "}"))
-    )
-  )
-
-(parameterize ([feature-zkir-v3 #t])
-(run-tests print-zkir-v3
-  (test
-    "examples/tiny.compact"
-    (output-file "compiler/testdir/zkir/public_key.zkir" #f)
-    (output-file "compiler/testdir/zkir/get.zkir"
-                 "examples/outputs/tiny.compact/zkir/get.zkir3")
-    (output-file "compiler/testdir/zkir/set.zkir"
-                 "examples/outputs/tiny.compact/zkir/set.zkir3")
-    (output-file "compiler/testdir/zkir/clear.zkir"
-                 "examples/outputs/tiny.compact/zkir/clear.zkir3")
-    )
-
-  (test
-    "examples/election.compact"
-    (output-file "compiler/testdir/zkir/vote$commit.zkir"
-                 "examples/outputs/election.compact/zkir/vote$commit.zkir3")
-    (output-file "compiler/testdir/zkir/vote$reveal.zkir"
-                 "examples/outputs/election.compact/zkir/vote$reveal.zkir3")
-    (output-file "compiler/testdir/zkir/add_voter.zkir"
-                 "examples/outputs/election.compact/zkir/add_voter.zkir3")
-    (output-file "compiler/testdir/zkir/set_topic.zkir"
-                 "examples/outputs/election.compact/zkir/set_topic.zkir3")
-    (output-file "compiler/testdir/zkir/advance.zkir"
-                 "examples/outputs/election.compact/zkir/advance.zkir3")
-    )
-
-  (test
-    "examples/zerocash.compact"
-    (output-file "compiler/testdir/zkir/spend.zkir"
-                 "examples/outputs/zerocash.compact/zkir/spend.zkir3")
-    (output-file "compiler/testdir/zkir/zerocash_mint.zkir"
-                 "examples/outputs/zerocash.compact/zkir/zerocash_mint.zkir3")
   )
 
   (test
@@ -62998,8 +51295,8 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       ""
       "export circuit foo(a : Boolean): Boolean {"
-      "  return a;
-    }"
+      "  return a;"
+      "}"
       ""
       "export circuit bar(a: Boolean): Boolean {"
       "  return foo(a);"
@@ -68546,13 +56843,24 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
          "export circuit hello(): [] { return contract_c.foo(contract_c.read().barr()); }"
          ))
      (succeeds)))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(x: Field): Field; }"
+      "export circuit viaArg(c: C, x: Field): Field { return disclose(c).foo(disclose(x)); }"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (file-exists? "compiler/testdir/zkir/viaArg.zkir")))
+    )
 
   (test
     '(
@@ -71591,9 +59899,8 @@ groups than for single tests.
         "}"))
     )
   )
-)
 
-(parameterize ([feature-zkir-v3 #t] [no-communications-commitment #t])
+(parameterize ([no-communications-commitment #t])
 (run-tests print-zkir-v3
   (test
     '(
@@ -71636,6 +59943,74 @@ groups than for single tests.
       "}"
       )
     (succeeds)
+    )
+
+  ; a returned conditional with a [] else branch returns []
+  (test
+    '(
+      "circuit helper(): [] {"
+      "}"
+      "export circuit ternary(b: Boolean): [] {"
+      "  return disclose(b) ? helper() : [];"
+      "}"
+      "export circuit ternary_flipped(b: Boolean): [] {"
+      "  return disclose(b) ? [] : helper();"
+      "}"
+      "export circuit ternary_in_seq(b: Boolean): [] {"
+      "  return (helper(), disclose(b) ? helper() : []);"
+      "}"
+      "export circuit if_return(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    return helper();"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  for (const b of [true, false]) {"
+        "    expect((await C.circuits.ternary(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.ternary_flipped(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.ternary_in_seq(Ctxt, b)).result).toEqual([]);"
+        "    expect((await C.circuits.if_return(Ctxt, b)).result).toEqual([]);"
+        "  }"
+        "});"
+        ))
+    )
+
+  ; the value of an assert is []
+  (test
+    '(
+      "export circuit bound(): [] {"
+      "  const r: [] = assert(true, 'a');"
+      "  return r;"
+      "}"
+      "export circuit direct(): [] {"
+      "  return assert(true, 'a');"
+      "}"
+      "export circuit in_tuple(): [[], Field] {"
+      "  return [assert(true, 'a'), 1 as Field];"
+      "}"
+      "export circuit in_conditional(b: Boolean): [] {"
+      "  return disclose(b) ? assert(true, 'a') : [];"
+      "}"
+      "export circuit fails(b: Boolean): [] {"
+      "  assert(disclose(b), 'boom');"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.bound(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.direct(Ctxt)).result).toEqual([]);"
+        "  expect((await C.circuits.in_tuple(Ctxt)).result).toEqual([[], 1n]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, true)).result).toEqual([]);"
+        "  expect((await C.circuits.in_conditional(Ctxt, false)).result).toEqual([]);"
+        "  await expect(C.circuits.fails(Ctxt, false)).rejects.toThrow('failed assert: boom');"
+        "});"
+        ))
     )
 
   (test
@@ -72808,7 +61183,6 @@ groups than for single tests.
 
   )
 
-(with-parameter-values ([feature-zkir-v3 #f #t])
 (run-tests save-manifest
   (test-group
     ((create-file "C1interface.compact"
@@ -72817,16 +61191,18 @@ groups than for single tests.
          "  import CompactStandardLibrary;"
          "  export contract C1 {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "}"
          )))
     ((create-file "C1.compact"
        '(
+         "import CompactStandardLibrary;"
          "import {C1} from C1interface;"
          "contract implements C1;"
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export pure circuit barr(): Bytes<32> { return default<Bytes<32>>; }"
+         "export ledger n: Counter;"
+         "export circuit foo(x: Bytes<32>): [] { n.increment(1); return; }"
+         "export circuit barr(): Bytes<32> { n.increment(1); return default<Bytes<32>>; }"
          ))
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
      ; lines to avoid hard-coding specific version strings into the test
@@ -72840,8 +61216,8 @@ groups than for single tests.
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
-         "      \"pure\": true,"
-         "      \"proof\": false,"
+         "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"x\","
@@ -72859,8 +61235,8 @@ groups than for single tests.
          "    },"
          "    {"
          "      \"name\": \"barr\","
-         "      \"pure\": true,"
-         "      \"proof\": false,"
+         "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -72874,6 +61250,12 @@ groups than for single tests.
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"n\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
          "  ]"
          "}"))
      ; each contract needs a stage-javascript form with a different contractCode name
@@ -72900,7 +61282,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"hello\","
          "      \"pure\": false,"
-         "      \"proof\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"c\","
@@ -72910,7 +61292,6 @@ groups than for single tests.
          "            \"circuits\": ["
          "              {"
          "                \"name\": \"foo\","
-         "                \"pure\": false,"
          "                \"argument-types\": ["
          "                  {"
          "                    \"type-name\": \"Bytes\","
@@ -72925,7 +61306,6 @@ groups than for single tests.
          "              },"
          "              {"
          "                \"name\": \"barr\","
-         "                \"pure\": true,"
          "                \"argument-types\": ["
          "                ],"
          "                \"result-type\": {"
@@ -72952,7 +61332,6 @@ groups than for single tests.
          "      \"circuits\": ["
          "        {"
          "          \"name\": \"foo\","
-         "          \"pure\": false,"
          "          \"argument-types\": ["
          "            {"
          "              \"type-name\": \"Bytes\","
@@ -72967,7 +61346,6 @@ groups than for single tests.
          "        },"
          "        {"
          "          \"name\": \"barr\","
-         "          \"pure\": true,"
          "          \"argument-types\": ["
          "          ],"
          "          \"result-type\": {"
@@ -76020,6 +64398,12 @@ groups than for single tests.
      (stage-javascript middleCode '()))
     ((source-file "test-center/composable/Caller/Outer.compact")
      (stage-javascript outerCode "test-center/ts/composable/caller.ts")))
+
+  (test-group
+    ((source-file "test-center/composable/EntryPoint/Callee.compact")
+     (stage-javascript calleeCode '()))
+    ((source-file "test-center/composable/EntryPoint/Caller.compact")
+     (stage-javascript callerCode "test-center/ts/composable/entry-point.ts")))
 
   (test
     "examples/tiny.compact"
@@ -82214,6 +70598,30 @@ groups than for single tests.
 
   (test
     '(
+      "export ledger F: Vector<6, Uint<32>>;"
+      "export circuit foo(iv: Vector<32, Uint<16>>): Vector<6, Uint<32>> {"
+      "  const v = disclose(iv);"
+      "  // declaring k to be a tuple instead of a vector ..."
+      "  const k: [Uint<32>, Uint<32>] = slice<2>(v, 4);"
+      "  // causes ...k to look like a tuple spread rather than a vector spread"
+      "  // which yields a vector spread inside a tuple form"
+      "  F = [v[0], ...k, ...[v[15], v[16]], v[31]];"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  var [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const q1 = [0n, 1n, 2n, 3n, 4n, 5n, 6n, 7n, 8n, 9n, 10n, 11n, 12n, 13n, 14n, 15n, 16n, 17n, 18n, 19n, 20n, 21n, 22n, 23n, 24n, 25n, 26n, 27n, 28n, 29n, 30n, 31n];"
+        "  const t = await C.circuits.foo(Ctxt, q1);"
+        "  expect(t.result).toEqual([0n, 4n, 5n, 15n, 16n, 31n]);"
+        "  });"
+        ))
+    )
+
+  (test
+    '(
       "ledger F: Vector<4, Field>;"
       "export circuit foo(vi: [Field, Field, Field, Field, Field, Field]): [Field, Field, Field, Field] {"
       "  const v = disclose(vi);"
@@ -87472,6 +75880,59 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #881: * or + on a nominal Uint alias was an internal error when the
+  ; result range equaled the alias's range.
+  (test
+    '(
+      "new type Bit = Uint<1>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<1> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 0n)).result).toEqual(0n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Zero = Uint<0..1>;"
+      "export circuit add(x: Zero, y: Zero): Zero {"
+      "  return x + y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..1> addition', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.add(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Bit = Uint<0..2>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..2> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 1n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
   (test
     `(
       "type Q = Field;"
@@ -89141,6 +77602,118 @@ groups than for single tests.
         ))
     )
 
+  (let ([v (+ (expt 2 248) 5)] [wide (+ (max-curve25519-scalar) 6)])
+    (test
+      `(
+        "import CompactStandardLibrary;"
+        "export ledger k1b: Secp256k1Base;"
+        "export ledger k1s: Secp256k1Scalar;"
+        "export ledger r1b: Secp256r1Base;"
+        "export ledger r1s: Secp256r1Scalar;"
+        "export ledger c25519b: Curve25519Base;"
+        "export ledger c25519s: Curve25519Scalar;"
+        "export ledger f: Field;"
+        "export circuit castK1(b: Boolean, x: Secp256k1Base, y: Secp256k1Scalar): [] {"
+        ,(format "  k1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256k1Base);" v)
+        ,(format "  k1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256k1Scalar);" v)
+        "}"
+        "export circuit castR1(b: Boolean, x: Secp256r1Base, y: Secp256r1Scalar): [] {"
+        ,(format "  r1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256r1Base);" v)
+        ,(format "  r1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256r1Scalar);" v)
+        "}"
+        "export circuit castC25519(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
+        ,(format "  c25519b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
+        ,(format "  c25519s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
+        "}"
+        "export circuit castZero(): [] {"
+        "  k1b = disclose((0 as Field as Bytes<32>) as Secp256k1Base);"
+        "  k1s = disclose((0 as Field as Bytes<32>) as Secp256k1Scalar);"
+        "  r1b = disclose((0 as Field as Bytes<32>) as Secp256r1Base);"
+        "  r1s = disclose((0 as Field as Bytes<32>) as Secp256r1Scalar);"
+        "  c25519b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
+        "  c25519s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
+        "}"
+        "export circuit castWide(): [] {"
+        ,(format "  c25519s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
+        "}"
+        "export circuit castNative(v: Bytes<32>, x: Uint<8>, y: Uint<8>): [] {"
+        ,(format "  const k = (x < y) == (x < y) ? (~d as Field as Bytes<32>) : v;" v)
+        "  f = disclose(k as Field);"
+        "}"
+        )
+      (stage-javascript
+        `(
+          "test('constant casts to field types', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+          ,(format "  const V = ~dn;" v)
+          "  let l = L(await C.circuits.castK1(Ctxt, false, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castK1(Ctxt, true, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castR1(Ctxt, false, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castR1(Ctxt, true, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, false, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, true, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castZero(Ctxt));"
+          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25519b, l.c25519s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+          "  expect(L(await C.circuits.castWide(Ctxt)).c25519s).toEqual(5n);"
+          "  expect(L(await C.circuits.castNative(Ctxt, new Uint8Array(32), 1n, 2n)).f).toEqual(V);"
+          "});"
+          ))
+      )
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct K1 { a: Secp256k1Base, b: Field }"
+      "struct R1 { a: Secp256r1Base, b: Field }"
+      "export ledger n: Field;"
+      "export circuit unusedK1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256k1Base;"
+      "  const s = v as Secp256k1Scalar;"
+      "  n = 1 as Field;"
+      "}"
+      "export circuit unusedR1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256r1Base;"
+      "  const s = v as Secp256r1Scalar;"
+      "  n = 2 as Field;"
+      "}"
+      "export circuit unusedC25519(v: Bytes<32>, w: Bytes<64>): [] {"
+      "  const b = v as Curve25519Base;"
+      "  const s = v as Curve25519Scalar;"
+      "  const t = w as Curve25519Scalar;"
+      "  n = 3 as Field;"
+      "}"
+      "export circuit unusedFieldK1(v: Bytes<32>, f: Field): [] {"
+      "  const p = K1 { a: v as Secp256k1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      "export circuit unusedFieldR1(v: Bytes<32>, f: Field): [] {"
+      "  const p = R1 { a: v as Secp256r1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('unused casts to foreign field types', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const n = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).n;"
+        "  const v = new Uint8Array(32).fill(7);"
+        "  expect(n(await C.circuits.unusedK1(Ctxt, v))).toEqual(1n);"
+        "  expect(n(await C.circuits.unusedR1(Ctxt, v))).toEqual(2n);"
+        "  expect(n(await C.circuits.unusedC25519(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
+        "  expect(n(await C.circuits.unusedFieldK1(Ctxt, v, 4n))).toEqual(4n);"
+        "  expect(n(await C.circuits.unusedFieldR1(Ctxt, v, 5n))).toEqual(5n);"
+        "});"
+        ))
+    )
+
   (test ; Casts involving JubjubScalar.
     `(
       "import CompactStandardLibrary;"
@@ -89180,9 +77753,7 @@ groups than for single tests.
         "  expect((await C.circuits.testFtoJ(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
         "  expect((await C.circuits.testFtoJ(Ctxt, 1000n)).result).toEqual([1000n, 1000n, 1000n]);"
         ,(format "  const MAX_FIELD = ~dn;" (max-field))
-        ,(format "  const EXPECT = ~dn;" (if (feature-zkir-v3)
-                                             (mod (max-field) (1+ (max-jubjub-scalar)))
-                                             (max-field)))
+        ,(format "  const EXPECT = ~dn;" (mod (max-field) (1+ (max-jubjub-scalar))))
         "  expect((await C.circuits.testFtoJ(Ctxt, MAX_FIELD)).result).toEqual([EXPECT, EXPECT, EXPECT]);"
         ""
         "  expect((await C.circuits.testJtoF(Ctxt, 0n)).result).toEqual([0n, 0n, 0n]);"
@@ -89382,12 +77953,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2 {"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
          "export circuit foo(): [] { return contract_c.foo2(); }"
-         ; TODO(201) cross-contract calls to pure circuits are not presently supported
          "export circuit bar(): Field { return 0 as Field /* contract_c.bar2() */; }"
          ))
      (stage-javascript C1 '()))
@@ -89426,7 +77996,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "sealed ledger contract_c: C1;"
          "constructor(c: C1) { contract_c = disclose(c); }"
@@ -89452,7 +78022,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C1;"
          "constructor (c: C1) { contract_c = disclose(c); }"
@@ -89477,7 +78047,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(){contract_c = default<C1>;}"
@@ -89501,7 +78071,7 @@ groups than for single tests.
          "module M {"
          "  export contract C1 {"
          "    circuit foo(x: Uint<8>): Uint<8>;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -91676,13 +80246,37 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "type frob = [Uint<32>, Boolean];"
+      "new type blob = Bytes<8>;"
+      "ledger F: [frob, blob];"
+      "export circuit foo(x: frob, y: blob): Bytes<16> {"
+      "  F = disclose([x, y]);"
+      "  return serialize<[frob, blob], 16>(F);"
+      "}"
+      "export circuit unfoo(bv: Bytes<16>): [frob, blob] {"
+      "  F = deserialize<[frob, blob], 16>(disclose(bv));"
+      "  return F;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Serializing and deserializing through nominal and structural type aliases', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)"
+        "    .toEqual(new Uint8Array([0xd4, 0xc5, 0xb6, 0xa7, 0x1, 0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f, 0, 0, 0]));"
+        "  expect((await C.circuits.unfoo(Ctxt, (await C.circuits.foo(Ctxt, [0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f]))).result)).result)"
+        "    .toEqual([[0xa7b6c5d4n, true], new Uint8Array([0x11, 0x17, 0x1d, 0x1f, 0x25, 0x29, 0x2b, 0x2f])]);"
+        "});"
+        ))
+    )
 )
 
 (run-javascript)
-)
 
-;;; Tests that are only run in ZKIR-v3 mode:
-(parameterize ([feature-zkir-v3 #t])
 (run-tests prepare-for-typescript
   ;; Ensure casts appear where we expect them to.
   (test
@@ -92839,6 +81433,51 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "export ledger point: Secp256k1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256k1Point, b: Secp256k1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256k1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256k1Point>(aa) == persistentHash<Secp256k1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256k1Point): Secp256k1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256k1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256k1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256k1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256k1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "ledger address: Bytes<20>;"
       "ledger hash: Bytes<32>;"
       "// This was the reported issue."
@@ -93188,6 +81827,50 @@ groups than for single tests.
           ,(expect 'muls scalar0 scalar1 (modulo (* scalar0 scalar1) (1+ (max-secp256k1-scalar))))
         "});"
         )))
+    )
+
+  ; Issue #866: x - x on a foreign field was folded to a Uint<0..1> constant.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger k1: Secp256k1Scalar;"
+      "export ledger r1: Secp256r1Base;"
+      "export ledger c: Curve25519Scalar;"
+      "circuit diff(a: Secp256k1Scalar, b: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return a - b;"
+      "}"
+      "export circuit selfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k - k);"
+      "  return k1;"
+      "}"
+      "export circuit inlinedSelfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(diff(k, k));"
+      "  return k1;"
+      "}"
+      "export circuit mulSelfSub(k: Secp256k1Scalar, z: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k * (z - z));"
+      "  return k1;"
+      "}"
+      "export circuit selfSubR1(k: Secp256r1Base): Secp256r1Base {"
+      "  r1 = disclose(k - k);"
+      "  return r1;"
+      "}"
+      "export circuit selfSubC(k: Curve25519Scalar): Curve25519Scalar {"
+      "  c = disclose(k - k);"
+      "  return c;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('foreign field self-subtraction', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.selfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.inlinedSelfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.mulSelfSub(context, 12345n, 678n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubR1(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubC(context, 12345n)).result).toEqual(0n);"
+        "  });"
+        ))
     )
 
 
@@ -93632,10 +82315,9 @@ groups than for single tests.
      (stage-javascript Adder '()))
     ((create-file "testfile.compact"
        '(
-         "import CompactStandardLibrary;"
          "contract Adder {"
          "  circuit addTo(n: Uint<64>): Uint<64>;"
-         "  pure circuit peek(): Field;"
+         "  circuit peek(): Field;"
          "}"
          "ledger a: Adder;"
          "constructor(x: Adder) { a = disclose(x); }"
@@ -93648,8 +82330,6 @@ groups than for single tests.
          "  const d = contractCode.declaredInterfaces;"
          "  expect(Object.keys(d)).toEqual(['Adder']);"
          "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
-         "  expect(d.Adder.addTo.pure).toEqual(false);"
-         "  expect(d.Adder.peek.pure).toEqual(true);"
          "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
          "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
          "  expect(d.Adder.addTo.resultType).toEqual(u64);"
@@ -93661,7 +82341,39 @@ groups than for single tests.
          "  expect(c.name).toEqual('Adder');"
          "  expect(c.circuits).toEqual(contractCode.declaredInterfaces.Adder);"
          "});"
-         ))))
+         )))
+    )
+
+  (test-group
+    ((create-file "Adder.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit addTo(n: Uint<64>): Uint<64> { return n; }"
+         ))
+     (stage-javascript Adder '()))
+    ((create-file "testfile.compact"
+       '(
+         "contract Adder {"
+         "  circuit addTo(n: Uint<64>): Uint<64>;"
+         "  circuit peek(): Field;"
+         "}"
+         "export circuit useAdder(a: Adder): Uint<64> {"
+         "  return disclose(a).addTo(1 as Uint<64>);"
+         "}"
+         ))
+     (stage-javascript
+       '(
+         "test('declaredInterfaces records the contract types called through', () => {"
+         "  const d = contractCode.declaredInterfaces;"
+         "  expect(Object.keys(d)).toEqual(['Adder']);"
+         "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
+         "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
+         "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
+         "  expect(d.Adder.addTo.resultType).toEqual(u64);"
+         "  expect(d.Adder.peek.argumentTypes).toEqual([]);"
+         "});"
+         )))
+    )
 
   (test
     '(
@@ -94365,6 +83077,51 @@ groups than for single tests.
         "  expect((await contract.circuits.pointsNotEqual(context, p4, p5)).result).toEqual(false);"
         "  expect((await contract.circuits.pointsNotEqual(context, p1, p4)).result).toEqual(true);"
         "  });"
+        ))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger point: Secp256r1Point;"
+      "export ledger hash: Bytes<32>;"
+      "// This was the reported issue: LFDT-Minokawa/compact issue #795."
+      "export circuit identityEqual(a: Secp256r1Point, b: Secp256r1Point): [] {"
+      "  const aa = disclose(a);"
+      "  const bb = disclose(b);"
+      "  assert(aa == default<Secp256r1Point>, 'must be identity point');"
+      "  assert(aa == bb, 'they must be same');"
+      "  assert(persistentHash<Secp256r1Point>(aa) == persistentHash<Secp256r1Point>(bb), 'digest must be same');"
+      "}"
+      "export circuit storePoint(pt: Secp256r1Point): Secp256r1Point {"
+      "  point = disclose(pt);"
+      "  return point;"
+      "}"
+      "export circuit hashPoint(pt: Secp256r1Point): Bytes<32> {"
+      "  hash = disclose(persistentHash<Secp256r1Point>(pt));"
+      "  return hash;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Secp256r1Point identity encodes the same whatever its coordinates', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const identity0 = { x: 0n, y: 0n, identity: true };"
+        "  const identity1 = { x: 4n, y: 4n, identity: true };"
+        "  const identity2 = { ...runtime.secp256r1MulGenerator(7n), identity: true };"
+        "  // Two identity points are equal and hash the same, whatever their coordinates."
+        "  await contract.circuits.identityEqual(context, identity0, identity1);"
+        "  await contract.circuits.identityEqual(context, identity1, identity2);"
+        "  const hash0 = (await contract.circuits.hashPoint(context, identity0)).result;"
+        "  expect((await contract.circuits.hashPoint(context, identity1)).result).toEqual(hash0);"
+        "  expect((await contract.circuits.hashPoint(context, identity2)).result).toEqual(hash0);"
+        "  // Every identity point is stored, and read back, as the default one."
+        "  for (const identity of [identity0, identity1, identity2]) {"
+        "    const r = await contract.circuits.storePoint(context, identity);"
+        "    expect(r.result).toEqual(identity0);"
+        "    expect(contractCode.ledger(r.context.callContext.currentQueryContext.state).point).toEqual(identity0);"
+        "  }"
+        "});"
         ))
     )
 
@@ -95421,6 +84178,135 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #868: Curve25519 types had no ZKIR default.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger mp: Maybe<Curve25519Point>;"
+      "export ledger ms: Maybe<Curve25519Scalar>;"
+      "export ledger eb: Either<Curve25519Base, Field>;"
+      "export circuit setNone(): [] {"
+      "  mp = none<Curve25519Point>();"
+      "  ms = none<Curve25519Scalar>();"
+      "  eb = right<Curve25519Base, Field>(1 as Field);"
+      "}"
+      "export circuit setSome(p: Curve25519Point, s: Curve25519Scalar, b: Curve25519Base): [] {"
+      "  mp = some<Curve25519Point>(disclose(p));"
+      "  ms = some<Curve25519Scalar>(disclose(s));"
+      "  eb = left<Curve25519Base, Field>(disclose(b));"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519 defaults', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  let r = await contract.circuits.setNone(context);"
+        "  let l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  expect(l.mp).toEqual({ is_some: false, value: runtime.curve25519MulGenerator(0n) });"
+        "  expect(l.ms).toEqual({ is_some: false, value: 0n });"
+        "  expect(l.eb).toEqual({ is_left: false, left: 0n, right: 1n });"
+        "  const p = runtime.curve25519MulGenerator(5n);"
+        "  r = await contract.circuits.setSome(r.context, p, 7n, 9n);"
+        "  l = contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  expect(l.mp).toEqual({ is_some: true, value: p });"
+        "  expect(l.ms).toEqual({ is_some: true, value: 7n });"
+        "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
+        "  });"
+        ))
+    )
+
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
+  ; Casting any field type other than Field to Boolean is a type error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Secp256r1Base): Boolean {"
+      "  return a as Boolean;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: Curve25519Scalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: JubjubScalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Boolean")))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -95878,7 +84764,82 @@ groups than for single tests.
         "});"
         ))
     )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Curve25519Point;"
+      "export circuit foo1(x: Curve25519Point): Bytes<64> {"
+      "  F1 = disclose(x);"
+      "  return serialize<Curve25519Point, 64>(F1);"
+      "}"
+    ; "export circuit foo2(x: Secp256k1Point): Bytes<64> {"
+    ; "  F2 = disclose(x);"
+    ; "  return serialize<Secp256k1Point, 64>(F2);"
+    ; "}"
+    ; "export circuit foo3(x: Secp256r1Point): Bytes<64> {"
+    ; "  F3 = disclose(x);"
+    ; "  return serialize<Secp256r1Point, 64>(F3);"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "serialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F1: Curve25519Point;"
+      "ledger F2: Secp256k1Point;"
+      "ledger F3: Secp256r1Point;"
+      "export circuit foo1(bv: Bytes<64>): Curve25519Point {"
+      "  F1 = deserialize<Curve25519Point, 64>(disclose(bv));"
+      "  return F1;"
+      "}"
+    ; "export circuit foo2(bv: Bytes<64>): Secp256k1Point {"
+    ; "  F2 = deserialize<Secp256k1Point, 64>(disclose(bv));"
+    ; "  return F2;"
+    ; "}"
+    ; "export circuit foo3(bv: Bytes<64>): Secp256r1Point {"
+    ; "  F3 = deserialize<Secp256r1Point, 64>(disclose(bv));"
+    ; "  return F3;"
+    ; "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(x: Map<Boolean, Set<Boolean>>): Bytes<64> {"
+      "  F = x;"
+      "  return serialize<Map<Boolean, Set<Boolean>>, 64>(F);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("argument 'value'" "Map<Boolean, Set<Boolean>>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "ledger F: Map<Boolean, Set<Boolean>>;"
+      "export circuit foo(bv: Bytes<64>): Map<Boolean, Set<Boolean>> {"
+      "  F = deserialize<Map<Boolean, Set<Boolean>>, 64>(bv);"
+      "  return F;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "expected ~a type to be an ordinary Compact type but received ADT type ~a" ("circuit return" "Map<Boolean, Set<Boolean>>")))
+    )
 )
 
 (run-javascript)
-)

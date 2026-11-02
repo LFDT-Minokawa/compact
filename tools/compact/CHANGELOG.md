@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [Compact tools 0.5.3]
+
 ### Changed
 
 - The toolchain archive is now unpacked by `compact` itself rather than by

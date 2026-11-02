@@ -17,6 +17,4 @@ import { defineCompileTest } from '@test/compact-test';
 
 // Provable, so hashing a curve point has to survive zkir v3. This would catch
 // compact#612 coming back.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

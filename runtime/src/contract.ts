@@ -598,13 +598,11 @@ export const crossContractCall = async ({
     callerAddress: circuitContext.callContext.contractAddress,
   };
 
-  // 1. A circuit the contract type declares `pure` has no verifier key and is never a deployed
-  //    operation, so there is nothing to call into.
-  const declared = Object.hasOwn(declaration, calleeCircuitId) ? declaration[calleeCircuitId] : undefined;
-  assertDefined(declared, `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`);
-  if (declared.pure) {
-    failResolution(resolutionContext, { kind: 'PureInterfaceCircuit' });
-  }
+  // 1. The call site names a circuit of the declared contract type.
+  assertDefined(
+    Object.hasOwn(declaration, calleeCircuitId) ? declaration[calleeCircuitId] : undefined,
+    `declaration of circuit '${calleeCircuitId}' on contract type '${interfaceName}'`,
+  );
 
   // 2. Address checks, then the provider itself.
   assertIsContractAddress(calleeAddress);
@@ -657,7 +655,6 @@ export const crossContractCall = async ({
     calleeCallProofData.commCommData = commCommData;
     callerProofData.privateTranscriptOutputs.push(calleeCallProofData.output);
     callerProofData.privateTranscriptOutputs.push(frHexToAlignedValue(commCommData.commCommRand));
-    callerProofData.privateTranscriptOutputs.push(circuitIdToValue(calleeCircuitId));
     kernelClaimContractCall(circuitContext, callerProofData, calleeAddress, calleeCircuitId, commCommData.commComm);
 
     return circuitResult.result;

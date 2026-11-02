@@ -18,15 +18,35 @@
 (define-pass expand-serialize : Lnodisclose (ir) -> Lnoserialize ()
   (definitions
     (define (format-field-type ftype)
-      (nanopass-case (Lnoserialize Field-Type) ftype
+      (strict-nanopass-case (Lnoserialize Field-Type) ftype
         [(field-native) "Field"]
-        [(field-scalar (curve-jubjub)) "JubjubScalar"]
-        [(field-base (curve-secp256k1)) "Secp256k1Base"]
-        [(field-scalar (curve-secp256k1)) "Secp256k1Scalar"]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lnoserialize Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Base"]
+           [(curve-jubjub) (assert cannot-happen)]
+           [(curve-secp256k1) "Secp256k1Base"]
+           [(curve-secp256r1) "Secp256r1Base"])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lnoserialize Curve-Type) ctype
+           [(curve-curve25519) "Curve25519Scalar"]
+           [(curve-jubjub) "JubjubScalar"]
+           [(curve-secp256k1) "Secp256k1Scalar"]
+           [(curve-secp256r1) "Secp256r1Scalar"])]))
+    (define (format-point-type ctype)
+      (strict-nanopass-case (Lnoserialize Curve-Type) ctype
+        [(curve-curve25519) "Curve25519Point"]
+        [(curve-jubjub) "JubjubPoint"]
+        [(curve-secp256k1) "Secp256k1Point"]
+        [(curve-secp256r1) "Secp256r1Point"]))
     (define (format-type type)
-      (nanopass-case (Lnoserialize Type) type
+      (define (format-adt-arg adt-arg)
+        (nanopass-case (Lnodca Public-Ledger-ADT-Arg) adt-arg
+          [,nat (format "~d" nat)]
+          [,type (format-type type)]))
+      (strict-nanopass-case (Lnoserialize Type) type
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
+        [(tpoint ,src ,ctype) (format-point-type ctype)]
         [(tunsigned ,src ,nat)
          (or (and (> nat 0)
                   (let ([bits (integer-length nat)])
@@ -59,14 +79,25 @@
          (if nominal?
              (format "~a" type-name)
              (format-type type))]
-        [else (internal-errorf 'format-type "unrecognized type ~a" type)]))
+        [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+         (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
+        [,tvar-name (assert cannot-happen)]))
 
     (define (field-length-in-bytes ftype)
-      (nanopass-case (Lnoserialize Field-Type) ftype
+      (strict-nanopass-case (Lnoserialize Field-Type) ftype
         [(field-native) (1+ (field-bytes))]
-        [(field-scalar (curve-jubjub)) (1+ (field-bytes))]
-        [(field-base (curve-secp256k1)) 32]
-        [(field-scalar (curve-secp256k1)) 32]))
+        [(field-base ,ctype)
+         (strict-nanopass-case (Lnoserialize Curve-Type) ctype
+           [(curve-curve25519) 32]
+           [(curve-jubjub) (assert cannot-happen)]
+           [(curve-secp256k1) 32]
+           [(curve-secp256r1) 32])]
+        [(field-scalar ,ctype)
+         (strict-nanopass-case (Lnoserialize Curve-Type) ctype
+           [(curve-curve25519) 32]
+           [(curve-jubjub) (1+ (field-bytes))]
+           [(curve-secp256k1) 32]
+           [(curve-secp256r1) 32])]))
 
     (define (native-field-type)
       (with-output-language (Lnoserialize Field-Type) `(field-native)))
@@ -134,105 +165,110 @@
                           `(field->bytes ,src ,nbytes ,ftype
                              (safe-cast ,src (tfield ,src ,ftype) (tunsigned ,src ,nat) ,expr)))))
                     rta*)))]))
-        (nanopass-case (Lnoserialize Type) type
-          [(tboolean ,src^)
-           (k rx* rt* re* (+ n 1)
-              (cons
-                (lambda (as-bytes?)
-                  (if as-bytes?
-                      (with-output-language (Lnoserialize Expression)
-                        `(if ,src ,expr
-                             (quote ,src #vu8(1))
-                             (quote ,src #vu8(0))))
-                      (with-output-language (Lnoserialize Tuple-Argument)
-                        `(single ,src
-                           (if ,src ,expr
-                               (safe-cast ,src (tunsigned ,src 255) (tunsigned ,src 1) (quote ,src 1))
-                               (safe-cast ,src (tunsigned ,src 255) (tunsigned ,src 0) (quote ,src 0)))))))
-                rta*))]
-          [(tfield ,src^ ,ftype)
-           (let ([len (field-length-in-bytes ftype)])
+        (let again ([type type])
+          (strict-nanopass-case (Lnoserialize Type) type
+            [(tboolean ,src^)
+             (k rx* rt* re* (+ n 1)
+                (cons
+                  (lambda (as-bytes?)
+                    (if as-bytes?
+                        (with-output-language (Lnoserialize Expression)
+                          `(if ,src ,expr
+                               (quote ,src #vu8(1))
+                               (quote ,src #vu8(0))))
+                        (with-output-language (Lnoserialize Tuple-Argument)
+                          `(single ,src
+                             (if ,src ,expr
+                                 (safe-cast ,src (tunsigned ,src 255) (tunsigned ,src 1) (quote ,src 1))
+                                 (safe-cast ,src (tunsigned ,src 255) (tunsigned ,src 0) (quote ,src 0)))))))
+                  rta*))]
+            [(tfield ,src^ ,ftype)
+             (let ([len (field-length-in-bytes ftype)])
+               (k rx* rt* re* (+ n len)
+                 (cons
+                   (lambda (as-bytes?)
+                     (bytes-or-tuple-arg as-bytes? len
+                       (with-output-language (Lnoserialize Expression)
+                         `(field->bytes ,src ,len ,ftype ,expr))))
+                   rta*)))]
+            [(tpoint ,src^ ,ctype)
+             (source-errorf src "serialization is not yet supported for curve type ~a" (format-type type))]
+            [(tunsigned ,src^ ,nat)
+             (do-unsigned nat expr)]
+            [(tbytes ,src^ ,len)
              (k rx* rt* re* (+ n len)
-               (cons
-                 (lambda (as-bytes?)
-                   (bytes-or-tuple-arg as-bytes? len
-                     (with-output-language (Lnoserialize Expression)
-                       `(field->bytes ,src ,len ,ftype ,expr))))
-                 rta*)))]
-          [(tunsigned ,src^ ,nat)
-           (do-unsigned nat expr)]
-          [(tbytes ,src^ ,len)
-           (k rx* rt* re* (+ n len)
-              (cons
-                (lambda (as-bytes?)
-                  (bytes-or-tuple-arg as-bytes? len expr))
-                rta*))]
-          [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
-           (let ([nat (length elt-name*)])
-             (do-unsigned nat
-               (with-output-language (Lnoserialize Expression)
-                 `(cast-from-enum ,src (tunsigned ,src ,nat) ,type ,expr))))]
-          [(tvector ,src^ ,len ,type^)
-           (maybe-bind src (fx> len 1) rx* rt* re* type expr
-             (lambda (rx* rt* re* expr)
-               (let f ([len len] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
-                 (if (fx= len 0)
-                     (k rx* rt* re* n rta*)
-                     (go type^ (make-tuple-ref src expr i) rx* rt* re* n rta*
-                         (lambda (rx* rt* re* n rta*)
-                           (f (fx- len 1) (fx+ i 1) rx* rt* re* n rta*)))))))]
-          [(ttuple ,src^ ,type* ...)
-           (maybe-bind src (fx> (length type*) 1) rx* rt* re* type expr
-             (lambda (rx* rt* re* expr)
-               (let f ([type* type*] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
-                 (if (null? type*)
-                     (k rx* rt* re* n rta*)
-                     (go (car type*) (make-tuple-ref src expr i) rx* rt* re* n rta*
-                         (lambda (rx* rt* re* n rta*)
-                           (f (cdr type*) (fx+ i 1) rx* rt* re* n rta*)))))))]
-          [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-           (maybe-bind src (fx> (length type*) 1) rx* rt* re* type expr
-             (lambda (rx* rt* re* expr)
-               (let f ([type* type*] [elt-name* elt-name*] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
-                 (if (null? type*)
-                     (k rx* rt* re* n rta*)
-                     (go (car type*) (make-elt-ref src expr (car elt-name*) i) rx* rt* re* n rta*
-                         (lambda (rx* rt* re* n rta*)
-                           (f (cdr type*) (cdr elt-name*) (fx+ i 1) rx* rt* re* n rta*)))))))]
-          [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-           (source-errorf src "type ~a (contract) is not serializable" (format-type type))]
-          [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-           (source-errorf src "type ~a (ADT) is not serializable" (format-type type))]
-          [(topaque ,src^ ,opaque-type)
-           (source-errorf src "type ~a (opaque) is not serializable" (format-type type))]
-          [else (internal-errorf 'build-serialize "unhandled type ~s" type)]))
-        (go type expr '() '() '() 0 '()
-            (lambda (rx* rt* re* n rta*)
-              (when (and len? (> n len?))
-                (source-errorf src "actual serialized size ~d exceeds specified length ~d for type ~a"
-                               n len? (format-type type)))
-              (let ([len (or len? n)])
-                (values
-                  len
-                  (maybe-add-let* (reverse rx*) (reverse rt*) (reverse re*)
-                    (with-output-language (Lnoserialize Expression)
-                      (if (and (fx<= (length rta*) 1) (= n len))
-                          (if (null? rta*)
-                              `(quote ,src #vu8())
-                              ((car rta*) #t))
-                          `(vector->bytes ,src ,len
-                             (vector ,src
-                               ,(reverse
-                                  (let ([rta* (map (lambda (rta) (rta #f)) rta*)])
-                                    (if (= n len)
-                                        rta*
-                                        (let ([pad (- len n)])
-                                          (cons
-                                            `(spread ,src ,pad
-                                               (bytes->vector ,src ,pad
-                                                 (quote ,src ,(make-bytevector pad 0))))
-                                            rta*)))))
-                               ...))))))))))
+                (cons
+                  (lambda (as-bytes?)
+                    (bytes-or-tuple-arg as-bytes? len expr))
+                  rta*))]
+            [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+             (let ([nat (length elt-name*)])
+               (do-unsigned nat
+                 (with-output-language (Lnoserialize Expression)
+                   `(cast-from-enum ,src (tunsigned ,src ,nat) ,type ,expr))))]
+            [(tvector ,src^ ,len ,type^)
+             (maybe-bind src (fx> len 1) rx* rt* re* type expr
+               (lambda (rx* rt* re* expr)
+                 (let f ([len len] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
+                   (if (fx= len 0)
+                       (k rx* rt* re* n rta*)
+                       (go type^ (make-tuple-ref src expr i) rx* rt* re* n rta*
+                           (lambda (rx* rt* re* n rta*)
+                             (f (fx- len 1) (fx+ i 1) rx* rt* re* n rta*)))))))]
+            [(ttuple ,src^ ,type* ...)
+             (maybe-bind src (fx> (length type*) 1) rx* rt* re* type expr
+               (lambda (rx* rt* re* expr)
+                 (let f ([type* type*] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
+                   (if (null? type*)
+                       (k rx* rt* re* n rta*)
+                       (go (car type*) (make-tuple-ref src expr i) rx* rt* re* n rta*
+                           (lambda (rx* rt* re* n rta*)
+                             (f (cdr type*) (fx+ i 1) rx* rt* re* n rta*)))))))]
+            [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+             (maybe-bind src (fx> (length type*) 1) rx* rt* re* type expr
+               (lambda (rx* rt* re* expr)
+                 (let f ([type* type*] [elt-name* elt-name*] [i 0] [rx* rx*] [rt* rt*] [re* re*] [n n] [rta* rta*])
+                   (if (null? type*)
+                       (k rx* rt* re* n rta*)
+                       (go (car type*) (make-elt-ref src expr (car elt-name*) i) rx* rt* re* n rta*
+                           (lambda (rx* rt* re* n rta*)
+                             (f (cdr type*) (cdr elt-name*) (fx+ i 1) rx* rt* re* n rta*)))))))]
+            [(talias ,src ,nominal? ,type-name ,type) (again type)]
+            [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+             (source-errorf src "type ~a (contract) is not serializable" (format-type type))]
+            [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+             (source-errorf src "type ~a (ADT) is not serializable" (format-type type))]
+            [(topaque ,src^ ,opaque-type)
+             (source-errorf src "type ~a (opaque) is not serializable" (format-type type))]
+            [,tvar-name (assert cannot-happen)]
+            [(tunknown) (assert cannot-happen)])))
+      (go type expr '() '() '() 0 '()
+          (lambda (rx* rt* re* n rta*)
+            (when (and len? (> n len?))
+              (source-errorf src "actual serialized size ~d exceeds specified length ~d for type ~a"
+                             n len? (format-type type)))
+            (let ([len (or len? n)])
+              (values
+                len
+                (maybe-add-let* (reverse rx*) (reverse rt*) (reverse re*)
+                  (with-output-language (Lnoserialize Expression)
+                    (if (and (fx<= (length rta*) 1) (= n len))
+                        (if (null? rta*)
+                            `(quote ,src #vu8())
+                            ((car rta*) #t))
+                        `(vector->bytes ,src ,len
+                           (vector ,src
+                             ,(reverse
+                                (let ([rta* (map (lambda (rta) (rta #f)) rta*)])
+                                  (if (= n len)
+                                      rta*
+                                      (let ([pad (- len n)])
+                                        (cons
+                                          `(spread ,src ,pad
+                                             (bytes->vector ,src ,pad
+                                               (quote ,src ,(make-bytevector pad 0))))
+                                          rta*)))))
+                             ...))))))))))
 
     ;; expr has type `Bytes<len>`, and the result has type `type`.  It is a static
     ;; error if the serialized form of `type` occupies more than `len` bytes.
@@ -262,75 +298,80 @@
                          (+ i nbytes)
                          (k `(cast-from-bytes ,src (tunsigned ,src ,nat) ,nbytes
                                (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,nbytes)))))]))
-                (nanopass-case (Lnoserialize Type) type
-                  [(tboolean ,src^)
-                   (values
-                     (+ i 1)
-                     `(== ,src
-                          (tunsigned ,src 1)
-                          (downcast-unsigned ,src 8 1 
-                            (bytes-ref ,src ,bytes-type ,expr (quote ,src ,i)))
-                          (quote ,src 1)))]
-                  [(tfield ,src^ ,ftype)
-                   (let ([len (field-length-in-bytes ftype)])
+                (let again ([type type])
+                  (strict-nanopass-case (Lnoserialize Type) type
+                    [(tboolean ,src^)
+                     (values
+                       (+ i 1)
+                       `(== ,src
+                            (tunsigned ,src 1)
+                            (downcast-unsigned ,src 8 1 
+                              (bytes-ref ,src ,bytes-type ,expr (quote ,src ,i)))
+                            (quote ,src 1)))]
+                    [(tfield ,src^ ,ftype)
+                     (let ([len (field-length-in-bytes ftype)])
+                       (values
+                         (+ i len)
+                         `(cast-from-bytes ,src (tfield ,src ,ftype) ,len
+                            (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len))))]
+                    [(tpoint ,src^ ,ctype)
+                     (source-errorf src "deserialization is not yet supported for curve type ~a" (format-type type))]
+                    [(tunsigned ,src^ ,nat)
+                     (do-unsigned nat values)]
+                    [(tbytes ,src^ ,len)
                      (values
                        (+ i len)
-                       `(cast-from-bytes ,src (tfield ,src ,ftype) ,len
-                          (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len))))]
-                  [(tunsigned ,src^ ,nat)
-                   (do-unsigned nat values)]
-                  [(tbytes ,src^ ,len)
-                   (values
-                     (+ i len)
-                     (if (eqv? len 0)
-                         `(quote ,src #vu8())
-                         `(bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len)))]
-                  [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
-                   (let ([nat (length elt-name*)])
-                     (do-unsigned nat
-                       (lambda (expr)
-                         `(cast-to-enum ,src ,type (tunsigned ,src ,nat) ,expr))))]
-                  [(tvector ,src^ ,len ,type^)
-                   (let loop ([len len] [i i] [rexpr* '()])
-                     (if (fx= len 0)
-                         (values
-                           i
-                           `(vector ,src
-                              ,(fold-left
-                                 (lambda (expr* expr)
-                                   (cons `(single ,src ,expr) expr*))
-                                 '()
-                                 rexpr*)
-                              ...))
-                         (let-values ([(i expr) (go type^ i)])
-                           (loop (fx- len 1) i (cons expr rexpr*)))))]
-                  [(ttuple ,src^ ,type* ...)
-                   (let loop ([type* type*] [i i] [rexpr* '()])
-                     (if (null? type*)
-                         (values
-                           i
-                           `(tuple ,src
-                              ,(fold-left
-                                 (lambda (expr* expr)
-                                   (cons `(single ,src ,expr) expr*))
-                                 '()
-                                 rexpr*)
-                              ...))
-                         (let-values ([(i expr) (go (car type*) i)])
-                           (loop (cdr type*) i (cons expr rexpr*)))))]
-                  [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
-                   (let loop ([type* type*] [i i] [rexpr* '()])
-                     (if (null? type*)
-                         (values i `(new ,src ,type ,(reverse rexpr*) ...))
-                         (let-values ([(i expr) (go (car type*) i)])
-                           (loop (cdr type*) i (cons expr rexpr*)))))]
-                  [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
-                   (source-errorf src "type ~a (contract) is not deserializable" (format-type type))]
-                  [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
-                   (source-errorf src "type ~a (ADT) is not deserializable" (format-type type))]
-                  [(topaque ,src^ ,opaque-type)
-                   (source-errorf src "type ~a (opaque) is not deserializable" (format-type type))]
-                  [else (internal-errorf 'build-deserialize "unhandled type ~s" type)])))
+                       (if (eqv? len 0)
+                           `(quote ,src #vu8())
+                           `(bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len)))]
+                    [(tenum ,src^ ,enum-name ,elt-name ,elt-name* ...)
+                     (let ([nat (length elt-name*)])
+                       (do-unsigned nat
+                         (lambda (expr)
+                           `(cast-to-enum ,src ,type (tunsigned ,src ,nat) ,expr))))]
+                    [(tvector ,src^ ,len ,type^)
+                     (let loop ([len len] [i i] [rexpr* '()])
+                       (if (fx= len 0)
+                           (values
+                             i
+                             `(vector ,src
+                                ,(fold-left
+                                   (lambda (expr* expr)
+                                     (cons `(single ,src ,expr) expr*))
+                                   '()
+                                   rexpr*)
+                                ...))
+                           (let-values ([(i expr) (go type^ i)])
+                             (loop (fx- len 1) i (cons expr rexpr*)))))]
+                    [(ttuple ,src^ ,type* ...)
+                     (let loop ([type* type*] [i i] [rexpr* '()])
+                       (if (null? type*)
+                           (values
+                             i
+                             `(tuple ,src
+                                ,(fold-left
+                                   (lambda (expr* expr)
+                                     (cons `(single ,src ,expr) expr*))
+                                   '()
+                                   rexpr*)
+                                ...))
+                           (let-values ([(i expr) (go (car type*) i)])
+                             (loop (cdr type*) i (cons expr rexpr*)))))]
+                    [(tstruct ,src^ ,struct-name (,elt-name* ,type*) ...)
+                     (let loop ([type* type*] [i i] [rexpr* '()])
+                       (if (null? type*)
+                           (values i `(new ,src ,type ,(reverse rexpr*) ...))
+                           (let-values ([(i expr) (go (car type*) i)])
+                             (loop (cdr type*) i (cons expr rexpr*)))))]
+                    [(talias ,src ,nominal? ,type-name ,type) (again type)]
+                    [(tcontract ,src^ ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
+                     (source-errorf src "type ~a (contract) is not deserializable" (format-type type))]
+                    [(tadt ,src^ ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
+                     (source-errorf src "type ~a (ADT) is not deserializable" (format-type type))]
+                    [(topaque ,src^ ,opaque-type)
+                     (source-errorf src "type ~a (opaque) is not deserializable" (format-type type))]
+                    [,tvar-name (assert cannot-happen)]
+                    [(tunknown) (assert cannot-happen)]))))
             (let-values ([(i expr) (go type 0)])
               (unless (<= i len)
                 (source-errorf src "actual serialized size ~d exceeds specified length ~d for type ~a"

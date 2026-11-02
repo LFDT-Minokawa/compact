@@ -42,20 +42,20 @@ circuit publicKey(round: Field, sk: Bytes<32>): Bytes<32> {
 
 export circuit set(v: Uint<64>): [] {
   assert(state == State.UNSET, "Attempted to set initialized value");
-  const sk = secretKey();              // fetch the secret key locally
-  const pk = publicKey(round, sk);     // derive a public key (inside the ZK proof)
-  authority = disclose(pk);            // explicitly publish the public key
-  value = disclose(v);                 // explicitly publish the value
+  const sk = secretKey();                   // fetch the secret key locally
+  const pk = publicKey(round as Field, sk); // derive a public key (inside the ZK proof)
+  authority = disclose(pk);                 // explicitly publish the public key
+  value = disclose(v);                      // explicitly publish the value
   state = State.SET;
 }
 
 export circuit clear(): [] {
   assert(state == State.SET, "Attempted to clear uninitialized value");
-  const sk = secretKey();              // fetch the secret key again
-  const pk = publicKey(round, sk);     // re-derive the public key
+  const sk = secretKey();                   // fetch the secret key again
+  const pk = publicKey(round as Field, sk); // re-derive the public key
   assert(authority == pk, "Attempted to clear without authorization");
-  state = State.UNSET;                 // clear the lock
-  round.increment(1);                  // rotate round so the next public key differs
+  state = State.UNSET;                      // clear the lock
+  round.increment(1);                       // rotate round so the next public key differs
 }
 ```
 

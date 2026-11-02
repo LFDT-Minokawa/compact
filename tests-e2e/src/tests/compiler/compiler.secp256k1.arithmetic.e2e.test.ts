@@ -49,7 +49,7 @@ function getZkir(outputDir: string, circuitName: string): ZkirCircuit {
 describe('[Compiler] secp256k1 arithmetic operators', () => {
     test('v3 emits arithmetic for base and scalar fields', async () => {
         const outputDir = createTempFolder();
-        const result = await compile([Arguments.FEATURE_V3, Arguments.SKIP_ZK, CONTRACT, outputDir]);
+        const result = await compile([Arguments.SKIP_ZK, CONTRACT, outputDir]);
 
         expectCompilerResult(result).toCompileWithoutErrors();
         expectFiles(result).thatGeneratedJSCodeIsValid();

@@ -40,11 +40,12 @@ export class CompactError extends Error {
  * Compiler internal for assertions
  * @internal
  */
-export function assert(b: boolean, s: string): void {
+export function assert(b: boolean, s: string): [] {
   if (!b) {
     const msg = `failed assert: ${s}`;
     throw new CompactError(msg);
   }
+  return [];
 }
 
 /**

@@ -15,8 +15,4 @@
 
 import { defineCompileTest } from '@test/compact-test';
 
-// `Secp256k1Base` is only bound in the standard library when the v3 IR
-// feature is enabled, so this fixture compiles with `--feature-zkir-v3`.
-export default defineCompileTest(import.meta.url, {
-    compilerArgs: ['--feature-zkir-v3'],
-});
+export default defineCompileTest(import.meta.url);

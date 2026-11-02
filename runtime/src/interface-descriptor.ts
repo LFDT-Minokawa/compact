@@ -31,6 +31,12 @@ export type SignatureType =
   | { readonly tag: 'Secp256k1Base' }
   | { readonly tag: 'Secp256k1Scalar' }
   | { readonly tag: 'Secp256k1Point' }
+  | { readonly tag: 'Secp256r1Base' }
+  | { readonly tag: 'Secp256r1Scalar' }
+  | { readonly tag: 'Secp256r1Point' }
+  | { readonly tag: 'Curve25519Base' }
+  | { readonly tag: 'Curve25519Scalar' }
+  | { readonly tag: 'Curve25519Point' }
   /** `maxval` is the maximum representable value as a decimal string, not a
    *  width. `Uint<128>` carries 2**128-1, which is not exactly representable
    *  as a JavaScript number. */
@@ -51,9 +57,8 @@ export type NamedSignatureType = {
   readonly type: SignatureType;
 };
 
-/** One circuit as *declared* in a `contract T { }` block. `pure` is the declared keyword, not inferred purity. */
+/** One circuit as *declared* in a `contract T { }` block: a circuit with this signature and a proof. */
 export type InterfaceCircuitDeclaration = {
-  readonly pure: boolean;
   readonly argumentTypes: readonly SignatureType[];
   readonly resultType: SignatureType;
 };
@@ -64,6 +69,7 @@ export type InterfaceDescriptor = Readonly<Record<string, InterfaceCircuitDeclar
 /** One circuit as *implemented*. `pure` is inferred purity; `provable` means a proof can be
  *  generated for it. Disjoint but not exhaustive: a circuit that only calls a witness is neither. */
 export type CircuitSignature = InterfaceCircuitDeclaration & {
+  readonly pure: boolean;
   readonly provable: boolean;
 };
 

@@ -389,20 +389,6 @@
         (lambda (type)
           (T type
             [(topaque ,src ,opaque-type) (or (string=? opaque-type "string") (string=? opaque-type "Uint8Array"))]))))
-    (define (check-zkir-v3-curve type)
-      (define (is-zkir-v3-only-curve? ctype)
-        (nanopass-case (Ltypes Curve-Type) ctype
-          [(curve-jubjub) #f]
-          [else #t]))
-      (define (contains-zkir-v3-only-curve? type)
-        (type-contains? type
-          (lambda (type)
-            (T type
-              [(tfield ,src (field-base ,ctype)) (is-zkir-v3-only-curve? ctype)]
-              [(tfield ,src (field-scalar ,ctype)) (is-zkir-v3-only-curve? ctype)]
-              [(tpoint ,src ,ctype) (is-zkir-v3-only-curve? ctype)]))))
-      (assertf (or (feature-zkir-v3) (not (contains-zkir-v3-only-curve? type)))
-               "foreign fields and points should arise only via the zkir v3 standard library"))
     (define (do-call src fold? fun actual-type* build-call)
       (define compatible-args?
         (let ([nactual (length actual-type*)])
@@ -765,11 +751,12 @@
                     (with-output-language (Ltypes Expression)
                       (nanopass-case (Ltypes Type) unaliased-type1
                         [(tunsigned ,src1 ,nat1)
-                         (if (eq? op '-)
-                             result-expr
-                             (let ([result-nat (nanopass-case (Ltypes Type) result-type
-                                                 [(tunsigned ,src ,nat) nat]
-                                                 [else (assert cannot-happen)])])
+                         ;; result-nat is nat1 for -, for + when nat1 is 0, and for * when nat1 is 0 or 1.
+                         (let ([result-nat (nanopass-case (Ltypes Type) result-type
+                                             [(tunsigned ,src ,nat) nat]
+                                             [else (assert cannot-happen)])])
+                           (if (= result-nat nat1)
+                               result-expr
                                `(downcast-unsigned ,src ,result-nat ,nat1 ,result-expr)))]
                         [else `(safe-cast ,src ,type1 ,result-type ,result-expr)]))
                     type1)))))))
@@ -925,9 +912,8 @@
                     (let* ([name (hashtable-ref export-name->name elt-name #f)]
                            [type.type* (or (and name (hashtable-ref name->type.type* name #f))
                                            (source-errorf src "contract implements failure:\n  this contract does not export a circuit named ~s" elt-name))])
-                      (when pure-dcl?
-                        (unless (id-pure? name)
-                          (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" elt-name)))
+                      (when (id-pure? name)
+                        (source-errorf src "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is declared pure, and a circuit declared in a contract type must have a proof" elt-name))
                       (let ([type^ (car type.type*)] [type^* (cdr type.type*)])
                         (let ([n (length type*)] [n^ (length type^*)])
                           (unless (= n^ n)
@@ -1014,13 +1000,11 @@
     [(native ,src ,function-name ,native-entry (,[arg*] ...) ,[Return-Type : type src "circuit" -> type])
      (build-function (native-entry-class native-entry) #t function-name arg* type)]
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     (check-zkir-v3-curve type)
      (build-function 'witness #f function-name arg* type)]
     [(public-ledger-declaration ,src ,ledger-field-name ,[type])
      (unless (public-adt? type)
        (source-errorf src "expected ADT-type for ledger declaration after expand-modules-and-types, received ~a"
                           (format-type type)))
-     (check-zkir-v3-curve type)
      (set-idtype! ledger-field-name (Idtype-Base type))]
     [else (void)])
   (External-Contract-Declaration! : External-Contract-Declaration (ir) -> * (void)
@@ -1036,8 +1020,6 @@
        `(constructor ,src (,arg* ...) ,expr))])
   (Circuit-Definition : Circuit-Definition (ir) -> Circuit-Definition ()
     [(circuit ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "circuit" -> type] ,expr)
-     (for-each check-zkir-v3-curve (map arg->type arg*))
-     (check-zkir-v3-curve type)
      (let-values ([(expr return-type) (do-circuit-body src (format "circuit ~a" (id-sym function-name)) arg* type expr)])
        `(circuit ,src ,function-name (,arg* ...) ,return-type ,expr))])
   (Native-Declaration : Native-Declaration (ir) -> Native-Declaration ()
@@ -1937,6 +1919,12 @@
               [(tunsigned ,src1 ,nat1)
                (T source-type
                   [(tfield ,src2 ,ftype)
+                   ;; Only the field types that resolve-indices-simplify handles for
+                   ;; cast-from-field are allowed.
+                   (guard (nanopass-case (Ltypes Field-Type) ftype
+                            [(field-native) #t]
+                            [(field-scalar (curve-jubjub)) #t]
+                            [else #f]))
                    `(cast-from-field ,src ,nat1 ,ftype ,expr)]
                   [(tunsigned ,src2 ,nat2)
                    (assert (> nat2 nat1))
@@ -1958,7 +1946,8 @@
                             (safe-cast ,src ,target-type (tunsigned ,src 0) (quote ,src 0))))])]
               [(tboolean ,src1)
                (T source-type
-                  [(tfield ,src2 ,ftype)
+                  ;; Only Field: later passes cannot compare other field types with the 0 below.
+                  [(tfield ,src2 (field-native))
                    `(if ,src
                         (== ,src ,source-type ,expr
                           (safe-cast ,src ,source-type (tunsigned ,src 0) (quote ,src 0)))
@@ -1973,7 +1962,8 @@
                             (quote ,src #f)
                             (quote ,src #t)))])]
               [(tenum ,src1 ,enum-name ,elt-name ,elt-name* ...)
-               (guard (T source-type [(tfield ,src ,ftype) #t] [(tunsigned ,src ,nat) #t]))
+               ;; replace-enums lowers casts from a field to cast-from-field on the native field.
+               (guard (T source-type [(tfield ,src (field-native)) #t] [(tunsigned ,src ,nat) #t]))
                `(cast-to-enum ,src ,target-type ,source-type ,expr)])
            (source-errorf src "cannot cast from type ~a to type ~a"
                           (format-type source-type)
