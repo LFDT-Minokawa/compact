@@ -77557,8 +77557,8 @@ groups than for single tests.
         "export ledger k1s: Secp256k1Scalar;"
         "export ledger r1b: Secp256r1Base;"
         "export ledger r1s: Secp256r1Scalar;"
-        "export ledger c25b: Curve25519Base;"
-        "export ledger c25s: Curve25519Scalar;"
+        "export ledger c25519b: Curve25519Base;"
+        "export ledger c25519s: Curve25519Scalar;"
         "export ledger f: Field;"
         "export circuit castK1(b: Boolean, x: Secp256k1Base, y: Secp256k1Scalar): [] {"
         ,(format "  k1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256k1Base);" v)
@@ -77568,22 +77568,21 @@ groups than for single tests.
         ,(format "  r1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256r1Base);" v)
         ,(format "  r1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256r1Scalar);" v)
         "}"
-        "export circuit castC25(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
-        ,(format "  c25b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
-        ,(format "  c25s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
+        "export circuit castC25519(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
+        ,(format "  c25519b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
+        ,(format "  c25519s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
         "}"
         "export circuit castZero(): [] {"
         "  k1b = disclose((0 as Field as Bytes<32>) as Secp256k1Base);"
         "  k1s = disclose((0 as Field as Bytes<32>) as Secp256k1Scalar);"
         "  r1b = disclose((0 as Field as Bytes<32>) as Secp256r1Base);"
         "  r1s = disclose((0 as Field as Bytes<32>) as Secp256r1Scalar);"
-        "  c25b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
-        "  c25s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
+        "  c25519b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
+        "  c25519s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
         "}"
         "export circuit castWide(): [] {"
-        ,(format "  c25s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
+        ,(format "  c25519s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
         "}"
-        "// The condition is always true, but only optimize-circuit can tell, so it folds the cast."
         "export circuit castNative(v: Bytes<32>, x: Uint<8>, y: Uint<8>): [] {"
         ,(format "  const k = (x < y) == (x < y) ? (~d as Field as Bytes<32>) : v;" v)
         "  f = disclose(k as Field);"
@@ -77603,14 +77602,13 @@ groups than for single tests.
           "  expect([l.r1b, l.r1s]).toEqual([V, V]);"
           "  l = L(await C.circuits.castR1(Ctxt, true, 7n, 8n));"
           "  expect([l.r1b, l.r1s]).toEqual([7n, 8n]);"
-          "  l = L(await C.circuits.castC25(Ctxt, false, 7n, 8n));"
-          "  expect([l.c25b, l.c25s]).toEqual([V, V]);"
-          "  l = L(await C.circuits.castC25(Ctxt, true, 7n, 8n));"
-          "  expect([l.c25b, l.c25s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, false, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, true, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([7n, 8n]);"
           "  l = L(await C.circuits.castZero(Ctxt));"
-          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25b, l.c25s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
-          "  // A cast reduces modulo the group order."
-          "  expect(L(await C.circuits.castWide(Ctxt)).c25s).toEqual(5n);"
+          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25519b, l.c25519s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+          "  expect(L(await C.circuits.castWide(Ctxt)).c25519s).toEqual(5n);"
           "  expect(L(await C.circuits.castNative(Ctxt, new Uint8Array(32), 1n, 2n)).f).toEqual(V);"
           "});"
           ))
