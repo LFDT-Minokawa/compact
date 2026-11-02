@@ -77602,6 +77602,118 @@ groups than for single tests.
         ))
     )
 
+  (let ([v (+ (expt 2 248) 5)] [wide (+ (max-curve25519-scalar) 6)])
+    (test
+      `(
+        "import CompactStandardLibrary;"
+        "export ledger k1b: Secp256k1Base;"
+        "export ledger k1s: Secp256k1Scalar;"
+        "export ledger r1b: Secp256r1Base;"
+        "export ledger r1s: Secp256r1Scalar;"
+        "export ledger c25519b: Curve25519Base;"
+        "export ledger c25519s: Curve25519Scalar;"
+        "export ledger f: Field;"
+        "export circuit castK1(b: Boolean, x: Secp256k1Base, y: Secp256k1Scalar): [] {"
+        ,(format "  k1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256k1Base);" v)
+        ,(format "  k1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256k1Scalar);" v)
+        "}"
+        "export circuit castR1(b: Boolean, x: Secp256r1Base, y: Secp256r1Scalar): [] {"
+        ,(format "  r1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256r1Base);" v)
+        ,(format "  r1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256r1Scalar);" v)
+        "}"
+        "export circuit castC25519(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
+        ,(format "  c25519b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
+        ,(format "  c25519s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
+        "}"
+        "export circuit castZero(): [] {"
+        "  k1b = disclose((0 as Field as Bytes<32>) as Secp256k1Base);"
+        "  k1s = disclose((0 as Field as Bytes<32>) as Secp256k1Scalar);"
+        "  r1b = disclose((0 as Field as Bytes<32>) as Secp256r1Base);"
+        "  r1s = disclose((0 as Field as Bytes<32>) as Secp256r1Scalar);"
+        "  c25519b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
+        "  c25519s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
+        "}"
+        "export circuit castWide(): [] {"
+        ,(format "  c25519s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
+        "}"
+        "export circuit castNative(v: Bytes<32>, x: Uint<8>, y: Uint<8>): [] {"
+        ,(format "  const k = (x < y) == (x < y) ? (~d as Field as Bytes<32>) : v;" v)
+        "  f = disclose(k as Field);"
+        "}"
+        )
+      (stage-javascript
+        `(
+          "test('constant casts to field types', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+          ,(format "  const V = ~dn;" v)
+          "  let l = L(await C.circuits.castK1(Ctxt, false, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castK1(Ctxt, true, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castR1(Ctxt, false, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castR1(Ctxt, true, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, false, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, true, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castZero(Ctxt));"
+          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25519b, l.c25519s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+          "  expect(L(await C.circuits.castWide(Ctxt)).c25519s).toEqual(5n);"
+          "  expect(L(await C.circuits.castNative(Ctxt, new Uint8Array(32), 1n, 2n)).f).toEqual(V);"
+          "});"
+          ))
+      )
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct K1 { a: Secp256k1Base, b: Field }"
+      "struct R1 { a: Secp256r1Base, b: Field }"
+      "export ledger n: Field;"
+      "export circuit unusedK1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256k1Base;"
+      "  const s = v as Secp256k1Scalar;"
+      "  n = 1 as Field;"
+      "}"
+      "export circuit unusedR1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256r1Base;"
+      "  const s = v as Secp256r1Scalar;"
+      "  n = 2 as Field;"
+      "}"
+      "export circuit unusedC25519(v: Bytes<32>, w: Bytes<64>): [] {"
+      "  const b = v as Curve25519Base;"
+      "  const s = v as Curve25519Scalar;"
+      "  const t = w as Curve25519Scalar;"
+      "  n = 3 as Field;"
+      "}"
+      "export circuit unusedFieldK1(v: Bytes<32>, f: Field): [] {"
+      "  const p = K1 { a: v as Secp256k1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      "export circuit unusedFieldR1(v: Bytes<32>, f: Field): [] {"
+      "  const p = R1 { a: v as Secp256r1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('unused casts to foreign field types', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const n = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).n;"
+        "  const v = new Uint8Array(32).fill(7);"
+        "  expect(n(await C.circuits.unusedK1(Ctxt, v))).toEqual(1n);"
+        "  expect(n(await C.circuits.unusedR1(Ctxt, v))).toEqual(2n);"
+        "  expect(n(await C.circuits.unusedC25519(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
+        "  expect(n(await C.circuits.unusedFieldK1(Ctxt, v, 4n))).toEqual(4n);"
+        "  expect(n(await C.circuits.unusedFieldR1(Ctxt, v, 5n))).toEqual(5n);"
+        "});"
+        ))
+    )
+
   (test ; Casts involving JubjubScalar.
     `(
       "import CompactStandardLibrary;"
