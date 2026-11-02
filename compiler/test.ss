@@ -77656,7 +77656,7 @@ groups than for single tests.
         "  const v = new Uint8Array(32).fill(7);"
         "  expect(n(await C.circuits.unusedK1(Ctxt, v))).toEqual(1n);"
         "  expect(n(await C.circuits.unusedR1(Ctxt, v))).toEqual(2n);"
-        "  expect(n(await C.circuits.unusedC25(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
+        "  expect(n(await C.circuits.unusedC25519(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
         "  expect(n(await C.circuits.unusedFieldK1(Ctxt, v, 4n))).toEqual(4n);"
         "  expect(n(await C.circuits.unusedFieldR1(Ctxt, v, 5n))).toEqual(5n);"
         "});"
