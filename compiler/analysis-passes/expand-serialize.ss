@@ -83,6 +83,13 @@
          (format "~s~@[<~{~a~^, ~}>~]" adt-name (and (not (null? adt-arg*)) (map format-adt-arg adt-arg*)))]
         [,tvar-name (assert cannot-happen)]))
 
+    (define (versioned-args src type expr)
+      (values
+        (with-output-language (Lnoserialize Type)
+          `(ttuple ,src (tbytes ,src 2) ,type))
+        (with-output-language (Lnoserialize Expression)
+          `(tuple ,src (single ,src (quote ,src #vu8(0 0))) (single ,src ,expr)))))
+
     (define (field-length-in-bytes ftype)
       (strict-nanopass-case (Lnoserialize Field-Type) ftype
         [(field-native) (1+ (field-bytes))]
@@ -380,10 +387,13 @@
     )
   (Expression : Expression (ir) -> Expression ()
     [(emit ,src ,[type] ,[expr])
-     (let-values ([(n expr) (build-serialize src type expr #f)])
+     (let*-values ([(type expr) (versioned-args src type expr)]
+                   [(n expr) (build-serialize src type expr #f)])
        `(emit ,src ,type ,n ,expr))]
     [(serialize ,src ,len ,[type] ,[expr])
-     (let-values ([(n expr) (build-serialize src type expr len)])
+     (let*-values ([(type expr) (versioned-args src type expr)]
+                   [(n expr) (build-serialize src type expr len)])
        expr)]
     [(deserialize ,src ,len ,[type] ,[expr])
-     (build-deserialize src type expr len)]))
+     (let-values ([(type expr) (versioned-args src type expr)])
+       (build-deserialize src type expr len))]))

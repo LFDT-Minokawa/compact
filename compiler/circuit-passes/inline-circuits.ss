@@ -39,10 +39,16 @@
     (define-pass rename-expr : (Linlined Expression) (ir p) -> (Linlined Expression) ()
       (Expression : Expression (ir p) -> Expression ()
         [(var-ref ,src ,var-name) `(var-ref ,src ,(maybe-rename p var-name))]
-        [(let* ,src ([,local* ,[expr*]] ...) ,expr)
-         (let-values ([(p var-name*) (extend-env p (map arg->name local*))]
-                      [(type*) (map arg->type local*)])
-           `(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,(Expression expr p)))])
+        [(let* ,src ([(,var-name* ,type*) ,expr*] ...) ,expr)
+         (let loop ([var-name* var-name*] [expr* expr*] [p p] [new-var-name* '()] [new-expr* '()])
+           (if (null? var-name*)
+               `(let* ,src ([(,(reverse new-var-name*) ,type*) ,(reverse new-expr*)] ...)
+                      ,(Expression expr p))
+               (let ([new-expr (Expression (car expr*) p)])
+                 (let-values ([(p new-name*) (extend-env p (list (car var-name*)))])
+                   (loop (cdr var-name*) (cdr expr*) p
+                     (cons (car new-name*) new-var-name*)
+                     (cons new-expr new-expr*))))))])
       (Tuple-Argument : Tuple-Argument (ir p) -> Tuple-Argument ())
       (Path-Element : Path-Element (ir p) -> Path-Element ()))
     (define-record-type circuit

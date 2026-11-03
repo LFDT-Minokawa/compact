@@ -140,6 +140,9 @@
 
     (define (make-native name arg*)
       ;; Get the list of alignment atoms for a 0-based arg index.
+      (define serialization-version #x0)
+      (define (version-alignment)
+        (with-output-language (Lflattened Alignment) `(abytes 2)))
       (define (arg->alignment arg* index)
         (nanopass-case (Lflattened Argument) (list-ref arg* index)
           [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
@@ -195,7 +198,8 @@
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
                    `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
-                   `(keccak256 ,bytes (,alignment* ...) ,triv* ...)
+                   `(keccak256 ,bytes (,(version-alignment) ,alignment* ...)
+                      ,serialization-version ,triv* ...)
                    instr*)))]
             [(mul)
              (assert (= (length var-name*) 1))
@@ -208,15 +212,18 @@
              ;; The two source arguments are swapped for the persistent_hash gate.  We assume
              ;; that the second argument is `(tbytes 32)` so it consumes two variables and we
              ;; know its alignment is `(abytes 32)`.
-             (let ([var* (syntax-case triv* ()
-                           [(a ... b c) #'(b c a ...)])]
-                   [alignment* (append (arg->alignment arg* 1) (arg->alignment arg* 0))]
+             (let ([triv* (syntax-case triv* ()
+                           [(a ... b c) #`(b c #,serialization-version a ...)])]
+                   [alignment* (append
+                                 (arg->alignment arg* 1)
+                                 (list (version-alignment))
+                                 (arg->alignment arg* 0))]
                    [bytes (make-temp-id src 'bytes)])
                (let-values ([(alignment* triv* instr*)
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
                    `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
-                   `(persistent_hash ,bytes (,alignment* ...) ,var* ...)
+                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
             [(persistentHash)
              (assert (= (length var-name*) 2))
@@ -226,7 +233,8 @@
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
                    `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
-                   `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
+                   `(persistent_hash ,bytes (,(version-alignment) ,alignment* ...)
+                      ,serialization-version ,triv* ...)
                    instr*)))]
             [(secp256k1PointX secp256r1PointX curve25519PointX)
              (assert (= (length var-name*) 1))
@@ -244,17 +252,18 @@
                              (circuit-alignment-for src alignment* triv* instr*)])
                  (cons*
                    `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
-                   `(sha512 ,bytes (,alignment* ...) ,triv* ...)
+                   `(sha512 ,bytes (,(version-alignment) ,alignment* ...)
+                      ,serialization-version ,triv* ...)
                    instr*)))]
             [(transientCommit)
              (assert (= (length var-name*) 1))
              ;; The last input needs to be moved first.
-             (let ([var* (syntax-case triv* ()
-                           [(a ... b) #'(b a ...)])])
-               (cons `(transient_hash ,(car var-name*) ,var* ...) instr*))]
+             (let ([triv* (syntax-case triv* ()
+                           [(a ... b) #`(b #,serialization-version a ...)])])
+               (cons `(transient_hash ,(car var-name*) ,triv* ...) instr*))]
             [(transientHash)
              (assert (= (length var-name*) 1))
-             (cons `(transient_hash ,(car var-name*) ,triv* ...) instr*)]
+             (cons `(transient_hash ,(car var-name*) ,serialization-version ,triv* ...) instr*)]
             [(upgradeFromTransient)
              (assert (= (length var-name*) 2))
              (cons*
