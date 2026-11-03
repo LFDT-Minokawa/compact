@@ -13,6 +13,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+use clap::Parser;
+use compact::CommandLineArguments;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -61,10 +63,6 @@ pub fn load_and_replace<P: AsRef<Path>>(path: P, replacements: &[(&str, &str)]) 
     result
 }
 
-/// Clap's exit code for an argument-parsing failure.
-#[allow(dead_code)]
-const USAGE_ERROR: i32 = 2;
-
 /// Fail loudly rather than let a test operate on the developer's real
 /// `~/.compact`.
 ///
@@ -73,29 +71,35 @@ const USAGE_ERROR: i32 = 2;
 /// their compilers -- the tests were named `*_nothing_installed' because
 /// whoever wrote them had nothing installed.
 ///
-/// An invocation is exempt only when it cannot reach a command handler: a
-/// `--help'/`--version' query, which clap answers and exits, or one the test
-/// expects clap to reject outright (`USAGE_ERROR'). Everything else has to name
-/// a directory.
+/// An invocation is exempt only when it cannot reach a command handler: when
+/// clap answers it (`--help', `--version', the `help' subcommand) or rejects
+/// it, and exits. The CLI's own parser decides, not a list of flags: `compile'
+/// hands `--help' and `--version' to the installed compiler (#649), so a list
+/// of them let `compact compile --help' read the caller's installation, and the
+/// tests expecting no compiler to be installed failed on any machine with one.
+///
+/// Everything else has to name a directory: `--directory', or
+/// `COMPACT_DIRECTORY' or `HOME' -- the default directory is under it -- in
+/// the command's environment.
 #[allow(dead_code)]
-fn assert_directory_is_isolated(
-    args: &[&str],
-    env: Option<&HashMap<String, String>>,
-    expected_exit_code: i32,
-) {
-    // `help' is clap's built-in subcommand, answered and exited like the flags.
-    const HELP_OR_VERSION: [&str; 5] = ["--help", "-h", "--version", "-V", "help"];
+fn assert_directory_is_isolated(args: &[&str], env: Option<&HashMap<String, String>>) {
+    let reaches_a_handler = CommandLineArguments::try_parse_from(
+        std::iter::once("compact").chain(args.iter().copied()),
+    )
+    .is_ok();
 
-    if expected_exit_code == USAGE_ERROR || args.iter().any(|arg| HELP_OR_VERSION.contains(arg)) {
+    if !reaches_a_handler {
         return;
     }
 
     assert!(
         args.contains(&"--directory")
-            || env.is_some_and(|env| env.contains_key("COMPACT_DIRECTORY")),
-        "`compact {}' was invoked with neither --directory nor COMPACT_DIRECTORY. \
-         It would act on the real ~/.compact and can delete the caller's installed \
-         compilers. Pass --directory with a tempfile::tempdir() path.",
+            || env.is_some_and(|env| {
+                env.contains_key("COMPACT_DIRECTORY") || env.contains_key("HOME")
+            }),
+        "`compact {}' was invoked with no --directory, and with neither COMPACT_DIRECTORY \
+         nor HOME in its environment. It would act on the real ~/.compact and can delete \
+         the caller's installed compilers. Pass --directory with a tempfile::tempdir() path.",
         args.join(" ")
     );
 }
@@ -110,7 +114,7 @@ pub fn assert_command_output(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
-    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+    assert_directory_is_isolated(args, env.as_ref());
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
@@ -159,7 +163,7 @@ pub fn assert_command_output_sorted(
     expected_stderr: &str,
     expected_exit_code: i32,
 ) {
-    assert_directory_is_isolated(args, env.as_ref(), expected_exit_code);
+    assert_directory_is_isolated(args, env.as_ref());
 
     let binary = binary_path.unwrap_or("../../target/debug/compact");
 
