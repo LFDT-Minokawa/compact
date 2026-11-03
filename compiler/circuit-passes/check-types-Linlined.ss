@@ -375,7 +375,7 @@
                             (format-type index-type))])
      (unless (same-type? expr-type type)
        (source-errorf src "expected bytes-ref argument to have type ~a, received ~a"
-                      type expr-type))
+                      (format-type type) (format-type expr-type)))
      (with-output-language (Linlined Type) `(tunsigned ,src 255))]
     [(vector-ref ,src ,type ,[Care : expr -> * expr-type] ,[Care : index -> * index-type])
      (nanopass-case (Linlined Type) index-type
