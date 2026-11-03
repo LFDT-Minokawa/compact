@@ -36,9 +36,9 @@ const COIN_PUBLIC_KEY = '0'.repeat(64);
 const PARENT_BLOCK_HASH = '0'.repeat(64);
 const CIRCUIT_ID = 'add';
 
-/** A contract type declaring one impure circuit, as the caller's `declaredInterfaces` would hold. */
+/** A contract type declaring one circuit, as the caller's `declaredInterfaces` would hold. */
 const DECLARATION: InterfaceDescriptor = {
-  [CIRCUIT_ID]: { pure: false, argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
+  [CIRCUIT_ID]: { argumentTypes: [{ tag: 'Field' }], resultType: { tag: 'Field' } },
 };
 
 const emptyProofData = (): PartialProofData => ({
@@ -119,16 +119,6 @@ const providerFor = (module: Module): ContractModuleProvider => ({
 describe('crossContractCall failure classification', () => {
   test('no module provider on the context', async () => {
     expect((await failureFrom({})).kind).toEqual('ModuleProviderAbsent');
-  });
-
-  test('the contract type declares the called circuit pure', async () => {
-    const failure = await failureFrom({
-      moduleProvider: rejectingProvider(new Error('never reached')),
-      declaration: { [CIRCUIT_ID]: { pure: true, argumentTypes: [], resultType: { tag: 'Field' } } },
-    });
-    // Ahead of everything else: a pure circuit has no verifier key and is never a deployed operation,
-    // so there is nothing to resolve rather than something that fails to resolve.
-    expect(failure.kind).toEqual('PureInterfaceCircuit');
   });
 
   test('the provider has no binding for the address', async () => {

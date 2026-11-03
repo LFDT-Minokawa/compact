@@ -68,11 +68,10 @@ const contract = (name: string, circuits: InterfaceDescriptor): SignatureType =>
   circuits,
 });
 
-const decl = (
-  pure: boolean,
-  argumentTypes: readonly SignatureType[],
-  resultType: SignatureType,
-): InterfaceCircuitDeclaration => ({ pure, argumentTypes, resultType });
+const decl = (argumentTypes: readonly SignatureType[], resultType: SignatureType): InterfaceCircuitDeclaration => ({
+  argumentTypes,
+  resultType,
+});
 
 const sig = (
   pure: boolean,
@@ -222,7 +221,7 @@ describe('signatureTypesEqual: nominal types', () => {
 });
 
 describe('signatureTypesEqual: nested contract types', () => {
-  const transfer: InterfaceDescriptor = { transfer: decl(false, [FIELD], UNIT) };
+  const transfer: InterfaceDescriptor = { transfer: decl([FIELD], UNIT) };
 
   test('two contract types with the same circuits are equal', () => {
     expect(signatureTypesEqual(contract('Token', transfer), contract('Token', transfer))).toEqual(true);
@@ -233,63 +232,56 @@ describe('signatureTypesEqual: nested contract types', () => {
     expect(signatureTypesEqual(contract('Token', transfer), contract('Erc20', transfer))).toEqual(true);
   });
 
-  test('purity is an equality between two contract types, not an implication', () => {
-    // Two declarations being compared, not a declaration against an implementation.
-    const pure: InterfaceDescriptor = { transfer: decl(true, [FIELD], UNIT) };
-    expect(signatureTypesEqual(contract('T', transfer), contract('T', pure))).toEqual(false);
-    expect(signatureTypesEqual(contract('T', pure), contract('T', transfer))).toEqual(false);
-  });
-
   test('circuit names are matched nominally', () => {
-    const renamed: InterfaceDescriptor = { send: decl(false, [FIELD], UNIT) };
+    const renamed: InterfaceDescriptor = { send: decl([FIELD], UNIT) };
     expect(signatureTypesEqual(contract('T', transfer), contract('T', renamed))).toEqual(false);
   });
 
   test('a contract type with extra circuits is a different type', () => {
-    const more: InterfaceDescriptor = { ...transfer, balance: decl(true, [], FIELD) };
+    const more: InterfaceDescriptor = { ...transfer, balance: decl([], FIELD) };
     expect(signatureTypesEqual(contract('T', transfer), contract('T', more))).toEqual(false);
     expect(signatureTypesEqual(contract('T', more), contract('T', transfer))).toEqual(false);
   });
 
   test('circuit declaration order does not matter', () => {
-    const ab: InterfaceDescriptor = { a: decl(false, [], UNIT), b: decl(true, [], FIELD) };
-    const ba: InterfaceDescriptor = { b: decl(true, [], FIELD), a: decl(false, [], UNIT) };
+    const ab: InterfaceDescriptor = { a: decl([], UNIT), b: decl([], FIELD) };
+    const ba: InterfaceDescriptor = { b: decl([], FIELD), a: decl([], UNIT) };
     expect(signatureTypesEqual(contract('T', ab), contract('T', ba))).toEqual(true);
   });
 
   test('argument and result types are compared', () => {
-    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl(false, [BOOL], UNIT) }))).toEqual(false);
-    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl(false, [FIELD], FIELD) }))).toEqual(false);
-    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl(false, [FIELD, FIELD], UNIT) }))).toEqual(
+    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([BOOL], UNIT) }))).toEqual(false);
+    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([FIELD], FIELD) }))).toEqual(false);
+    expect(signatureTypesEqual(contract('T', transfer), contract('T', { transfer: decl([FIELD, FIELD], UNIT) }))).toEqual(
       false,
     );
   });
 
   test('contract types nest', () => {
-    const inner: InterfaceDescriptor = { balance: decl(true, [], FIELD) };
-    const outer = (t: SignatureType): SignatureType => contract('Outer', { vault: decl(true, [], t) });
+    const inner: InterfaceDescriptor = { balance: decl([], FIELD) };
+    const outer = (t: SignatureType): SignatureType => contract('Outer', { vault: decl([], t) });
     expect(signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Safe', inner)))).toEqual(true);
     expect(
-      signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Vault', { balance: decl(true, [], BOOL) }))),
+      signatureTypesEqual(outer(contract('Vault', inner)), outer(contract('Vault', { balance: decl([], BOOL) }))),
     ).toEqual(false);
   });
 
   test('a circuit named for an Object.prototype member does not resolve through the prototype', () => {
-    const named: InterfaceDescriptor = { constructor: decl(false, [], UNIT) };
-    expect(signatureTypesEqual(contract('T', named), contract('T', { toString: decl(false, [], UNIT) }))).toEqual(false);
+    const named: InterfaceDescriptor = { constructor: decl([], UNIT) };
+    expect(signatureTypesEqual(contract('T', named), contract('T', { toString: decl([], UNIT) }))).toEqual(false);
     expect(signatureTypesEqual(contract('T', named), contract('T', named))).toEqual(true);
   });
 });
 
 describe('checkConformance', () => {
   const declaration: InterfaceDescriptor = {
-    transfer: decl(false, [FIELD, uint('255')], BOOL),
-    balance: decl(true, [], FIELD),
+    transfer: decl([FIELD, uint('255')], BOOL),
+    balance: decl([], FIELD),
   };
 
   const conforming: CircuitSignatures = {
     transfer: sig(false, true, [FIELD, uint('255')], BOOL),
-    balance: sig(true, false, [], FIELD),
+    balance: sig(false, true, [], FIELD),
   };
 
   test('a module that implements the declaration conforms', () => {
@@ -297,7 +289,7 @@ describe('checkConformance', () => {
   });
 
   test('a circuit over every curve type the compiler emits conforms', () => {
-    const curves: InterfaceDescriptor = { verify: decl(false, CURVE_TYPES, tuple(...CURVE_TYPES)) };
+    const curves: InterfaceDescriptor = { verify: decl(CURVE_TYPES, tuple(...CURVE_TYPES)) };
     const impl: CircuitSignatures = { verify: sig(false, true, CURVE_TYPES, tuple(...CURVE_TYPES)) };
     expect(checkConformance(curves, impl)).toEqual({ outcome: 'Conformant' });
   });
@@ -320,41 +312,29 @@ describe('checkConformance', () => {
   test('a circuit named for an Object.prototype member is not found on the prototype', () => {
     // Without the own-property guard, `implementation['constructor']` resolves to Object and gets
     // read as a CircuitSignature.
-    const declared: InterfaceDescriptor = { constructor: decl(false, [], UNIT) };
+    const declared: InterfaceDescriptor = { constructor: decl([], UNIT) };
     expect(checkConformance(declared, {})).toEqual({ outcome: 'Violation', circuitId: 'constructor', check: 'Existence' });
-    expect(checkConformance({ toString: decl(false, [], UNIT) }, {})).toEqual({
+    expect(checkConformance({ toString: decl([], UNIT) }, {})).toEqual({
       outcome: 'Violation',
       circuitId: 'toString',
       check: 'Existence',
     });
   });
 
-  test('a declared-pure circuit must be implemented pure', () => {
-    const impure: CircuitSignatures = { ...conforming, balance: sig(false, true, [], FIELD) };
-    expect(checkConformance(declaration, impure)).toEqual({ outcome: 'Violation', circuitId: 'balance', check: 'Purity' });
-  });
-
-  test('a declared-impure circuit implemented pure fails on provability', () => {
-    // Not independent flags: `provable` is membership in the impure export list,
-    // so `pure && provable` is unreachable and this is the only
-    // shape a pure implementation takes. Nothing is lost by rejecting it — a pure circuit has no
-    // verifier key for `checkImplementation` and no entry in `provableCircuits` to call.
-    const declaredImpure: InterfaceDescriptor = { balance: decl(false, [], FIELD) };
-    const implementedPure: CircuitSignatures = { balance: sig(true, false, [], FIELD) };
-    expect(checkConformance(declaredImpure, implementedPure)).toEqual({
+  test('a pure implementation has no proof and cannot satisfy a declaration', () => {
+    // A pure circuit has no verifier key for `checkImplementation` and no entry in
+    // `provableCircuits` to call, so it cannot satisfy any declaration.
+    const implementedPure: CircuitSignatures = { ...conforming, balance: sig(true, false, [], FIELD) };
+    expect(checkConformance(declaration, implementedPure)).toEqual({
       outcome: 'Violation',
       circuitId: 'balance',
       check: 'Provability',
     });
   });
 
-  test('a declared-impure circuit must be provable', () => {
+  test('an impure implementation without a proof cannot satisfy a declaration either', () => {
     const notProvable: CircuitSignatures = { ...conforming, transfer: sig(false, false, [FIELD, uint('255')], BOOL) };
     expect(checkConformance(declaration, notProvable)).toEqual({ outcome: 'Violation', circuitId: 'transfer', check: 'Provability' });
-  });
-
-  test('a declared-pure circuit need not be provable', () => {
-    expect(checkConformance({ balance: decl(true, [], FIELD) }, { balance: sig(true, false, [], FIELD) })).toEqual({ outcome: 'Conformant' });
   });
 
   test('arity must match exactly', () => {
@@ -397,19 +377,23 @@ describe('checkConformance', () => {
     // Absent, and would also fail every later rule.
     const absentAndWrong: CircuitSignatures = { balance: sig(false, false, [BOOL], BOOL) };
     expect(checkConformance(declaration, absentAndWrong)).toEqual({ outcome: 'Violation', circuitId: 'transfer', check: 'Existence' });
-    // Present, but breaks purity before it breaks arity.
-    const impureAndWrongArity: CircuitSignatures = { ...conforming, balance: sig(false, true, [BOOL], FIELD) };
-    expect(checkConformance(declaration, impureAndWrongArity)).toEqual({ outcome: 'Violation', circuitId: 'balance', check: 'Purity' });
+    // Present, but breaks provability before it breaks arity.
+    const unprovableAndWrongArity: CircuitSignatures = { ...conforming, balance: sig(true, false, [BOOL], FIELD) };
+    expect(checkConformance(declaration, unprovableAndWrongArity)).toEqual({
+      outcome: 'Violation',
+      circuitId: 'balance',
+      check: 'Provability',
+    });
   });
 
   test('a nested contract-typed argument is compared structurally', () => {
-    const inner: InterfaceDescriptor = { balance: decl(true, [], FIELD) };
-    const declared: InterfaceDescriptor = { hold: decl(false, [contract('Vault', inner)], UNIT) };
+    const inner: InterfaceDescriptor = { balance: decl([], FIELD) };
+    const declared: InterfaceDescriptor = { hold: decl([contract('Vault', inner)], UNIT) };
     const sameShapeDifferentName: CircuitSignatures = {
       hold: sig(false, true, [contract('Safe', inner)], UNIT),
     };
     const differentShape: CircuitSignatures = {
-      hold: sig(false, true, [contract('Vault', { balance: decl(true, [], BOOL) })], UNIT),
+      hold: sig(false, true, [contract('Vault', { balance: decl([], BOOL) })], UNIT),
     };
     expect(checkConformance(declared, sameShapeDifferentName)).toEqual({ outcome: 'Conformant' });
     expect(checkConformance(declared, differentShape)).toEqual({
@@ -425,7 +409,7 @@ describe('checkConformance: an unreadable module', () => {
   // A tag from a compiler this build doesn't know; the cast is what external data looks like here.
   const FUTURE = { tag: 'Summer', modulus: '7' } as unknown as SignatureType;
 
-  const declaration: InterfaceDescriptor = { transfer: decl(false, [FIELD], BOOL) };
+  const declaration: InterfaceDescriptor = { transfer: decl([FIELD], BOOL) };
 
   test('an unknown tag in an argument is Unreadable, not a type mismatch', () => {
     // Reporting this as ArgumentType would send the reader comparing two types when the problem is
@@ -454,8 +438,8 @@ describe('checkConformance: an unreadable module', () => {
       ['Tuple', tuple(FIELD, FUTURE)],
       ['Struct', struct('S', { name: 'a', type: FUTURE })],
       ['Alias', alias('A', FUTURE)],
-      ['Contract', contract('T', { c: decl(true, [FUTURE], UNIT) })],
-      ['Contract result', contract('T', { c: decl(true, [], FUTURE) })],
+      ['Contract', contract('T', { c: decl([FUTURE], UNIT) })],
+      ['Contract result', contract('T', { c: decl([], FUTURE) })],
       ['deeply nested', vector(2, struct('S', { name: 'a', type: tuple(BOOL, alias('A', FUTURE)) }))],
     ];
     for (const [label, type] of nested) {
@@ -473,7 +457,7 @@ describe('checkConformance: an unreadable module', () => {
   test('readability is decided before the comparison at that position', () => {
     // Argument 0 differs and argument 1 is unreadable. Position 0 comes first, so unreadability
     // doesn't preempt a violation we can actually explain.
-    const twoArgs: InterfaceDescriptor = { transfer: decl(false, [FIELD, FIELD], BOOL) };
+    const twoArgs: InterfaceDescriptor = { transfer: decl([FIELD, FIELD], BOOL) };
     const impl: CircuitSignatures = { transfer: sig(false, true, [BOOL, FUTURE], BOOL) };
     expect(checkConformance(twoArgs, impl)).toEqual({
       outcome: 'Violation',

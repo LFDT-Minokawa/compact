@@ -28,13 +28,6 @@ import { VerifierKeyHash } from './verifier-key-hash.js';
 export type ModuleResolutionFailure =
   /** The circuit context carries no module provider. */
   | { readonly kind: 'ModuleProviderAbsent' }
-  /** The contract type declares the called circuit `pure`, so it has no
-   *  verifier key and is never a deployed operation. The compiler accepts the
-   *  declaration and the call, so this is where one stops.
-   *
-   *  TODO: reject the declaration at compile time instead. A pure call has no
-   *  transcript, so its result reaches the caller's proof unconstrained. */
-  | { readonly kind: 'PureInterfaceCircuit' }
   /** The contract deployed at the callee's address has no operation for this
    *  circuit, or its operation carries no verifier key. */
   | { readonly kind: 'OperationAbsent' }
@@ -86,10 +79,8 @@ const describeConformance = (failure: ConformanceViolation): string => {
   switch (failure.check) {
     case 'Existence':
       return `it does not implement circuit '${failure.circuitId}'`;
-    case 'Purity':
-      return `circuit '${failure.circuitId}' is declared pure but is not implemented pure`;
     case 'Provability':
-      return `circuit '${failure.circuitId}' is declared impure but is not among the module's provable circuits`;
+      return `circuit '${failure.circuitId}' is not among the module's provable circuits, so it has no proof to match the call`;
     case 'Arity':
       return `circuit '${failure.circuitId}' takes a different number of arguments`;
     case 'ArgumentType':
@@ -107,8 +98,6 @@ const describeFailure = (failure: ModuleResolutionFailure): string => {
   switch (failure.kind) {
     case 'ModuleProviderAbsent':
       return 'the circuit context carries no module provider';
-    case 'PureInterfaceCircuit':
-      return 'the contract type declares this circuit pure, so it is not a deployed operation';
     case 'OperationAbsent':
       return 'the deployed contract has no operation for this circuit, or its operation carries no verifier key';
     case 'UnsupportedImplementation':
