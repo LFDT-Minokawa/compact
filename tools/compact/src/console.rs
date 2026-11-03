@@ -18,7 +18,7 @@ use std::fmt;
 use console::{Emoji, StyledObject};
 use semver::Version;
 
-use crate::Target;
+use crate::{Target, catalog::Channel};
 
 #[derive(Debug, Clone)]
 pub struct Style {
@@ -70,6 +70,19 @@ impl Style {
 
     pub fn version_raw<D>(&self, message: D) -> StyledObject<D> {
         self.version.apply_to(message)
+    }
+
+    /// A version, followed by `(release candidate)' when it is one, so that a
+    /// candidate is never mistaken for a release wherever a version is shown.
+    pub fn version_in_channel(&self, version: Version) -> String {
+        match Channel::of(&version) {
+            Channel::Release => self.version(version).to_string(),
+            Channel::Candidate => format!(
+                "{} {}",
+                self.version(version),
+                self.warn("(release candidate)")
+            ),
+        }
     }
 
     pub fn success<D>(&self, message: D) -> StyledObject<D> {

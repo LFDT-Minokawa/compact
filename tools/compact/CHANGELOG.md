@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `compact list --pre` lists release candidates beside the releases, marking
+  each as a release candidate and, once its release has shipped, as superseded
+  by it. `compact list` alone lists releases only, as before.
+
+### Changed
+
+- A release candidate is only ever installed by its exact version
+  (`compact update 0.36.0-rc.0`). `compact update` without a version installs
+  the latest release, and `compact update 0.36` and `compact update 0` the
+  newest matching release, never a candidate: in semver's order a candidate
+  outranks the release before it, and a feature-branch build such as
+  `0.36.100-rc.0-a-b-c` outranks even `0.36.0`.
+
+- `compact update` without a version leaves a default that is a release
+  candidate newer than the latest release where it is, and says how to switch
+  to that release, rather than move the default backwards. `compact check`
+  reports such a default as ahead of the latest release.
+
+- `compact update`, `compact check` and `compact list --installed` mark a
+  release candidate as one wherever they name a version, so a candidate is
+  never mistaken for a release.
+
+### Fixed
+
+- `compact clean --keep-current` keeps only the version in use. It kept every
+  installed version whose name contained that version, so with `0.36.0` in
+  use a release candidate `0.36.0-rc.0` installed beside it survived the clean
+  as well.
+
 ## [Compact tools 0.5.3]
 
 ### Changed

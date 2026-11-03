@@ -1,0 +1,4 @@
+compact: installed versions
+
+→ 0.36.0-rc.0 (release candidate)
+  0.35.0

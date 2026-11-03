@@ -6,11 +6,15 @@ version to the installed one.
 
 If the compiler was already downloaded it is not downloaded again
 
+A release candidate is installed only when named by its exact
+version. Without a version this installs the latest release, unless
+the default is a release candidate newer than it, which is kept.
+
 Usage: compact update [OPTIONS] [COMPACT_VERSION]
 
 Arguments:
   [COMPACT_VERSION]
-          Version to install, e.g. 0, 0.29, or 0.29.0
+          Version to install, e.g. 0, 0.29, 0.29.0, or a release candidate such as 0.36.0-rc.0
 
 Options:
       --no-set-default

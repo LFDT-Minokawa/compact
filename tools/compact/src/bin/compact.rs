@@ -26,6 +26,7 @@ use compact::{
     COMPACT_NAME, COMPACT_VERSION, CleanCommand, Command, CommandLineArguments, CompileCommand,
     Compiler, CompilerAsset, FixupCommand, FormatCommand, ListCommand, SSelf, UpdateCommand,
     VersionSpec,
+    catalog::{Catalog, Channel, Standing},
     fetch::{self, MidnightArtifacts},
     file,
     fixup::{self, FixupStatus, fixup_file},
@@ -193,7 +194,7 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
                 "{label}: {target} -- {version} -- already installed",
                 label = cfg.style.label(),
                 target = cfg.style.target(cfg.target),
-                version = cfg.style.version(version.clone()),
+                version = cfg.style.version_in_channel(version.clone()),
             );
 
             if !command.no_set_default {
@@ -203,7 +204,7 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
                     "{label}: {target} -- {version} -- {message}.",
                     label = cfg.style.label(),
                     target = cfg.style.target(cfg.target),
-                    version = cfg.style.version(version.clone()),
+                    version = cfg.style.version_in_channel(version.clone()),
                     message = cfg.style.success("default"),
                 );
             }
@@ -224,14 +225,36 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
         }
     }
 
-    let mut artifacts = load_compilers().await?;
+    let catalog = Catalog::from(load_compilers().await?);
 
     let (version, artifact) = match &command.version {
-        Some(spec) => resolve_version(spec, &mut artifacts)?,
-        None => artifacts
-            .compilers
-            .pop_last()
-            .ok_or_else(|| anyhow!("No versions available"))?,
+        Some(spec) => catalog.resolve(spec)?,
+        None => {
+            let (latest, artifact) = catalog
+                .releases()
+                .latest()
+                .ok_or_else(|| anyhow!("No versions available"))?;
+
+            if let Some(default) = candidate_default_newer_than(cfg, latest).await {
+                println!(
+                    "{label}: {target} -- {version} -- {message}",
+                    label = cfg.style.label(),
+                    target = cfg.style.target(default.target()),
+                    version = cfg.style.version_in_channel(default.version().clone()),
+                    message = cfg.style.warn(format!(
+                        "newer than the latest release, {latest}, so kept as the default"
+                    )),
+                );
+                println!(
+                    "{label}: run `compact update {latest}' to switch to the latest release.",
+                    label = cfg.style.label(),
+                );
+
+                return Ok(());
+            }
+
+            (latest.clone(), artifact.clone())
+        }
     };
 
     let target = cfg.target;
@@ -253,14 +276,14 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             "{label}: {target} -- {version} -- installed",
             label = cfg.style.label(),
             target = cfg.style.target(target),
-            version = cfg.style.version(version.clone()),
+            version = cfg.style.version_in_channel(version.clone()),
         );
     } else {
         println!(
             "{label}: {target} -- {version} -- already installed",
             label = cfg.style.label(),
             target = cfg.style.target(target),
-            version = cfg.style.version(version.clone()),
+            version = cfg.style.version_in_channel(version.clone()),
         );
     }
 
@@ -271,12 +294,30 @@ async fn update(cfg: &CommandLineArguments, command: &UpdateCommand) -> Result<(
             "{label}: {target} -- {version} -- {message}.",
             label = cfg.style.label(),
             target = cfg.style.target(target),
-            version = cfg.style.version(version),
+            version = cfg.style.version_in_channel(version),
             message = cfg.style.success("default"),
         );
     }
 
     Ok(())
+}
+
+/// The default compiler, when it is a release candidate newer than `latest',
+/// the latest release. A plain `compact update' leaves such a default where
+/// it is rather than move it backwards to that release.
+///
+/// A default that cannot be read -- a link to a compiler that is gone, say --
+/// is no candidate to keep, and replacing it is what `compact update' has
+/// always done, so it is not an error here.
+async fn candidate_default_newer_than(
+    cfg: &CommandLineArguments,
+    latest: &semver::Version,
+) -> Option<Compiler> {
+    let Ok(Some(default)) = utils::get_current_compiler(cfg).await else {
+        return None;
+    };
+
+    (Standing::of(default.version(), latest) == Standing::CandidateAhead).then_some(default)
 }
 
 /// Fetch the archive unless it is already here, then unpack it.
@@ -554,34 +595,6 @@ async fn fixup(cfg: &CommandLineArguments, command: &FixupCommand) -> Result<()>
     }
 }
 
-fn resolve_version(
-    spec: &VersionSpec,
-    artifacts: &mut MidnightArtifacts,
-) -> Result<(semver::Version, fetch::MidnightCompiler)> {
-    match spec {
-        VersionSpec::Exact(version) => artifacts
-            .compilers
-            .remove_entry(version)
-            .ok_or_else(|| anyhow!("Couldn't find version {version}")),
-        _ => {
-            let matched = artifacts
-                .compilers
-                .keys()
-                .rev()
-                .find(|v| spec.matches(v))
-                .cloned();
-
-            match matched {
-                Some(version) => artifacts
-                    .compilers
-                    .remove_entry(&version)
-                    .ok_or_else(|| anyhow!("Couldn't find version {version}")),
-                None => bail!("No version matching {spec} found"),
-            }
-        }
-    }
-}
-
 async fn load_compilers() -> Result<MidnightArtifacts> {
     let pb = indicatif::ProgressBar::new_spinner();
 
@@ -607,33 +620,42 @@ async fn check(cfg: &CommandLineArguments) -> Result<()> {
         .await
         .context("Failed to get the current compiler")?;
 
-    let mut artifacts = load_compilers().await?;
+    let catalog = Catalog::from(load_compilers().await?);
 
-    let Some((latest_version, _)) = artifacts.compilers.pop_last() else {
+    let Some((latest_version, _)) = catalog.releases().latest() else {
         bail!("No version available")
     };
 
-    let show_latest: bool;
+    // The line naming the latest release, when there is something to say
+    // about it: an update to it, or a candidate default ahead of it.
+    let latest_line: Option<&str>;
 
     if let Some(compiler) = current_compiler {
         let target = compiler.target();
         let version = compiler.version().clone();
-        let status = if version >= latest_version {
-            show_latest = false;
-            cfg.style.success("Up to date")
-        } else {
-            show_latest = true;
-            cfg.style.warn("Update Available")
+        let status = match Standing::of(&version, latest_version) {
+            Standing::UpdateAvailable => {
+                latest_line = Some("Latest version available");
+                cfg.style.warn("Update Available")
+            }
+            Standing::CandidateAhead => {
+                latest_line = Some("Latest release");
+                cfg.style.warn("Ahead of the latest release")
+            }
+            Standing::UpToDate => {
+                latest_line = None;
+                cfg.style.success("Up to date")
+            }
         };
 
         println!(
             "{label}: {target} -- {status} -- {version}",
             label = cfg.style.label(),
             target = cfg.style.target(target),
-            version = cfg.style.version(version),
+            version = cfg.style.version_in_channel(version),
         );
     } else {
-        show_latest = true;
+        latest_line = Some("Latest version available");
 
         println!(
             "{label}: {message}.",
@@ -642,11 +664,11 @@ async fn check(cfg: &CommandLineArguments) -> Result<()> {
         );
     }
 
-    if show_latest {
+    if let Some(latest_line) = latest_line {
         println!(
-            "{label}: Latest version available: {version}.",
+            "{label}: {latest_line}: {version}.",
             label = cfg.style.label(),
-            version = cfg.style.version(latest_version),
+            version = cfg.style.version(latest_version.clone()),
         );
     }
 
@@ -717,25 +739,36 @@ async fn list(cfg: &CommandLineArguments, command: &ListCommand) -> Result<()> {
             if path.is_dir() {
                 let display_name = path.file_name().unwrap().to_string_lossy();
 
+                // A directory whose name is not a version is listed as it
+                // always was, unlabelled.
+                let channel = match semver::Version::parse(&display_name) {
+                    Ok(version) if Channel::of(&version) == Channel::Candidate => {
+                        format!(" {}", cfg.style.warn("(release candidate)"))
+                    }
+                    _ => String::new(),
+                };
+
                 if current_compiler
                     .as_ref()
                     .map(|c| c.version().to_string() == display_name)
                     .unwrap_or_default()
                 {
                     println!(
-                        "{} {}",
+                        "{} {}{}",
                         console::Style::new().cyan().dim().apply_to(cfg.icons.arrow),
-                        cfg.style.version_raw(display_name).bold()
+                        cfg.style.version_raw(display_name).bold(),
+                        channel
                     );
                 } else {
                     println!(
-                        "{}{}",
+                        "{}{}{}",
                         if is_current_compiler_set_at_all {
                             "  "
                         } else {
                             ""
                         },
-                        cfg.style.version_raw(display_name).bold()
+                        cfg.style.version_raw(display_name).bold(),
+                        channel
                     );
                 }
 
@@ -758,7 +791,7 @@ async fn list(cfg: &CommandLineArguments, command: &ListCommand) -> Result<()> {
             );
         }
     } else {
-        let artifacts = load_compilers().await?;
+        let catalog = Catalog::from(load_compilers().await?);
 
         println!(
             "{label}: {message}\n",
@@ -766,7 +799,31 @@ async fn list(cfg: &CommandLineArguments, command: &ListCommand) -> Result<()> {
             message = cfg.style.artifact("available versions")
         );
 
-        for (version, compiler) in artifacts.compilers.into_iter().rev() {
+        let mut versions: Vec<_> = catalog.releases().iter().collect();
+
+        if command.pre {
+            versions.extend(catalog.candidates().iter());
+        }
+
+        // Newest first, which puts each candidate just below the release it
+        // was for, since semver orders `0.36.0-rc.1' before `0.36.0'.
+        versions.sort_by(|(a, _), (b, _)| b.cmp(a));
+
+        for (version, compiler) in versions {
+            let channel = match Channel::of(version) {
+                Channel::Release => String::new(),
+                Channel::Candidate => {
+                    let label = match catalog.superseded_by(version) {
+                        Some(release) => {
+                            format!("(release candidate, superseded by {release})")
+                        }
+                        None => "(release candidate)".to_owned(),
+                    };
+
+                    format!(" {}", cfg.style.warn(label))
+                }
+            };
+
             let available_platforms = [
                 compiler
                     .x86_macos
@@ -792,24 +849,26 @@ async fn list(cfg: &CommandLineArguments, command: &ListCommand) -> Result<()> {
 
             if current_compiler
                 .as_ref()
-                .map(|c| c.version() == &version)
+                .map(|c| c.version() == version)
                 .unwrap_or_default()
             {
                 println!(
-                    "{} {} - {}",
+                    "{} {}{} - {}",
                     console::Style::new().cyan().dim().apply_to(cfg.icons.arrow),
-                    cfg.style.version(version).bold(),
+                    cfg.style.version(version.clone()).bold(),
+                    channel,
                     available_platforms
                 );
             } else {
                 println!(
-                    "{}{} - {}",
+                    "{}{}{} - {}",
                     if is_current_compiler_set_at_all {
                         "  "
                     } else {
                         ""
                     },
-                    cfg.style.version(version).bold(),
+                    cfg.style.version(version.clone()).bold(),
+                    channel,
                     available_platforms
                 );
             }
@@ -905,7 +964,12 @@ async fn clean(cfg: &CommandLineArguments, command: &CleanCommand) -> Result<()>
             .map(|l| l.to_string())
             .unwrap_or_default();
 
-        let keep_entry = command.keep_current && display_name.contains(&current_version);
+        // The current version's own directory and no other: a name that merely
+        // contains it, `0.36.0-rc.0' beside `0.36.0', is another version. With
+        // no default there is nothing to single out, and every version is kept,
+        // as it has always been.
+        let keep_entry =
+            command.keep_current && (current_version.is_empty() || display_name == current_version);
 
         if !keep_entry && path.is_dir() {
             tokio::fs::remove_dir_all(&path)
@@ -933,103 +997,4 @@ async fn clean(cfg: &CommandLineArguments, command: &CleanCommand) -> Result<()>
     }
 
     Ok(())
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use semver::Version;
-
-    fn make_compiler(version: Version) -> fetch::MidnightCompiler {
-        fetch::MidnightCompiler {
-            version: version.clone(),
-            x86_macos: None,
-            aarch64_macos: None,
-            x86_linux: None,
-            aarch64_linux: None,
-        }
-    }
-
-    fn make_artifacts(versions: &[&str]) -> MidnightArtifacts {
-        let mut compilers = std::collections::BTreeMap::new();
-        for v in versions {
-            let version = Version::parse(v).unwrap();
-            compilers.insert(version.clone(), make_compiler(version));
-        }
-        MidnightArtifacts { compilers }
-    }
-
-    #[test]
-    fn resolve_exact_version_found() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0", "0.29.1"]);
-        let spec = VersionSpec::Exact(Version::new(0, 29, 0));
-        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
-        assert_eq!(v, Version::new(0, 29, 0));
-    }
-
-    #[test]
-    fn resolve_exact_version_not_found() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
-        let spec = VersionSpec::Exact(Version::new(0, 30, 0));
-        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
-        assert!(err.to_string().contains("0.30.0"));
-    }
-
-    #[test]
-    fn resolve_partial_picks_latest_patch() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0", "0.29.1", "0.29.2", "0.30.0"]);
-        let spec = VersionSpec::Partial {
-            major: 0,
-            minor: 29,
-        };
-        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
-        assert_eq!(v, Version::new(0, 29, 2));
-    }
-
-    #[test]
-    fn resolve_partial_single_patch() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
-        let spec = VersionSpec::Partial {
-            major: 0,
-            minor: 29,
-        };
-        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
-        assert_eq!(v, Version::new(0, 29, 0));
-    }
-
-    #[test]
-    fn resolve_partial_not_found() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
-        let spec = VersionSpec::Partial {
-            major: 0,
-            minor: 30,
-        };
-        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
-        assert!(err.to_string().contains("0.30"));
-    }
-
-    #[test]
-    fn resolve_major_picks_latest() {
-        let mut artifacts =
-            make_artifacts(&["0.28.0", "0.29.0", "0.29.1", "1.0.0", "1.1.0", "1.1.1"]);
-        let spec = VersionSpec::Major { major: 1 };
-        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
-        assert_eq!(v, Version::new(1, 1, 1));
-    }
-
-    #[test]
-    fn resolve_major_single_version() {
-        let mut artifacts = make_artifacts(&["0.28.0", "1.0.0"]);
-        let spec = VersionSpec::Major { major: 1 };
-        let (v, _) = resolve_version(&spec, &mut artifacts).unwrap();
-        assert_eq!(v, Version::new(1, 0, 0));
-    }
-
-    #[test]
-    fn resolve_major_not_found() {
-        let mut artifacts = make_artifacts(&["0.28.0", "0.29.0"]);
-        let spec = VersionSpec::Major { major: 1 };
-        let err = resolve_version(&spec, &mut artifacts).unwrap_err();
-        assert!(err.to_string().contains("No version matching 1 found"));
-    }
 }
