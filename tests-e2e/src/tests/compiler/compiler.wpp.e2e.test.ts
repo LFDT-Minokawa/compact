@@ -55,58 +55,50 @@ describe('[WPP] Compiler', () => {
         const result = await compile([Arguments.SKIP_ZK, filePath, contractsDir], CONTRACTS_ROOT);
 
         expectCompilerResult(result).toBeFailure(
-            'Exception: pm_16723_neg.compact line 23 char 10:\n' +
+            'Exception: pm_16723_neg.compact line 22 char 11:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +
                 '    witness value potentially disclosed:\n' +
-                '      the value of parameter a of exported circuit adolf at line 22 char 22\n' +
+                '      the value of parameter b of exported circuit damian at line 21 char 23\n' +
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
-                '      the right-hand side of = at line 23 char 10\n' +
-                'Exception: pm_16723_neg.compact line 28 char 11:\n' +
+                '      the right-hand side of += at line 22 char 11\n' +
+                'Exception: pm_16723_neg.compact line 26 char 11:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +
                 '    witness value potentially disclosed:\n' +
-                '      the value of parameter b of exported circuit damian at line 27 char 23\n' +
+                '      the value of parameter a of exported circuit gary at line 25 char 21\n' +
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
-                '      the right-hand side of += at line 28 char 11\n' +
-                'Exception: pm_16723_neg.compact line 32 char 11:\n' +
+                '      the right-hand side of -= at line 26 char 11\n' +
+                'Exception: pm_16723_neg.compact line 30 char 7:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +
                 '    witness value potentially disclosed:\n' +
-                '      the value of parameter a of exported circuit gary at line 31 char 21\n' +
+                '      the value of parameter a of exported circuit edmund at line 29 char 23\n' +
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
-                '      the right-hand side of -= at line 32 char 11\n' +
-                'Exception: pm_16723_neg.compact line 36 char 7:\n' +
+                '      the argument to lookup at line 30 char 7\n' +
+                'Exception: pm_16723_neg.compact line 34 char 7:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +
                 '    witness value potentially disclosed:\n' +
-                '      the value of parameter a of exported circuit edmund at line 35 char 23\n' +
+                '      the value of parameter a of exported circuit barbara at line 33 char 24\n' +
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
-                '      the argument to lookup at line 36 char 7\n' +
-                'Exception: pm_16723_neg.compact line 40 char 7:\n' +
+                '      the first argument to insert at line 34 char 7\n' +
+                '    nature of the disclosure:\n' +
+                '      ledger operation might disclose the witness value\n' +
+                '    via this path through the program:\n' +
+                '      the second argument to insert at line 34 char 7\n' +
+                'Exception: pm_16723_neg.compact line 39 char 7:\n' +
                 '  potential witness-value disclosure must be declared but is not:\n' +
                 '    witness value potentially disclosed:\n' +
-                '      the value of parameter a of exported circuit barbara at line 39 char 24\n' +
+                '      the value of parameter a of exported circuit katie at line 38 char 22\n' +
                 '    nature of the disclosure:\n' +
                 '      ledger operation might disclose the witness value\n' +
                 '    via this path through the program:\n' +
-                '      the first argument to insert at line 40 char 7\n' +
-                '    nature of the disclosure:\n' +
-                '      ledger operation might disclose the witness value\n' +
-                '    via this path through the program:\n' +
-                '      the second argument to insert at line 40 char 7\n' +
-                'Exception: pm_16723_neg.compact line 45 char 7:\n' +
-                '  potential witness-value disclosure must be declared but is not:\n' +
-                '    witness value potentially disclosed:\n' +
-                '      the value of parameter a of exported circuit katie at line 44 char 22\n' +
-                '    nature of the disclosure:\n' +
-                '      ledger operation might disclose the witness value\n' +
-                '    via this path through the program:\n' +
-                '      the argument to remove at line 45 char 7',
+                '      the argument to remove at line 39 char 7',
             compilerDefaultOutput(),
         );
     });

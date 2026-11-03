@@ -122,6 +122,12 @@ type ContractConstructorResult<Contract> = Contract extends {
           };
       };
 
+export type ContractConstructorArgs<Contract> = Contract extends {
+    initialState(context: any, ...args: infer Args): any;
+}
+    ? Args
+    : any[];
+
 export type ContractPrivateState<Contract> =
     ContractConstructorResult<Contract> extends {
         currentPrivateState: infer PrivateState;
