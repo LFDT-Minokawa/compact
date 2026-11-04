@@ -247,7 +247,6 @@ const TYPES: TypeRow[] = [
     /* Native types, from compiler/midnight-natives.ss. */
     { kind: 'plain', write: 'JubjubScalar' },
     { kind: 'plain', write: 'JubjubPoint' },
-    /* Native types, from compiler/zkir-v3-natives.ss. */
     { kind: 'plain', write: 'Secp256k1Base' },
     { kind: 'plain', write: 'Secp256k1Scalar' },
     { kind: 'plain', write: 'Secp256k1Point' },
@@ -272,7 +271,6 @@ const TYPES: TypeRow[] = [
     { kind: 'plain', write: 'UserAddress' },
     { kind: 'plain', write: 'PublicAddress' },
     { kind: 'plain', write: 'JubjubSchnorrSignature' },
-    /* Exported from compiler/zkir-v3-library.compact. */
     { kind: 'plain', write: 'Secp256k1EcdsaSignature' },
     { kind: 'plain', write: 'Secp256r1EcdsaSignature' },
     { kind: 'plain', write: 'Ed25519Signature' },
@@ -1277,7 +1275,6 @@ const STDLIB_CALLS: StdlibCall[] = [
     { name: 'jubjubPointY', generics: [], maxArgs: 1 },
     { name: 'constructJubjubPoint', generics: [], maxArgs: 2 },
     { name: 'jubjubSchnorrVerify', generics: [N], maxArgs: 3 },
-    /* From compiler/zkir-v3-natives.ss. */
     { name: 'sha512', generics: [T], maxArgs: 1 },
     { name: 'neg', generics: [], maxArgs: 1 },
     { name: 'inv', generics: [], maxArgs: 1 },
@@ -1287,7 +1284,6 @@ const STDLIB_CALLS: StdlibCall[] = [
     { name: 'secp256r1PointY', generics: [], maxArgs: 1 },
     { name: 'curve25519PointX', generics: [], maxArgs: 1 },
     { name: 'curve25519PointY', generics: [], maxArgs: 1 },
-    /* From compiler/zkir-v3-library.compact. */
     { name: 'secp256k1EcdsaVerify', generics: [], maxArgs: 3 },
     { name: 'secp256k1EthereumAddress', generics: [], maxArgs: 1 },
     { name: 'secp256r1EcdsaVerify', generics: [], maxArgs: 3 },
