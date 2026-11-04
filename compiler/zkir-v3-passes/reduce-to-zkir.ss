@@ -144,7 +144,43 @@
         (nanopass-case (Lflattened Argument) (list-ref arg* index)
           [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
            alignment*]))
+      ;; Get the primitive type of a 0-based arg index that holds a single value.
+      (define (arg->primitive-type arg* index)
+        (nanopass-case (Lflattened Argument) (list-ref arg* index)
+          [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
+           (assert (= (length primitive-type*) 1))
+           (car primitive-type*)]))
+      ;; The load_constant encoding of a secp curve's generator: the x limbs, the y limbs,
+      ;; then 0 for "not the identity".  As for a foreign field value, each coordinate is
+      ;; stored as value - 1, split at bit 192.
+      (define (generator-encoding primitive-type)
+        (define (limbs v)
+          (list (bitwise-bit-field (- v 1) 0 192) (bitwise-arithmetic-shift-right (- v 1) 192)))
+        (let-values ([(x y)
+                      (nanopass-case (Lflattened Primitive-Type) primitive-type
+                        [(tpoint (curve-secp256k1))
+                         (values
+                           #x79BE667EF9DCBBAC55A06295CE870B07029BFCDB2DCE28D959F2815B16F81798
+                           #x483ADA7726A3C4655DA4FBFC0E1108A8FD17B448A68554199C47D08FFB10D4B8)]
+                        [(tpoint (curve-secp256r1))
+                         (values
+                           #x6B17D1F2E12C4247F8BCE6E563A440F277037D812DEB33A0F4A13945D898C296
+                           #x4FE342E2FE1A7F9B8EE7EB4A7C0F9E162BCE33576B315ECECBB6406837BF51F5)]
+                        [else (assert cannot-happen)])])
+          (append (limbs x) (limbs y) '(0))))
       (lambda (var-name* src test triv* instr*)
+        ;; zkir runs every instruction even when test is false, so when test might be
+        ;; false, pass a constant the instruction accepts in place of triv
+        (define (guard-input triv primitive-type encoding instr*)
+          (if (eqv? test 1)
+              (values triv instr*)
+              (let ([safe (make-temp-id src 'safe)] [t (make-temp-id src 'guarded)])
+                (values t
+                  (with-output-language (Lzkir Instruction)
+                    (cons*
+                      `(cond_select ,t ,test ,triv ,safe)
+                      `(load_constant ,(type->string primitive-type) ,safe ,encoding ...)
+                      instr*))))))
         (with-output-language (Lzkir Instruction)
           ;; Generally assume that the arity is correct here.
           (case name
@@ -178,7 +214,10 @@
              (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
             [(inv)
              (assert (= (length var-name*) 1))
-             (cons `(inv ,(car var-name*) ,(car triv*)) instr*)]
+             ;; inv fails on 0.  zkir stores a foreign field value as value - 1, so 1 is (0 0).
+             (let-values ([(x instr*)
+                           (guard-input (car triv*) (arg->primitive-type arg* 0) '(0 0) instr*)])
+               (cons `(inv ,(car var-name*) ,x) instr*))]
             [(jubjubPointX)
              (assert (= (length var-name*) 1))
              (let ([y (make-temp-id src 'ignore)])
@@ -228,11 +267,24 @@
                    `(bytes_into_natives (,(reverse var-name*) ...) ,bytes)
                    `(persistent_hash ,bytes (,alignment* ...) ,triv* ...)
                    instr*)))]
-            [(secp256k1PointX secp256r1PointX curve25519PointX)
+            [(secp256k1PointX secp256r1PointX)
+             (assert (= (length var-name*) 1))
+             ;; into_coordinates fails on the identity, which has no coordinates on a secp curve
+             (let ([type (arg->primitive-type arg* 0)] [y (make-temp-id src 'ignore)])
+               (let-values ([(p instr*)
+                             (guard-input (car triv*) type (generator-encoding type) instr*)])
+                 (cons `(into_coordinates ,(car var-name*) ,y ,p) instr*)))]
+            [(secp256k1PointY secp256r1PointY)
+             (assert (= (length var-name*) 1))
+             (let ([type (arg->primitive-type arg* 0)] [x (make-temp-id src 'ignore)])
+               (let-values ([(p instr*)
+                             (guard-input (car triv*) type (generator-encoding type) instr*)])
+                 (cons `(into_coordinates ,x ,(car var-name*) ,p) instr*)))]
+            [(curve25519PointX)
              (assert (= (length var-name*) 1))
              (let ([y (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,(car var-name*) ,y ,(car triv*)) instr*))]
-            [(secp256k1PointY secp256r1PointY curve25519PointY)
+            [(curve25519PointY)
              (assert (= (length var-name*) 1))
              (let ([x (make-temp-id src 'ignore)])
                (cons `(into_coordinates ,x ,(car var-name*) ,(car triv*)) instr*))]

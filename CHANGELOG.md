@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
+
+### Fixed
+
+- Proving no longer fails when `inv`, `secp256k1PointX`, `secp256k1PointY`,
+  `secp256r1PointX`, or `secp256r1PointY` is in a branch that is not taken.
+  ZKIR runs these operations on both sides of a branch, and on the side not
+  taken the input can be 0 or the identity point, for example from a witness
+  that is not called.  `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` inside
+  an `if` failed the same way. Affected contracts must be recompiled to get
+  the fix.
+
 ## [Toolchain 0.36.0, language 0.28.0, runtime 0.21.0]
 
 This release includes all changes for compiler versions in the range between
