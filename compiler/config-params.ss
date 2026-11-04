@@ -38,4 +38,7 @@
   (export-parameter trace-passes #f)
 
   (export-parameter trace-search #f)
+
+  ; hooks
+  (export-parameter ir-hook #f)
 )
