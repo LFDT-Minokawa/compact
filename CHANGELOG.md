@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- Compact JavaScript runtime now keeps a leading U+FEFF when it reads an
+  `Opaque<'string'>` value. It used to drop the character as a byte order
+  mark, so the string no longer matched the bytes stored on the ledger, and a
+  circuit that returned it, wrote it back, compared it with another string or
+  used it as a map key could not be proven.
+
 ## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
 
 ### Changed

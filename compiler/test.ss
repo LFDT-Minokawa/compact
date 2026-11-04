@@ -80156,6 +80156,48 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "export ledger memo: Opaque<'string'>;"
+      "export ledger archived: Opaque<'string'>;"
+      "export ledger seen: Map<Opaque<'string'>, Boolean>;"
+      "export circuit store(m: Opaque<'string'>): [] {"
+      "  memo = disclose(m);"
+      "}"
+      "export circuit markSeen(m: Opaque<'string'>): [] {"
+      "  seen.insert(disclose(m), true);"
+      "}"
+      "export circuit receipt(): Opaque<'string'> {"
+      "  return memo;"
+      "}"
+      "export circuit archive(): [] {"
+      "  archived = memo;"
+      "}"
+      "export circuit matches(m: Opaque<'string'>): Boolean {"
+      "  return disclose(memo == m);"
+      "}"
+      "export circuit wasSeen(): Boolean {"
+      "  return seen.member(memo);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an opaque string read from the ledger keeps a leading U+FEFF', async () => {"
+        "  // Each of these failed because the runtime dropped a leading U+FEFF as a byte order mark."
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const memo = '\\uFEFFmemo';"
+        "  const afterStore = (await contract.circuits.store(context, memo)).context;"
+        "  expect((await contract.circuits.receipt(afterStore)).result).toEqual(memo);"
+        "  const afterArchive = (await contract.circuits.archive(afterStore)).context;"
+        "  expect(contractCode.ledger(afterArchive.callContext.currentQueryContext.state).archived).toEqual(memo);"
+        "  expect((await contract.circuits.matches(afterStore, memo)).result).toEqual(true);"
+        "  const afterMark = (await contract.circuits.markSeen(afterStore, memo)).context;"
+        "  expect((await contract.circuits.wasSeen(afterMark)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "import { JubjubScalar as nativeJubjubScalar,"
       "         JubjubPoint as nativeJubjubPoint,"
       "         ecMul as nativeEcMul }"
