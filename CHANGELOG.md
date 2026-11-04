@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
+## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.0]
 
 ### Fixed
 
@@ -16,6 +16,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   that is not called.  `secp256k1EcdsaVerify` and `secp256r1EcdsaVerify` inside
   an `if` failed the same way. Affected contracts must be recompiled to get
   the fix.
+
+## [Toolchain 0.36.100, language 0.28.0, runtime 0.21.0]
+
+### Changed
+
+- `zkir-v3-natives.ss` and `zkir-v3-library.compact` and the mechanism to pull them 
+  within scope in `expand-modules-and-types` pass have been removed. They are now
+  simply included in `midnight-natives.ss` and `standard-library.compact`. This
+  changes the `sources` of generated sourcemap `contract/index.js.map` when a contract
+  uses a functionality that was previously in `zkir-v3-library.compact`.
 
 ## [Toolchain 0.36.0, language 0.28.0, runtime 0.21.0]
 
