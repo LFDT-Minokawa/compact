@@ -1323,6 +1323,7 @@
       (jubjub_scalar_from_native outp inp)
       (keccak256 outp (alignment* ...) inp* ...)
       (less_than outp inp0 inp1 imm)
+      (load_constant zkir-type outp inp* ...)
       (mul outp inp0 inp1)
       (neg outp inp)
       (not outp inp)
