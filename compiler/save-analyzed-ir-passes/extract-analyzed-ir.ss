@@ -100,7 +100,7 @@
         '()
         vminstr*))
 
-    (define (expand-ops src path-elt* adt-formal* adt-arg* var-name* expr* vm-code)
+    (define (expand-ops src path-elt* adt-formal* adt-arg* var-name* expr* result-type vm-code)
       (instructions->sexp
         (expand-vm-code src
           (map (lambda (pe)
@@ -109,8 +109,9 @@
                    [(,src ,type ,expr) (Expr expr)]))
                path-elt*)
           #f
-          (append (map cons adt-formal* adt-arg*)
-                  (map (lambda (vn ex) (cons (id-sym vn) (Expr ex))) var-name* expr*))
+          (cons (cons 'result_type result-type)
+            (append (map cons adt-formal* adt-arg*)
+                    (map (lambda (vn ex) (cons (id-sym vn) (Expr ex))) var-name* expr*)))
           (vm-code-code vm-code)))))
 
   (OpClass : ADT-Op-Class (op-class) -> * (sexp)
@@ -217,7 +218,7 @@
                  path-elt*)
            ,ledger-op
            ,(Type type)
-           (instructions ,@(expand-ops src path-elt* adt-formal* adt-arg* var-name* expr* vm-code))
+           (instructions ,@(expand-ops src path-elt* adt-formal* adt-arg* var-name* expr* type vm-code))
            ,@(map Expr expr*))])]
     [(return ,src ,expr) `(return ,(Expr expr))]
     [else (fail "expression" (unparse-Lloweredemit expr))])
