@@ -84412,6 +84412,27 @@ groups than for single tests.
     )
 )
 
+;; The version header of analyzed-ir.sexp, as the pass prints it. pretty-print
+;; breaks the header at a point that moves with the length of the version
+;; strings, so the expected lines come from the same printer. Its layout also
+;; depends on the number of fields, so the datum keeps the artifact's first five.
+(define (analyzed-ir-header)
+  (let ([ip (open-input-string
+              (with-output-to-string
+                (lambda ()
+                  (parameterize ([print-brackets #f])
+                    (pretty-print
+                      `(analyzed-ir (compiler-version ,compiler-version-string)
+                         (language-version ,language-version-string)
+                         (runtime-version ,runtime-version-string)
+                         (exports ,(make-string 60 #\x))
+                         (contract-types)))))))])
+    (let loop ([line* '()])
+      (let ([line (get-line ip)])
+        (if (and (>= (string-length line) 10) (string=? (substring line 0 10) "  (exports"))
+            (reverse line*)
+            (loop (cons line line*)))))))
+
 (run-tests save-analyzed-ir
   (test-group
     ((create-file "Registry.compact"
@@ -84457,12 +84478,9 @@ groups than for single tests.
          "  emit(Paused {});"
          "}"
          ))
-     ; Keep the version lines dynamic because version strings change.
      (output-file "compiler/testdir/testfile/compiler/analyzed-ir.sexp"
        `(
-         ,(format "(analyzed-ir (compiler-version ~s)" compiler-version-string)
-         ,(format "  (language-version ~s) (runtime-version ~s)"
-            language-version-string runtime-version-string)
+         ,@(analyzed-ir-header)
          "  (exports (digest . %digest.5) (pause . %pause.6)"
          "    (record . %record.3) (reg_add . %add.4)"
          "    (reg_atLeast . %atLeast.1) (stash . %stash.2)"
@@ -84586,9 +84604,7 @@ groups than for single tests.
          ))
      (output-file "compiler/testdir/testfile/compiler/analyzed-ir.sexp"
        `(
-         ,(format "(analyzed-ir (compiler-version ~s)" compiler-version-string)
-         ,(format "  (language-version ~s) (runtime-version ~s)"
-            language-version-string runtime-version-string)
+         ,@(analyzed-ir-header)
          "  (exports (whoCalled . %whoCalled.0)) (contract-types)"
          "  (kernel-declaration (%kernel.1 () (exported #f) (Kernel)))"
          "  (public-ledger-declaration"
