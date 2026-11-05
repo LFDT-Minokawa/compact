@@ -218,6 +218,7 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
   CompactTypeOpaqueString: [
     sample('Opaque<"string">', runtime.CompactTypeOpaqueString, 'hello'),
     sample('Opaque<"string"> (empty)', runtime.CompactTypeOpaqueString, ''),
+    sample('Opaque<"string"> (leading U+FEFF)', runtime.CompactTypeOpaqueString, '\uFEFFhello'),
   ],
   CompactTypeOpaqueUint8Array: [
     sample('Opaque<"Uint8Array">', runtime.CompactTypeOpaqueUint8Array, new Uint8Array([7, 8, 9])),
@@ -397,5 +398,17 @@ describe('identity points', () => {
     const other = { ...SECP256R1_G, identity: true };
     expect(point.toValue(other)).toStrictEqual(point.toValue(SECP256R1_IDENTITY));
     expect(point.fromValue(point.toValue(other))).toStrictEqual(SECP256R1_IDENTITY);
+  });
+});
+
+describe('opaque strings', () => {
+  test.each([
+    ['a leading U+FEFF', [0xef, 0xbb, 0xbf, 0x68, 0x69]],
+    ['two leading U+FEFFs', [0xef, 0xbb, 0xbf, 0xef, 0xbb, 0xbf, 0x68, 0x69]],
+    ['nothing but U+FEFF', [0xef, 0xbb, 0xbf]],
+  ])('Opaque<"string"> decoded from bytes with %s encodes back to those bytes', (_label, bytes) => {
+    const stored = new Uint8Array(bytes);
+    const decoded = runtime.CompactTypeOpaqueString.fromValue([stored]);
+    expect(runtime.CompactTypeOpaqueString.toValue(decoded)).toStrictEqual([stored]);
   });
 });
