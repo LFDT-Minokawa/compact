@@ -9,7 +9,7 @@
 
 Version 0.36.0 of the Compact toolchain is a major release.  It builds on 0.35.0.
 
-The compiler now generates only ZKIR version 3, and the `--feature-zkir-v3` flag is gone, so the features introduced in 0.35.0 behind that flag are available without it.  Circuits declared in a contract type can no longer be `pure`, which changes both the language and the Compact runtime's cross-contract API.  The release also fixes a number of compiler internal errors and Compact runtime defects.  Several changes are breaking; the entries below mark them.
+The compiler now generates only ZKIR version 3, and the `--feature-zkir-v3` flag is gone, so the features introduced in 0.35.0 behind that flag are available without it.  Recompiling a deployed contract whose verifier keys are ZKIR version 2 therefore changes its keys, and the deployed contract cannot be used with the new artifacts until its keys are replaced or it is redeployed.  Circuits declared in a contract type can no longer be `pure`, which changes both the language and the Compact runtime's cross-contract API.  Contracts that make cross-contract calls must be recompiled, and their keys replaced, to get a security fix.  The release also fixes a number of compiler internal errors and Compact runtime defects.  Several changes are breaking; the entries below mark them.
 
 You can update to version 0.36.0 using the Compact devtools.  `compact update` will update to the latest released version, and `compact update 0.36` will specifically update to the latest patch release of toolchain 0.36.
 
@@ -51,6 +51,16 @@ The Compact runtime now encodes every `Secp256k1Point` and `Secp256r1Point` iden
 
 Passing `--feature-zkir-v3` to the compiler is now an error.  Remove the flag from your build scripts.  `--ledger-version` now always prints the version of the `zkir-v3` dependency.
 
+### Recompiling a contract with ZKIR version 2 keys changes its keys
+
+The ledger checks each call against the verifier keys stored for the called contract, which are fixed at deployment unless the contract's maintenance authority changes them.  The compiler now generates only ZKIR version 3, so recompiling a contract whose keys are ZKIR version 2 produces keys that the deployed contract does not have.  This covers every contract deployed before the ledger 9 hard fork, and every contract compiled by toolchains 0.33 to 0.35 without `--feature-zkir-v3`.  midnight-js's `findDeployedContract` rejects the recompiled artifacts because their keys differ from the deployed ones, and the ledger rejects calls proved with them.
+
+There are three options for such a contract:
+
+- Keep the artifacts the contract was deployed with, and the toolchain that built them.
+- Replace the contract's verifier keys with the recompiled ones through its maintenance authority, if it has one.  From then on, `findDeployedContract`, and the Compact runtime when another contract calls this one, compare artifacts against the new keys, so DApps must use the recompiled artifacts.
+- Redeploy the contract from the recompiled artifacts. The redeployed contract has a new address and starts from its initial ledger state.
+
 ### Circuits in a contract type cannot be `pure`
 
 A cross-contract call is matched by the ledger against the called circuit's proof, so every circuit declared in a contract type must have a proof.  Marking a circuit declaration in a contract type `pure` is now a compile-time error, since a pure circuit has no proof.  A `contract implements` declaration is likewise rejected when the implementing circuit is declared `pure`.
@@ -68,9 +78,11 @@ Conformance of a resolved module now checks that every declared circuit is imple
 
 The compiler no longer emits `pure` for the circuits of a contract type in `declaredInterfaces` or in `contract-info.json`.
 
-### Contracts that make cross-contract calls must be recompiled
+### Contracts that make cross-contract calls must be recompiled and their keys replaced
 
-A cross-contract call's proof now binds the callee circuit named at the call site: the compiler emits the entry-point hash as a constant of the call site.  Contracts that make cross-contract calls must be recompiled to get this fix.
+A cross-contract call's proof now binds the callee circuit named at the call site: the compiler emits the entry-point hash as a constant of the call site.  The fix is in the calling contract's circuits, so recompiling a caller changes its verifier keys, and a deployed caller has the fix only once its keys are replaced through its maintenance authority, or once it is redeployed (see the options under [Recompiling a contract with ZKIR version 2 keys changes its keys](#recompiling-a-contract-with-zkir-version-2-keys-changes-its-keys)).  The old keys must be removed, not merely joined by the new ones, because the ledger still accepts a proof for an old key while that key is in place.  Toolchains before 0.33 reject cross-contract calls, so no contract deployed before the ledger 9 hard fork makes them, and the affected callers are those compiled by toolchains 0.33 to 0.35.
+
+Callers and their callees have to be upgraded together.  Code compiled by 0.36.0 requires Compact runtime 0.21, and code compiled by earlier toolchains requires an earlier runtime, so the callee modules that a caller compiled by 0.36.0 resolves must also be compiled by 0.36.0.  The runtime accepts a resolved module only when its verifier keys match the callee's deployed keys.  A callee with ZKIR version 2 keys must therefore have its keys replaced, or be redeployed, before a caller compiled by 0.36.0 can call it.  Once its keys are replaced, callers that resolve its earlier module fail the same check.
 
 ### Casting a non-native field to `Boolean` is a type error
 
