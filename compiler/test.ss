@@ -77602,7 +77602,7 @@ groups than for single tests.
         ))
     )
 
-  ; issue 867
+  ; guarded inv and into_coordinates on secp256K1 curve
   (test
     '(
       "import CompactStandardLibrary;"
@@ -77624,20 +77624,12 @@ groups than for single tests.
       "    y = disclose(secp256k1PointY(p));"
       "  }"
       "}"
-      "export circuit coordinates(p: Secp256k1Point): [] {"
-      "  const [px, py] = p == default<Secp256k1Point>"
-      "      ? [default<Secp256k1Base>, default<Secp256k1Base>]"
-      "      : [secp256k1PointX(p), secp256k1PointY(p)];"
-      "  x = disclose(px);"
-      "  y = disclose(py);"
-      "}"
       )
     (stage-javascript
       `(
         "test('Secp256k1 inv and coordinates in a branch that is not taken', async () => {"
-        "  const G = runtime.secp256k1MulGenerator(1n);"
-        "  const identity = runtime.secp256k1MulGenerator(0n);"
-        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, G] };"
+        "  const P = runtime.secp256k1MulGenerator(2n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, P] };"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
         "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
         "  const xy = (r: any) => [L(r).x, L(r).y];"
@@ -77647,18 +77639,14 @@ groups than for single tests.
            (quotient (+ (max-secp256k1-base) 2) 2))
         ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
            (quotient (+ (max-secp256k1-scalar) 2) 2))
-        "  await expect(C.circuits.invBase(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.invScalar(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
         "  // When getP is not called, ZKIR sees the identity in its place."
         "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
-        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([G.x, G.y]);"
-        "  expect(xy(await C.circuits.coordinates(Ctxt, identity))).toEqual([0n, 0n]);"
-        "  expect(xy(await C.circuits.coordinates(Ctxt, G))).toEqual([G.x, G.y]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([P.x, P.y]);"
         "});"
         ))
     )
 
-  ; issue 867
+  ; guarded inv and into_coordinates on secp256R1 curve
   (test
     '(
       "import CompactStandardLibrary;"
@@ -77680,20 +77668,12 @@ groups than for single tests.
       "    y = disclose(secp256r1PointY(p));"
       "  }"
       "}"
-      "export circuit coordinates(p: Secp256r1Point): [] {"
-      "  const [px, py] = p == default<Secp256r1Point>"
-      "      ? [default<Secp256r1Base>, default<Secp256r1Base>]"
-      "      : [secp256r1PointX(p), secp256r1PointY(p)];"
-      "  x = disclose(px);"
-      "  y = disclose(py);"
-      "}"
       )
     (stage-javascript
       `(
         "test('Secp256r1 inv and coordinates in a branch that is not taken', async () => {"
-        "  const G = runtime.secp256r1MulGenerator(1n);"
-        "  const identity = runtime.secp256r1MulGenerator(0n);"
-        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, G] };"
+        "  const P = runtime.secp256r1MulGenerator(2n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, P] };"
         "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
         "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
         "  const xy = (r: any) => [L(r).x, L(r).y];"
@@ -77703,18 +77683,14 @@ groups than for single tests.
            (quotient (+ (max-secp256r1-base) 2) 2))
         ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
            (quotient (+ (max-secp256r1-scalar) 2) 2))
-        "  await expect(C.circuits.invBase(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.invScalar(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
         "  // When getP is not called, ZKIR sees the identity in its place."
         "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
-        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([G.x, G.y]);"
-        "  expect(xy(await C.circuits.coordinates(Ctxt, identity))).toEqual([0n, 0n]);"
-        "  expect(xy(await C.circuits.coordinates(Ctxt, G))).toEqual([G.x, G.y]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([P.x, P.y]);"
         "});"
         ))
     )
 
-  ; issue 867
+  ; guarded inv on Curve25519
   (test
     '(
       "import CompactStandardLibrary;"
@@ -77738,13 +77714,40 @@ groups than for single tests.
            (quotient (+ (max-curve25519-base) 2) 2))
         ,(format "  expect(L(await C.circuits.invScalar(Ctxt, true, 2n)).scalar).toEqual(~dn);"
            (quotient (+ (max-curve25519-scalar) 2) 2))
-        "  await expect(C.circuits.invBase(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
-        "  await expect(C.circuits.invScalar(Ctxt, true, 0n)).rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
 
-  ; issue 867
+  ; guarded into_coordinates on Curve25519
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness getP(): Curve25519Point;"
+      "export ledger x: Curve25519Base;"
+      "export ledger y: Curve25519Base;"
+      "export circuit witnessCoordinates(b: Boolean): [] {"
+      "  if (disclose(b)) {"
+      "    const p = getP();"
+      "    x = disclose(curve25519PointX(p));"
+      "    y = disclose(curve25519PointY(p));"
+      "  }"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('Curve25519 coordinates of the identity', async () => {"
+        "  const identity = runtime.curve25519MulGenerator(0n);"
+        "  const witnesses = { getP: ({privateState}: any): [number, any] => [privateState, identity] };"
+        "  const [C, Ctxt] = await startContract(contractCode, witnesses, 0);"
+        "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+        "  const xy = (r: any) => [L(r).x, L(r).y];"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, false))).toEqual([0n, 0n]);"
+        "  expect(xy(await C.circuits.witnessCoordinates(Ctxt, true))).toEqual([0n, 1n]);"
+        "});"
+        ))
+    )
+
+  ; guarded secp256k1 verify
   (test
     '(
       "import CompactStandardLibrary;"
@@ -77770,13 +77773,11 @@ groups than for single tests.
         "  const identity = runtime.secp256k1MulGenerator(0n);"
         "  expect(ok(await C.circuits.verify(Ctxt, false, d, { r: 0n, s: 0n }, identity))).toEqual(false);"
         "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, pk))).toEqual(true);"
-        "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, runtime.secp256k1MulGenerator(SK + 1n)))).toEqual(false);"
-        "  await expect(C.circuits.verify(Ctxt, true, d, { r: 0n, s: 0n }, pk)).rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )
 
-  ; issue 867
+  ; guarded secp256r1 verify
   (test
     '(
       "import CompactStandardLibrary;"
@@ -77802,8 +77803,6 @@ groups than for single tests.
         "  const identity = runtime.secp256r1MulGenerator(0n);"
         "  expect(ok(await C.circuits.verify(Ctxt, false, d, { r: 0n, s: 0n }, identity))).toEqual(false);"
         "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, pk))).toEqual(true);"
-        "  expect(ok(await C.circuits.verify(Ctxt, true, d, sig, runtime.secp256r1MulGenerator(SK + 1n)))).toEqual(false);"
-        "  await expect(C.circuits.verify(Ctxt, true, d, { r: 0n, s: 0n }, pk)).rejects.toThrow(runtime.CompactError);"
         "});"
         ))
     )

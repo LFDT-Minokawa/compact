@@ -125,6 +125,10 @@ describe('secp256k1 scalar field operations', () => {
   test('inv is the multiplicative inverse', () => {
     expect(runtime.secp256k1ScalarMul(a, runtime.secp256k1ScalarInv(a))).toEqual(1n);
   });
+
+  test('zero has no multiplicative inverse', () => {
+    expect(() => runtime.secp256k1ScalarInv(0n)).toThrow(runtime.CompactError);
+  });
 });
 
 describe('secp256k1 base field operations', () => {
@@ -148,6 +152,10 @@ describe('secp256k1 base field operations', () => {
 
   test('inv is the multiplicative inverse', () => {
     expect(runtime.secp256k1BaseMul(a, runtime.secp256k1BaseInv(a))).toEqual(1n);
+  });
+
+  test('zero has no multiplicative inverse', () => {
+    expect(() => runtime.secp256k1BaseInv(0n)).toThrow(runtime.CompactError);
   });
 });
 
