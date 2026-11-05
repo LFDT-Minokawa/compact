@@ -144,15 +144,14 @@
         (nanopass-case (Lflattened Argument) (list-ref arg* index)
           [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
            alignment*]))
-      ;; Get the primitive type of a 0-based arg index that holds a single value.
+      ;; Get the primitive type of a arg[index] that holds a single value.
       (define (arg->primitive-type arg* index)
         (nanopass-case (Lflattened Argument) (list-ref arg* index)
           [(argument (,var-name ...) (ty (,alignment* ...) (,primitive-type* ...)))
            (assert (= (length primitive-type*) 1))
            (car primitive-type*)]))
-      ;; The load_constant encoding of a secp curve's generator: the x limbs, the y limbs,
-      ;; then 0 for "not the identity".  As for a foreign field value, each coordinate is
-      ;; stored as value - 1, split at bit 192.
+      ;; The load_constant encoding of a secp curve's generator:
+      ;; [x_low, x_high, y_low, y_high, identity].
       (define (generator-encoding primitive-type)
         (define (limbs v)
           (list (bitwise-bit-field (- v 1) 0 192) (bitwise-arithmetic-shift-right (- v 1) 192)))
@@ -214,7 +213,8 @@
              (cons `(hash_to_curve ,(car var-name*) ,triv* ...) instr*)]
             [(inv)
              (assert (= (length var-name*) 1))
-             ;; inv fails on 0.  zkir stores a foreign field value as value - 1, so 1 is (0 0).
+             ;; inv fails on 0 so pass 1 for inv. zkir stores
+             ;; a foreign field value as value - 1, so 1 is (0 0).
              (let-values ([(x instr*)
                            (guard-input (car triv*) (arg->primitive-type arg* 0) '(0 0) instr*)])
                (cons `(inv ,(car var-name*) ,x) instr*))]
@@ -270,6 +270,7 @@
             [(secp256k1PointX secp256r1PointX)
              (assert (= (length var-name*) 1))
              ;; into_coordinates fails on the identity, which has no coordinates on a secp curve
+             ;; so pass generator (G)
              (let ([type (arg->primitive-type arg* 0)] [y (make-temp-id src 'ignore)])
                (let-values ([(p instr*)
                              (guard-input (car triv*) type (generator-encoding type) instr*)])
