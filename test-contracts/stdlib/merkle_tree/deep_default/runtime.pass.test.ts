@@ -33,10 +33,12 @@ export default defineRuntimeTest<typeof Contract>(
 
         const inserted = (await c.insert(ctx, 5n)).context;
         expect(read(inserted).tree16.root()).not.toEqual(initial.tree16.root());
+        expect(read(inserted).tree20.root()).not.toEqual(initial.tree20.root());
         expect(read(inserted).tree32.root()).not.toEqual(initial.tree32.root());
 
         const reset = (await c.reset(inserted)).context;
         expect(read(reset).tree16.root()).toEqual(initial.tree16.root());
+        expect(read(reset).tree20.root()).toEqual(initial.tree20.root());
         expect(read(reset).tree32.root()).toEqual(initial.tree32.root());
 
         const withDefault = (await c.insert_default(reset, true)).context;

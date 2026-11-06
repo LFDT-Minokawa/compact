@@ -17,6 +17,8 @@ import CompactStandardLibrary;
 
 export ledger tree16: HistoricMerkleTree<16, Field>;
 
+export ledger tree20: HistoricMerkleTree<20, Field>;
+
 export ledger tree32: HistoricMerkleTree<32, Field>;
 
 export ledger trees: Map<Boolean, HistoricMerkleTree<32, Field>>;
@@ -24,14 +26,17 @@ export ledger trees: Map<Boolean, HistoricMerkleTree<32, Field>>;
 // Default HistoricMerkleTree values deeper than 15 failed to compile with an
 // internal error before issue #879 was fixed. resetToDefault, insertDefault and
 // inserting default<HistoricMerkleTree<32, Field>> each build a default tree in
-// the circuit; depth 16 is the first that failed and 32 is the deepest allowed.
+// the circuit; depth 16 is the first that failed, 20 is in between and 32 is
+// the deepest allowed.
 export circuit insert(x: Field): [] {
   tree16.insert(disclose(x));
+  tree20.insert(disclose(x));
   tree32.insert(disclose(x));
 }
 
 export circuit reset(): [] {
   tree16.resetToDefault();
+  tree20.resetToDefault();
   tree32.resetToDefault();
 }
 
