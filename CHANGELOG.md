@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
+
+### Fixed
+
+- The compiler no longer fails with an internal error when a circuit calls
+  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth in
+  `[16, 32]`, or stores a default tree of such a depth in a `Map` with
+  `insertDefault()` or `insert()`.
+
 ## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
 
 ### Fixed
