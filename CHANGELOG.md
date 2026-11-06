@@ -10,8 +10,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 
 - The compiler no longer fails with an internal error when a circuit calls
-  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth 16 or
-  more, or stores a default tree of that depth in a `Map` with
+  `resetToDefault()` on a `MerkleTree` or `HistoricMerkleTree` of depth in
+  `[16, 32]`, or stores a default tree of such a depth in a `Map` with
   `insertDefault()` or `insert()`.
 
 ## [Toolchain 0.36.101, language 0.28.0, runtime 0.21.100]
