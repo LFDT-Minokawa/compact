@@ -564,6 +564,9 @@
             ];
 
             COMPACT_RUNTIME_PKG = "${packages.runtime.package}/lib/node_modules/@midnight-ntwrk/compact-runtime";
+            # The proof checks in test-contracts/support/proof-check run the ZKIR with the wasm build
+            # of the same zkir release that compactc targets.
+            ZKIR_V3_PKG = "${zkir-v3-wasm.packages.${system}.zkir-wasm}/lib/node_modules/@midnightntwrk/zkir-v3";
             CHEZSCHEMELIBDIRS = "compiler::obj/compiler:third_party/compiler::obj/third_party/compiler:${nanopass}::obj/nanopass:${rough-draft}/src::obj/rough-draft:srcMaps::obj/srcMaps";
             COMPACT_LIBCRYPTO = libcrypto;
           };

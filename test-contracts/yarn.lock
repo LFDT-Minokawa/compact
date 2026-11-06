@@ -55,6 +55,12 @@ __metadata:
   languageName: node
   linkType: soft
 
+"@midnightntwrk/zkir-v3@link:./.zkir-v3::locator=compact-test-contracts%40workspace%3A.":
+  version: 0.0.0-use.local
+  resolution: "@midnightntwrk/zkir-v3@link:./.zkir-v3::locator=compact-test-contracts%40workspace%3A."
+  languageName: node
+  linkType: soft
+
 "@napi-rs/wasm-runtime@npm:^1.1.4":
   version: 1.1.4
   resolution: "@napi-rs/wasm-runtime@npm:1.1.4"
@@ -370,6 +376,7 @@ __metadata:
   resolution: "compact-test-contracts@workspace:."
   dependencies:
     "@midnight-ntwrk/compact-runtime": "link:./.compact-runtime"
+    "@midnightntwrk/zkir-v3": "link:./.zkir-v3"
     "@noble/curves": "npm:^2.2.0"
     "@noble/hashes": "npm:^2.0.1"
     "@types/node": "npm:^25.5.0"

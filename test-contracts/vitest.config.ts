@@ -26,6 +26,9 @@ export default defineConfig({
             '@test/crypto': fileURLToPath(
                 new URL('./support/crypto/index.ts', import.meta.url),
             ),
+            '@test/proof-check': fileURLToPath(
+                new URL('./support/proof-check/index.ts', import.meta.url),
+            ),
         },
     },
     test: {

@@ -48,6 +48,26 @@ driver, the `Bytes<N>` width sweep, and the vendored Wycheproof and
 ethereum/tests vectors; see `support/crypto/README.md`. A new alias needs an
 entry in both `vitest.config.ts` and the `paths` block of `tsconfig.json`.
 
+`@test/proof-check` (`support/proof-check/`) checks a circuit call against the
+fixture's ZKIR, as a prover would. A runtime test otherwise only runs the
+generated JavaScript, which skips the side of a branch that is not taken, while
+the ZKIR circuit runs every instruction on every call. A ZKIR instruction that
+fails on the side not taken breaks proving even though the JavaScript returns
+the right result, so a fixture for that kind of bug passes `checkProof` the
+call's result and the name of the circuit it called:
+
+```ts
+import { checkProof } from '@test/proof-check';
+
+const skipped = await contract.circuits.guarded(ctx, false, 0n);
+expect(skipped.result).toBe(0n);
+await checkProof(import.meta.url, 'guarded', skipped);
+```
+
+It reads the fixture's `.build/zkir/` output, so it only works for impure
+circuits. The check runs the circuit without proving, so it needs neither keys
+nor proving parameters.
+
 ## Compile Tests
 
 Compile tests export metadata through `defineCompileTest`:
@@ -160,12 +180,12 @@ that needs no setup first:
 ./test-contracts/test.sh
 ```
 
-The wrapper enters the `.#test-contracts` Nix shell, links the runtime that
-shell provides, installs this package with Corepack/Yarn, and runs the fixtures
-with the Nix-built `compactc`.
+The wrapper enters the `.#test-contracts` Nix shell, links the runtime and zkir
+that shell provides, installs this package with Corepack/Yarn, and runs the
+fixtures with the Nix-built `compactc`.
 
 Once it has run once, the per-fixture commands work from this package directory,
-because the symlink it created is still there:
+because the symlinks it created are still there:
 
 ```sh
 yarn lint
@@ -198,3 +218,9 @@ must be built — the wrapper checks for `dist/index.d.ts` and stops with a
 message naming the path if it is missing. The Nix package always is; a working
 tree at `../runtime` is only built once `npm run build` has run there, which
 needs the `.#runtime` shell for Chez.
+
+`@midnightntwrk/zkir-v3`, which `@test/proof-check` runs, is linked the same way
+through the `.zkir-v3` symlink. The wrapper points it at `$ZKIR_V3_PKG`, which
+the `.#test-contracts` shell sets to the wasm build of the zkir release that
+`compactc` targets, so the check always runs the same ZKIR version the compiler
+emits. There is no fallback; the wrapper stops if it is unset.
