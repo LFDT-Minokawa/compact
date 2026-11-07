@@ -21,6 +21,5 @@
 
   (define (native-declarations)
     (values
-      (capture-native-declarations "midnight-natives.ss")
-      (capture-native-declarations "zkir-v3-natives.ss")))
+      (capture-native-declarations "midnight-natives.ss")))
 )

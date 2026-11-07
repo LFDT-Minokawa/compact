@@ -947,14 +947,14 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       )
     (returns
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))))
+          (#f bar () (tbytes 32)))))
     )
 
   (test
@@ -1429,7 +1429,7 @@ groups than for single tests.
       ""
       "enum E { pepperoni, sausage, onions, /* beans, */ anchovies, peppers/*, mayonaise */}"
       ""
-      "export contract C { circuit foo(x: A): [], pure circuit bar(): A }"
+      "export contract C { circuit foo(x: A): [], circuit bar(): A }"
       ""
       "export /* here are the exports */ { a, b }"
       ""
@@ -1496,7 +1496,7 @@ groups than for single tests.
         (enum #f E pepperoni sausage onions anchovies peppers)
         (external-contract #t C
           (#f foo ([x (type-ref A)]) (ttuple))
-          (#t bar () (type-ref A)))
+          (#f bar () (type-ref A)))
         (export a b)
         (export a b)
         (export a b)
@@ -6318,7 +6318,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -6328,7 +6328,7 @@ groups than for single tests.
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))
+          (#f bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
         (circuit #t #f hello () ()
@@ -6336,6 +6336,18 @@ groups than for single tests.
           (block
             (return
               (elt-call contract_c foo (elt-call contract_c bar)))))))
+    )
+
+  (test
+    '(
+      "contract C {"
+      "  circuit foo(x: Bytes<32>): [];"
+      "  pure circuit bar(): Bytes<32>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 3" "a contract type cannot declare circuit ~a pure: a cross-contract call requires the called circuit to have a proof, and a pure circuit has none. To reuse pure logic from another contract, import its module" (bar)))
     )
 
   (test
@@ -6480,7 +6492,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -6490,7 +6502,7 @@ groups than for single tests.
       (program
         (external-contract #f C
           (#f foo ([x (tbytes 32)]) (ttuple))
-          (#t bar () (tbytes 32)))
+          (#f bar () (tbytes 32)))
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
         (circuit #t #f hello () ()
@@ -6508,7 +6520,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -6521,7 +6533,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A))))
+            (#f bar () (type-ref A))))
         (import m ((tbytes 32)) "")
         (public-ledger-declaration #f #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6537,7 +6549,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "}"
@@ -6550,7 +6562,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C)))
         (import m ((tbytes 32)) "")
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6566,7 +6578,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "  constructor (c: C) { contract_c = disclose(c); }"
@@ -6579,7 +6591,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C))
           (constructor ([c (type-ref C)]) (block (= contract_c (disclose c)))))
         (import m ((tbytes 32)) "")
@@ -6595,7 +6607,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -6608,7 +6620,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A))))
+            (#f bar () (type-ref A))))
         (import m ((tbytes 32)) "$")
         (public-ledger-declaration #t #f contract_c (type-ref C))
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -6624,7 +6636,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "}"
@@ -6637,7 +6649,7 @@ groups than for single tests.
         (module #f m (A)
           (external-contract #f C
             (#f foo ([x (type-ref A)]) (ttuple))
-            (#t bar () (type-ref A)))
+            (#f bar () (type-ref A)))
           (public-ledger-declaration #t #f contract_c (type-ref C)))
         (import m ((tbytes 32)) "$")
         (constructor ([c (type-ref C)]) (block (= contract_c (disclose c))))
@@ -11972,7 +11984,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -11986,10 +11998,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12001,7 +12013,7 @@ groups than for single tests.
       "import CompactStandardLibrary;"
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "  circuit blah(x: Field, y: Boolean): Boolean;"
       "}"
       "ledger contract_c: C;"
@@ -12016,11 +12028,11 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32))
+              (bar #f () (tbytes 32))
               (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32))
+                              (bar #f () (tbytes 32))
                               (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ([%x.3 (tfield (field-native))] [%y.4 (tboolean)])
@@ -12032,7 +12044,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: Bytes<32>): [];"
-      "  pure circuit bar(): Bytes<32>;"
+      "  circuit bar(): Bytes<32>;"
       "}"
       "ledger contract_c: C;"
       "constructor (c: C) { contract_c = disclose(c); }"
@@ -12047,10 +12059,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12065,7 +12077,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -12085,7 +12097,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>>;"
@@ -12101,10 +12113,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12116,7 +12128,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -12134,7 +12146,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "}"
       "import m<Bytes<32>> prefix $;"
@@ -12151,10 +12163,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12166,7 +12178,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  import CompactStandardLibrary;"
       "  export ledger contract_c: C;"
@@ -12185,7 +12197,7 @@ groups than for single tests.
       "module m<A> {"
       "  export contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  import CompactStandardLibrary;"
       "  export ledger contract_c: C;"
@@ -12202,10 +12214,10 @@ groups than for single tests.
           (__compact_Cell
             (tcontract C
               (foo #f ((tbytes 32)) (ttuple))
-              (bar #t () (tbytes 32)))))
+              (bar #f () (tbytes 32)))))
         (constructor ([%c.1 (tcontract C
                               (foo #f ((tbytes 32)) (ttuple))
-                              (bar #t () (tbytes 32)))])
+                              (bar #f () (tbytes 32)))])
           (seq (= %contract_c.0 (disclose %c.1)) (tuple)))
         (circuit %hello.2 ()
              (ttuple)
@@ -12217,7 +12229,7 @@ groups than for single tests.
       "module m<A> {"
       "  contract C {"
       "    circuit foo(x: A): [];"
-      "    pure circuit bar(): A;"
+      "    circuit bar(): A;"
       "  }"
       "  export ledger contract_c: C;"
       "  constructor (c: C) { contract_c = disclose(c); }"
@@ -12272,7 +12284,8 @@ groups than for single tests.
       " circuit bar(): [];"
       "}"
        )
-    (returns (program ())))
+    (returns
+      (program () (public-ledger-declaration %kernel.0 (Kernel)))))
 
   (test
     `(
@@ -12402,7 +12415,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: C): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       )
     (oops
@@ -12414,7 +12427,7 @@ groups than for single tests.
     '(
       "contract C1 {"
       "  circuit foo(x: C2): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "contract C2 {"
       "  circuit check(x: C1): [];"
@@ -12429,7 +12442,7 @@ groups than for single tests.
     '(
       "contract C1 {"
       "  circuit foo(x: C2): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "contract C2 {"
       "  circuit check(x: S): [];"
@@ -12447,7 +12460,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: S): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       "struct S {"
       "  a: C;"
@@ -12572,7 +12585,7 @@ groups than for single tests.
     '(
       "contract C {"
       "  circuit foo(x: C): [];"
-      "  pure circuit bar(): A;"
+      "  circuit bar(): A;"
       "}"
       )
     (oops
@@ -25633,27 +25646,33 @@ groups than for single tests.
       "contract C { };"
       "contract implements C;"
       )
-    (returns (program))
+    (returns
+      (program (public-ledger-declaration %kernel.0 (Kernel))))
     )
 
+  ; TODO: `foo` is inferred pure and gets no proof, so it does not implement `C`; only the
+  ; `pure` modifier is checked here, so this still compiles until pure exports must be marked
   (test
     '(
       "contract C { circuit foo(): []; };"
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
     '(
-      "contract C { pure circuit foo(): []; };"
+      "contract C { circuit foo(): []; };"
       "contract implements C;"
-      "export circuit foo(): [] { return; }"
+      "export pure circuit foo(): [] { return; }"
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is not declared pure" (foo)))
+      irritants: '("testfile.compact line 1 char 1" "contract implements failure:\n  this contract exports a circuit named ~s, but\n  it is declared pure, and a circuit declared in a contract type must have a proof" (foo)))
     )
 
   (test
@@ -25662,7 +25681,10 @@ groups than for single tests.
       "contract implements C;"
       "export circuit foo(): [] { return; }"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25685,7 +25707,10 @@ groups than for single tests.
       "import M;"
       "export { foo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25714,7 +25739,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25731,7 +25759,10 @@ groups than for single tests.
       "import M prefix MM;"
       "export { Mfoo, MMfoo };"
       )
-    (returns (program (circuit %foo.0 () (ttuple) (tuple))))
+    (returns
+      (program
+        (public-ledger-declaration %kernel.0 (Kernel))
+        (circuit %foo.1 () (ttuple) (tuple))))
     )
 
   (test
@@ -25826,7 +25857,7 @@ groups than for single tests.
          "  import CompactStandardLibrary;"
          "  export contract C1 {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "}"
          )))
@@ -35836,7 +35867,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): C1 { return c; }"
          ))
@@ -35854,7 +35885,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35872,7 +35903,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35890,7 +35921,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "export circuit foo(c: C1): Vector<1, C1> { return [c]; }"
          ))
@@ -35938,7 +35969,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          ))
@@ -35951,7 +35982,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor () (tuple)))))
      ))
 
@@ -35967,7 +35998,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -35982,10 +36013,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -35993,12 +36024,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -36013,7 +36044,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -36028,10 +36059,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -36039,12 +36070,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -36059,7 +36090,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -36082,7 +36113,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "  circuit blah(x: Field, y: Boolean): Boolean;"
          "}"
          "ledger contract_c: C;"
@@ -36098,11 +36129,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))
+                  (bar #f () (tbytes 32))
                   (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32))
+                                 (bar #f () (tbytes 32))
                                  (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ([%x.4 (tfield (field-native))] [%y.5 (tboolean)])
@@ -36111,7 +36142,7 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))
+                   (bar #f () (tbytes 32))
                    (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))
              %x.4
              %y.5))))
@@ -36130,7 +36161,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "  circuit blah(x: Field, y: Boolean): Boolean;"
          "}"
          "ledger contract_c: C;"
@@ -36155,7 +36186,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: A): [];"
-         "    pure circuit bar(): A;"
+         "    circuit bar(): A;"
          "  }"
          "}"
          "import m<Bytes<32>>;"
@@ -36172,10 +36203,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -36183,12 +36214,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))))
+                   (bar #f () (tbytes 32))))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32)))))))))
+                     (bar #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -36205,7 +36236,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36232,7 +36263,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36260,7 +36291,7 @@ groups than for single tests.
          "module m<A> {"
          "  export contract C {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit bar(): Bytes<32>;"
+         "    circuit bar(): Bytes<32>;"
          "    circuit blah(x: Field, y: A): A;"
          "  }"
          "}"
@@ -36278,11 +36309,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))
+                  (bar #f () (tbytes 32))
                   (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32))
+                                 (bar #f () (tbytes 32))
                                  (blah #f ((tfield (field-native)) (tboolean)) (tboolean)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ([%x.4 (tfield (field-native))] [%y.5 (tboolean)])
@@ -36291,7 +36322,7 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (bar #t () (tbytes 32))
+                   (bar #f () (tbytes 32))
                    (blah #f ((tfield (field-native)) (tboolean)) (tboolean))))
              %x.4
              %y.5))))
@@ -36471,7 +36502,7 @@ groups than for single tests.
        '(
          "export contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          ))
      (oops
@@ -36497,6 +36528,7 @@ groups than for single tests.
          ))
       (returns
         (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
           (public-ledger-declaration () (constructor () (tuple)))))
     ))
 
@@ -36514,7 +36546,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36526,7 +36558,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "constructor(c: C) {"
          "  putc(c);"
@@ -36543,14 +36575,14 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tboolean))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tfield (field-native))) (tboolean))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (call %putc.3 %c.2) (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
                                    (foo #f ((tfield (field-native))) (tboolean))
-                                   (bar #t () (tfield (field-native))))])
+                                   (bar #f () (tfield (field-native))))])
               (ttuple)
            (seq (public-ledger %ledger_c.1 (0) write %c.4) (tuple)))
          (circuit %callc.5 ()
@@ -36559,12 +36591,12 @@ groups than for single tests.
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tfield (field-native))) (tboolean))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tfield (field-native))) (tboolean))
-                     (bar #t () (tfield (field-native))))))))))
+                     (bar #f () (tfield (field-native))))))))))
      ))
 
   (test-group
@@ -36581,7 +36613,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36593,7 +36625,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Field): Boolean;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "  circuit blot(): Bytes<32>;"
          "}"
          "constructor(c: C) {"
@@ -36611,25 +36643,25 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tfield (field-native))) (tboolean))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tfield (field-native))) (tboolean))
-                                 (bar #t () (tfield (field-native)))
+                                 (bar #f () (tfield (field-native)))
                                  (blot #f () (tbytes 32)))])
              (seq
                (call %putc.3
                  (safe-cast (tcontract C
                               (foo #f ((tfield (field-native))) (tboolean))
-                              (bar #t () (tfield (field-native))))
+                              (bar #f () (tfield (field-native))))
                             (tcontract C
                               (foo #f ((tfield (field-native))) (tboolean))
-                              (bar #t () (tfield (field-native)))
+                              (bar #f () (tfield (field-native)))
                               (blot #f () (tbytes 32)))
                    %c.2))
                (tuple))))
          (circuit %putc.3 ([%c.4 (tcontract C
                                    (foo #f ((tfield (field-native))) (tboolean))
-                                   (bar #t () (tfield (field-native))))])
+                                   (bar #f () (tfield (field-native))))])
               (ttuple)
            (seq (public-ledger %ledger_c.1 (0) write %c.4) (tuple)))
          (circuit %callc.5 ()
@@ -36638,12 +36670,12 @@ groups than for single tests.
                 ((public-ledger %ledger_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tfield (field-native))) (tboolean))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (contract-call bar
                   ((public-ledger %ledger_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tfield (field-native))) (tboolean))
-                     (bar #t () (tfield (field-native))))))))))
+                     (bar #f () (tfield (field-native))))))))))
      ))
 
   (test-group
@@ -36659,7 +36691,7 @@ groups than for single tests.
          "module M {"
          "  contract C {"
          "    circuit foo(x: Field): Boolean;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "  ledger ledger_c : C;"
          "  export circuit putc(c: C): [] {"
@@ -36680,7 +36712,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 19 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (putc #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (contract C<foo(Field): Boolean>)\n      declared argument types for function at line 8 char 3:\n        (contract C<foo(Field): Boolean, pure bar(): Field>)" #f)))
+       irritants: '("testfile.compact line 19 char 3" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (putc #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (contract C<foo(Field): Boolean>)\n      declared argument types for function at line 8 char 3:\n        (contract C<foo(Field): Boolean, bar(): Field>)" #f)))
      ))
 
   (test-group
@@ -36700,7 +36732,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit foo(x: Field): [];"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -36713,7 +36745,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 12 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C<foo(Field): [], pure bar(): Field>" "contract C2<foo(Field): []>")))
+       irritants: '("testfile.compact line 12 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C<foo(Field): [], bar(): Field>" "contract C2<foo(Field): []>")))
      ))
 
   (test-group
@@ -36759,7 +36791,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit foo(x: Field): [];"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -36772,18 +36804,21 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration
            ()
-           (constructor ([%$c.0 (tcontract C
+           (constructor ([%$c.1 (tcontract C
                                   (foo #f ((tfield (field-native))) (ttuple))
-                                  (bar #t () (tfield (field-native))))])
+                                  (bar #f () (tfield (field-native))))])
              (seq
-               (let* ([[%c.1 (tcontract C (foo #f ((tfield (field-native))) (ttuple)))]
-                       (safe-cast (tcontract C (foo #f ((tfield (field-native))) (ttuple)))
+               (let* ([[%c.2 (tcontract C
+                               (foo #f ((tfield (field-native))) (ttuple)))]
+                       (safe-cast (tcontract C
+                                    (foo #f ((tfield (field-native))) (ttuple)))
                                   (tcontract C
                                     (foo #f ((tfield (field-native))) (ttuple))
-                                    (bar #t () (tfield (field-native))))
-                         %$c.0)])
+                                    (bar #f () (tfield (field-native))))
+                         %$c.1)])
                  (tuple))
                (tuple))))))
      ))
@@ -36833,7 +36868,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Field): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit foo(x: Field): [];"
@@ -36844,7 +36879,7 @@ groups than for single tests.
          ))
       (oops
         message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C1<foo(Field): Field, pure bar(): Field>" "contract C2<foo(Field): []>")))
+        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C1<foo(Field): Field, bar(): Field>" "contract C2<foo(Field): []>")))
       ))
 
   (test-group
@@ -36863,7 +36898,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit foo(x: Field): [];"
@@ -36874,7 +36909,7 @@ groups than for single tests.
          ))
       (oops
         message: "~a:\n  ~?"
-        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C2<foo(Field): []>" "contract C1<foo(Field): [], pure bar(): Field>")))))
+        irritants: '("testfile.compact line 9 char 9" "mismatch between actual type ~a and declared type ~a of const binding" ("contract C2<foo(Field): []>" "contract C1<foo(Field): [], bar(): Field>")))))
 
   (test-group
     ((create-file "C.compact"
@@ -36888,7 +36923,7 @@ groups than for single tests.
          "struct S { c: C }"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "witness check(x: C): [];"
@@ -36901,11 +36936,11 @@ groups than for single tests.
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor () (tuple)))
          (witness %check.2 ([%x.3 (tcontract C
                                     (foo #f () (ttuple))
-                                    (bar #t () (tfield (field-native))))])
+                                    (bar #f () (tfield (field-native))))])
               (ttuple))
          (circuit %hello.4 ()
               (ttuple)
@@ -36934,7 +36969,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(){contract_c = default<C>;}"
@@ -36953,7 +36988,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "circuit foo(c: C): C {return c;}"
          "ledger contract_c: C;"
@@ -36967,21 +37002,21 @@ groups than for single tests.
            ((%contract_c.0
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor ([%c.1 (tcontract C
                                  (foo #f () (ttuple))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.0 (0) write %c.1) (tuple))))
          (circuit %foo.2 ([%c.3 (tcontract C
                                   (foo #f () (ttuple))
-                                  (bar #t () (tfield (field-native))))])
-              (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native))))
+                                  (bar #f () (tfield (field-native))))])
+              (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native))))
            %c.3)
          (circuit %foofoo.4 ()
               (ttuple)
            (let* ([[%x.5 (tcontract C
                            (foo #f () (ttuple))
-                           (bar #t () (tfield (field-native))))]
+                           (bar #f () (tfield (field-native))))]
                    (call %foo.2 (public-ledger %contract_c.0 (0) read))])
              (tuple)))))
       ))
@@ -36997,7 +37032,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(c: C): [] {return;}"
          ))
@@ -37015,7 +37050,7 @@ groups than for single tests.
          "struct S { c: C, b: Boolean }"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(s: S): [] {return;}"
          ))
@@ -37032,7 +37067,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "export circuit foo(x: Boolean, c: C): [] {return;}"
          ))
@@ -37050,7 +37085,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -37071,7 +37106,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37086,10 +37121,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %hello.3 ()
               (ttuple)
@@ -37097,12 +37132,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -37118,7 +37153,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {c.foo();}"
@@ -37170,11 +37205,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {c2.fooo();}"
@@ -37199,11 +37234,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
-         "pure circuit docall(c: C): Field { return c.bar(); }"
+         "circuit docall(c: C): Field { return c.bar(); }"
          "export circuit hello(): Field { return docall(contract_c); }"
          ))
      (returns
@@ -37215,20 +37250,20 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %docall.3 ([%c.4 (tcontract C
                                      (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                     (bar #t () (tfield (field-native))))])
+                                     (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (contract-call bar
                 (%c.4
                  (tcontract C
                    (foo #f ((tunsigned 255)) (tfield (field-native)))
-                   (bar #t () (tfield (field-native)))))))
+                   (bar #f () (tfield (field-native)))))))
          (circuit %hello.5 ()
               (tfield (field-native))
            (call %docall.3 (public-ledger %contract_c.1 (0) read)))))
@@ -37273,7 +37308,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "calls impure circuit bar of external contract C" "line 9 char 44")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "makes a cross-contract call to circuit bar of contract C" "line 9 char 44")))
      ))
 
   (test-group
@@ -37290,7 +37325,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37299,7 +37334,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "calls impure circuit foo of external contract C" "line 8 char 44")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (docall "makes a cross-contract call to circuit foo of contract C" "line 8 char 44")))
      ))
 
   (test-group
@@ -37316,7 +37351,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37326,7 +37361,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "calls impure circuit foo of external contract C" "line 9 char 39")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "makes a cross-contract call to circuit foo of contract C" "line 9 char 39")))
      ))
 
   (test-group
@@ -37343,7 +37378,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37353,7 +37388,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "calls impure circuit foo of external contract C" "line 8 char 39")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (dodocall docall "makes a cross-contract call to circuit foo of contract C" "line 8 char 39")))
      ))
 
   (test-group
@@ -37387,7 +37422,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37397,7 +37432,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (docall foofoo "calls impure circuit foo of external contract C" "line 9 char 39")))
+       irritants: '("testfile.compact line 8 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (docall foofoo "makes a cross-contract call to circuit foo of contract C" "line 9 char 39")))
      ))
 
   (test-group
@@ -37414,7 +37449,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37433,38 +37468,38 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                  (bar #t () (tfield (field-native)))))))
+                  (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %V.3 ()
               (tfield (field-native))
            (call %W.4 (public-ledger %contract_c.1 (0) read)))
          (circuit %W.4 ([%c.5 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %X.6 %c.5))
          (circuit %X.6 ([%c.7 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %Y.8 %c.7))
          (circuit %Y.8 ([%c.9 (tcontract C
                                 (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                (bar #t () (tfield (field-native))))])
+                                (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (call %Z.10 %c.9))
          (circuit %Z.10 ([%c.11 (tcontract C
                                   (foo #f ((tunsigned 255)) (tfield (field-native)))
-                                  (bar #t () (tfield (field-native))))])
+                                  (bar #f () (tfield (field-native))))])
               (tfield (field-native))
            (contract-call foo
                 (%c.11
                  (tcontract C
                    (foo #f ((tunsigned 255)) (tfield (field-native)))
-                   (bar #t () (tfield (field-native)))))
+                   (bar #f () (tfield (field-native)))))
              (safe-cast (tunsigned 255) (tunsigned 17) 17)))))
      ))
 
@@ -37482,7 +37517,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(n: Uint<8>): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -37494,7 +37529,7 @@ groups than for single tests.
          ))
      (oops
        message: "~a:\n  ~?"
-       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (W Z "calls impure circuit foo of external contract C" "line 12 char 34")))
+       irritants: '("testfile.compact line 9 char 1" "circuit ~a is marked pure but is actually impure because it calls (directly or indirectly) impure circuit ~a;\n    ~:*~a is impure because it ~a at ~a" (W Z "makes a cross-contract call to circuit foo of contract C" "line 12 char 34")))
      ))
 
   (test-group
@@ -38187,7 +38222,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c); c.foo();}"
@@ -38210,7 +38245,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -38223,10 +38258,10 @@ groups than for single tests.
            ((%contract_c.1
               (0)
               (__compact_Cell
-                (tcontract C (foo #f () (ttuple)) (bar #t () (tfield (field-native)))))))
+                (tcontract C (foo #f () (ttuple)) (bar #f () (tfield (field-native)))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f () (ttuple))
-                                 (bar #t () (tfield (field-native))))])
+                                 (bar #f () (tfield (field-native))))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (circuit %foofoo.3 ()
               (ttuple)
@@ -38235,7 +38270,7 @@ groups than for single tests.
                         ((public-ledger %contract_c.1 (0) read)
                          (tcontract C
                            (foo #f () (ttuple))
-                           (bar #t () (tfield (field-native))))))])
+                           (bar #f () (tfield (field-native))))))])
              (tuple)))))
       ))
 
@@ -38251,7 +38286,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2{"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
@@ -38307,7 +38342,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2{"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
@@ -38369,11 +38404,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); c2.fooo();}"
@@ -38402,11 +38437,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); contract_c.foo();}"
@@ -38435,11 +38470,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); const x = c2.baar() + contract_c.bar();}"
@@ -38468,11 +38503,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); return foofoo();}"
@@ -38501,11 +38536,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38536,11 +38571,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38570,11 +38605,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38598,7 +38633,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(baz());}"
@@ -38622,7 +38657,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(blah());}"
@@ -38648,7 +38683,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): Field;"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1) {contract_c = disclose(c1); foofoo(id());}"
@@ -38679,11 +38714,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "contract C2 {"
          "  circuit fooo(): [];"
-         "  pure circuit baar(): Field;"
+         "  circuit baar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(c1: C1, c2: C2) {contract_c = disclose(c1); foofoo();}"
@@ -38714,8 +38749,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>, y: Vector<2, S>, z: E): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38729,8 +38765,9 @@ groups than for single tests.
          "  circuit foo(x: Opaque<'string'>): [];"
          "}"))
       (returns
-       (program
-         (public-ledger-declaration () (constructor () (tuple)))))
+        (program
+          (kernel-declaration (%kernel.0 () (Kernel)))
+          (public-ledger-declaration () (constructor () (tuple)))))
       ))
 
   (test-group
@@ -38745,6 +38782,7 @@ groups than for single tests.
          ))
      (returns
        (program
+         (kernel-declaration (%kernel.0 () (Kernel)))
          (public-ledger-declaration () (constructor () (tuple)))))
      ))
 
@@ -38792,7 +38830,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "module M1 {"
          "  import M<C>;"
@@ -38805,7 +38843,7 @@ groups than for single tests.
          "module M3 {"
          "  contract D {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "  import M<D>;"
          "  export { init, hello };"
@@ -38825,20 +38863,20 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32)))))
+                  (barr #f () (tbytes 32)))))
             (%contract_c.2
               (1)
               (__compact_Cell
                 (tcontract D
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.3 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (call %init.4 %c.3) (tuple))))
          (circuit %init.4 ([%x.5 (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (barr #t () (tbytes 32)))])
+                                   (barr #f () (tbytes 32)))])
               (ttuple)
            (seq (public-ledger %contract_c.1 (0) write %x.5) (tuple)))
          (circuit %hello.6 ()
@@ -38847,12 +38885,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -38873,7 +38911,7 @@ groups than for single tests.
          "}"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "module M1 {"
          "  import M<C>;"
@@ -38881,7 +38919,7 @@ groups than for single tests.
          "}"
          "module M2 {"
          "  contract C {"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "    circuit foo(x: Bytes<32>): [];"
          "  }"
          "  import M<C>;"
@@ -38901,14 +38939,14 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (barr #t () (tbytes 32))))))
+                  (barr #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (barr #t () (tbytes 32)))])
+                                 (barr #f () (tbytes 32)))])
              (seq (call %init.3 %c.2) (tuple))))
          (circuit %init.3 ([%x.4 (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (barr #t () (tbytes 32)))])
+                                   (barr #f () (tbytes 32)))])
               (ttuple)
            (seq (public-ledger %contract_c.1 (0) write %x.4) (tuple)))
          (circuit %hello.5 ()
@@ -38917,12 +38955,12 @@ groups than for single tests.
                 ((public-ledger %contract_c.1 (0) read)
                  (tcontract C
                    (foo #f ((tbytes 32)) (ttuple))
-                   (barr #t () (tbytes 32))))
+                   (barr #f () (tbytes 32))))
              (contract-call barr
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (barr #t () (tbytes 32)))))))))
+                     (barr #f () (tbytes 32)))))))))
      ))
 
   (test-group
@@ -38937,7 +38975,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -38967,7 +39005,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -38987,10 +39025,10 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.2 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.2) (tuple))))
          (witness %W.3 () (tbytes 32))
          (circuit %foo.4 ()
@@ -39000,13 +39038,13 @@ groups than for single tests.
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32))))
+                     (bar #f () (tbytes 32))))
                (call %W.3))
              (contract-call bar
                   ((public-ledger %contract_c.1 (0) read)
                    (tcontract C
                      (foo #f ((tbytes 32)) (ttuple))
-                     (bar #t () (tbytes 32)))))))))
+                     (bar #f () (tbytes 32)))))))))
      ))
 
   (test-group ; placement of disclose matters for CC calls
@@ -39021,7 +39059,7 @@ groups than for single tests.
          "witness W(): Bytes<32>;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor(c: C) {"
@@ -39050,7 +39088,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: [Boolean, Bytes<32>]): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "sealed ledger contract_c: C;"
          "constructor(c: C) {contract_c = disclose(c);}"
@@ -39064,11 +39102,11 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((ttuple (tboolean) (tbytes 32))) (ttuple))
-                  (bar #t () (tbytes 32))))))
+                  (bar #f () (tbytes 32))))))
            (constructor ([%c.0 (tcontract C
                                  (foo #f ((ttuple (tboolean) (tbytes 32)))
                                    (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq
                (public-ledger %contract_c.1 (0) write %c.0)
                (tuple))))))
@@ -39396,7 +39434,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39425,7 +39463,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39455,7 +39493,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger C1: C;"
          "ledger C2: C;"
@@ -39492,7 +39530,7 @@ groups than for single tests.
          "import M;"
          "contract C {"
          "  circuit foo(x: B32): [];"
-         "  pure circuit bar(): B32;"
+         "  circuit bar(): B32;"
          "}"
          "ledger contract_c: C;"
          ))
@@ -39505,7 +39543,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((talias #t B32 (tbytes 32))) (ttuple))
-                  (bar #t () (talias #t B32 (tbytes 32)))))))
+                  (bar #f () (talias #t B32 (tbytes 32)))))))
            (constructor () (tuple)))))
      ))
 
@@ -39520,7 +39558,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
          "witness W(): C1;"
@@ -39539,7 +39577,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "witness W(): C1;"
@@ -39558,7 +39596,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "type C1 = C;"
          "export circuit foo(): C1 { return default<C1>; }"
@@ -39576,7 +39614,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "export circuit foo(b: Boolean, c: C1): [] { }"
@@ -39594,7 +39632,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "export circuit foo(b: Boolean, c: [ C1, Uint<32> ]): [] { }"
@@ -39612,7 +39650,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "new type C1 = C;"
          "ledger F: C1;"
@@ -39634,7 +39672,7 @@ groups than for single tests.
        '(
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -39652,7 +39690,7 @@ groups than for single tests.
               (__compact_Cell
                 (tcontract C
                   (foo #f ((tbytes 32)) (ttuple))
-                  (bar #t () (tbytes 32)))))
+                  (bar #f () (tbytes 32)))))
             (%F.2
               (1)
               (__compact_Cell
@@ -39661,10 +39699,10 @@ groups than for single tests.
                   (ttuple
                     (tcontract C
                       (foo #f ((tbytes 32)) (ttuple))
-                      (bar #t () (tbytes 32))))))))
+                      (bar #f () (tbytes 32))))))))
            (constructor ([%c.3 (tcontract C
                                  (foo #f ((tbytes 32)) (ttuple))
-                                 (bar #t () (tbytes 32)))])
+                                 (bar #f () (tbytes 32)))])
              (seq (public-ledger %contract_c.1 (0) write %c.3) (tuple))))
          (circuit %foo.4 ()
               (ttuple)
@@ -39674,23 +39712,23 @@ groups than for single tests.
                                (ttuple
                                  (tcontract C
                                    (foo #f ((tbytes 32)) (ttuple))
-                                   (bar #t () (tbytes 32)))))]
+                                   (bar #f () (tbytes 32)))))]
                      (flet [%circ.6
                             (circuit ([%x.7 (tcontract C
                                               (foo #f ((tbytes 32)) (ttuple))
-                                              (bar #t () (tbytes 32)))])
+                                              (bar #f () (tbytes 32)))])
                                  (ttuple
                                    (tcontract C
                                      (foo #f ((tbytes 32)) (ttuple))
-                                     (bar #t () (tbytes 32))))
+                                     (bar #f () (tbytes 32))))
                               (tuple %x.7))]
                        (let* ([[%t.8 (ttuple
                                        (tcontract C
                                          (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32)))
+                                         (bar #f () (tbytes 32)))
                                        (tcontract C
                                          (foo #f ((tbytes 32)) (ttuple))
-                                         (bar #t () (tbytes 32))))]
+                                         (bar #f () (tbytes 32))))]
                                (tuple
                                  (public-ledger %contract_c.1 (0) read)
                                  (public-ledger %contract_c.1 (0) read))])
@@ -39714,7 +39752,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
@@ -39743,7 +39781,7 @@ groups than for single tests.
                                                  (tunsigned
                                                    452312848583266388373324160190187140051835877600158453279131187530910662655))))
                                     (ty () ()))
-                                  (barr #t ()
+                                  (barr #f ()
                                     (ty ((abytes 32))
                                         ((tunsigned 255)
                                           (tunsigned
@@ -39756,7 +39794,7 @@ groups than for single tests.
                                                  (tunsigned
                                                    452312848583266388373324160190187140051835877600158453279131187530910662655))))
                                     (ty () ()))
-                                  (barr #t ()
+                                  (barr #f ()
                                     (ty ((abytes 32))
                                         ((tunsigned 255)
                                           (tunsigned
@@ -39772,7 +39810,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit fooImpure(x: Bytes<32>): [];"
-         "    pure circuit fooPure(x: Bytes<32>): [];"
+         "    circuit fooOther(x: Bytes<32>): [];"
          "  }"
          "}"
          )
@@ -39784,7 +39822,7 @@ groups than for single tests.
          "contract implements C;"
          "ledger F: Bytes<32>;"
          "export circuit fooImpure(x: Bytes<32>): [] { F = disclose(x); }"
-         "export pure circuit fooPure(x: Bytes<32>): [] { return; }"
+         "export circuit fooOther(x: Bytes<32>): [] { F = disclose(x); }"
          )
        )
      (succeeds))
@@ -39795,7 +39833,7 @@ groups than for single tests.
          "export circuit callFoos(b: Boolean, c: C, x: Bytes<32>): [] {"
          "  if (b) {"
          "    c.fooImpure(x);"
-         "    c.fooPure(x);"
+         "    c.fooOther(x);"
          "  }"
          "}"
          ))
@@ -39805,7 +39843,13 @@ groups than for single tests.
        message: "~a:\n  ~?"
        irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of exported circuit callFoos at line 3 char 37" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
        message: "~a:\n  ~?"
-       irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
+       irritants: '("UseC.compact line 5 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter x of exported circuit callFoos at line 3 char 43" ("\n    nature of the disclosure:\n      contract call argument 1 might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter c of exported circuit callFoos at line 3 char 37" ("\n    nature of the disclosure:\n      contract call contract reference might disclose the witness value")))
+       message: "~a:\n  ~?"
+       irritants: '("UseC.compact line 6 char 6" "potential witness-value disclosure must be declared but is not:\n    witness value potentially disclosed:\n      ~a~{~a~}" ("the value of parameter b of exported circuit callFoos at line 3 char 25" ("\n    nature of the disclosure:\n      making this contract call might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 4 char 3"))))
      ))
 
   (test-group
@@ -39814,7 +39858,7 @@ groups than for single tests.
          "module M {"
          "  export contract C {"
          "    circuit fooImpure(x: Bytes<32>): [];"
-         "    pure circuit fooPure(x: Bytes<32>): [];"
+         "    circuit fooOther(x: Bytes<32>): [];"
          "  }"
          "}"
          )
@@ -39826,7 +39870,7 @@ groups than for single tests.
          "contract implements C;"
          "ledger F: Bytes<32>;"
          "export circuit fooImpure(x: Bytes<32>): [] { F = disclose(x); }"
-         "export pure circuit fooPure(x: Bytes<32>): [] { return; }"
+         "export circuit fooOther(x: Bytes<32>): [] { F = disclose(x); }"
          )
        )
      (succeeds))
@@ -39837,7 +39881,7 @@ groups than for single tests.
          "export circuit callFoos(b: Boolean, c: C, x: Bytes<32>): [] {"
          "  if (disclose(b)) {"
          "    disclose(c).fooImpure(disclose(x));"
-         "    c.fooPure(x);"
+         "    disclose(c).fooOther(disclose(x));"
          "  }"
          "}"
          ))
@@ -39848,7 +39892,7 @@ groups than for single tests.
          (circuit %callFoos.1 ([%b.2 (tboolean)]
                                [%c.3 (tcontract C
                                        (fooImpure #f ((tbytes 32)) (ttuple))
-                                       (fooPure #t ((tbytes 32)) (ttuple)))]
+                                       (fooOther #f ((tbytes 32)) (ttuple)))]
                                [%x.4 (tbytes 32)])
               (ttuple)
            (seq
@@ -39858,13 +39902,13 @@ groups than for single tests.
                         (%c.3
                          (tcontract C
                            (fooImpure #f ((tbytes 32)) (ttuple))
-                           (fooPure #t ((tbytes 32)) (ttuple))))
+                           (fooOther #f ((tbytes 32)) (ttuple))))
                      %x.4)
-                   (contract-call fooPure
+                   (contract-call fooOther
                         (%c.3
                          (tcontract C
                            (fooImpure #f ((tbytes 32)) (ttuple))
-                           (fooPure #t ((tbytes 32)) (ttuple))))
+                           (fooOther #f ((tbytes 32)) (ttuple))))
                      %x.4))
                  (tuple))
              (tuple)))))
@@ -56804,13 +56848,24 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit barr(): Bytes<32>;"
+         "  circuit barr(): Bytes<32>;"
          "}"
          "ledger contract_c: C;"
          "constructor (c: C) { contract_c = disclose(c); }"
          "export circuit hello(): [] { return contract_c.foo(contract_c.read().barr()); }"
          ))
      (succeeds)))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit foo(x: Field): Field; }"
+      "export circuit viaArg(c: C, x: Field): Field { return disclose(c).foo(disclose(x)); }"
+      )
+    (custom-check
+      (lambda (pass-name x)
+        (file-exists? "compiler/testdir/zkir/viaArg.zkir")))
+    )
 
   (test
     '(
@@ -61141,16 +61196,18 @@ groups than for single tests.
          "  import CompactStandardLibrary;"
          "  export contract C1 {"
          "    circuit foo(x: Bytes<32>): [];"
-         "    pure circuit barr(): Bytes<32>;"
+         "    circuit barr(): Bytes<32>;"
          "  }"
          "}"
          )))
     ((create-file "C1.compact"
        '(
+         "import CompactStandardLibrary;"
          "import {C1} from C1interface;"
          "contract implements C1;"
-         "export circuit foo(x: Bytes<32>): [] { return; }"
-         "export pure circuit barr(): Bytes<32> { return default<Bytes<32>>; }"
+         "export ledger n: Counter;"
+         "export circuit foo(x: Bytes<32>): [] { n.increment(1); return; }"
+         "export circuit barr(): Bytes<32> { n.increment(1); return default<Bytes<32>>; }"
          ))
      ; WARNING: Do not replace this wholesale...maintain the structure of the first several
      ; lines to avoid hard-coding specific version strings into the test
@@ -61164,8 +61221,8 @@ groups than for single tests.
          "  \"circuits\": ["
          "    {"
          "      \"name\": \"foo\","
-         "      \"pure\": true,"
-         "      \"proof\": false,"
+         "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"x\","
@@ -61183,8 +61240,8 @@ groups than for single tests.
          "    },"
          "    {"
          "      \"name\": \"barr\","
-         "      \"pure\": true,"
-         "      \"proof\": false,"
+         "      \"pure\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "      ],"
          "      \"result-type\": {"
@@ -61198,6 +61255,12 @@ groups than for single tests.
          "  \"contracts\": ["
          "  ],"
          "  \"ledger\": ["
+         "    {"
+         "      \"name\": \"n\","
+         "      \"index\": 0,"
+         "      \"exported\": true,"
+         "      \"storage\": \"Counter\""
+         "    }"
          "  ]"
          "}"))
      ; each contract needs a stage-javascript form with a different contractCode name
@@ -61224,7 +61287,7 @@ groups than for single tests.
          "    {"
          "      \"name\": \"hello\","
          "      \"pure\": false,"
-         "      \"proof\": false,"
+         "      \"proof\": true,"
          "      \"arguments\": ["
          "        {"
          "          \"name\": \"c\","
@@ -61234,7 +61297,6 @@ groups than for single tests.
          "            \"circuits\": ["
          "              {"
          "                \"name\": \"foo\","
-         "                \"pure\": false,"
          "                \"argument-types\": ["
          "                  {"
          "                    \"type-name\": \"Bytes\","
@@ -61249,7 +61311,6 @@ groups than for single tests.
          "              },"
          "              {"
          "                \"name\": \"barr\","
-         "                \"pure\": true,"
          "                \"argument-types\": ["
          "                ],"
          "                \"result-type\": {"
@@ -61276,7 +61337,6 @@ groups than for single tests.
          "      \"circuits\": ["
          "        {"
          "          \"name\": \"foo\","
-         "          \"pure\": false,"
          "          \"argument-types\": ["
          "            {"
          "              \"type-name\": \"Bytes\","
@@ -61291,7 +61351,6 @@ groups than for single tests.
          "        },"
          "        {"
          "          \"name\": \"barr\","
-         "          \"pure\": true,"
          "          \"argument-types\": ["
          "          ],"
          "          \"result-type\": {"
@@ -63933,6 +63992,69 @@ groups than for single tests.
         ))
     )
 
+  ; default Merkle trees deeper than 15 (issue #879)
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      ""
+      "export ledger field1: MerkleTree<16, Field>;"
+      "export ledger field2: MerkleTree<20, Field>;"
+      "export ledger field3: MerkleTree<32, Field>;"
+      "export ledger field4: HistoricMerkleTree<16, Field>;"
+      "export ledger field5: HistoricMerkleTree<20, Field>;"
+      "export ledger field6: HistoricMerkleTree<32, Field>;"
+      "export ledger field7: Map<Boolean, MerkleTree<32, Field>>;"
+      "export ledger field8: Map<Boolean, HistoricMerkleTree<32, Field>>;"
+      ""
+      "export circuit reset(x: Field): [] {"
+      "  field1.insert(disclose(x));"
+      "  field2.insert(disclose(x));"
+      "  field3.insert(disclose(x));"
+      "  field4.insert(disclose(x));"
+      "  field5.insert(disclose(x));"
+      "  field6.insert(disclose(x));"
+      "  field1.resetToDefault();"
+      "  field2.resetToDefault();"
+      "  field3.resetToDefault();"
+      "  field4.resetToDefault();"
+      "  field5.resetToDefault();"
+      "  field6.resetToDefault();"
+      "}"
+      ""
+      "export circuit initDefault(b: Boolean): [] {"
+      "  field7.insertDefault(disclose(b));"
+      "  field8.insertDefault(disclose(b));"
+      "}"
+      ""
+      "export circuit initWithDefault(b: Boolean): [] {"
+      "  field7.insert(disclose(b), default<MerkleTree<32, Field>>);"
+      "  field8.insert(disclose(b), default<HistoricMerkleTree<32, Field>>);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('check 1', async () => {"
+        "  const [C, Ctxt0] = await startContract(contractCode, {}, 0);"
+        "  const L0 = contractCode.ledger(Ctxt0.callContext.currentQueryContext.state);"
+        "  const Ctxt1 = (await C.circuits.reset(Ctxt0, 5n)).context;"
+        "  const L1 = contractCode.ledger(Ctxt1.callContext.currentQueryContext.state);"
+        "  expect(L1.field1.root()).toEqual(L0.field1.root());"
+        "  expect(L1.field2.root()).toEqual(L0.field2.root());"
+        "  expect(L1.field3.root()).toEqual(L0.field3.root());"
+        "  expect(L1.field4.root()).toEqual(L0.field4.root());"
+        "  expect(L1.field5.root()).toEqual(L0.field5.root());"
+        "  expect(L1.field6.root()).toEqual(L0.field6.root());"
+        "  const Ctxt2 = (await C.circuits.initDefault(Ctxt1, true)).context;"
+        "  const Ctxt3 = (await C.circuits.initWithDefault(Ctxt2, false)).context;"
+        "  const L3 = contractCode.ledger(Ctxt3.callContext.currentQueryContext.state);"
+        "  expect(L3.field7.lookup(true).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field7.lookup(false).root()).toEqual(L0.field3.root());"
+        "  expect(L3.field8.lookup(true).root()).toEqual(L0.field6.root());"
+        "  expect(L3.field8.lookup(false).root()).toEqual(L0.field6.root());"
+        "});"
+        ))
+    )
+
   (test
     '(
       "import CompactStandardLibrary;"
@@ -64979,11 +65101,9 @@ groups than for single tests.
         "  \"version\": 3,"
         "  \"file\": \"index.js\","
         "  \"sourceRoot\": \"../src/\","
-        ,(format "  \"sources\": [\"examples/tiny.compact\", \"~a\", \"~a\"],"
-           (target-pathname "standard-library.compact")
-           (target-pathname "zkir-v3-library.compact"))
+        ,(format "  \"sources\": [\"examples/tiny.compact\", \"~a\"]," (target-pathname "standard-library.compact"))
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EC7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EFqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -75828,6 +75948,59 @@ groups than for single tests.
         ))
     )
 
+  ; Issue #881: * or + on a nominal Uint alias was an internal error when the
+  ; result range equaled the alias's range.
+  (test
+    '(
+      "new type Bit = Uint<1>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<1> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 0n)).result).toEqual(0n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Zero = Uint<0..1>;"
+      "export circuit add(x: Zero, y: Zero): Zero {"
+      "  return x + y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..1> addition', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.add(Ctxt, 0n, 0n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
+      "new type Bit = Uint<0..2>;"
+      "export circuit mul(x: Bit, y: Bit): Bit {"
+      "  return x * y;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('nominal Uint<0..2> multiplication', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  expect((await C.circuits.mul(Ctxt, 1n, 1n)).result).toEqual(1n);"
+        "  expect((await C.circuits.mul(Ctxt, 0n, 1n)).result).toEqual(0n);"
+        "});"
+        ))
+    )
+
   (test
     `(
       "type Q = Field;"
@@ -77497,6 +77670,118 @@ groups than for single tests.
         ))
     )
 
+  (let ([v (+ (expt 2 248) 5)] [wide (+ (max-curve25519-scalar) 6)])
+    (test
+      `(
+        "import CompactStandardLibrary;"
+        "export ledger k1b: Secp256k1Base;"
+        "export ledger k1s: Secp256k1Scalar;"
+        "export ledger r1b: Secp256r1Base;"
+        "export ledger r1s: Secp256r1Scalar;"
+        "export ledger c25519b: Curve25519Base;"
+        "export ledger c25519s: Curve25519Scalar;"
+        "export ledger f: Field;"
+        "export circuit castK1(b: Boolean, x: Secp256k1Base, y: Secp256k1Scalar): [] {"
+        ,(format "  k1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256k1Base);" v)
+        ,(format "  k1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256k1Scalar);" v)
+        "}"
+        "export circuit castR1(b: Boolean, x: Secp256r1Base, y: Secp256r1Scalar): [] {"
+        ,(format "  r1b = disclose(b ? x : (~d as Field as Bytes<32>) as Secp256r1Base);" v)
+        ,(format "  r1s = disclose(b ? y : (~d as Field as Bytes<32>) as Secp256r1Scalar);" v)
+        "}"
+        "export circuit castC25519(b: Boolean, x: Curve25519Base, y: Curve25519Scalar): [] {"
+        ,(format "  c25519b = disclose(b ? x : (~d as Field as Bytes<32>) as Curve25519Base);" v)
+        ,(format "  c25519s = disclose(b ? y : (~d as Field as Bytes<32>) as Curve25519Scalar);" v)
+        "}"
+        "export circuit castZero(): [] {"
+        "  k1b = disclose((0 as Field as Bytes<32>) as Secp256k1Base);"
+        "  k1s = disclose((0 as Field as Bytes<32>) as Secp256k1Scalar);"
+        "  r1b = disclose((0 as Field as Bytes<32>) as Secp256r1Base);"
+        "  r1s = disclose((0 as Field as Bytes<32>) as Secp256r1Scalar);"
+        "  c25519b = disclose((0 as Field as Bytes<32>) as Curve25519Base);"
+        "  c25519s = disclose((0 as Field as Bytes<32>) as Curve25519Scalar);"
+        "}"
+        "export circuit castWide(): [] {"
+        ,(format "  c25519s = disclose((~d as Field as Bytes<32>) as Curve25519Scalar);" wide)
+        "}"
+        "export circuit castNative(v: Bytes<32>, x: Uint<8>, y: Uint<8>): [] {"
+        ,(format "  const k = (x < y) == (x < y) ? (~d as Field as Bytes<32>) : v;" v)
+        "  f = disclose(k as Field);"
+        "}"
+        )
+      (stage-javascript
+        `(
+          "test('constant casts to field types', async () => {"
+          "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+          "  const L = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state);"
+          ,(format "  const V = ~dn;" v)
+          "  let l = L(await C.circuits.castK1(Ctxt, false, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castK1(Ctxt, true, 7n, 8n));"
+          "  expect([l.k1b, l.k1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castR1(Ctxt, false, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castR1(Ctxt, true, 7n, 8n));"
+          "  expect([l.r1b, l.r1s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, false, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([V, V]);"
+          "  l = L(await C.circuits.castC25519(Ctxt, true, 7n, 8n));"
+          "  expect([l.c25519b, l.c25519s]).toEqual([7n, 8n]);"
+          "  l = L(await C.circuits.castZero(Ctxt));"
+          "  expect([l.k1b, l.k1s, l.r1b, l.r1s, l.c25519b, l.c25519s]).toEqual([0n, 0n, 0n, 0n, 0n, 0n]);"
+          "  expect(L(await C.circuits.castWide(Ctxt)).c25519s).toEqual(5n);"
+          "  expect(L(await C.circuits.castNative(Ctxt, new Uint8Array(32), 1n, 2n)).f).toEqual(V);"
+          "});"
+          ))
+      )
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct K1 { a: Secp256k1Base, b: Field }"
+      "struct R1 { a: Secp256r1Base, b: Field }"
+      "export ledger n: Field;"
+      "export circuit unusedK1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256k1Base;"
+      "  const s = v as Secp256k1Scalar;"
+      "  n = 1 as Field;"
+      "}"
+      "export circuit unusedR1(v: Bytes<32>): [] {"
+      "  const b = v as Secp256r1Base;"
+      "  const s = v as Secp256r1Scalar;"
+      "  n = 2 as Field;"
+      "}"
+      "export circuit unusedC25519(v: Bytes<32>, w: Bytes<64>): [] {"
+      "  const b = v as Curve25519Base;"
+      "  const s = v as Curve25519Scalar;"
+      "  const t = w as Curve25519Scalar;"
+      "  n = 3 as Field;"
+      "}"
+      "export circuit unusedFieldK1(v: Bytes<32>, f: Field): [] {"
+      "  const p = K1 { a: v as Secp256k1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      "export circuit unusedFieldR1(v: Bytes<32>, f: Field): [] {"
+      "  const p = R1 { a: v as Secp256r1Base, b: f };"
+      "  n = disclose(p.b);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('unused casts to foreign field types', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  const n = (r: any) => contractCode.ledger(r.context.callContext.currentQueryContext.state).n;"
+        "  const v = new Uint8Array(32).fill(7);"
+        "  expect(n(await C.circuits.unusedK1(Ctxt, v))).toEqual(1n);"
+        "  expect(n(await C.circuits.unusedR1(Ctxt, v))).toEqual(2n);"
+        "  expect(n(await C.circuits.unusedC25519(Ctxt, v, new Uint8Array(64).fill(9)))).toEqual(3n);"
+        "  expect(n(await C.circuits.unusedFieldK1(Ctxt, v, 4n))).toEqual(4n);"
+        "  expect(n(await C.circuits.unusedFieldR1(Ctxt, v, 5n))).toEqual(5n);"
+        "});"
+        ))
+    )
+
   (test ; Casts involving JubjubScalar.
     `(
       "import CompactStandardLibrary;"
@@ -77736,12 +78021,11 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C2 {"
          "  circuit foo2(): [];"
-         "  pure circuit bar2(): Field;"
+         "  circuit bar2(): Field;"
          "}"
          "sealed ledger contract_c: C2;"
          "constructor(c2:C2) {contract_c = disclose(c2);}"
          "export circuit foo(): [] { return contract_c.foo2(); }"
-         ; TODO(201) cross-contract calls to pure circuits are not presently supported
          "export circuit bar(): Field { return 0 as Field /* contract_c.bar2() */; }"
          ))
      (stage-javascript C1 '()))
@@ -77780,7 +78064,7 @@ groups than for single tests.
        '(
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "sealed ledger contract_c: C1;"
          "constructor(c: C1) { contract_c = disclose(c); }"
@@ -77806,7 +78090,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(x: Bytes<32>): [];"
-         "  pure circuit bar(): Bytes<32>;"
+         "  circuit bar(): Bytes<32>;"
          "}"
          "ledger contract_c: C1;"
          "constructor (c: C1) { contract_c = disclose(c); }"
@@ -77831,7 +78115,7 @@ groups than for single tests.
          "import CompactStandardLibrary;"
          "contract C1 {"
          "  circuit foo(x: Field): [];"
-         "  pure circuit bar(): Field;"
+         "  circuit bar(): Field;"
          "}"
          "ledger contract_c: C1;"
          "constructor(){contract_c = default<C1>;}"
@@ -77855,7 +78139,7 @@ groups than for single tests.
          "module M {"
          "  export contract C1 {"
          "    circuit foo(x: Uint<8>): Uint<8>;"
-         "    pure circuit bar(): Field;"
+         "    circuit bar(): Field;"
          "  }"
          "}"
          "import M prefix $;"
@@ -79940,6 +80224,48 @@ groups than for single tests.
 
   (test
     '(
+      "import CompactStandardLibrary;"
+      "export ledger memo: Opaque<'string'>;"
+      "export ledger archived: Opaque<'string'>;"
+      "export ledger seen: Map<Opaque<'string'>, Boolean>;"
+      "export circuit store(m: Opaque<'string'>): [] {"
+      "  memo = disclose(m);"
+      "}"
+      "export circuit markSeen(m: Opaque<'string'>): [] {"
+      "  seen.insert(disclose(m), true);"
+      "}"
+      "export circuit receipt(): Opaque<'string'> {"
+      "  return memo;"
+      "}"
+      "export circuit archive(): [] {"
+      "  archived = memo;"
+      "}"
+      "export circuit matches(m: Opaque<'string'>): Boolean {"
+      "  return disclose(memo == m);"
+      "}"
+      "export circuit wasSeen(): Boolean {"
+      "  return seen.member(memo);"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('an opaque string read from the ledger keeps a leading U+FEFF', async () => {"
+        "  // Each of these failed because the runtime dropped a leading U+FEFF as a byte order mark."
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  const memo = '\\uFEFFmemo';"
+        "  const afterStore = (await contract.circuits.store(context, memo)).context;"
+        "  expect((await contract.circuits.receipt(afterStore)).result).toEqual(memo);"
+        "  const afterArchive = (await contract.circuits.archive(afterStore)).context;"
+        "  expect(contractCode.ledger(afterArchive.callContext.currentQueryContext.state).archived).toEqual(memo);"
+        "  expect((await contract.circuits.matches(afterStore, memo)).result).toEqual(true);"
+        "  const afterMark = (await contract.circuits.markSeen(afterStore, memo)).context;"
+        "  expect((await contract.circuits.wasSeen(afterMark)).result).toEqual(true);"
+        "});"
+        ))
+    )
+
+  (test
+    '(
       "import { JubjubScalar as nativeJubjubScalar,"
       "         JubjubPoint as nativeJubjubPoint,"
       "         ecMul as nativeEcMul }"
@@ -81613,6 +81939,50 @@ groups than for single tests.
         )))
     )
 
+  ; Issue #866: x - x on a foreign field was folded to a Uint<0..1> constant.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger k1: Secp256k1Scalar;"
+      "export ledger r1: Secp256r1Base;"
+      "export ledger c: Curve25519Scalar;"
+      "circuit diff(a: Secp256k1Scalar, b: Secp256k1Scalar): Secp256k1Scalar {"
+      "  return a - b;"
+      "}"
+      "export circuit selfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k - k);"
+      "  return k1;"
+      "}"
+      "export circuit inlinedSelfSub(k: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(diff(k, k));"
+      "  return k1;"
+      "}"
+      "export circuit mulSelfSub(k: Secp256k1Scalar, z: Secp256k1Scalar): Secp256k1Scalar {"
+      "  k1 = disclose(k * (z - z));"
+      "  return k1;"
+      "}"
+      "export circuit selfSubR1(k: Secp256r1Base): Secp256r1Base {"
+      "  r1 = disclose(k - k);"
+      "  return r1;"
+      "}"
+      "export circuit selfSubC(k: Curve25519Scalar): Curve25519Scalar {"
+      "  c = disclose(k - k);"
+      "  return c;"
+      "}"
+      )
+    (stage-javascript
+      '(
+        "test('foreign field self-subtraction', async () => {"
+        "  const [contract, context] = await startContract(contractCode, {}, 0);"
+        "  expect((await contract.circuits.selfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.inlinedSelfSub(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.mulSelfSub(context, 12345n, 678n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubR1(context, 12345n)).result).toEqual(0n);"
+        "  expect((await contract.circuits.selfSubC(context, 12345n)).result).toEqual(0n);"
+        "  });"
+        ))
+    )
+
 
   (test
     '(
@@ -82055,10 +82425,9 @@ groups than for single tests.
      (stage-javascript Adder '()))
     ((create-file "testfile.compact"
        '(
-         "import CompactStandardLibrary;"
          "contract Adder {"
          "  circuit addTo(n: Uint<64>): Uint<64>;"
-         "  pure circuit peek(): Field;"
+         "  circuit peek(): Field;"
          "}"
          "ledger a: Adder;"
          "constructor(x: Adder) { a = disclose(x); }"
@@ -82071,8 +82440,6 @@ groups than for single tests.
          "  const d = contractCode.declaredInterfaces;"
          "  expect(Object.keys(d)).toEqual(['Adder']);"
          "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
-         "  expect(d.Adder.addTo.pure).toEqual(false);"
-         "  expect(d.Adder.peek.pure).toEqual(true);"
          "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
          "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
          "  expect(d.Adder.addTo.resultType).toEqual(u64);"
@@ -82084,7 +82451,39 @@ groups than for single tests.
          "  expect(c.name).toEqual('Adder');"
          "  expect(c.circuits).toEqual(contractCode.declaredInterfaces.Adder);"
          "});"
-         ))))
+         )))
+    )
+
+  (test-group
+    ((create-file "Adder.compact"
+       '(
+         "import CompactStandardLibrary;"
+         "export circuit addTo(n: Uint<64>): Uint<64> { return n; }"
+         ))
+     (stage-javascript Adder '()))
+    ((create-file "testfile.compact"
+       '(
+         "contract Adder {"
+         "  circuit addTo(n: Uint<64>): Uint<64>;"
+         "  circuit peek(): Field;"
+         "}"
+         "export circuit useAdder(a: Adder): Uint<64> {"
+         "  return disclose(a).addTo(1 as Uint<64>);"
+         "}"
+         ))
+     (stage-javascript
+       '(
+         "test('declaredInterfaces records the contract types called through', () => {"
+         "  const d = contractCode.declaredInterfaces;"
+         "  expect(Object.keys(d)).toEqual(['Adder']);"
+         "  expect(Object.keys(d.Adder).sort()).toEqual(['addTo', 'peek']);"
+         "  const u64 = {tag: 'Uint', maxval: (2n ** 64n - 1n).toString()};"
+         "  expect(d.Adder.addTo.argumentTypes).toEqual([u64]);"
+         "  expect(d.Adder.addTo.resultType).toEqual(u64);"
+         "  expect(d.Adder.peek.argumentTypes).toEqual([]);"
+         "});"
+         )))
+    )
 
   (test
     '(
@@ -83924,6 +84323,98 @@ groups than for single tests.
         "  expect(l.eb).toEqual({ is_left: true, left: 9n, right: 0n });"
         "  });"
         ))
+    )
+
+  ; Issue #880: casting a foreign field type to Uint was an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Curve25519Base): Uint<64> {"
+      "  return a as Uint<64>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Uint<64>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "new type S = Secp256k1Scalar;"
+      "export circuit foo(a: S): Uint<8> {"
+      "  return a as Uint<8>;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Secp256k1Scalar" "Uint<8>")))
+    )
+
+  ; Casting a non-native field type to an enum was also an internal error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: JubjubScalar): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Enum<E, x, y>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "enum E { x, y }"
+      "export circuit foo(a: Curve25519Base): E {"
+      "  return a as E;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 10" "cannot cast from type ~a to type ~a" ("Curve25519Base" "Enum<E, x, y>")))
+    )
+
+  ; Casting any field type other than Field to Boolean is a type error.
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit foo(a: Secp256r1Base): Boolean {"
+      "  return a as Boolean;"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 10" "cannot cast from type ~a to type ~a" ("Secp256r1Base" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: Curve25519Scalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("Curve25519Scalar" "Boolean")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger b: Boolean;"
+      "export circuit foo(a: JubjubScalar): [] {"
+      "  b = disclose(a as Boolean);"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 4 char 16" "cannot cast from type ~a to type ~a" ("JubjubScalar" "Boolean")))
     )
 
   (test

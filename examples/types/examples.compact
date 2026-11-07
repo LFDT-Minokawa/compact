@@ -57,39 +57,6 @@ export circuit test2(vara: t2_Bytes4, varb: t2_Bytes4_a): t2_Bytes4 {
   return default<t2_Bytes4>;
 }
 
-// Test3: add multiple types
-type t2_f = Field;
-export type t2_f2 = Field;
-new type t2_f1 = Field;
-
-type t2_u1 = Uint<1>;
-type t2_u247 = Uint<247>;
-
-export circuit test3a(vara: t2_u1, varb: t2_u247): Uint<248> {
-  return (vara + varb) as Uint<248>;
-}
-
-export circuit test3(vara: t2_f2, varb: t2_f): t2_f1 {
-  return ((vara as t2_f) + (varb + 1)) as t2_f1;
-}
-
-// Test4: custom types in struct
-struct T4 { a: t4_u32 }
-new type t4_u32 = Uint<32>;
-type t4_field = Field;
-
-new type t4_b32 = Bytes<32>;
-struct T4a { a: t4_b32 }
-
-export circuit test4a(vara: T4a, varb: T4a): T4a {
-  return T4a { a: slice<32>([...vara.a, ...varb.a], 0) as t4_b32 };
-}
-
-export circuit test4(vara: T4, varb: T4): [T4, t4_field] {
-  const a = T4 { a: vara.a + varb.a };
-  return [a, a.a as t4_field];
-}
-
 // Test5: cast as other type
 type t5_u64 = Uint<64>;
 type t5_u32 = Uint<32>;

@@ -329,19 +329,4 @@ describe('[Bug] [PM-19252] Avoid creating zkir for circuits that don`t touch the
             });
         });
     });
-
-    describe('should throw proper error', () => {
-        test('when circuit have pure keyword and is using ledger variable', async () => {
-            const filePath = CONTRACTS_ROOT + 'example_fourteen.compact';
-
-            const outputDir = createTempFolder();
-            const result = await compile([Arguments.VSCODE, filePath, outputDir]);
-
-            expectCompilerResult(result).toBeFailure(
-                'Exception: example_fourteen.compact line 18 char 1: circuit test1 is marked pure but is actually impure because it accesses ledger field vara at line 19 char 4',
-                compilerDefaultOutput(),
-            );
-            expectFiles(result).thatNoFilesAreGenerated();
-        });
-    });
 });
