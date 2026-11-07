@@ -103,7 +103,7 @@ Key parts of the API are:
   - [`Ed25519Signature`](exports.md#ed25519signature)
   - [`ed25519Verify`](exports.md#ed25519verify)
 - Ledger fields:
-  - [`kernel`](exports.md#kernel) -- see [Ledger data types](../../ledger-adt.mdx)
+  - [`kernel`](exports.md#kernel) -- see [Ledger data types](../../ledger-adt-ocrt-4_0-zkir-3_1.mdx)
     for its operations
 - [Events](exports.md#events) that can be emitted with `emit`:
   - [`ShieldedSpend`](exports.md#shieldedspend),

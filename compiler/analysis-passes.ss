@@ -33,7 +33,8 @@
           (pass-helpers)
           (parser)
           (frontend-passes)
-          (standard-library-aliases))
+          (standard-library-aliases)
+          (target))
 
   (include "analysis-passes/expand-modules-and-types.ss")
 

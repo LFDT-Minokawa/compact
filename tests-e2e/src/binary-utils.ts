@@ -30,7 +30,6 @@ export enum Arguments {
     VERSION = '--version',
     VERBOSE = '--verbose',
     LANGUAGE_VERSION = '--language-version',
-    LEDGER_VERSION = '--ledger-version',
     RUNTIME_VERSION = '--runtime-version',
     VSCODE = '--vscode',
     LINES_LENGTH = '--line-length',
