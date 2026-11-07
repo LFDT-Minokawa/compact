@@ -10,7 +10,7 @@
     { "op": "constrain_bits", "val": "%sk.0", "bits": 8 },
     { "op": "private_input", "type": "Scalar<BLS12-381>", "output": "%sk.1", "guard": null },
     { "op": "constrain_bits", "val": "%sk.1", "bits": 248 },
-    { "op": "persistent_hash", "output": "%bytes.2", "alignment": [{ "tag": "atom", "value": { "length": 32, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x00", "0x6c617265733a656c656374696f6e3a706b3a", "%sk.0", "%sk.1"] },
+    { "op": "persistent_hash", "output": "%bytes.2", "alignment": [{ "tag": "atom", "value": { "length": 2, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }, { "tag": "atom", "value": { "length": 32, "tag": "bytes" } }], "inputs": ["0x00", "0x00", "0x6c617265733a656c656374696f6e3a706b3a", "%sk.0", "%sk.1"] },
     { "op": "bytes_into_natives", "outputs": ["%apk.3", "%apk.4"], "bytes": "%bytes.2" },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.5", "guard": null },
     { "op": "public_input", "type": "Scalar<BLS12-381>", "output": "%t.6", "guard": null },
