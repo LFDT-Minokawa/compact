@@ -1388,7 +1388,8 @@
                                                 0 "},")
                                             4 "output: undefined,"
                                             4 "publicTranscript: [],"
-                                            4 "privateTranscriptOutputs: []"
+                                            4 "privateTranscriptOutputs: [],"
+                                            4 "innerProofs: []"
                                             2 "};"
                                             2 (format "const ~a = await this." result)
                                               uname "("
@@ -1645,7 +1646,8 @@
                       4 "input: { value: [], alignment: [] },"
                       4 "output: undefined,"
                       4 "publicTranscript: [],"
-                      4 "privateTranscriptOutputs: []"
+                      4 "privateTranscriptOutputs: [],"
+                      4 "innerProofs: []"
                       2 "};"
                       2 "return {"
                       4 (apply (make-Qsep ",")
@@ -1757,7 +1759,8 @@
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
                                                  4 "publicTranscript: [],"
-                                                 4 "privateTranscriptOutputs: []"
+                                                 4 "privateTranscriptOutputs: [],"
+                                                 4 "innerProofs: []"
                                                  2 "};"
                                                  (ledger-reset-to-default src pl-array
                                                    (list

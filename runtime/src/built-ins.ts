@@ -28,6 +28,7 @@ import {
   SECP256R1_BASE_MODULUS,
   SECP256R1_SCALAR_MODULUS,
 } from './constants.js';
+import { PartialProofData } from './proof-data.js';
 import {
   CompactType,
   CompactTypeJubjubPoint,
@@ -833,4 +834,60 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
     res.alignment = res.alignment.concat(value.alignment);
   }
   return res;
+}
+
+/**
+ * An `Accumulator` as the generated JavaScript sees it. The circuit computes the real
+ * accumulator from the inner proof and exposes it for the outer proof's verifier to check, so
+ * the JavaScript only passes this opaque value along.
+ */
+export interface Accumulator {
+  readonly __compactAccumulator: true;
+}
+
+const ACCUMULATOR: Accumulator = Object.freeze({ __compactAccumulator: true });
+
+function checkAccumulator(value: unknown, what: string): void {
+  if (value !== ACCUMULATOR) {
+    throw new CompactError(`expected an Accumulator for ${what}`);
+  }
+}
+
+/**
+ * The Compact builtin `prepareVerification` function.
+ *
+ * Records `proof` as the next inner proof the circuit consumes. `vk` is the inner verifying key
+ * the circuit commits to, as `0x`-prefixed hex, and `publicInputs` the inner proof's public
+ * inputs; neither is checked here.
+ */
+export function prepareVerification(
+  partialProofData: PartialProofData,
+  vk: string,
+  publicInputs: bigint[],
+  proof: Uint8Array,
+): Accumulator {
+  if (!(proof instanceof Uint8Array)) {
+    throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
+  }
+  partialProofData.innerProofs.push(proof);
+  return ACCUMULATOR;
+}
+
+/**
+ * The binary form of the Compact builtin `accumulate` function, which the compiler nests to
+ * accumulate any number of accumulators.
+ */
+export function accumulate(a: Accumulator, b: Accumulator): Accumulator {
+  checkAccumulator(a, 'the first argument of accumulate');
+  checkAccumulator(b, 'the second argument of accumulate');
+  return ACCUMULATOR;
+}
+
+/**
+ * The Compact builtin `verifyAccumulator` function. The check itself happens when the outer
+ * proof is verified.
+ */
+export function verifyAccumulator(acc: Accumulator): [] {
+  checkAccumulator(acc, 'the argument of verifyAccumulator');
+  return [];
 }

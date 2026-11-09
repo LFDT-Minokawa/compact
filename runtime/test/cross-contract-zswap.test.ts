@@ -106,6 +106,7 @@ describe('per-contract Zswap local state', () => {
       output: { value: [], alignment: [] },
       publicTranscript: [],
       privateTranscriptOutputs: [],
+      innerProofs: [],
     });
 
     expect(context.callProofDataTrace.length).toBe(1);
