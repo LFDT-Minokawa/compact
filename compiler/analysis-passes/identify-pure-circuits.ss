@@ -118,6 +118,9 @@
         (raise (make-impure-condition function-name src
                  (format "emits an event of type ~s" struct-name)))]
        [else (assert cannot-happen)])]
+    [(prepare-verification ,src ,vk ,expr1 ,expr2)
+     (raise (make-impure-condition function-name src
+              (format "verifies a proof against ~s" (verifying-key-pathname vk))))]
     [(call ,src ,function-name^ ,[expr*] ...)
      (process-function-name! function-name src function-name^)
      ir]

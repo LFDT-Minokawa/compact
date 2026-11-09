@@ -30,6 +30,15 @@
 
 ;; ==== In-circuit proof verification
 (declare-native-type Accumulator taccumulator)
+(declare-native-entry circuit accumulate
+  "__compactRuntime.accumulate"
+  ([a (TypeRef Accumulator) (discloses nothing)]
+   [b (TypeRef Accumulator) (discloses nothing)])
+  (TypeRef Accumulator))
+(declare-native-entry circuit verifyAccumulator
+  "__compactRuntime.verifyAccumulator"
+  ([acc (TypeRef Accumulator) (discloses nothing)])
+  Void)
 
 ;; ==== Transient (Poseidon) hashing
 (declare-native-entry circuit transientHash [A]

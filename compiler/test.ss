@@ -18930,6 +18930,36 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(a); verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 73" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 65" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
@@ -31616,6 +31646,19 @@ groups than for single tests.
   )
 
 (run-tests identify-pure-circuits
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "pure circuit f(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { f(p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (f "verifies a proof against \"testfile.verifier\"" "line 3 char 21")))
+    ))
   (test
     '(
       "module M {"
@@ -31869,6 +31912,78 @@ groups than for single tests.
 )
 
 (run-tests track-witness-data
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], p));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [x], p));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter x of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the public inputs of prepareVerification at line 3 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (c) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 30" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter c of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      performing this prepareVerification might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 3 char 3"))))
+    ))
   (test
     '(
       "ledger X: Field;"
