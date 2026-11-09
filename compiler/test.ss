@@ -18959,6 +18959,58 @@ groups than for single tests.
 
   (test
     '(
+      "import { Accumulator, accumulate, verifyAccumulator } from CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator, c: Accumulator): [] { verifyAccumulator(accumulate(a, b, c)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 51" "accumulate expects at least two arguments, received ~d" (1)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, x: Field): [] { verifyAccumulator(accumulate(a, x)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (accumulate #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Accumulator, Field)\n      declared argument types for function at <standard library>:\n        (Accumulator, Accumulator)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 84" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary prefix X;"
+      "circuit f(a: XAccumulator, b: XAccumulator): [] { XverifyAccumulator(X__compact_accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 70" "unbound identifier ~s" (X__compact_accumulate)))
+    )
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
@@ -45813,7 +45865,7 @@ groups than for single tests.
       (program (kernel-declaration (%kernel.1 () (Kernel)))
         (public-ledger-declaration ())
         (native
-          %accumulate.2
+          %__compact_accumulate.2
           ((argument
              (%a.15)
              (ty ((anative "Accumulator")) ((taccumulator))))
@@ -45844,7 +45896,7 @@ groups than for single tests.
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
                1))
-          (= 1 (%t.19) (call %accumulate.2 %a.8 %b.9))
+          (= 1 (%t.19) (call %__compact_accumulate.2 %a.8 %b.9))
           (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
     ))
 
@@ -51797,6 +51849,45 @@ groups than for single tests.
 )
 
 (run-tests print-zkir-v3
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const acc1 = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const acc2 = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const acc3 = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(acc1, acc2, acc3));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%acc1.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%acc2.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%acc3.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc1.4\", \"%acc2.6\", \"%acc3.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(

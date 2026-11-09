@@ -30,7 +30,9 @@
 
 ;; ==== In-circuit proof verification
 (declare-native-type Accumulator taccumulator)
-(declare-native-entry circuit accumulate
+;; accumulate(a, b, ...) is a keyword (see expand-modules-and-types) that expands to
+;; nested calls of this binary native, which is private to the standard library
+(declare-native-entry private-circuit __compact_accumulate
   "__compactRuntime.accumulate"
   ([a (TypeRef Accumulator) (discloses nothing)]
    [b (TypeRef Accumulator) (discloses nothing)])

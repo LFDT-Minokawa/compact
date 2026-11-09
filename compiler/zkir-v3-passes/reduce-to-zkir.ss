@@ -169,7 +169,7 @@
         (with-output-language (Lzkir Instruction)
           ;; Generally assume that the arity is correct here.
           (case name
-            [(accumulate)
+            [(__compact_accumulate)
              (assert (= (length var-name*) 1))
              (hashtable-set! pending-accumulate-ht (car var-name*)
                (append (accumulate-inputs (car triv*)) (accumulate-inputs (cadr triv*))))

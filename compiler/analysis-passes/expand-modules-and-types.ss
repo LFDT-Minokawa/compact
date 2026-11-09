@@ -169,7 +169,9 @@
       (Info-struct src struct-name type-param* elt-name* type* p)
       (Info-type-alias src nominal? type-name type-param* type p)
       (Info-native-type src type-name type p)
-      (Info-native-keyword handler)
+      ; p is the environment of the keyword's definition, for its handler to resolve
+      ; helpers the standard library does not export
+      (Info-native-keyword handler p)
       (Info-ledger ledger-field-name)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
@@ -621,7 +623,7 @@
         [(Info-struct src struct-name type-param* elt-name type* p) "struct"]
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
         [(Info-native-type src type-name type p) "type"]
-        [(Info-native-keyword handler) "keyword"]
+        [(Info-native-keyword handler p) "keyword"]
         [(Info-ledger ledger-field-name) "ledger field"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
@@ -682,7 +684,7 @@
     ;; key with a string literal, which is resolved along the compact path and
     ;; read here, because the key is fixed circuit data: the circuit embeds it
     ;; and commits to its hash.
-    (define (expand-prepare-verification src p info* expr*)
+    (define (expand-prepare-verification src p p^ info* expr*)
       (unless (null? info*)
         (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
       (let ([n (length expr*)])
@@ -707,11 +709,37 @@
                ,(make-verifying-key pathname resolved-pathname content)
                ,(Expression pi-expr p)
                ,(Expression proof-expr p))))))
+    ;; accumulate(a, b, c, ...) takes any number (at least two) of Accumulators and
+    ;; expands to nested calls of the binary native __compact_accumulate, which the
+    ;; ZKIR backend flattens back into one n-ary accumulate.  The native is private
+    ;; to the standard library, so it is resolved in p^, the environment where
+    ;; accumulate is defined, and its calls are renamed accumulate for diagnostics.
+    (define (expand-accumulate src p p^ info* expr*)
+      (unless (null? info*)
+        (source-errorf src "accumulate expects no generic arguments, received ~d" (length info*)))
+      (let ([n (length expr*)])
+        (when (fx< n 2)
+          (source-errorf src "accumulate expects at least two arguments, received ~d" n)))
+      (let ([fun (let ([native (Function (with-output-language (Lpreexpand Function) `(fref ,src __compact_accumulate))
+                                         p^)])
+                   (nanopass-case (Lexpanded Function) native
+                     [(fref ,src^ ,symbolic-function-name ((,function-name** ...) ...) (,generic-value* ...) ((,src* ,generic-kind** ...) ...))
+                      (with-output-language (Lexpanded Function)
+                        `(fref ,src^ accumulate ((,function-name** ...) ...) (,generic-value* ...) ((,src* ,generic-kind** ...) ...)))]
+                     [else (internal-errorf 'expand-accumulate "unexpected function ~s" native)]))])
+        (let loop ([acc (Expression (car expr*) p)] [expr* (cdr expr*)])
+          (if (null? expr*)
+              acc
+              (loop (with-output-language (Lexpanded Expression)
+                      `(call ,src ,fun ,acc ,(Expression (car expr*) p)))
+                    (cdr expr*))))))
     (define (keyword-declarations)
       (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)])
         (list
           (with-output-language (Lpreexpand Program-Element)
-            `(native-keyword ,src #t prepareVerification ,expand-prepare-verification)))))
+            `(native-keyword ,src #t prepareVerification ,expand-prepare-verification))
+          (with-output-language (Lpreexpand Program-Element)
+            `(native-keyword ,src #t accumulate ,expand-accumulate)))))
     (define (do-import src import-name info* prefix maybe-ielt* p)
       (define (import-insert! src name info)
         (define (add-prefix x) (string->symbol (format "~a~a" prefix (symbol->string x))))
@@ -933,7 +961,7 @@
                            (if exported? (cons (make-exportit src type-name info) export*) export*)
                            unresolved-export*))]
                   [(native-keyword ,src ,exported? ,function-name ,handler)
-                   (let ([info (Info-native-keyword handler)])
+                   (let ([info (Info-native-keyword handler p)])
                      (env-insert! p src function-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src function-name info) export*) export*)
@@ -1314,12 +1342,12 @@
      (or (nanopass-case (Lpreexpand Function) fun
            [(fref ,src^ ,function-name)
             (Info-case (lookup p src^ function-name)
-              [(Info-native-keyword handler) (handler src p '() expr*)]
+              [(Info-native-keyword handler p^) (handler src p p^ '() expr*)]
               [else #f])]
            [(fref ,src^ ,function-name (,targ* ...))
             (Info-case (lookup p src^ function-name)
-              [(Info-native-keyword handler)
-               (handler src p (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
+              [(Info-native-keyword handler p^)
+               (handler src p p^ (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
               [else #f])]
            [else #f])
          ; force fun to be processed before expr* to get better error messages
