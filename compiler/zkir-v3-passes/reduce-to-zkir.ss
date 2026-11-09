@@ -145,6 +145,9 @@
     ;; is emitted when its output reaches anything else, which, because each
     ;; Accumulator is used exactly once, happens once.
     (define pending-accumulate-ht)
+    ;; The number of fields in an Accumulator's public-input encoding: two
+    ;; points and two scalars (transient-crypto's accumulator_pi_len).
+    (define accumulator-encoding-length 12)
     (define (accumulate-inputs triv)
       (let ([inputs (and (id? triv) (hashtable-ref pending-accumulate-ht triv #f))])
         (if inputs
@@ -1012,13 +1015,26 @@
     ;; prepare_verification takes the statement's test as its guard, and the
     ;; inner_proof binding the proof witness must have the same guard; the proof
     ;; triv is TypeScript's copy and has no use in the circuit
-    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,triv* ...))
+    ;; A carried accumulator is the tail of the inner proof's public inputs: its
+    ;; encoding is appended to the instance, binding it to the inner proof, and it
+    ;; is accumulated into the result, so that its pairing is checked too.
+    [(= ,test ,var-name (prepare-verification ,src ,vk ,triv ,triv? ,triv* ...))
      (let ([proof (make-temp-id src 'proof)])
        (with-output-language (Lzkir Instruction)
-         (cons*
-           `(prepare_verification ,var-name ,vk ,test ,proof ,triv* ...)
-           `(inner_proof ,proof ,test)
-           instr*)))]
+         (if triv?
+             (let ([acc (make-temp-id src 'acc)]
+                   [enc* (map (lambda (i) (make-temp-id src 'carried)) (iota accumulator-encoding-length))])
+               (let ([instr* (emit-pending-accumulate triv? instr*)])
+                 (hashtable-set! pending-accumulate-ht var-name (list acc triv?))
+                 (cons*
+                   `(prepare_verification ,acc ,vk ,test ,proof ,triv* ... ,enc* ...)
+                   `(inner_proof ,proof ,test)
+                   `(encode (,enc* ...) ,triv?)
+                   instr*)))
+             (cons*
+               `(prepare_verification ,var-name ,vk ,test ,proof ,triv* ...)
+               `(inner_proof ,proof ,test)
+               instr*))))]
     [(= ,test ,var-name ,single)
      (Single single var-name instr*)]
     [(assert ,src ,test ,mesg)

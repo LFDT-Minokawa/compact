@@ -53,8 +53,42 @@ describe('accumulate and verifyAccumulator', () => {
 
   test('reject anything else', () => {
     const a = compactRuntime.prepareVerification(emptyProofData(), VK, [], new Uint8Array([1]));
-    const forged = { __compactAccumulator: true } as compactRuntime.Accumulator;
+    const forged = { publicInputs: undefined } as unknown as compactRuntime.Accumulator;
     expect(() => compactRuntime.accumulate(a, forged)).toThrow(compactRuntime.CompactError);
     expect(() => compactRuntime.verifyAccumulator(forged)).toThrow(compactRuntime.CompactError);
+  });
+});
+
+const ENCODING = Array.from({ length: compactRuntime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));
+
+describe('carried accumulators', () => {
+  test('prepareVerification accepts one and records the proof', () => {
+    const proofData = emptyProofData();
+    const p = new Uint8Array([1]);
+    const carried = compactRuntime.Accumulator.fromPublicInputs(ENCODING);
+    compactRuntime.verifyAccumulator(compactRuntime.prepareVerification(proofData, VK, [1n], p, carried));
+    expect(proofData.innerProofs).toEqual([p]);
+  });
+
+  test('fromPublicInputs keeps the encoding and rejects a wrong one', () => {
+    expect(compactRuntime.Accumulator.fromPublicInputs(ENCODING).publicInputs).toEqual(ENCODING);
+    expect(() => compactRuntime.Accumulator.fromPublicInputs(ENCODING.slice(1))).toThrow(compactRuntime.CompactError);
+    expect(() => compactRuntime.Accumulator.fromPublicInputs([...ENCODING.slice(1), -1n])).toThrow(compactRuntime.CompactError);
+    expect(() =>
+      compactRuntime.Accumulator.fromPublicInputs([...ENCODING.slice(1), compactRuntime.MAX_FIELD + 1n]),
+    ).toThrow(compactRuntime.CompactError);
+  });
+
+  test('CompactTypeAccumulator round-trips a supplied accumulator', () => {
+    const rt = compactRuntime.CompactTypeAccumulator;
+    expect(rt.alignment()).toHaveLength(compactRuntime.ACCUMULATOR_PUBLIC_INPUTS);
+    const value = rt.toValue(compactRuntime.Accumulator.fromPublicInputs(ENCODING));
+    expect(rt.fromValue(value).publicInputs).toEqual(ENCODING);
+    expect(value).toHaveLength(0);
+  });
+
+  test('CompactTypeAccumulator has no value for a computed accumulator', () => {
+    const a = compactRuntime.prepareVerification(emptyProofData(), VK, [], new Uint8Array([1]));
+    expect(() => compactRuntime.CompactTypeAccumulator.toValue(a)).toThrow(compactRuntime.CompactError);
   });
 });

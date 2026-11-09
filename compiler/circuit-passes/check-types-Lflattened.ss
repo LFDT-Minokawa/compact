@@ -545,7 +545,12 @@
        (source-errorf src "expected Uint for downcast-unsigned, received ~a"
          (format-primitive-type primitive-type)))
      (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))]
-    [(prepare-verification ,src ,vk ,[* primitive-type] ,[* primitive-type*] ...)
+    [(prepare-verification ,src ,vk ,[* primitive-type] ,triv? ,[* primitive-type*] ...)
+     (when triv?
+       (let ([primitive-type^ (Triv triv?)])
+         (unless (T primitive-type^ [(taccumulator) #t])
+           (source-errorf src "expected Accumulator for the carried accumulator of prepareVerification, received ~a"
+             (format-primitive-type primitive-type^)))))
      (unless (T primitive-type [(topaque ,opaque-type) (string=? opaque-type "Uint8Array")])
        (source-errorf src "expected Opaque<'Uint8Array'> for the proof of prepareVerification, received ~a"
          (format-primitive-type primitive-type)))

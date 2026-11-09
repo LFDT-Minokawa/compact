@@ -22,10 +22,10 @@
 ;; Accumulator that is dropped is a proof that is never checked, and ZKIR
 ;; rejects one that is used twice.  An Accumulator is used by binding it with
 ;; const, passing it to a circuit, returning it, or yielding it from a branch
-;; of an if, whose two branches are then merged with a select.  It cannot be
-;; used anywhere else: not in an operator, a tuple, vector, or struct, a
-;; disclose, a ledger operation, or as the argument of a native or witness
-;; that does not declare an Accumulator parameter.
+;; of an if, whose two branches are then merged with a select.  disclose passes
+;; it through.  It cannot be used anywhere else: not in an operator, a tuple,
+;; vector, or struct, a ledger operation, or as the argument of a native or
+;; witness that does not declare an Accumulator parameter.
 ;;
 ;; The check is path-sensitive.  The two branches of an if must use the same
 ;; Accumulators bound outside it, so the one a select drops is always one the
@@ -209,13 +209,19 @@
             ;; differ, and Accumulator is a subtype only of itself, so a
             ;; safe-cast never applies to an Accumulator.
             [(safe-cast ,src ,type ,type^ ,expr) (none (No-Accumulator expr env "the operand of a cast"))]
-            [(disclose ,src ,expr) (none (No-Accumulator expr env "the argument of disclose"))]
+            ;; disclose is the identity, so it passes an Accumulator through
+            [(disclose ,src ,expr) (Expr expr env)]
             [(ledger-call ,src ,ledger-op ,sugar? ,expr ,expr* ...)
              (none (No-Accumulator* (cons expr expr*) env "an argument of a ledger operation"))]
             [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
              (none (No-Accumulator* (cons expr expr*) env "an argument of a contract call"))]
-            [(prepare-verification ,src ,vk ,expr1 ,expr2)
-             (let ([env (No-Accumulator* (list expr1 expr2) env "an argument of prepareVerification")])
+            ;; the carried accumulator, if any, is used: prepareVerification binds it
+            ;; to the inner proof and accumulates it into its result
+            [(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr?)
+             (let* ([env (No-Accumulator* (list expr1 expr2) env "an argument of prepareVerification")]
+                    [env (if expr?
+                             (let-values ([(env acc-src) (Expr expr? env)]) env)
+                             env)])
                (values env (and (not (dead? env)) src)))]
             [(return ,src ,expr)
              (let-values ([(env acc-src) (Expr expr env)])

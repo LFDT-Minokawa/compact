@@ -18526,10 +18526,7 @@ groups than for single tests.
       "witness w(): Accumulator;"
       "export circuit g(): [] { }"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("return value of witness w" "Accumulator")))
-    )
+    (succeeds))
 
   (test
     '(
@@ -18771,10 +18768,7 @@ groups than for single tests.
       "circuit f(a: Accumulator): Accumulator { return disclose(a); }"
       "export circuit main(): [] { }"
       )
-    (oops
-      message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 3 char 58" "an Accumulator cannot be used as ~a" ("the argument of disclose")))
-    )
+    (succeeds))
 
   (test
     '(
@@ -18841,7 +18835,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three or four arguments, received ~d" (2)))
     ))
 
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
@@ -19008,6 +19002,42 @@ groups than for single tests.
       message: "~a:\n  ~?"
       irritants: '("testfile.compact line 2 char 70" "unbound identifier ~s" (X__compact_accumulate)))
     )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, x: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, x); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 68" "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a, a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three or four arguments, received ~d" (5)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareVerification(\"testfile.verifier\", [1 as Field], p, a), a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 147" "Accumulator ~s is used more than once" (a)))
+    ))
 
   (test
     '(
@@ -31964,6 +31994,35 @@ groups than for single tests.
 )
 
 (run-tests track-witness-data
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), carried()));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the carried accumulator of prepareVerification at line 5 char 21"))))
+    ))
+
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
@@ -45803,6 +45862,7 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.15
+               #f
                1))
           (= %c.14 () (call %verifyAccumulator.2 %t.9)) ())))
     ))
@@ -45840,12 +45900,14 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
+               #f
                1))
           (= %t.21
              %t.13
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %q.19
+               #f
                2))
           (= 1 %a.22 (select %c.17 %t.11 %t.13))
           (= 1 () (call %verifyAccumulator.2 %a.22)) ())))
@@ -45889,12 +45951,14 @@ groups than for single tests.
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
+               #f
                1))
           (= 1
              %b.9
              (prepare-verification
                ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
                %p.18
+               #f
                1))
           (= 1 (%t.19) (call %__compact_accumulate.2 %a.8 %b.9))
           (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
@@ -51849,6 +51913,40 @@ groups than for single tests.
 )
 
 (run-tests print-zkir-v3
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"input\": \"%t.1\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.14\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\", \"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"proof\": \"%proof.14\", \"output\": \"%acc.15\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.15\", \"%t.1\"], \"output\": \"%t.16\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.16\" }"
+        "  ]"
+        "}"))
+    ))
+
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(
@@ -60902,6 +61000,39 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('a witness supplies the accumulator an inner proof carries', async () => {"
+        "  const p = new Uint8Array([1]);"
+        "  const encoding = Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));"
+        "  const [C, Ctxt] = await startContract(contractCode, {"
+        "    innerProof(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [wc.privateState, p]; },"
+        "    carried(wc: runtime.WitnessContext<{}, number>): [number, runtime.Accumulator] {"
+        "      return [wc.privateState, runtime.Accumulator.fromPublicInputs(encoding)];"
+        "    },"
+        "  }, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check, as above"
+        "  Ctxt.callContext.circuitId = 'main';"
+        "  const r = await C.provableCircuits.main(Ctxt);"
+        "  const data = r.context.callProofDataTrace.at(-1);"
+        "  expect(data?.innerProofs).toEqual([p]);"
+        "  // the proof, then the carried accumulator's encoding, which the circuit reads"
+        "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
+        "  expect(data?.privateTranscriptOutputs[1]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
+        "});"
+        ))
+    ))
+
  (with-compact-path '("test-center/fixtures/inner-verifying-keys")
   (test
     '(

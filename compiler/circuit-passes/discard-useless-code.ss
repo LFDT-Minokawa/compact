@@ -203,10 +203,15 @@
      (values
        `(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
        (idset-union-all (cons idset idset*)))]
-    [(prepare-verification ,src ,vk ,[Value : expr1 idset1] ,[Value : expr2 idset2])
-     (values
-       `(prepare-verification ,src ,vk ,expr1 ,expr2)
-       (idset-union idset1 idset2))]
+    [(prepare-verification ,src ,vk ,[Value : expr1 idset1] ,[Value : expr2 idset2] ,expr?)
+     (if expr?
+         (let-values ([(expr3 idset3) (Value expr?)])
+           (values
+             `(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr3)
+             (idset-union-all (list idset1 idset2 idset3))))
+         (values
+           `(prepare-verification ,src ,vk ,expr1 ,expr2 #f)
+           (idset-union idset1 idset2)))]
     [else (internal-errorf 'discard-useless-code "unhandled Value form ~s" ir)])
   (Tuple-Argument-Value : Tuple-Argument (ir) -> Tuple-Argument (idset)
     [(single ,src ,[Value : expr idset])

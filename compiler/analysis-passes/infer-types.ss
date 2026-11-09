@@ -1057,9 +1057,9 @@
      `(native ,src ,function-name ,native-entry (,arg* ...) ,type)])
   (Witness-Declaration : Witness-Declaration (ir) -> Witness-Declaration ()
     [(witness ,src ,function-name (,[arg*] ...) ,[Return-Type : type src "witness" -> type])
-     (let ([what (format "witness ~a" (id-sym function-name))])
-       (verify-no-accumulator-args! what arg*)
-       (verify-no-accumulator! src type "return value of ~a" what))
+     ;; a witness may return an Accumulator, which prepareVerification binds to
+     ;; an inner proof and accumulates, but cannot take one
+     (verify-no-accumulator-args! (format "witness ~a" (id-sym function-name)) arg*)
      `(witness ,src ,function-name (,arg* ...) ,type)])
   (Export-Type-Definition :  Export-Type-Definition (ir) -> Export-Type-Definition ()
     [(export-typedef ,src ,type-name (,tvar-name* ...) ,[type])
@@ -1839,7 +1839,7 @@
                             ...)
                   ,expr)
                 body-type)))))]
-    [(prepare-verification ,src ,vk ,[Care : expr1 type1] ,[Care : expr2 type2])
+    [(prepare-verification ,src ,vk ,[Care : expr1 type1] ,[Care : expr2 type2] ,expr?)
      ;; the public inputs are a Vector<n, Field> for some n, so a tuple of
      ;; Fields or Uints is accepted and cast
      (let ([pi-type (with-output-language (Ltypes Type)
@@ -1855,9 +1855,17 @@
                  [else #f])
          (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
                         (format-type type2)))
-       (values
-         `(prepare-verification ,src ,vk ,(maybe-safecast src pi-type type1 expr1) ,expr2)
-         (with-output-language (Ltypes Type) `(taccumulator ,src))))]
+       (let ([expr? (and expr?
+                         (let-values ([(expr3 type3) (Care expr?)])
+                           (unless (nanopass-case (Ltypes Type) (de-alias type3 #t)
+                                     [(taccumulator ,src^) #t]
+                                     [else #f])
+                             (source-errorf src "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a"
+                                            (format-type type3)))
+                           expr3))])
+         (values
+           `(prepare-verification ,src ,vk ,(maybe-safecast src pi-type type1 expr1) ,expr2 ,expr?)
+           (with-output-language (Ltypes Type) `(taccumulator ,src)))))]
     [(assert ,src ,[Care : expr type0] ,mesg)
      (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)
                [(tboolean ,src1) #t]

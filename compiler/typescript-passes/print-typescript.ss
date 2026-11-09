@@ -1007,7 +1007,7 @@
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
-                [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no runtime type descriptor")]
+                [(taccumulator ,src) "__compactRuntime.CompactTypeAccumulator"]
                 [(tpoint ,src ,ctype)
                  (format "__compactRuntime.CompactType~a" (format-point-type ctype))]
                 [(tbytes ,src ,len)
@@ -1106,7 +1106,7 @@
                        var field-name))]
                   [(tunsigned ,src ,nat)
                    (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
-                  [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no runtime type check")]
+                  [(taccumulator ,src) (format "~a instanceof __compactRuntime.Accumulator" var)]
                   [(tpoint ,src ,ctype)
                    ;; The tfield case above bounds a bare field element and an
                    ;; unbounded check here would let the same bigint through as
@@ -3152,19 +3152,21 @@
     ;; goes out as the hex of the same bytes the circuit's inner_vks holds.
     [(prepare-verification ,src ,vk
        ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
-       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2]
+       ,expr?)
      (parenthesize level (precedence call)
        (make-Qconcat
          (compact-stdlib "prepareVerification")
          "("
-         ((make-Qsep ",")
+         (apply (make-Qsep ",")
             "partialProofData"
             (format-javascript-string
               (apply string-append "0x"
                 (map (lambda (b) (format "~(~2,'0x~)" b))
                      (bytevector->u8-list (verifying-key-content vk)))))
             expr1
-            expr2)
+            expr2
+            (if expr? (list (Expr expr? (precedence add1 comma) outer-pure?)) '()))
          ")"))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)

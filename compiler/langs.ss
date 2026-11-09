@@ -631,8 +631,9 @@
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
          (deserialize src len type expr)    => (deserialize len type expr)
-         ;; expr1 is the inner proof's public inputs, expr2 the proof itself
-         (prepare-verification src vk expr1 expr2) => (prepare-verification vk expr1 expr2)))
+         ;; expr1 is the inner proof's public inputs, expr2 the proof itself, and
+         ;; expr?, if present, the accumulator the inner proof carries
+         (prepare-verification src vk expr1 expr2 (maybe expr?)) => (prepare-verification vk expr1 expr2 expr?)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -802,8 +803,9 @@
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
-      ;; expr1 is the inner proof's public inputs, expr2 the proof itself
-      (prepare-verification src vk expr1 expr2) => (prepare-verification vk expr1 expr2)
+      ;; expr1 is the inner proof's public inputs, expr2 the proof itself, and
+      ;; expr?, if present, the accumulator the inner proof carries
+      (prepare-verification src vk expr1 expr2 (maybe expr?)) => (prepare-verification vk expr1 expr2 expr?)
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast
@@ -1150,9 +1152,10 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
-      ;; triv1 is the inner proof's public inputs, triv2 the proof itself; the
-      ;; guard is the test of the enclosing statement
-      (prepare-verification src vk triv1 triv2) => (prepare-verification vk triv1 triv2)
+      ;; triv1 is the inner proof's public inputs, triv2 the proof itself, and
+      ;; triv?, if present, the accumulator the inner proof carries; the guard is
+      ;; the test of the enclosing statement
+      (prepare-verification src vk triv1 triv2 (maybe triv?)) => (prepare-verification vk triv1 triv2 triv?)
       )
     (Triv (triv test)
       var-name
@@ -1251,7 +1254,7 @@
          (field->bytes src len ftype triv)
          (bytes->field src ftype len triv)
          (downcast-unsigned src nat2 nat1 triv)
-         (prepare-verification src vk triv1 triv2)))
+         (prepare-verification src vk triv1 triv2 (maybe triv?))))
     (Single (single)
       (+ triv
          (+ primitive-type triv1 triv2)
@@ -1266,8 +1269,10 @@
          (cast-to-field ftype primitive-type triv)
          (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
          (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
-         ;; triv is the proof, triv* the inner proof's public inputs
-         (prepare-verification src vk triv triv* ...) => (prepare-verification vk triv #f triv* ...)
+         ;; triv is the proof, triv? the carried accumulator if any, and triv* the
+         ;; inner proof's public inputs, to which the carried accumulator's encoding
+         ;; is appended
+         (prepare-verification src vk triv (maybe triv?) triv* ...) => (prepare-verification vk triv triv? #f triv* ...)
          ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)

@@ -566,11 +566,18 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type)))
      (with-output-language (Linlined Type) `(ttuple ,src))]
-    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2])
+    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2] ,expr?)
      (define (field? type)
        (nanopass-case (Linlined Type) type
          [(tfield ,src1 (field-native)) #t]
          [else #f]))
+     (when expr?
+       (let ([type3 (Care expr?)])
+         (unless (nanopass-case (Linlined Type) type3
+                   [(taccumulator ,src1) #t]
+                   [else #f])
+           (source-errorf src "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a"
+                          (format-type type3)))))
      (unless (nanopass-case (Linlined Type) type1
                [(tvector ,src1 ,len ,type) (field? type)]
                [(ttuple ,src1 ,type* ...) (andmap field? type*)]

@@ -711,7 +711,14 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type)))
      (with-output-language (Lnodca Type) `(ttuple ,src))]
-    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2])
+    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2] ,expr?)
+     (when expr?
+       (let ([type3 (Care expr?)])
+         (unless (nanopass-case (Lnodca Type) (de-alias type3)
+                   [(taccumulator ,src1) #t]
+                   [else #f])
+           (source-errorf src "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a"
+                          (format-type type3)))))
      (unless (nanopass-case (Lnodca Type) (de-alias type1)
                [(tvector ,src1 ,len (tfield ,src2 (field-native))) #t]
                [(ttuple ,src1 ,type* ...)

@@ -683,14 +683,16 @@
     ;; prepareVerification(vk, publicInputs, proof) names its inner verifying
     ;; key with a string literal, which is resolved along the compact path and
     ;; read here, because the key is fixed circuit data: the circuit embeds it
-    ;; and commits to its hash.
+    ;; and commits to its hash.  An optional fourth argument is the Accumulator
+    ;; the inner proof carries, the tail of its public inputs.
     (define (expand-prepare-verification src p p^ info* expr*)
       (unless (null? info*)
         (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
       (let ([n (length expr*)])
-        (unless (fx= n 3)
-          (source-errorf src "prepareVerification expects three arguments, received ~d" n)))
-      (let ([vk-expr (car expr*)] [pi-expr (cadr expr*)] [proof-expr (caddr expr*)])
+        (unless (or (fx= n 3) (fx= n 4))
+          (source-errorf src "prepareVerification expects three or four arguments, received ~d" n)))
+      (let ([vk-expr (car expr*)] [pi-expr (cadr expr*)] [proof-expr (caddr expr*)]
+            [carried-expr (and (fx= (length expr*) 4) (cadddr expr*))])
         (let* ([pathname (or (nanopass-case (Lpreexpand Expression) vk-expr
                                ; the parser has already turned a string literal into its UTF-8 bytes
                                [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
@@ -708,7 +710,8 @@
             `(prepare-verification ,src
                ,(make-verifying-key pathname resolved-pathname content)
                ,(Expression pi-expr p)
-               ,(Expression proof-expr p))))))
+               ,(Expression proof-expr p)
+               ,(and carried-expr (Expression carried-expr p)))))))
     ;; accumulate(a, b, c, ...) takes any number (at least two) of Accumulators and
     ;; expands to nested calls of the binary native __compact_accumulate, which the
     ;; ZKIR backend flattens back into one n-ary accumulate.  The native is private

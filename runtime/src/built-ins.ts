@@ -30,6 +30,7 @@ import {
 } from './constants.js';
 import { PartialProofData } from './proof-data.js';
 import {
+  Accumulator,
   CompactType,
   CompactTypeJubjubPoint,
   Curve25519Point,
@@ -836,19 +837,8 @@ export function alignedConcat(...values: ocrt.AlignedValue[]): ocrt.AlignedValue
   return res;
 }
 
-/**
- * An `Accumulator` as the generated JavaScript sees it. The circuit computes the real
- * accumulator from the inner proof and exposes it for the outer proof's verifier to check, so
- * the JavaScript only passes this opaque value along.
- */
-export interface Accumulator {
-  readonly __compactAccumulator: true;
-}
-
-const ACCUMULATOR: Accumulator = Object.freeze({ __compactAccumulator: true });
-
 function checkAccumulator(value: unknown, what: string): void {
-  if (value !== ACCUMULATOR) {
+  if (!(value instanceof Accumulator)) {
     throw new CompactError(`expected an Accumulator for ${what}`);
   }
 }
@@ -858,19 +848,24 @@ function checkAccumulator(value: unknown, what: string): void {
  *
  * Records `proof` as the next inner proof the circuit consumes. `vk` is the inner verifying key
  * the circuit commits to, as `0x`-prefixed hex, and `publicInputs` the inner proof's public
- * inputs; neither is checked here.
+ * inputs; neither is checked here. `carried`, if present, is the accumulator the inner proof
+ * carries, which the circuit appends to its public inputs and accumulates.
  */
 export function prepareVerification(
   partialProofData: PartialProofData,
   vk: string,
   publicInputs: bigint[],
   proof: Uint8Array,
+  carried?: Accumulator,
 ): Accumulator {
   if (!(proof instanceof Uint8Array)) {
     throw new CompactError('expected a Uint8Array for the proof of prepareVerification');
   }
+  if (carried !== undefined) {
+    checkAccumulator(carried, 'the carried accumulator of prepareVerification');
+  }
   partialProofData.innerProofs.push(proof);
-  return ACCUMULATOR;
+  return Accumulator.computed();
 }
 
 /**
@@ -880,7 +875,7 @@ export function prepareVerification(
 export function accumulate(a: Accumulator, b: Accumulator): Accumulator {
   checkAccumulator(a, 'the first argument of accumulate');
   checkAccumulator(b, 'the second argument of accumulate');
-  return ACCUMULATOR;
+  return Accumulator.computed();
 }
 
 /**

@@ -311,7 +311,7 @@
                             ;; produces an Accumulator that must be used exactly once, so two
                             ;; identical ones are never merged
                             [(nanopass-case (Lflattened Single) single
-                               [(prepare-verification ,src ,vk ,triv ,triv* ...) #t]
+                               [(prepare-verification ,src ,vk ,triv ,triv? ,triv* ...) #t]
                                [else #f])
                              single]
                             [(hashtable-ref nontriv-single->var (cons test single) #f) =>
@@ -624,8 +624,8 @@
            (lambda (nat^)
              (and (<= nat^ nat1) nat^)))
          `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv))]
-    [(prepare-verification ,src ,vk ,[FWD-Triv : triv] ,[FWD-Triv : triv*] ...)
-     `(prepare-verification ,src ,vk ,triv ,triv* ...)]
+    [(prepare-verification ,src ,vk ,[FWD-Triv : triv] ,triv? ,[FWD-Triv : triv*] ...)
+     `(prepare-verification ,src ,vk ,triv ,(and triv? (FWD-Triv triv?)) ,triv* ...)]
     [else (internal-errorf 'FWD-Single "unexpected ir ~s" ir)])
   (FWD-Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]
@@ -664,7 +664,7 @@
           [(cast-to-field ,ftype ,primitive-type ,triv) #t]
           [(cast-from-field ,src ,safe ,nat ,ftype ,triv) #f]
           [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv) #f]
-          [(prepare-verification ,src ,vk ,triv ,triv* ...) #f])))
+          [(prepare-verification ,src ,vk ,triv ,triv? ,triv* ...) #f])))
     [(= ,test ,var-name ,single)
      (guard
        (not (hashtable-contains? ref-ht var-name))
@@ -738,8 +738,8 @@
      `(cast-from-field ,src ,safe ,nat ,ftype ,triv)]
     [(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,[BWD-Triv : triv])
      `(downcast-unsigned ,src ,safe ,nat2 ,nat1 ,triv)]
-    [(prepare-verification ,src ,vk ,[BWD-Triv : triv] ,[BWD-Triv : triv*] ...)
-     `(prepare-verification ,src ,vk ,triv ,triv* ...)]
+    [(prepare-verification ,src ,vk ,[BWD-Triv : triv] ,triv? ,[BWD-Triv : triv*] ...)
+     `(prepare-verification ,src ,vk ,triv ,(and triv? (BWD-Triv triv?)) ,triv* ...)]
     [else (internal-errorf 'BWD-Single "unexpected ir ~s" ir)])
   (BWD-Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]
