@@ -18812,6 +18812,121 @@ groups than for single tests.
       irritants: '("testfile.compact line 3 char 70" "an Accumulator cannot be passed to ~a ~s" (native transientHash)))
     )
 
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(x: Field, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [x, 1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 52" "this Accumulator is never used" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three arguments, received ~d" (2)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification<2>(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(k: Bytes<17>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(k, [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"no-such.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "failed to locate verifying key file ~s" ("no-such.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"empty.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s is empty" ("empty.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(b: Bytes<32>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [b], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "expected the public inputs of prepareVerification to have type Vector<n, Field> for some n, received ~a" ("[Bytes<32>]")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 43" "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "circuit f(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 42" "unbound identifier ~s" (prepareVerification)))
+    ))
+
   (test
     '(
       "import CompactStandardLibrary;"

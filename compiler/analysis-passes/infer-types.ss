@@ -1839,6 +1839,25 @@
                             ...)
                   ,expr)
                 body-type)))))]
+    [(prepare-verification ,src ,vk ,[Care : expr1 type1] ,[Care : expr2 type2])
+     ;; the public inputs are a Vector<n, Field> for some n, so a tuple of
+     ;; Fields or Uints is accepted and cast
+     (let ([pi-type (with-output-language (Ltypes Type)
+                      (nanopass-case (Ltypes Type) (de-alias type1 #t)
+                        [(tvector ,src^ ,len ,type) `(tvector ,src ,len (tfield ,src (field-native)))]
+                        [(ttuple ,src^ ,type* ...) `(ttuple ,src ,(map (lambda (type) `(tfield ,src (field-native))) type*) ...)]
+                        [else #f]))])
+       (unless (and pi-type (subtype? type1 pi-type))
+         (source-errorf src "expected the public inputs of prepareVerification to have type Vector<n, Field> for some n, received ~a"
+                        (format-type type1)))
+       (unless (nanopass-case (Ltypes Type) (de-alias type2 #t)
+                 [(topaque ,src^ ,opaque-type) (string=? opaque-type "Uint8Array")]
+                 [else #f])
+         (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
+                        (format-type type2)))
+       (values
+         `(prepare-verification ,src ,vk ,(maybe-safecast src pi-type type1 expr1) ,expr2)
+         (with-output-language (Ltypes Type) `(taccumulator ,src))))]
     [(assert ,src ,[Care : expr type0] ,mesg)
      (unless (nanopass-case (Ltypes Type) (de-alias type0 #t)
                [(tboolean ,src1) #t]

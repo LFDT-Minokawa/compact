@@ -169,6 +169,7 @@
       (Info-struct src struct-name type-param* elt-name* type* p)
       (Info-type-alias src nominal? type-name type-param* type p)
       (Info-native-type src type-name type p)
+      (Info-native-keyword handler)
       (Info-ledger ledger-field-name)
       (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)
       ; an Info-var is "baked" into the Lexpanded language and represents a run-time variable bindings
@@ -620,6 +621,7 @@
         [(Info-struct src struct-name type-param* elt-name type* p) "struct"]
         [(Info-type-alias src nominal? type-name type-param* type p) "type alias"]
         [(Info-native-type src type-name type p) "type"]
+        [(Info-native-keyword handler) "keyword"]
         [(Info-ledger ledger-field-name) "ledger field"]
         [(Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p) "ledger ADT type"]
         [(Info-fixup-alias aliased-name info) (describe-info info)]))
@@ -676,6 +678,40 @@
       (source-errorf src "cannot export ~a (~s) from the top level"
                      (describe-info info)
                      name))
+    ;; prepareVerification(vk, publicInputs, proof) names its inner verifying
+    ;; key with a string literal, which is resolved along the compact path and
+    ;; read here, because the key is fixed circuit data: the circuit embeds it
+    ;; and commits to its hash.
+    (define (expand-prepare-verification src p info* expr*)
+      (unless (null? info*)
+        (source-errorf src "prepareVerification expects no generic arguments, received ~d" (length info*)))
+      (let ([n (length expr*)])
+        (unless (fx= n 3)
+          (source-errorf src "prepareVerification expects three arguments, received ~d" n)))
+      (let ([vk-expr (car expr*)] [pi-expr (cadr expr*)] [proof-expr (caddr expr*)])
+        (let* ([pathname (or (nanopass-case (Lpreexpand Expression) vk-expr
+                               ; the parser has already turned a string literal into its UTF-8 bytes
+                               [(quote ,src^ ,datum) (guard (bytevector? datum)) (utf8->string datum)]
+                               [else #f])
+                             (source-errorf src "prepareVerification expects its first argument to be a string literal naming a verifying key file"))]
+               [resolved-pathname (find-source-pathname "" pathname
+                                    (lambda (pathname)
+                                      (source-errorf src "failed to locate verifying key file ~s" pathname)))]
+               [content (guard (c [else (error-accessing-file c "reading verifying key file")])
+                          (let ([x (call-with-port (open-file-input-port resolved-pathname) get-bytevector-all)])
+                            (if (eof-object? x) (bytevector) x)))])
+          (when (fx= (bytevector-length content) 0)
+            (source-errorf src "verifying key file ~s is empty" pathname))
+          (with-output-language (Lexpanded Expression)
+            `(prepare-verification ,src
+               ,(make-verifying-key pathname resolved-pathname content)
+               ,(Expression pi-expr p)
+               ,(Expression proof-expr p))))))
+    (define (keyword-declarations)
+      (let ([src (make-source-object (get-stdlib-sfd) 0 0 1 1)])
+        (list
+          (with-output-language (Lpreexpand Program-Element)
+            `(native-keyword ,src #t prepareVerification ,expand-prepare-verification)))))
     (define (do-import src import-name info* prefix maybe-ielt* p)
       (define (import-insert! src name info)
         (define (add-prefix x) (string->symbol (format "~a~a" prefix (symbol->string x))))
@@ -700,6 +736,7 @@
                                                         (native-declarations)
                                                         (event-declarations)
                                                         (inline-declarations)
+                                                        (keyword-declarations)
                                                         (map (lambda (adt-defn)
                                                                 (nanopass-case (Lpreexpand ADT-Definition) adt-defn
                                                                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
@@ -722,7 +759,7 @@
                                     (set! outer-module-next-seqno (cons (fx1+ (car outer-module-next-seqno)) (cdr outer-module-next-seqno)))
                                     (set-cdr! a info)
                                     info))))
-                       (let* ([pathname (find-source-pathname src
+                       (let* ([pathname (find-source-pathname ".compact"
                                           (if (symbol? import-name) (symbol->string import-name) import-name)
                                           (lambda (pathname) (source-errorf src "failed to locate file ~s" pathname)))]
                               [import-name (if (symbol? import-name) import-name (string->symbol (path-last import-name)))]
@@ -894,6 +931,12 @@
                      (env-insert! p src type-name info)
                      (loop pelt* seqno*
                            (if exported? (cons (make-exportit src type-name info) export*) export*)
+                           unresolved-export*))]
+                  [(native-keyword ,src ,exported? ,function-name ,handler)
+                   (let ([info (Info-native-keyword handler)])
+                     (env-insert! p src function-name info)
+                     (loop pelt* seqno*
+                           (if exported? (cons (make-exportit src function-name info) export*) export*)
                            unresolved-export*))]
                   [(define-adt ,src ,exported? ,adt-name (,type-param* ...) ,vm-expr (,adt-op* ...) (,adt-rt-op* ...))
                    (let ([info (Info-ledger-ADT adt-name type-param* vm-expr adt-op* adt-rt-op* p)])
@@ -1267,8 +1310,21 @@
               [else #f])]
            [else #f])
          `(elt-ref ,src ,(Expression expr p) ,elt-name^))]
-    [(call ,src ,[fun] ,expr* ...) ; force fun to be processed before expr* to get better error messages
-     `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)]
+    [(call ,src ,fun ,expr* ...)
+     (or (nanopass-case (Lpreexpand Function) fun
+           [(fref ,src^ ,function-name)
+            (Info-case (lookup p src^ function-name)
+              [(Info-native-keyword handler) (handler src p '() expr*)]
+              [else #f])]
+           [(fref ,src^ ,function-name (,targ* ...))
+            (Info-case (lookup p src^ function-name)
+              [(Info-native-keyword handler)
+               (handler src p (map (lambda (targ) (Type-Argument->info targ p)) targ*) expr*)]
+              [else #f])]
+           [else #f])
+         ; force fun to be processed before expr* to get better error messages
+         (let ([fun (Function fun p)])
+           `(call ,src ,fun ,(map (lambda (e) (Expression e p)) expr*) ...)))]
     [(serialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])
      `(serialize ,src ,nat ,type ,expr)]
     [(deserialize ,src ,[Type-Size->nat : tsize p 0 -> * nat] ,[type] ,[expr])

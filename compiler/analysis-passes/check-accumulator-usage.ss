@@ -214,6 +214,9 @@
              (none (No-Accumulator* (cons expr expr*) env "an argument of a ledger operation"))]
             [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
              (none (No-Accumulator* (cons expr expr*) env "an argument of a contract call"))]
+            [(prepare-verification ,src ,vk ,expr1 ,expr2)
+             (let ([env (No-Accumulator* (list expr1 expr2) env "an argument of prepareVerification")])
+               (values env (and (not (dead? env)) src)))]
             [(return ,src ,expr)
              (let-values ([(env acc-src) (Expr expr env)])
                (unless (dead? env) (verify-none-live! src env))

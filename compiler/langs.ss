@@ -30,6 +30,7 @@
           Lnoandornot unparse-Lnoandornot Lnoandornot-pretty-formats
           native-entry? make-native-entry native-entry-function native-entry-class native-entry-disclosure* native-entry-maybe-type-param*
           Lpreexpand unparse-Lpreexpand Lpreexpand-pretty-formats
+          make-verifying-key verifying-key? verifying-key-pathname verifying-key-resolved-pathname verifying-key-content
           id-counter make-source-id make-temp-id id? id-src id-sym id-uniq id-refcount id-refcount-set! id-temp? id-exported? id-exported?-set! id-pure? id-pure?-set! id-sealed? id-sealed?-set! id-prefix
           Lexpanded unparse-Lexpanded Lexpanded-pretty-formats
           Ltypes unparse-Ltypes Ltypes-pretty-formats
@@ -406,21 +407,39 @@
     (nongenerative)
     (fields function class disclosure* maybe-type-param*))
 
+  ;; An inner verifying key named by a prepareVerification call and read at
+  ;; compile time.  pathname is what the program wrote, and is what diagnostics
+  ;; name; resolved-pathname is the file found for it; content is its bytes.
+  (module (make-verifying-key verifying-key? verifying-key-pathname
+           verifying-key-resolved-pathname verifying-key-content)
+    (define-record-type verifying-key
+      (nongenerative)
+      (fields pathname resolved-pathname content))
+    (record-writer (record-type-descriptor verifying-key)
+      (lambda (x p wr)
+        (fprintf p "#<verifying-key ~a>" (verifying-key-pathname x)))))
+
   (define-language/pretty Lpreexpand (extends Lnoandornot)
     (terminals
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name type-name))
          (string (prefix mesg opaque-type file)))
       (+ (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (string (prefix mesg opaque-type file discloses))
-         (procedure (result-type runtime-code))
+         (procedure (result-type runtime-code handler))
          (vm-expr (vm-expr))
          (vm-code (vm-code))
          (native-entry (native-entry))))
     (Program-Element (pelt)
       (+ ntdecl
          ndecl
+         nkdecl
          adt-defn
          fixup-alias-defn))
+    ;; A native keyword is a standard-library name whose calls expand-modules-and-types
+    ;; rewrites by calling handler, for forms that are not ordinary circuit calls.
+    (Native-Keyword-Declaration (nkdecl)
+      (+ (native-keyword src exported? function-name handler) =>
+           (native-keyword function-name)))
     (Native-Type-Declaration (ntdecl)
       (+ (native-type src exported? type-name type) =>
            (native-type type-name type)))
@@ -506,6 +525,7 @@
   (define-language/pretty Lexpanded (extends Lpreexpand)
     (terminals
       (+ (len (len)))
+      (+ (verifying-key (vk)))
       (- (symbol (var-name name module-name function-name contract-name struct-name enum-name tvar-name tsize-name elt-name ledger-field-name ledger-op ledger-op-class adt-name adt-formal type-name))
          (boolean (exported sealed pure-dcl nominal))
          (string (prefix mesg opaque-type file discloses)))
@@ -527,11 +547,14 @@
          enumdef
          tdefn
          ntdecl
+         nkdecl
          adt-defn
          fixup-alias-defn)
       (+ export-tdefn))
     (Native-Type-Declaration (ntdecl)
       (- (native-type src exported? type-name type)))
+    (Native-Keyword-Declaration (nkdecl)
+      (- (native-keyword src exported? function-name handler)))
     (ADT-Definition (adt-defn)
       (- (define-adt src exported? adt-name (type-param* ...) vm-expr (adt-op* ...) (adt-rt-op* ...))))
     (Fixup-Alias-Definition (fixup-alias-defn)
@@ -607,7 +630,9 @@
          (enum-ref src type elt-name)       => (enum-ref type elt-name)
          (tuple-slice src expr index len)   => (tuple-slice #f expr #f index #f len)
          (serialize src len type expr)      => (serialize len type expr)
-         (deserialize src len type expr)    => (deserialize len type expr)))
+         (deserialize src len type expr)    => (deserialize len type expr)
+         ;; expr1 is the inner proof's public inputs, expr2 the proof itself
+         (prepare-verification src vk expr1 expr2) => (prepare-verification vk expr1 expr2)))
     (Function (fun)
       (- (fref src function-name)
          (fref src function-name (targ* ...)))
@@ -662,6 +687,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src (contract-type* ...) ((struct-name* type*) ...) ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -776,6 +802,8 @@
       (contract-call src elt-name (expr type) expr* ...) =>
         (contract-call elt-name 4 (expr 0 type) #f expr* ...)
       (return src expr)                       => expr
+      ;; expr1 is the inner proof's public inputs, expr2 the proof itself
+      (prepare-verification src vk expr1 expr2) => (prepare-verification vk expr1 expr2)
       )
     (Map-Argument (map-arg)
       ; type = expr's type; type^ = type to which each element of expr's value must be cast

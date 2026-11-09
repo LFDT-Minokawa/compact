@@ -3141,7 +3141,10 @@
                  (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
               0 "})")))]
        [else
-        (source-errorf src "internal: contract-call type is not a tcontract")])])
+        (source-errorf src "internal: contract-call type is not a tcontract")])]
+    ;; TODO: replaced when TypeScript generation for proof verification lands
+    [(prepare-verification ,src ,vk ,expr1 ,expr2)
+     (source-errorf src "prepareVerification is not yet supported")])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
      (values
