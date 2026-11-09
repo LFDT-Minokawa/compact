@@ -672,7 +672,7 @@ export const CompactTypeOpaqueString: CompactType<string> = {
     if (val == undefined) {
       throw new CompactError("expected Opaque<'string'>");
     }
-    return new TextDecoder('utf-8').decode(val);
+    return new TextDecoder('utf-8', { ignoreBOM: true }).decode(val);
   },
   toValue(value: string): ocrt.Value {
     return [new TextEncoder().encode(value)];

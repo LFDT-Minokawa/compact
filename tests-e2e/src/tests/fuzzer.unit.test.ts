@@ -13,9 +13,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { ENTRY_POINTS, TERMINALS, grammar, validate, validateCategories, type FuzzerName } from '../fuzzer/grammar';
+import {
+    ENTRY_POINTS,
+    TERMINALS,
+    grammar,
+    validate,
+    validateCategories,
+    type FuzzerName,
+    type Terminal,
+} from '../fuzzer/grammar';
 import { DEFAULT_CONTRACTS_PER_FUZZER, MAX_CONTRACTS_PER_FUZZER, resolveContractCount } from '../fuzzer/fuzzers';
 import { Fuzzer } from '../fuzzer/utils/fuzzer';
+import { TERMINAL_GENERATORS, TERMINAL_LIMITS } from '../fuzzer/utils/generators';
 import type { Grammar } from '../fuzzer/grammar/types';
 
 const fuzzerNames = Object.keys(ENTRY_POINTS) as FuzzerName[];
@@ -102,5 +111,82 @@ describe('[UNIT] fuzzer contract count', () => {
         ['absurd', '1e9'],
     ])('%s falls back to the default', (_label, raw) => {
         expect(resolveContractCount(raw)).toBe(DEFAULT_CONTRACTS_PER_FUZZER);
+    });
+});
+
+/* The bounds are the compiler's own, from compiler/langs.ss, so a generator that drifts past them fails here. */
+describe('[UNIT] fuzzer type sizes stay inside the compiler limits', () => {
+    test.each([
+        ['uint_width', 0n, 248n],
+        ['uint_bound', 1n, 2n ** 248n],
+        ['vector_length', 0n, 2n ** 24n],
+        ['bytes_length', 0n, 2n ** 24n],
+        ['merkle_depth', 2n, 32n],
+    ] as [Terminal, bigint, bigint][])('%s is always an integer from %s to %s', (terminal, min, max) => {
+        const draws = Array.from({ length: 5000 }, () => TERMINAL_GENERATORS[terminal](TERMINAL_LIMITS));
+        const illegal = draws.filter((draw) => {
+            try {
+                const value = BigInt(draw);
+                return value < min || value > max;
+            } catch {
+                return true;
+            }
+        });
+        expect(illegal).toEqual([]);
+    });
+});
+
+/* The ZKIR v3 calls are in scope by default, so the default grammar writes them. */
+describe('[UNIT] fuzzer ZKIR v3 calls', () => {
+    const writes = (name: string): boolean =>
+        [...grammar.variable_statement_methods, ...grammar.no_variable_statement_methods].some(
+            (alternative) => Array.isArray(alternative) && alternative[0] === name,
+        );
+
+    test.each([
+        'keccak256',
+        'sha512',
+        'neg',
+        'inv',
+        'secp256k1PointX',
+        'secp256k1PointY',
+        'secp256r1PointX',
+        'secp256r1PointY',
+        'curve25519PointX',
+        'curve25519PointY',
+        'secp256k1EcdsaVerify',
+        'secp256k1EthereumAddress',
+        'secp256r1EcdsaVerify',
+        'ed25519Verify',
+    ])('%s is written', (name) => {
+        expect(writes(name)).toBe(true);
+    });
+});
+
+/* The ZKIR v3 types are in scope by default, so the default grammar writes them. */
+describe('[UNIT] fuzzer ZKIR v3 types', () => {
+    const TYPE_PRODUCTIONS = ['statement_std_types', 'valid_std_types'];
+
+    /* How many of the type productions write a type that starts with this token. */
+    const writers = (first: string): number =>
+        TYPE_PRODUCTIONS.filter((production) =>
+            grammar[production].some((alternative) => Array.isArray(alternative) && alternative[0] === first),
+        ).length;
+
+    test.each([
+        'Secp256k1Base',
+        'Secp256k1Scalar',
+        'Secp256k1Point',
+        'Secp256k1EcdsaSignature',
+        'Secp256r1Base',
+        'Secp256r1Scalar',
+        'Secp256r1Point',
+        'Secp256r1EcdsaSignature',
+        'Curve25519Base',
+        'Curve25519Scalar',
+        'Curve25519Point',
+        'Ed25519Signature',
+    ])('%s is written', (name) => {
+        expect(writers(name)).toBe(TYPE_PRODUCTIONS.length);
     });
 });

@@ -1,0 +1,57 @@
+// This file is part of Compact.
+// Copyright (C) 2026 Midnight Foundation
+// SPDX-License-Identifier: Apache-2.0
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//  	http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
+import CompactStandardLibrary;
+
+export ledger k1: Secp256k1Scalar;
+
+export ledger r1: Secp256r1Base;
+
+export ledger c: Curve25519Scalar;
+
+circuit diff(a: Secp256k1Scalar, b: Secp256k1Scalar): Secp256k1Scalar {
+  return a - b;
+}
+
+// Subtracting a foreign field value from itself gives zero of that field.
+// The compiler used to fold x - x to a constant that a foreign field cannot
+// hold, so these failed to compile with an internal error before issue #866
+// was fixed. The ledger writes make the circuits impure so that ZKIR is
+// generated for them, and inlined_self_subtract only has x - x after diff is
+// inlined.
+export circuit self_subtract(k: Secp256k1Scalar): Secp256k1Scalar {
+  k1 = disclose(k - k);
+  return k1;
+}
+
+export circuit inlined_self_subtract(k: Secp256k1Scalar): Secp256k1Scalar {
+  k1 = disclose(diff(k, k));
+  return k1;
+}
+
+export circuit multiply_self_subtract(k: Secp256k1Scalar, z: Secp256k1Scalar): Secp256k1Scalar {
+  k1 = disclose(k * (z - z));
+  return k1;
+}
+
+export circuit secp256r1_self_subtract(k: Secp256r1Base): Secp256r1Base {
+  r1 = disclose(k - k);
+  return r1;
+}
+
+export circuit curve25519_self_subtract(k: Curve25519Scalar): Curve25519Scalar {
+  c = disclose(k - k);
+  return c;
+}
