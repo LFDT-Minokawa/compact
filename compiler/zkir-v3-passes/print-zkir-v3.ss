@@ -26,6 +26,17 @@
         [else (assert cannot-happen)]))
     (define (alignment->vector alignment*)
       (list->vector (map alignment-atom->alist alignment*)))
+    ;; The inner verifying keys a circuit's prepare_verification instructions name,
+    ;; in first-use order.  zkir rejects a duplicated or unused entry, so each key
+    ;; appears once, and the table is collected per circuit as its instructions print.
+    (define inner-vk*)
+    (define (inner-vk-hash vk)
+      (let ([content (verifying-key-content vk)])
+        (unless (member content inner-vk*)
+          (set! inner-vk* (append inner-vk* (list content))))
+        (apply string-append "0x"
+          (map (lambda (b) (format "~(~2,'0x~)" b))
+               (bytevector->u8-list (sha256-bytevector content))))))
     (module (with-var-table var->string)
       (define ht)
       (define counter)
@@ -65,17 +76,23 @@
      (define (print-circuit op)
        (print-json-compact op
          (with-var-table
-           (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
-                                                 `((name . ,(var->string var-name))
-                                                   (type . ,zkir-type)))
-                                          var-name* zkir-type*))]
-                  [instructions (list->vector (maplr Instruction instr*))]
-                  [outputs (list->vector zkir-type0*)])
-             `((version . ((major . 3) (minor . 1)))
-               (do_communications_commitment . ,(not (no-communications-commitment)))
-               (inputs . ,inputs)
-               (outputs . ,outputs)
-               (instructions . ,instructions))))))
+           (fluid-let ([inner-vk* '()])
+             (let* ([inputs (list->vector (maplr (lambda (var-name zkir-type)
+                                                   `((name . ,(var->string var-name))
+                                                     (type . ,zkir-type)))
+                                            var-name* zkir-type*))]
+                    [instructions (list->vector (maplr Instruction instr*))]
+                    [outputs (list->vector zkir-type0*)])
+               `((version . ((major . 3) (minor . 1)))
+                 (do_communications_commitment . ,(not (no-communications-commitment)))
+                 (inputs . ,inputs)
+                 (outputs . ,outputs)
+                 ,@(if (null? inner-vk*)
+                       '()
+                       `((inner_vks . ,(list->vector
+                                         (map (lambda (content) (list->vector (bytevector->u8-list content)))
+                                              inner-vk*)))))
+                 (instructions . ,instructions)))))))
      (let ([output-port*
              (fold-left (lambda (output-port* name)
                           (let ([target (assq name (target-ports))])
@@ -93,6 +110,19 @@
              (let ([str (call-with-string-output-port print-circuit)])
                (for-each (lambda (op) (put-string op str)) output-port*)))))])
   (Instruction : Instruction (ir) -> * (json)
+    [(accumulate ,[* outp] ,[* inp*] ...)
+     `((op . "accumulate") (inputs . ,(list->vector inp*)) (output . ,outp))]
+    [(inner_proof ,[* outp] ,[* inp])
+     `((op . "inner_proof") (guard . ,inp) (output . ,outp))]
+    [(prepare_verification ,[* outp] ,vk ,[* inp0] ,[* inp1] ,[* inp*] ...)
+     `((op . "prepare_verification")
+       (guard . ,inp0)
+       (vk_hash . ,(inner-vk-hash vk))
+       (instance . ,(list->vector inp*))
+       (proof . ,inp1)
+       (output . ,outp))]
+    [(verify_accumulator ,[* inp])
+     `((op . "verify_accumulator") (input . ,inp))]
     [(add ,[* outp] ,[* inp0] ,[* inp1])
      `((op . "add") (output . ,outp) (a . ,inp0) (b . ,inp1))]
     [(assert ,[* inp])

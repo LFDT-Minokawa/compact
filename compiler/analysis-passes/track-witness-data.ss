@@ -662,6 +662,27 @@
          (record-leak! src "emit operation" witness*)))
      abs]
 
+    ;; The Accumulator prepareVerification produces is exposed when it is
+    ;; verified, and a skipped verification exposes the trivial Accumulator, so
+    ;; verifying under witness-dependent control flow discloses the condition.
+    ;; Until the Accumulator is shown to hide them, the inner proof's public
+    ;; inputs, and the accumulator it carries, are treated as disclosed too.
+    ;; The proof itself is not.
+    [(prepare-verification ,src ,vk ,[* abs1] ,[* abs2] ,expr?)
+     (unless (null? control-witness*)
+       (record-leak! src "performing this prepareVerification" control-witness*))
+     (let ([witness* (abs->witnesses
+                       (add-path-point src "the public inputs of prepareVerification" "" abs1))])
+       (unless (null? witness*)
+         (record-leak! src "prepareVerification" witness*)))
+     (when expr?
+       (let ([witness* (abs->witnesses
+                         (add-path-point src "the carried accumulator of prepareVerification" ""
+                           (Expression expr? p control-witness* disclosing-function-name?)))])
+         (unless (null? witness*)
+           (record-leak! src "prepareVerification" witness*))))
+     (Abs-atomic '())]
+
     [(serialize ,src ,len ,type ,[* abs])
      (Abs-atomic (abs->witnesses abs))]
 

@@ -36,7 +36,7 @@
   (Program-Element : Program-Element (ir pelt*) -> * (pelt*)
     [(circuit ,src ,function-name (,arg* ...) ,type ,expr)
      (if (and (id-exported? function-name)
-              (guard (c [(or (eq? c 'ledger) (eq? c 'emit)) #t])
+              (guard (c [(memq c '(ledger emit verify)) #t])
                 (Expression expr)
                 #f))
          (begin
@@ -50,4 +50,7 @@
     [(emit ,src ,event-version ,event-tag ,len ,expr ,vm-code)
      (raise 'emit)]
     [(contract-call ,src ,elt-name (,expr ,type) ,expr* ...)
-     (raise 'ledger)]))
+     (raise 'ledger)]
+    ;; a verified proof is checked on chain, so the circuit needs a proof of its own
+    [(prepare-verification ,src ,vk ,expr1 ,expr2 ,expr?)
+     (raise 'verify)]))

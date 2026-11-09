@@ -22,6 +22,7 @@ import {
   MAX_SECP256R1_SCALAR,
   MAX_CURVE25519_BASE,
   MAX_CURVE25519_SCALAR,
+  MAX_FIELD,
 } from './constants.js';
 
 /**
@@ -331,6 +332,88 @@ export const CompactTypeField: CompactType<bigint> = {
  * Runtime type of the builtin `JubjubScalar` type
  */
 export const CompactTypeJubjubScalar: CompactType<bigint> = CompactTypeField;
+
+/**
+ * The number of field elements in an {@link Accumulator}'s public-input encoding: two
+ * curve points and two scalars.
+ */
+export const ACCUMULATOR_PUBLIC_INPUTS = 12;
+
+/**
+ * The Compact builtin `Accumulator` type: the deferred final check of one or more
+ * proofs verified in a circuit.
+ *
+ * An accumulator the circuit computes, with `prepareVerification` or `accumulate`, is
+ * opaque here: only the circuit knows its value. An accumulator a witness supplies,
+ * the one an inner proof carries, is built with {@link Accumulator.fromPublicInputs}
+ * from its public-input encoding, which it keeps.
+ */
+export class Accumulator {
+  /**
+   * The public-input encoding of an accumulator a witness supplied, or `undefined`
+   * for one the circuit computes.
+   */
+  readonly publicInputs: readonly bigint[] | undefined;
+
+  private constructor(publicInputs: readonly bigint[] | undefined) {
+    this.publicInputs = publicInputs;
+  }
+
+  /**
+   * An accumulator the circuit computes.
+   *
+   * @internal
+   */
+  static computed(): Accumulator {
+    return new Accumulator(undefined);
+  }
+
+  /**
+   * The accumulator whose public-input encoding is `publicInputs`: the
+   * {@link ACCUMULATOR_PUBLIC_INPUTS} field elements an inner proof that carries an
+   * accumulator ends its public inputs with.
+   */
+  static fromPublicInputs(publicInputs: readonly bigint[]): Accumulator {
+    if (publicInputs.length !== ACCUMULATOR_PUBLIC_INPUTS) {
+      throw new CompactError(
+        `expected ${ACCUMULATOR_PUBLIC_INPUTS} public inputs for an Accumulator, received ${publicInputs.length}`,
+      );
+    }
+    for (const field of publicInputs) {
+      if (typeof field !== 'bigint' || field < 0n || field > MAX_FIELD) {
+        throw new CompactError('expected a field element in the public inputs of an Accumulator');
+      }
+    }
+    return new Accumulator([...publicInputs]);
+  }
+}
+
+/**
+ * Runtime type of {@link Accumulator}. Only an accumulator a witness supplies has a
+ * value to convert.
+ */
+export const CompactTypeAccumulator: CompactType<Accumulator> = {
+  alignment(): ocrt.Alignment {
+    return Array.from({ length: ACCUMULATOR_PUBLIC_INPUTS }, () => ({
+      tag: 'atom' as const,
+      value: { tag: 'field' as const },
+    }));
+  },
+  fromValue(value: ocrt.Value): Accumulator {
+    if (value.length < ACCUMULATOR_PUBLIC_INPUTS) {
+      throw new CompactError('expected Accumulator');
+    }
+    return Accumulator.fromPublicInputs(
+      value.splice(0, ACCUMULATOR_PUBLIC_INPUTS).map((field) => ocrt.valueToBigInt([field])),
+    );
+  },
+  toValue(value: Accumulator): ocrt.Value {
+    if (value.publicInputs === undefined) {
+      throw new CompactError('an Accumulator the circuit computes has no value to convert');
+    }
+    return value.publicInputs.flatMap((field) => ocrt.bigIntToValue(field));
+  },
+};
 
 // Implementation of foreign field values up to 32 bytes, encoded as the low 24
 // bytes (3 64-bit "limbs") and the high 8 bytes (one64-bit "limb"), and where

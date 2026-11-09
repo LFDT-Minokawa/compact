@@ -104,6 +104,8 @@
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
+              ;; never used for encoding: an Accumulator cannot reach the ledger, a witness, or an export
+              [(taccumulator ,src) (cons `(anative "Accumulator") a*)]
               [(tpoint ,src ,ctype)
                (strict-nanopass-case (Lcircuit Curve-Type) ctype
                  [(curve-curve25519)
@@ -239,6 +241,7 @@
     [(tfield ,src ,[ftype]) `(tfield ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,nat)]
     [(tpoint ,src ,[ctype]) `(tpoint ,ctype)]
+    [(taccumulator ,src) `(taccumulator)]
     [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
      `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
@@ -283,6 +286,7 @@
                           [(curve-secp256k1) (make-zkir-default "Secp256k1Scalar")]
                           [(curve-secp256r1) (make-zkir-default "Secp256r1Scalar")])])]
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                    [(taccumulator ,src) (internal-errorf 'flatten-datatypes "Accumulator has no default value")]
                     [(tpoint ,src ,ctype)
                      (with-output-language (Lflattened Statement)
                        (strict-nanopass-case (Lcircuit Curve-Type) ctype
@@ -496,6 +500,13 @@
      (hashtable-set! var-ht var-name (Wump-single var-name))
      (with-output-language (Lflattened Statement)
        (list `(= ,test ,var-name (downcast-unsigned ,src #f ,nat2 ,nat1 ,triv))))]
+    ;; the public inputs flatten to one field each; the proof is a single opaque value
+    [(prepare-verification ,src ,vk ,[* wump1] ,[Single-Triv : triv2] ,triv?)
+     (hashtable-set! var-ht var-name (Wump-single var-name))
+     (with-output-language (Lflattened Statement)
+       (list `(= ,test ,var-name
+                (prepare-verification ,src ,vk ,triv2 ,(and triv? (Single-Triv triv?))
+                  ,(wump->elts wump1) ...))))]
     [(elt-ref ,[* wump] ,elt-name)
      (hashtable-set! var-ht var-name
        (Wump-case wump

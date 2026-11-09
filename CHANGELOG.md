@@ -5,6 +5,32 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Toolchain 0.36.103, language 0.28.100, runtime 0.21.101]
+
+### Added
+
+- Circuits can verify other proofs.  The standard library has a new type
+  `Accumulator` and new circuits `prepareVerification`, `accumulate`, and
+  `verifyAccumulator`.  `prepareVerification(vk, publicInputs, proof)`
+  partially verifies an inner proof against a verifying key that the compiler
+  reads from a file at compile time, and returns an `Accumulator` holding the
+  proof's deferred final check.  `accumulate` combines any number of
+  accumulators into one, and `verifyAccumulator` exposes an accumulator so that
+  it is checked when the transaction's own proof is verified.  Each accumulator
+  must be used exactly once on every path through a circuit, and the compiler
+  reports one that is dropped or used twice.  An inner proof that carries an
+  accumulator of its own, because it verified proofs itself, is verified by
+  passing that accumulator, typically returned by a witness, as an optional
+  fourth argument to `prepareVerification`.
+
+  **Proving a circuit that uses these features requires ZKIR and ledger
+  releases that support in-circuit proof verification.**
+
+- The JavaScript runtime records the inner proofs a circuit verifies in a new
+  `innerProofs` field of `PartialProofData`, and has new functions
+  `prepareVerification`, `accumulate`, and `verifyAccumulator` for the
+  generated code to call.
+
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 
 ### Fixed

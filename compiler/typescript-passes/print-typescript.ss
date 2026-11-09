@@ -36,6 +36,7 @@
          "curve25519ScalarSub"
          "decodeContractAddress"
          "mulField"
+         "prepareVerification"
          "secp256k1BaseAdd"
          "secp256k1BaseMul"
          "secp256k1BaseSub"
@@ -902,6 +903,7 @@
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -1005,6 +1007,7 @@
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
+                [(taccumulator ,src) "__compactRuntime.CompactTypeAccumulator"]
                 [(tpoint ,src ,ctype)
                  (format "__compactRuntime.CompactType~a" (format-point-type ctype))]
                 [(tbytes ,src ,len)
@@ -1103,6 +1106,7 @@
                        var field-name))]
                   [(tunsigned ,src ,nat)
                    (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
+                  [(taccumulator ,src) (format "~a instanceof __compactRuntime.Accumulator" var)]
                   [(tpoint ,src ,ctype)
                    ;; The tfield case above bounds a bare field element and an
                    ;; unbounded check here would let the same bigint through as
@@ -1385,7 +1389,8 @@
                                                 0 "},")
                                             4 "output: undefined,"
                                             4 "publicTranscript: [],"
-                                            4 "privateTranscriptOutputs: []"
+                                            4 "privateTranscriptOutputs: [],"
+                                            4 "innerProofs: []"
                                             2 "};"
                                             2 (format "const ~a = await this." result)
                                               uname "("
@@ -1642,7 +1647,8 @@
                       4 "input: { value: [], alignment: [] },"
                       4 "output: undefined,"
                       4 "publicTranscript: [],"
-                      4 "privateTranscriptOutputs: []"
+                      4 "privateTranscriptOutputs: [],"
+                      4 "innerProofs: []"
                       2 "};"
                       2 "return {"
                       4 (apply (make-Qsep ",")
@@ -1754,7 +1760,8 @@
                                                  4 "input: { value: [], alignment: [] },"
                                                  4 "output: undefined,"
                                                  4 "publicTranscript: [],"
-                                                 4 "privateTranscriptOutputs: []"
+                                                 4 "privateTranscriptOutputs: [],"
+                                                 4 "innerProofs: []"
                                                  2 "};"
                                                  (ledger-reset-to-default src pl-array
                                                    (list
@@ -1983,6 +1990,7 @@
           [(tboolean ,src) "{tag: 'Boolean'}"]
           [(tfield ,src ,ftype)
            (format "{tag: ~a}" (format-javascript-string (format-field-type ftype)))]
+          [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no compact type descriptor")]
           [(tpoint ,src ,ctype)
            (format "{tag: ~a}" (format-javascript-string (format-point-type ctype)))]
           [(tunsigned ,src ,nat)
@@ -2503,6 +2511,7 @@
                        (printf "}\n"))
                      elt-name*
                      type*)]
+                  [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator values cannot be compared")]
                   [(tpoint ,src ,ctype)
                    (strict-nanopass-case (Ltypescript Curve-Type) ctype
                      [(curve-curve25519)
@@ -2567,6 +2576,7 @@
              [(tboolean ,src) "false"]
              [(tfield ,src ,ftype) "0n"]
              [(tunsigned ,src ,nat) "0n"]
+             [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no default value")]
              [(tpoint ,src ,ctype)
               (strict-nanopass-case (Ltypescript Curve-Type) ctype
                 [(curve-curve25519) "({x: 0n, y: 1n})"]
@@ -3135,7 +3145,29 @@
                  (make-Qconcat "args: [" (apply (make-Qsep ",") expr*) "]"))
               0 "})")))]
        [else
-        (source-errorf src "internal: contract-call type is not a tcontract")])])
+        (source-errorf src "internal: contract-call type is not a tcontract")])]
+    ;; Lower prepareVerification(vk, publicInputs, proof) to
+    ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', publicInputs, proof)
+    ;; which records the proof as the next inner proof the circuit consumes.  The key
+    ;; goes out as the hex of the same bytes the circuit's inner_vks holds.
+    [(prepare-verification ,src ,vk
+       ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2]
+       ,expr?)
+     (parenthesize level (precedence call)
+       (make-Qconcat
+         (compact-stdlib "prepareVerification")
+         "("
+         (apply (make-Qsep ",")
+            "partialProofData"
+            (format-javascript-string
+              (apply string-append "0x"
+                (map (lambda (b) (format "~(~2,'0x~)" b))
+                     (bytevector->u8-list (verifying-key-content vk)))))
+            expr1
+            expr2
+            (if expr? (list (Expr expr? (precedence add1 comma) outer-pure?)) '()))
+         ")"))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
      (values
@@ -3200,6 +3232,7 @@
                        [(tfield ,src ,ftype) #t])]
                    [(tpoint ,src1 ,ctype1)
                     (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
+                   [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
                    [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                    [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                    [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
@@ -3251,6 +3284,7 @@
     [(tboolean ,src) "boolean"]
     [(tfield ,src ,ftype) "bigint"]
     [(tunsigned ,src ,nat) "bigint"]
+    [(taccumulator ,src) "__compactRuntime.Accumulator"]
     [(tpoint ,src ,ctype)
      (strict-nanopass-case (Ltypescript Curve-Type) ctype
        [(curve-curve25519) "__compactRuntime.Curve25519Point"]

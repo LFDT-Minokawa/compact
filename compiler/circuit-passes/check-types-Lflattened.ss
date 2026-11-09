@@ -80,6 +80,7 @@
         [(tfield ,ftype) (format-field-type ftype)]
         [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
         [(tpoint ,ctype) (format-point-type ctype)]
+        [(taccumulator) "Accumulator"]
         [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
          (format "contract ~a<~{~a~^, ~}>" contract-name
@@ -171,6 +172,7 @@
            ;; default<public-adt> is the only value of type public-adt and is represented by 0
            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
             (eqv? nat1 0)])]
+        [(taccumulator) (T primitive-type2 [(taccumulator) #t])]
         [(tpoint ,ctype)
          (strict-nanopass-case (Lflattened Curve-Type) ctype
            [(curve-curve25519) (T primitive-type2 [(tpoint (curve-curve25519)) #t])]
@@ -543,6 +545,23 @@
        (source-errorf src "expected Uint for downcast-unsigned, received ~a"
          (format-primitive-type primitive-type)))
      (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))]
+    [(prepare-verification ,src ,vk ,[* primitive-type] ,triv? ,[* primitive-type*] ...)
+     (when triv?
+       (let ([primitive-type^ (Triv triv?)])
+         (unless (T primitive-type^ [(taccumulator) #t])
+           (source-errorf src "expected Accumulator for the carried accumulator of prepareVerification, received ~a"
+             (format-primitive-type primitive-type^)))))
+     (unless (T primitive-type [(topaque ,opaque-type) (string=? opaque-type "Uint8Array")])
+       (source-errorf src "expected Opaque<'Uint8Array'> for the proof of prepareVerification, received ~a"
+         (format-primitive-type primitive-type)))
+     (let ([field-type (with-output-language (Lflattened Primitive-Type) `(tfield (field-native)))])
+       (for-each
+         (lambda (primitive-type)
+           (unless (sub-primitive-type? primitive-type field-type)
+             (source-errorf src "expected Field for a public input of prepareVerification, received ~a"
+               (format-primitive-type primitive-type))))
+         primitive-type*))
+     (with-output-language (Lflattened Primitive-Type) `(taccumulator))]
     [else (internal-errorf 'Single "unhandled form ~s\n" ir)])
   (Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]

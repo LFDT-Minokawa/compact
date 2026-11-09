@@ -18459,6 +18459,588 @@ groups than for single tests.
 
   (test
     '(
+      "circuit foo(a: Accumulator): [] { }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 16" "unbound identifier ~s" (Accumulator)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Field { return a; }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Accumulator" "Field" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Accumulator {"
+      "  const b: Accumulator = a;"
+      "  return b;"
+      "}"
+      "export circuit bar(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(a: Accumulator): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(): Accumulator { return 1; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("return value of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(a: Accumulator): Field;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 11" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of witness w" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(): Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger x: Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field x" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger m: Map<Field, Accumulator>;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field m" "Map<Field, Accumulator>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(a: Accumulator) { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 13" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of the ledger constructor" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit f(a: Accumulator): []; }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 24" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of contract circuit f" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { a: Accumulator; }"
+      "circuit f(s: S): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'a'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(v: Vector<2, Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("vector element" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(t: [Accumulator, Field]): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("tuple element 1" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(): Accumulator { return default<Accumulator>; }"
+      "export circuit g(): [] { f(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 35" "default is not defined for type ~a" ("Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(m: Maybe<Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'value'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export new type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return id(b); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { return b ? id(a) : a; }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { if (b) { return a; } return id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 11" "Accumulator ~s is never used on the path through the return at ~a" (a "line 3 char 1")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 62" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): Accumulator { return g(a, a); }"
+      "circuit g(a: Accumulator, c: Accumulator): Accumulator { return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 54" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a1: Accumulator, a2: Accumulator): Accumulator { return b ? a1 : a2; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 79" "Accumulator ~s is used on some paths through this if but not on others" (a1)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator, c: Accumulator): Accumulator { if (b) { return a; } return c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 39" "Accumulator ~s is never used on the path through the return at ~a" (c "line 3 char 79")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 33" "this Accumulator is never used" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator, c: Accumulator): Boolean { return a == c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 61" "an Accumulator cannot be used as ~a" ("an operand of ==")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { return disclose(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { const t = [a, 1]; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 44" "an Accumulator cannot be used as ~a" ("a tuple element")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { for (const i of 0..2) { id(a); } return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 69" "Accumulator ~s cannot be used inside a for loop, map, or fold" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Field { return transientHash<Accumulator>(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 70" "an Accumulator cannot be passed to ~a ~s" (native transientHash)))
+    )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(x: Field, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [x, 1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 52" "this Accumulator is never used" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects three or four arguments, received ~d" (2)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification<2>(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "prepareVerification expects no generic arguments, received ~d" (1)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(k: Bytes<17>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(k, [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "prepareVerification expects its first argument to be a string literal naming a verifying key file" ()))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"no-such.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "failed to locate verifying key file ~s" ("no-such.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"empty.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 58" "verifying key file ~s is empty" ("empty.verifier")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(b: Bytes<32>, p: Opaque<'Uint8Array'>): Accumulator { return prepareVerification(\"testfile.verifier\", [b], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 72" "expected the public inputs of prepareVerification to have type Vector<n, Field> for some n, received ~a" ("[Bytes<32>]")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 43" "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "circuit f(p: Opaque<'Uint8Array'>): [] { prepareVerification(\"testfile.verifier\", [1 as Field], p); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 42" "unbound identifier ~s" (prepareVerification)))
+    ))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(a); verifyAccumulator(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 73" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 65" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import { Accumulator, accumulate, verifyAccumulator } from CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator, c: Accumulator): [] { verifyAccumulator(accumulate(a, b, c)); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): [] { verifyAccumulator(accumulate(a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 51" "accumulate expects at least two arguments, received ~d" (1)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, x: Field): [] { verifyAccumulator(accumulate(a, x)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 61" "no compatible function named ~a is in scope at this call~@[~a~]~@[~a~]~@[~a~]" (accumulate #f "\n    one function is incompatible with the supplied argument types\n      supplied argument types:\n        (Accumulator, Field)\n      declared argument types for function at <standard library>:\n        (Accumulator, Accumulator)" #f)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator, b: Accumulator): [] { verifyAccumulator(accumulate(a, b, a)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 84" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary prefix X;"
+      "circuit f(a: XAccumulator, b: XAccumulator): [] { XverifyAccumulator(X__compact_accumulate(a, b)); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 70" "unbound identifier ~s" (X__compact_accumulate)))
+    )
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, x: Field): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, x); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 68" "expected the carried accumulator of prepareVerification to have type Accumulator, received ~a" ("Field")))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return prepareVerification(\"testfile.verifier\", [1 as Field], p, a, a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 74" "prepareVerification expects three or four arguments, received ~d" (5)))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(p: Opaque<'Uint8Array'>, a: Accumulator): Accumulator { return accumulate(prepareVerification(\"testfile.verifier\", [1 as Field], p, a), a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 147" "Accumulator ~s is used more than once" (a)))
+    ))
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
@@ -31146,6 +31728,19 @@ groups than for single tests.
   )
 
 (run-tests identify-pure-circuits
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "pure circuit f(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] { f(p); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "circuit ~a is marked pure but is actually impure because it ~a at ~a" (f "verifies a proof against \"testfile.verifier\"" "line 3 char 21")))
+    ))
   (test
     '(
       "module M {"
@@ -31399,6 +31994,107 @@ groups than for single tests.
 )
 
 (run-tests track-witness-data
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), carried()));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 5 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the return value of witness carried at line 3 char 1" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the carried accumulator of prepareVerification at line 5 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [disclose(x)], p));"
+      "}"
+      )
+    (succeeds)))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(x: Field, p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [x], p));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 21" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter x of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      prepareVerification might disclose the witness value\n    via this path through the program:\n      the public inputs of prepareVerification at line 3 char 21"))))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (c) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 30" "potential witness-value disclosure must be declared but is not:
+    witness value potentially disclosed:
+      ~a~{~a~}" ("the value of parameter c of exported circuit main at line 2 char 21" ("\n    nature of the disclosure:\n      performing this prepareVerification might disclose the boolean value of the witness value\n    via this path through the program:\n      the conditional branch at line 3 char 3"))))
+    ))
   (test
     '(
       "ledger X: Field;"
@@ -45137,6 +45833,137 @@ groups than for single tests.
 )
 
 (run-tests optimize-circuit2
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.13)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.14) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.15)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= %c.14
+             %t.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.15
+               #f
+               1))
+          (= %c.14 () (call %verifyAccumulator.2 %t.9)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.16)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.17) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.18)
+              (ty ((acompress)) ((topaque "Uint8Array"))))
+            (argument
+              (%q.19)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ()) (= 1 %t.21 (select %c.17 0 1))
+          (= %c.17
+             %t.11
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               #f
+               1))
+          (= %t.21
+             %t.13
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %q.19
+               #f
+               2))
+          (= 1 %a.22 (select %c.17 %t.11 %t.13))
+          (= 1 () (call %verifyAccumulator.2 %a.22)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (returns
+      (program (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %__compact_accumulate.2
+          ((argument
+             (%a.15)
+             (ty ((anative "Accumulator")) ((taccumulator))))
+            (argument
+              (%b.16)
+              (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty ((anative "Accumulator")) ((taccumulator))))
+        (native
+          %verifyAccumulator.5
+          ((argument
+             (%acc.17)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument
+             (%p.18)
+             (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= 1
+             %a.8
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               #f
+               1))
+          (= 1
+             %b.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               #f
+               1))
+          (= 1 (%t.19) (call %__compact_accumulate.2 %a.8 %b.9))
+          (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
+    ))
+
   (test
     `(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"
@@ -51086,6 +51913,249 @@ groups than for single tests.
 )
 
 (run-tests print-zkir-v3
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"private_input\", \"type\": \"Scalar<BLS12-381>\", \"output\": \"%t.0\", \"guard\": null },"
+        "    { \"op\": \"private_input\", \"type\": \"Accumulator\", \"output\": \"%t.1\", \"guard\": null },"
+        "    { \"op\": \"encode\", \"outputs\": [\"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"input\": \"%t.1\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.14\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\", \"%carried.2\", \"%carried.3\", \"%carried.4\", \"%carried.5\", \"%carried.6\", \"%carried.7\", \"%carried.8\", \"%carried.9\", \"%carried.10\", \"%carried.11\", \"%carried.12\", \"%carried.13\"], \"proof\": \"%proof.14\", \"output\": \"%acc.15\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc.15\", \"%t.1\"], \"output\": \"%t.16\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.16\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const acc1 = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const acc2 = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const acc3 = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(acc1, acc2, acc3));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%acc1.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%acc2.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%acc3.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%acc1.4\", \"%acc2.6\", \"%acc3.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%t.2\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.2\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.2\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.2\", \"output\": \"%t.3\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.3\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%c.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%p.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"constrain_to_boolean\", \"val\": \"%c.0\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%t.3\", \"bit\": \"%c.0\", \"a\": \"0x00\", \"b\": \"0x01\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%c.0\", \"output\": \"%proof.4\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%c.0\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.4\", \"output\": \"%t.5\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"%t.3\", \"output\": \"%proof.6\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"%t.3\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.6\", \"output\": \"%t.7\" },"
+        "    { \"op\": \"cond_select\", \"output\": \"%a.8\", \"bit\": \"%c.0\", \"a\": \"%t.5\", \"b\": \"%t.7\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%a.8\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.1\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.1\", \"output\": \"%a.2\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%b.4\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.2\", \"%b.4\"], \"output\": \"%t.5\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.5\" }"
+        "  ]"
+        "}"))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(accumulate(a, b), c));"
+      "}"
+      )
+    (output-file "compiler/testdir/zkir/main.zkir"
+      '(
+        "{"
+        "  \"version\": { \"major\": 3, \"minor\": 1 },"
+        "  \"do_communications_commitment\": true,"
+        "  \"inputs\": ["
+        "    { \"name\": \"%p.0\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%q.1\", \"type\": \"Scalar<BLS12-381>\" },"
+        "    { \"name\": \"%r.2\", \"type\": \"Scalar<BLS12-381>\" }"
+        "  ],"
+        "  \"outputs\": ["
+        "  ],"
+        "  \"inner_vks\": ["
+        "    [112, 108, 97, 99, 101, 104, 111, 108, 100, 101, 114, 32, 105, 110, 110, 101, 114, 32, 118, 101, 114, 105, 102, 121, 105, 110, 103, 32, 107, 101, 121, 10]"
+        "  ],"
+        "  \"instructions\": ["
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.3\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x01\"], \"proof\": \"%proof.3\", \"output\": \"%a.4\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.5\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x02\"], \"proof\": \"%proof.5\", \"output\": \"%b.6\" },"
+        "    { \"op\": \"inner_proof\", \"guard\": \"0x01\", \"output\": \"%proof.7\" },"
+        "    { \"op\": \"prepare_verification\", \"guard\": \"0x01\", \"vk_hash\": \"0xb88a7e3d148bbbe0aefc7dd3ed2dad5720cc3409cdd075da8fbbd19e9705238d\", \"instance\": [\"0x03\"], \"proof\": \"%proof.7\", \"output\": \"%c.8\" },"
+        "    { \"op\": \"accumulate\", \"inputs\": [\"%a.4\", \"%b.6\", \"%c.8\"], \"output\": \"%t.9\" },"
+        "    { \"op\": \"verify_accumulator\", \"input\": \"%t.9\" }"
+        "  ]"
+        "}"))
+    ))
+
   (test
     "examples/tiny.compact"
     (output-file "compiler/testdir/zkir/public_key.zkir" #f)
@@ -59930,6 +61000,74 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness innerProof(): Opaque<'Uint8Array'>;"
+      "witness carried(): Accumulator;"
+      "export circuit main(): [] {"
+      "  verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], innerProof(), disclose(carried())));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('a witness supplies the accumulator an inner proof carries', async () => {"
+        "  const p = new Uint8Array([1]);"
+        "  const encoding = Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1));"
+        "  const [C, Ctxt] = await startContract(contractCode, {"
+        "    innerProof(wc: runtime.WitnessContext<{}, number>): [number, Uint8Array] { return [wc.privateState, p]; },"
+        "    carried(wc: runtime.WitnessContext<{}, number>): [number, runtime.Accumulator] {"
+        "      return [wc.privateState, runtime.Accumulator.fromPublicInputs(encoding)];"
+        "    },"
+        "  }, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check, as above"
+        "  Ctxt.callContext.circuitId = 'main';"
+        "  const r = await C.provableCircuits.main(Ctxt);"
+        "  const data = r.context.callProofDataTrace.at(-1);"
+        "  expect(data?.innerProofs).toEqual([p]);"
+        "  // the proof, then the carried accumulator's encoding, which the circuit reads"
+        "  expect(data?.privateTranscriptOutputs).toHaveLength(2);"
+        "  expect(data?.privateTranscriptOutputs[1]?.alignment).toHaveLength(runtime.ACCUMULATOR_PUBLIC_INPUTS);"
+        "});"
+        ))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(a, b, c));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('prepareVerification records the inner proofs a circuit verifies', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check, which needs a zkir that"
+        "  // knows prepare_verification; it also leaves setting the circuit id to the caller"
+        "  const p = new Uint8Array([1]);"
+        "  const q = new Uint8Array([2]);"
+        "  const r = new Uint8Array([3]);"
+        "  Ctxt.callContext.circuitId = 'guarded';"
+        "  const on = await C.provableCircuits.guarded(Ctxt, true, p);"
+        "  expect(on.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p]);"
+        "  const off = await C.provableCircuits.guarded(Ctxt, false, p);"
+        "  expect(off.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([]);"
+        "  Ctxt.callContext.circuitId = 'three';"
+        "  const all = await C.provableCircuits.three(Ctxt, p, q, r);"
+        "  expect(all.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p, q, r]);"
+        "});"
+        ))
+    ))
+
   ; change: " --> ' for message of assert
   (test
     '(
@@ -64691,7 +65829,8 @@ groups than for single tests.
         "          },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._set_0(context, partialProofData, v_0);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -64715,7 +65854,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._get_0(context, partialProofData);"
         "        partialProofData.output = { value: _descriptor_4.toValue(result_0), alignment: _descriptor_4.alignment() };"
@@ -64739,7 +65879,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._clear_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -64800,7 +65941,8 @@ groups than for single tests.
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
         "      publicTranscript: [],"
-        "      privateTranscriptOutputs: []"
+        "      privateTranscriptOutputs: [],"
+        "      innerProofs: []"
         "    };"
         "    __compactRuntime.queryLedgerState(context,"
         "                                      partialProofData,"
@@ -65037,7 +66179,8 @@ groups than for single tests.
         "    input: { value: [], alignment: [] },"
         "    output: undefined,"
         "    publicTranscript: [],"
-        "    privateTranscriptOutputs: []"
+        "    privateTranscriptOutputs: [],"
+        "    innerProofs: []"
         "  };"
         "  return {"
         "    get value() {"
@@ -65098,7 +66241,7 @@ groups than for single tests.
         "  \"sourceRoot\": \"../src/\","
         "  \"sources\": [\"examples/tiny.compact\", \"compiler/standard-library.compact\"],"
         "  \"names\": [],"
-        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
+        "  \"mappings\": \";;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;EAsDA;;;;;;;;;;;;;MA2BA,AAAA,GAOC;;;;;cAPW,GAAQ;;;;;;;;;;;;;;;;;;yCAAR,GAAQ;;;;;;;;sEAAR,GAAQ;;;;OAOnB;MAWD,AAAA,GAEC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MASD,AAAA,KAQC;;;;;;;;;;;;;;;;;;;;;;;;OAAA;MAMD,MAAA,UAEC;;OAAA;;;;;;;;;;;;GAnEA;EALD;;;;;UAAY,GAAQ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;IAHpB;;;;;;;;;yEAA4B;IAC5B;;;;;;;;;yEAA2B;IAC3B;;;;;;;;;yEAAoB;UAEZ,IAAyB;UAC/B,KAAS,sBAAc,IAAE;IAAzB;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;;;;;;GACN;ECpCD,AAAA,OAEC,CAFsB,OAAQ,mCACU,OAAK,KAC7C;EAED,AAAA,OAEC,4CAAA;EA7BD,AAAA,iBAAA,CAAA,OAAA;oEAAA,OAAA;;GAAA;EDqEA,AAAA,qBAAwC;;0DAAxC,kBAAwC;;;;;;;;;;;;;;GAAA;EAQxC,AAAA,iBAEC,4BAFgB,GAAQ;mCAChB;;;;;;;;;;;wGAAK;;WAAI,GAAC;GAClB;EAED,AAAA,YAOC,4BAPW,GAAQ;;;UAEZ,IAAyB;UACzB,KAAoB,sBAAH,IAAE;IACzB;;;;;;;2HAAY,KAAG;;yEAAN;IACT;;;;;;;2HAAiB,GAAC;;yEAAb;IACL;;;;;;;;;yEAAK;;GACN;EAWD,AAAA,YAEC;;kDAD0C;;;;;;;;;;;uHAAK;;;;GAC/C;EASD,AAAA,cAQC;;;UANO,IAAyB;UACzB,KAAoB,sBAAH,IAAE;0CAClB,KAAG;kEAAI;;;;;;;;;;;uIAAS;;UACvB,KAAS;IAAT;;;;;;;2HAAA,KAAS;;yEAAA;IACT;;;;;;;;;yEAAK;IACL;;;;;;;;;yEAAK;;GACN;EAMD,AAAA,aAEC,CAFkB,IAAa;;mCACmD,IAAE;GACpF;;;;;;;;;;;;;;;;;;;;;IA1ED;qCAAA;;;;;;;;;;;0GAA2B;KAAA;;;;;;;;;;EAwE3B,AAAA,UAEC;;;;UAFkB,IAAa;;;;;;;;wCAAb,IAAa;GAE/B;;;;;;;;;;;;;\""
         "}"))
     (stage-javascript "test-center/ts/tiny.ts")
   )
@@ -78634,7 +79777,8 @@ groups than for single tests.
         "          input: { value: [], alignment: [] },"
         "          output: undefined,"
         "          publicTranscript: [],"
-        "          privateTranscriptOutputs: []"
+        "          privateTranscriptOutputs: [],"
+        "          innerProofs: []"
         "        };"
         "        const result_0 = await this._foo_0(context, partialProofData);"
         "        partialProofData.output = { value: [], alignment: [] };"
@@ -78671,7 +79815,8 @@ groups than for single tests.
         "      input: { value: [], alignment: [] },"
         "      output: undefined,"
         "      publicTranscript: [],"
-        "      privateTranscriptOutputs: []"
+        "      privateTranscriptOutputs: [],"
+        "      innerProofs: []"
         "    };"
         "    state_0.data = new __compactRuntime.ChargedState(context.callContext.currentQueryContext.state.state);"
         "    return {"
@@ -78724,7 +79869,8 @@ groups than for single tests.
         "    input: { value: [], alignment: [] },"
         "    output: undefined,"
         "    publicTranscript: [],"
-        "    privateTranscriptOutputs: []"
+        "    privateTranscriptOutputs: [],"
+        "    innerProofs: []"
         "  };"
         "  return {"
         "  };"
@@ -84916,6 +86062,39 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Bytes<32> {"
+      "  return serialize<Accumulator, 32>(a);"
+      "}"
+      "circuit baz(bv: Bytes<32>): Bytes<32> {"
+      "  return foo(deserialize<Accumulator, 32>(bv));"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  baz(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "an Accumulator cannot be used as ~a" ("the argument of serialize")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(bv: Bytes<32>): Accumulator {"
+      "  return deserialize<Accumulator, 32>(bv);"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  foo(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "an Accumulator cannot be deserialized" ()))
     )
 
   (test

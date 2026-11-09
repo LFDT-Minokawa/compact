@@ -126,6 +126,16 @@ const REGISTRY: Readonly<Record<string, readonly Case[]>> = {
     sample('Vector<2, Secp256k1Scalar>', new runtime.CompactTypeVector(2, runtime.CompactTypeSecp256k1Scalar), [1n, 2n]),
   ],
   CompactTypeJubjubPoint: [sample('JubjubPoint', runtime.CompactTypeJubjubPoint, { x: 11n, y: 22n })],
+  // Only an accumulator a witness supplies has a value; the circuit computes the rest.
+  CompactTypeAccumulator: [
+    sample(
+      'Accumulator (supplied)',
+      runtime.CompactTypeAccumulator,
+      runtime.Accumulator.fromPublicInputs(
+        Array.from({ length: runtime.ACCUMULATOR_PUBLIC_INPUTS }, (_, i) => BigInt(i + 1)),
+      ),
+    ),
+  ],
   CompactTypeSecp256k1Base: [
     sample('Secp256k1Base', runtime.CompactTypeSecp256k1Base, SECP256K1_G.x),
     sample('Secp256k1Base (zero)', runtime.CompactTypeSecp256k1Base, 0n),

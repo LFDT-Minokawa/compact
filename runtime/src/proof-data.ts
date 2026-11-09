@@ -31,6 +31,12 @@ export interface PartialProofData {
    * The transcript of the witness call outputs
    */
   privateTranscriptOutputs: ocrt.AlignedValue[];
+  /**
+   * The inner proofs the circuit verifies, one for each `prepareVerification` the circuit
+   * executes, in execution order. A `prepareVerification` in a branch that is not taken
+   * records nothing.
+   */
+  innerProofs: Uint8Array[];
 }
 
 /**
