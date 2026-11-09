@@ -104,6 +104,7 @@
               [(tunsigned ,src ,nat)
                (let ([len (max 1 (ceiling (/ (bitwise-length nat) 8)))])
                  (cons `(abytes ,len) a*))]
+              [(taccumulator ,src) (internal-errorf 'flatten-datatypes "Accumulator has no alignment")]
               [(tpoint ,src ,ctype)
                (strict-nanopass-case (Lcircuit Curve-Type) ctype
                  [(curve-curve25519)
@@ -239,6 +240,7 @@
     [(tfield ,src ,[ftype]) `(tfield ,ftype)]
     [(tunsigned ,src ,nat) `(tunsigned ,nat)]
     [(tpoint ,src ,[ctype]) `(tpoint ,ctype)]
+    [(taccumulator ,src) `(taccumulator)]
     [(topaque ,src ,opaque-type) `(topaque ,opaque-type)]
     [(tcontract ,src ,contract-name (,elt-name* ,pure-dcl* (,[Type : type**] ...) ,[Type : type*]) ...)
      `(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)]
@@ -283,6 +285,7 @@
                           [(curve-secp256k1) (make-zkir-default "Secp256k1Scalar")]
                           [(curve-secp256r1) (make-zkir-default "Secp256r1Scalar")])])]
                     [(tunsigned ,src ,nat) (trivial (Wump-single 0))]
+                    [(taccumulator ,src) (internal-errorf 'flatten-datatypes "Accumulator has no default value")]
                     [(tpoint ,src ,ctype)
                      (with-output-language (Lflattened Statement)
                        (strict-nanopass-case (Lcircuit Curve-Type) ctype

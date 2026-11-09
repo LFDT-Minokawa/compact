@@ -88,6 +88,7 @@
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -160,6 +161,7 @@
          [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
          [(tpoint ,src1 ,ctype1)
           (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+         [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
          [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
          [(topaque ,src1 ,opaque-type1)
           (T type2

@@ -118,6 +118,7 @@
              [(curve-jubjub) 20]
              [(curve-secp256k1) 21]
              [(curve-secp256r1) 22])]
+          [(taccumulator ,src) 23]
           [else (internal-errorf 'type-hash "unrecognized type ~s" type)]))
       (define (targ-info-hash info*)
         (combine
@@ -357,6 +358,7 @@
             [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
             [(tpoint ,src1 ,ctype1)
              (T type2 [(tpoint ,src2 ,ctype2) (same-curve-type? ctype1 ctype2)])]
+            [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
             [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
             [(topaque ,src1 ,opaque-type1)
              (T type2

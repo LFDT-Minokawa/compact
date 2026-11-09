@@ -18459,6 +18459,202 @@ groups than for single tests.
 
   (test
     '(
+      "circuit foo(a: Accumulator): [] { }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 1 char 16" "unbound identifier ~s" (Accumulator)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Field { return a; }"
+      "export circuit bar(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 38" "mismatch between actual return type ~a and declared return type ~a of ~a" ("Accumulator" "Field" "circuit foo")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Accumulator {"
+      "  const b: Accumulator = a;"
+      "  return b;"
+      "}"
+      "export circuit bar(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(a: Accumulator): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 18" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit g(): Accumulator { return 1; }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("return value of exported circuit g" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(a: Accumulator): Field;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 11" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of witness w" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "witness w(): Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("return value of witness w" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger x: Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field x" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export ledger m: Map<Field, Accumulator>;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("ledger field m" "Map<Field, Accumulator>")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "constructor(a: Accumulator) { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 13" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of the ledger constructor" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "contract C { circuit f(a: Accumulator): []; }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 24" "~a cannot contain an Accumulator, but has type ~a" ("argument 'a' of contract circuit f" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "struct S { a: Accumulator; }"
+      "circuit f(s: S): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'a'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(v: Vector<2, Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("vector element" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(t: [Accumulator, Field]): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 14" "~a cannot contain an Accumulator, but has type ~a" ("tuple element 1" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(): Accumulator { return default<Accumulator>; }"
+      "export circuit g(): [] { f(); }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 35" "default is not defined for type ~a" ("Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(m: Maybe<Accumulator>): [] { }"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "~a cannot contain an Accumulator, but has type ~a" ("struct field 'value'" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export new type A = Accumulator;"
+      "export circuit g(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 1" "~a cannot contain an Accumulator, but has type ~a" ("exported type A" "Accumulator")))
+    )
+
+  (test
+    '(
       "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
@@ -84916,6 +85112,39 @@ groups than for single tests.
     (oops
       message: "~a:\n  ~?"
       irritants: '("<standard library>" "deserialization is not yet supported for curve type ~a" ("Curve25519Point")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(a: Accumulator): Bytes<32> {"
+      "  return serialize<Accumulator, 32>(a);"
+      "}"
+      "circuit baz(bv: Bytes<32>): Bytes<32> {"
+      "  return foo(deserialize<Accumulator, 32>(bv));"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  baz(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "serialization is not supported for type ~a" ("Accumulator")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit foo(bv: Bytes<32>): Accumulator {"
+      "  return deserialize<Accumulator, 32>(bv);"
+      "}"
+      "export circuit bar(bv: Bytes<32>): [] {"
+      "  foo(disclose(bv));"
+      "}"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("<standard library>" "deserialization is not supported for type ~a" ("Accumulator")))
     )
 
   (test

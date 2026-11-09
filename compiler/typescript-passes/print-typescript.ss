@@ -902,6 +902,7 @@
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tunsigned ,src ,nat) (format "Uint<0..~d>" (+ nat 1))]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(topaque ,src ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tunknown) "Unknown"]
         [(tvector ,src ,len ,type) (format "Vector<~s, ~a>" len (format-type type))]
@@ -1005,6 +1006,7 @@
                 [(tunsigned ,src ,nat)
                  (format "new __compactRuntime.CompactTypeUnsignedInteger(~dn, ~d)"
                    nat (max 1 (byte-length nat)))]
+                [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no runtime type descriptor")]
                 [(tpoint ,src ,ctype)
                  (format "__compactRuntime.CompactType~a" (format-point-type ctype))]
                 [(tbytes ,src ,len)
@@ -1103,6 +1105,7 @@
                        var field-name))]
                   [(tunsigned ,src ,nat)
                    (format "typeof(~a) === 'bigint' && ~:*~a >= 0n && ~:*~a <= ~dn" var nat)]
+                  [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no runtime type check")]
                   [(tpoint ,src ,ctype)
                    ;; The tfield case above bounds a bare field element and an
                    ;; unbounded check here would let the same bigint through as
@@ -1983,6 +1986,7 @@
           [(tboolean ,src) "{tag: 'Boolean'}"]
           [(tfield ,src ,ftype)
            (format "{tag: ~a}" (format-javascript-string (format-field-type ftype)))]
+          [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no compact type descriptor")]
           [(tpoint ,src ,ctype)
            (format "{tag: ~a}" (format-javascript-string (format-point-type ctype)))]
           [(tunsigned ,src ,nat)
@@ -2503,6 +2507,7 @@
                        (printf "}\n"))
                      elt-name*
                      type*)]
+                  [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator values cannot be compared")]
                   [(tpoint ,src ,ctype)
                    (strict-nanopass-case (Ltypescript Curve-Type) ctype
                      [(curve-curve25519)
@@ -2567,6 +2572,7 @@
              [(tboolean ,src) "false"]
              [(tfield ,src ,ftype) "0n"]
              [(tunsigned ,src ,nat) "0n"]
+             [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no default value")]
              [(tpoint ,src ,ctype)
               (strict-nanopass-case (Ltypescript Curve-Type) ctype
                 [(curve-curve25519) "({x: 0n, y: 1n})"]
@@ -3200,6 +3206,7 @@
                        [(tfield ,src ,ftype) #t])]
                    [(tpoint ,src1 ,ctype1)
                     (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
+                   [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
                    [(tbytes ,src ,len1) (T type2 [(tbytes ,src ,len2) #t])]
                    [(topaque ,src ,opaque-type1) (T type2 [(topaque ,src ,opaque-type2) (string=? opaque-type1 opaque-type2)])]
                    [(tvector ,src ,len1 ,type1) (T type2 [(tvector ,src ,len2 ,type2) (unify? type1 type2)])]
@@ -3251,6 +3258,7 @@
     [(tboolean ,src) "boolean"]
     [(tfield ,src ,ftype) "bigint"]
     [(tunsigned ,src ,nat) "bigint"]
+    [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no TypeScript type")]
     [(tpoint ,src ,ctype)
      (strict-nanopass-case (Ltypescript Curve-Type) ctype
        [(curve-curve25519) "__compactRuntime.Curve25519Point"]

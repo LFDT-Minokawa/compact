@@ -707,6 +707,7 @@
                    `(less_than ,tmp ,var-name ,(1+ nat) ,bits)
                    instr*))]))]
         [(tpoint ,ctype) instr*]
+        [(taccumulator) instr*]
         [else (assert cannot-happen)]))
 
     ;; Turn an Lflattened argument list into a list of names, a parallel list of types, and
@@ -738,6 +739,7 @@
       (nanopass-case (Lflattened Primitive-Type) primitive-type
         [(tfield ,ftype) (field-type->string ftype)]
         [(tpoint ,ctype) (format "Point<~a>" (curve-type->string ctype))]
+        [(taccumulator) "Accumulator"]
         [(tunsigned ,nat) "Scalar<BLS12-381>"]
         [(topaque ,opaque-type) "Scalar<BLS12-381>"]
         [else (assert cannot-happen)])))

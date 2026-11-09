@@ -28,6 +28,9 @@
 (declare-native-type Secp256r1Scalar tfield (field-scalar (curve-secp256r1)))
 (declare-native-type Secp256r1Point tpoint (curve-secp256r1))
 
+;; ==== In-circuit proof verification
+(declare-native-type Accumulator taccumulator)
+
 ;; ==== Transient (Poseidon) hashing
 (declare-native-entry circuit transientHash [A]
   "__compactRuntime.transientHash"

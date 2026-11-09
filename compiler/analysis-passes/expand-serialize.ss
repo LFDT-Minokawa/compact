@@ -47,6 +47,7 @@
         [(tboolean ,src) "Boolean"]
         [(tfield ,src ,ftype) (format-field-type ftype)]
         [(tpoint ,src ,ctype) (format-point-type ctype)]
+        [(taccumulator ,src) "Accumulator"]
         [(tunsigned ,src ,nat)
          (or (and (> nat 0)
                   (let ([bits (integer-length nat)])
@@ -191,6 +192,7 @@
                        (with-output-language (Lnoserialize Expression)
                          `(field->bytes ,src ,len ,ftype ,expr))))
                    rta*)))]
+            [(taccumulator ,src^) (source-errorf src "serialization is not supported for type ~a" (format-type type))]
             [(tpoint ,src^ ,ctype)
              (source-errorf src "serialization is not yet supported for curve type ~a" (format-type type))]
             [(tunsigned ,src^ ,nat)
@@ -314,6 +316,7 @@
                          (+ i len)
                          `(cast-from-bytes ,src (tfield ,src ,ftype) ,len
                             (bytes-slice ,src ,bytes-type ,expr (quote ,src ,i) ,len))))]
+                    [(taccumulator ,src^) (source-errorf src "deserialization is not supported for type ~a" (format-type type))]
                     [(tpoint ,src^ ,ctype)
                      (source-errorf src "deserialization is not yet supported for curve type ~a" (format-type type))]
                     [(tunsigned ,src^ ,nat)

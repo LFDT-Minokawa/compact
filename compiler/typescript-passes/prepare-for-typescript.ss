@@ -62,6 +62,7 @@
              [(field-scalar ,ctype) (update 889578641 (curve-hash ctype))])]
           [(tunsigned ,src ,nat) (update 149561537 (nat-hash nat))]
           [(tpoint ,src ,ctype) (curve-hash ctype)]
+          [(taccumulator ,src) 512237981]
           [(tbytes ,src ,len) (update 38297147 (nat-hash len))]
           [(topaque ,src ,opaque-type) (update 145867104 (string-hash opaque-type))]
            ; arrange for equivalent vectors and tuples to hash to same value with same elements,
@@ -133,6 +134,7 @@
               [(tunsigned ,src1 ,nat1) (T type2 [(tunsigned ,src2 ,nat2) (= nat1 nat2)])]
               [(tpoint ,src1 ,ctype1)
                (T type2 [(tpoint ,src2 ,ctype2) (curve-type=? ctype1 ctype2)])]
+              [(taccumulator ,src1) (T type2 [(taccumulator ,src2) #t])]
               [(tbytes ,src1 ,len1) (T type2 [(tbytes ,src2 ,len2) (= len1 len2)])]
               [(topaque ,src1 ,opaque-type1)
                (T type2

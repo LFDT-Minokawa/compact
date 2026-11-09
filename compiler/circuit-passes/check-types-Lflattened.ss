@@ -80,6 +80,7 @@
         [(tfield ,ftype) (format-field-type ftype)]
         [(tunsigned ,nat) (format "Uint<0..~d>" (1+ nat))]
         [(tpoint ,ctype) (format-point-type ctype)]
+        [(taccumulator) "Accumulator"]
         [(topaque ,opaque-type) (format "Opaque<~s>" opaque-type)]
         [(tcontract ,contract-name (,elt-name* ,pure-dcl* (,type** ...) ,type*) ...)
          (format "contract ~a<~{~a~^, ~}>" contract-name
@@ -171,6 +172,7 @@
            ;; default<public-adt> is the only value of type public-adt and is represented by 0
            [(tadt ,src ,adt-name ([,adt-formal* ,adt-arg*] ...) ,vm-expr (,adt-op* ...))
             (eqv? nat1 0)])]
+        [(taccumulator) (T primitive-type2 [(taccumulator) #t])]
         [(tpoint ,ctype)
          (strict-nanopass-case (Lflattened Curve-Type) ctype
            [(curve-curve25519) (T primitive-type2 [(tpoint (curve-curve25519)) #t])]
