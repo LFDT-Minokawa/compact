@@ -216,6 +216,11 @@
                        `(assert ,src ,t2 ,(format "downcast to Uint<0..~d> failed" nat1))
                        ;; downcast-unsigned is used here with safe = #t to make check-types/Lflattened happy
                        `(= 1 ,var-name (downcast-unsigned ,src #t ,nat2 ,nat1 ,triv)))))))))]
+    ;; prepare_verification is conditional in zkir: guarded off, it yields the
+    ;; trivial Accumulator and reads no inner proof, so the guard must survive
+    [(prepare-verification ,src ,vk ,triv ,triv* ...)
+     (with-output-language (Lflattened Statement)
+       (list `(= ,test ,var-name ,ir)))]
     [else
      (with-output-language (Lflattened Statement)
        (list `(= 1 ,var-name ,ir)))]))

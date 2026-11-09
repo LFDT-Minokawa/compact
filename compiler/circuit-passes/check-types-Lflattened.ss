@@ -545,6 +545,18 @@
        (source-errorf src "expected Uint for downcast-unsigned, received ~a"
          (format-primitive-type primitive-type)))
      (with-output-language (Lflattened Primitive-Type) `(tunsigned ,nat1))]
+    [(prepare-verification ,src ,vk ,[* primitive-type] ,[* primitive-type*] ...)
+     (unless (T primitive-type [(topaque ,opaque-type) (string=? opaque-type "Uint8Array")])
+       (source-errorf src "expected Opaque<'Uint8Array'> for the proof of prepareVerification, received ~a"
+         (format-primitive-type primitive-type)))
+     (let ([field-type (with-output-language (Lflattened Primitive-Type) `(tfield (field-native)))])
+       (for-each
+         (lambda (primitive-type)
+           (unless (sub-primitive-type? primitive-type field-type)
+             (source-errorf src "expected Field for a public input of prepareVerification, received ~a"
+               (format-primitive-type primitive-type))))
+         primitive-type*))
+     (with-output-language (Lflattened Primitive-Type) `(taccumulator))]
     [else (internal-errorf 'Single "unhandled form ~s\n" ir)])
   (Path-Element : Path-Element (ir) -> Path-Element ()
     [,path-index path-index]

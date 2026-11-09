@@ -566,6 +566,23 @@
        (source-errorf src "expected test to have type Boolean, received ~a"
                       (format-type type)))
      (with-output-language (Linlined Type) `(ttuple ,src))]
+    [(prepare-verification ,src ,vk ,[Care : expr1 -> * type1] ,[Care : expr2 -> * type2])
+     (define (field? type)
+       (nanopass-case (Linlined Type) type
+         [(tfield ,src1 (field-native)) #t]
+         [else #f]))
+     (unless (nanopass-case (Linlined Type) type1
+               [(tvector ,src1 ,len ,type) (field? type)]
+               [(ttuple ,src1 ,type* ...) (andmap field? type*)]
+               [else #f])
+       (source-errorf src "expected the public inputs of prepareVerification to have type Vector<n, Field>, received ~a"
+                      (format-type type1)))
+     (unless (nanopass-case (Linlined Type) type2
+               [(topaque ,src1 ,opaque-type) (string=? opaque-type "Uint8Array")]
+               [else #f])
+       (source-errorf src "expected the proof of prepareVerification to have type Opaque<'Uint8Array'>, received ~a"
+                      (format-type type2)))
+     (with-output-language (Linlined Type) `(taccumulator ,src))]
     [(tuple ,src ,tuple-arg* ...)
      (with-output-language (Linlined Type)
        `(ttuple ,src

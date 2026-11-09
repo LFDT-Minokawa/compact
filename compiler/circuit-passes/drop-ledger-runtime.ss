@@ -36,9 +36,6 @@
           `(if ,src ,expr (quote ,src #f) (quote ,src #t))))
       )
     [(elt-ref ,src ,[expr] ,elt-name ,nat) `(elt-ref ,src ,expr ,elt-name)]
-    ;; TODO: removed when the circuit passes lower proof verification
-    [(prepare-verification ,src ,vk ,expr1 ,expr2)
-     (source-errorf src "prepareVerification is not yet supported")]
     [(return ,src ,[expr]) expr]
     [(<= ,src ,bits ,[expr1] ,[expr2]) (do-not src `(< ,src ,bits ,expr2 ,expr1))]
     [(> ,src ,bits ,[expr1] ,[expr2]) `(< ,src ,bits ,expr2 ,expr1)]

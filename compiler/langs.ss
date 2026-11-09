@@ -1084,6 +1084,7 @@
       (vm-expr (vm-expr))
       (vm-code (vm-code))
       (native-entry (native-entry))
+      (verifying-key (vk))
       )
     (Program (p)
       (program src ((export-name* name*) ...) pelt* ...) => (program #f pelt* ...))
@@ -1149,6 +1150,9 @@
       (cast-to-field src ftype type triv)    => (cast-to-field ftype type #f triv)
       (cast-from-field src nat ftype triv)   => (cast-from-field nat ftype #f triv)
       (downcast-unsigned src nat2 nat1 triv) => (downcast-unsigned nat2 nat1 triv)
+      ;; triv1 is the inner proof's public inputs, triv2 the proof itself; the
+      ;; guard is the test of the enclosing statement
+      (prepare-verification src vk triv1 triv2) => (prepare-verification vk triv1 triv2)
       )
     (Triv (triv test)
       var-name
@@ -1246,7 +1250,8 @@
          (contract-call src elt-name (triv type) triv* ...)
          (field->bytes src len ftype triv)
          (bytes->field src ftype len triv)
-         (downcast-unsigned src nat2 nat1 triv)))
+         (downcast-unsigned src nat2 nat1 triv)
+         (prepare-verification src vk triv1 triv2)))
     (Single (single)
       (+ triv
          (+ primitive-type triv1 triv2)
@@ -1261,6 +1266,8 @@
          (cast-to-field ftype primitive-type triv)
          (cast-from-field src safe nat ftype triv)   => (cast-from-field safe nat ftype triv)
          (downcast-unsigned src safe nat2 nat1 triv) => (downcast-unsigned safe nat2 nat1 triv)
+         ;; triv is the proof, triv* the inner proof's public inputs
+         (prepare-verification src vk triv triv* ...) => (prepare-verification vk triv #f triv* ...)
          ))
     (Multiple (multiple)
       (+ (call src function-name triv* ...)        => (call function-name #f triv* ...)

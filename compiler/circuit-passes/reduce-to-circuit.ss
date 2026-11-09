@@ -296,6 +296,14 @@
            (lambda (triv*)
              (k (with-output-language (Lcircuit Rhs)
                  `(contract-call ,src ,elt-name (,triv ,type) ,triv* ...)))))))]
+    ;; the guard is the test of the statement k builds
+    [(prepare-verification ,src ,vk ,expr1 ,expr2)
+     (Triv expr1 test
+       (lambda (triv1)
+         (Triv expr2 test
+           (lambda (triv2)
+             (k (with-output-language (Lcircuit Rhs)
+                  `(prepare-verification ,src ,vk ,triv1 ,triv2)))))))]
     [else (internal-errorf 'Rhs "unexpected ir ~s" ir)])
   (Type : Type (ir) -> Type ())
   )

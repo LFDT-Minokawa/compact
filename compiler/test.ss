@@ -45722,6 +45722,132 @@ groups than for single tests.
 )
 
 (run-tests optimize-circuit2
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.13)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.14) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.15)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= %c.14
+             %t.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.15
+               1))
+          (= %c.14 () (call %verifyAccumulator.2 %t.9)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(c: Boolean, p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>): [] {"
+      "  const a = disclose(c) ? prepareVerification(\"testfile.verifier\", [1 as Field], p) : prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  verifyAccumulator(a);"
+      "}"
+      )
+    (returns
+      (program
+        (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %verifyAccumulator.2
+          ((argument
+             (%acc.16)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument (%c.17) (ty ((abytes 1)) ((tunsigned 1))))
+            (argument
+              (%p.18)
+              (ty ((acompress)) ((topaque "Uint8Array"))))
+            (argument
+              (%q.19)
+              (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ()) (= 1 %t.21 (select %c.17 0 1))
+          (= %c.17
+             %t.11
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               1))
+          (= %t.21
+             %t.13
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %q.19
+               2))
+          (= 1 %a.22 (select %c.17 %t.11 %t.13))
+          (= 1 () (call %verifyAccumulator.2 %a.22)) ())))
+    ))
+
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    `(
+      "import CompactStandardLibrary;"
+      "export circuit main(p: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  verifyAccumulator(accumulate(a, b));"
+      "}"
+      )
+    (returns
+      (program (kernel-declaration (%kernel.1 () (Kernel)))
+        (public-ledger-declaration ())
+        (native
+          %accumulate.2
+          ((argument
+             (%a.15)
+             (ty ((anative "Accumulator")) ((taccumulator))))
+            (argument
+              (%b.16)
+              (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty ((anative "Accumulator")) ((taccumulator))))
+        (native
+          %verifyAccumulator.5
+          ((argument
+             (%acc.17)
+             (ty ((anative "Accumulator")) ((taccumulator)))))
+          (ty () ()))
+        (circuit %main.0
+          ((argument
+             (%p.18)
+             (ty ((acompress)) ((topaque "Uint8Array")))))
+          (ty () ())
+          (= 1
+             %a.8
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               1))
+          (= 1
+             %b.9
+             (prepare-verification
+               ,(lambda (x) (and (verifying-key? x) (string=? (verifying-key-pathname x) "testfile.verifier")))
+               %p.18
+               1))
+          (= 1 (%t.19) (call %accumulate.2 %a.8 %b.9))
+          (= 1 () (call %verifyAccumulator.5 %t.19)) ())))
+    ))
+
   (test
     `(
       "ledger forceField: Field; circuit forceProof(): [] { forceField = 7 as Field; }"

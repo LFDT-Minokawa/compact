@@ -985,6 +985,9 @@
       (assert cannot-happen)])
 
   (Single : Single (ir var-name instr*) -> * (instr*)
+    ;; TODO: replaced when ZKIR generation for proof verification lands
+    [(prepare-verification ,src ,vk ,triv ,triv* ...)
+     (source-errorf src "prepareVerification is not yet supported")]
     [(+ ,primitive-type ,triv0 ,triv1)
      (with-output-language (Lzkir Instruction)
        (cons `(add ,var-name ,triv0 ,triv1) instr*))]
