@@ -2463,6 +2463,9 @@ has static type *T* and evaluates to the default value of that type as follows:
 - `MerkleTree<`*n*`, `*T*`>`: an empty Merkle tree
 - `HistoricMerkleTree<`*n*`, `*T*`>`: an empty historic Merkle tree
 
+The standard library's `Accumulator` type has no default value, so `default<Accumulator>`
+is a static error.
+
 Compact provides no constructor for the foreign curve point types,
 so `default<`*T*`>` is the only way to create one in circuit.
 
@@ -2571,6 +2574,8 @@ has a specific structure type, so does the other.
   an additive identity point is equal only to another additive identity point;
   otherwise, the values are equal if their coordinates are equal.
   Other relational comparisons are not supported for these types.
+- **`Accumulator`**: accumulators cannot be compared; it is a static error to use
+  one as an operand of any relational operator.
 
 Otherwise the values are not equal.
 

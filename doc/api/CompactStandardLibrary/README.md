@@ -102,6 +102,11 @@ Key parts of the API are:
   - [`secp256r1EcdsaVerify`](exports.md#secp256r1ecdsaverify)
   - [`Ed25519Signature`](exports.md#ed25519signature)
   - [`ed25519Verify`](exports.md#ed25519verify)
+- In-circuit proof verification:
+  - [`Accumulator`](exports.md#accumulator)
+  - [`prepareVerification`](exports.md#prepareverification)
+  - [`accumulate`](exports.md#accumulate)
+  - [`verifyAccumulator`](exports.md#verifyaccumulator)
 - Ledger fields:
   - [`kernel`](exports.md#kernel) -- see [Ledger data types](../../ledger-adt.mdx)
     for its operations
