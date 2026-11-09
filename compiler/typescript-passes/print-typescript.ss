@@ -36,6 +36,7 @@
          "curve25519ScalarSub"
          "decodeContractAddress"
          "mulField"
+         "prepareVerification"
          "secp256k1BaseAdd"
          "secp256k1BaseMul"
          "secp256k1BaseSub"
@@ -3145,9 +3146,26 @@
               0 "})")))]
        [else
         (source-errorf src "internal: contract-call type is not a tcontract")])]
-    ;; TODO: replaced when TypeScript generation for proof verification lands
-    [(prepare-verification ,src ,vk ,expr1 ,expr2)
-     (source-errorf src "prepareVerification is not yet supported")])
+    ;; Lower prepareVerification(vk, publicInputs, proof) to
+    ;;   __compactRuntime.prepareVerification(partialProofData, '0x<vk>', publicInputs, proof)
+    ;; which records the proof as the next inner proof the circuit consumes.  The key
+    ;; goes out as the hex of the same bytes the circuit's inner_vks holds.
+    [(prepare-verification ,src ,vk
+       ,[Expr : expr1 (precedence add1 comma) outer-pure? -> * expr1]
+       ,[Expr : expr2 (precedence add1 comma) outer-pure? -> * expr2])
+     (parenthesize level (precedence call)
+       (make-Qconcat
+         (compact-stdlib "prepareVerification")
+         "("
+         ((make-Qsep ",")
+            "partialProofData"
+            (format-javascript-string
+              (apply string-append "0x"
+                (map (lambda (b) (format "~(~2,'0x~)" b))
+                     (bytevector->u8-list (verifying-key-content vk)))))
+            expr1
+            expr2)
+         ")"))])
   (Map-Argument : Map-Argument (ir level outer-pure?) -> * (Q byte-ref?)
     [(,[Expr : expr (precedence add1 comma) outer-pure? -> * expr] ,type ,type^)
      (values
@@ -3264,7 +3282,7 @@
     [(tboolean ,src) "boolean"]
     [(tfield ,src ,ftype) "bigint"]
     [(tunsigned ,src ,nat) "bigint"]
-    [(taccumulator ,src) (internal-errorf 'print-typescript "Accumulator has no TypeScript type")]
+    [(taccumulator ,src) "__compactRuntime.Accumulator"]
     [(tpoint ,src ,ctype)
      (strict-nanopass-case (Ltypescript Curve-Type) ctype
        [(curve-curve25519) "__compactRuntime.Curve25519Point"]

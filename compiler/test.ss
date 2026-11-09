@@ -60902,6 +60902,41 @@ groups than for single tests.
 
 ; tests of code snippets in compact-reference
 (run-tests print-typescript
+ (with-compact-path '("test-center/fixtures/inner-verifying-keys")
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "export circuit guarded(c: Boolean, p: Opaque<'Uint8Array'>): [] {"
+      "  if (disclose(c)) { verifyAccumulator(prepareVerification(\"testfile.verifier\", [1 as Field], p)); }"
+      "}"
+      "export circuit three(p: Opaque<'Uint8Array'>, q: Opaque<'Uint8Array'>, r: Opaque<'Uint8Array'>): [] {"
+      "  const a = prepareVerification(\"testfile.verifier\", [1 as Field], p);"
+      "  const b = prepareVerification(\"testfile.verifier\", [2 as Field], q);"
+      "  const c = prepareVerification(\"testfile.verifier\", [3 as Field], r);"
+      "  verifyAccumulator(accumulate(a, b, c));"
+      "}"
+      )
+    (stage-javascript
+      `(
+        "test('prepareVerification records the inner proofs a circuit verifies', async () => {"
+        "  const [C, Ctxt] = await startContract(contractCode, {}, 0);"
+        "  // provableCircuits skips the harness's ZKIR proof check, which needs a zkir that"
+        "  // knows prepare_verification; it also leaves setting the circuit id to the caller"
+        "  const p = new Uint8Array([1]);"
+        "  const q = new Uint8Array([2]);"
+        "  const r = new Uint8Array([3]);"
+        "  Ctxt.callContext.circuitId = 'guarded';"
+        "  const on = await C.provableCircuits.guarded(Ctxt, true, p);"
+        "  expect(on.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p]);"
+        "  const off = await C.provableCircuits.guarded(Ctxt, false, p);"
+        "  expect(off.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([]);"
+        "  Ctxt.callContext.circuitId = 'three';"
+        "  const all = await C.provableCircuits.three(Ctxt, p, q, r);"
+        "  expect(all.context.callProofDataTrace.at(-1)?.innerProofs).toEqual([p, q, r]);"
+        "});"
+        ))
+    ))
+
   ; change: " --> ' for message of assert
   (test
     '(
