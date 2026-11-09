@@ -9,7 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
-- The compiler no longer fails with an internal error, or emits a circuit that cannot prove the call, when a ledger operation uses the default value of a curve point type, `JubjubScalar` or a foreign field type.  Examples are `head()` of a `List<JubjubPoint>`, `resetToDefault()`, `insertDefault()` and `insertIndexDefault()`.  Fixes issue [#857](https://github.com/LFDT-Minokawa/compact/issues/857).
+- The compiler no longer fails with an internal error, or emits ZKIR that disagrees with the runtime, when a ledger operation uses the default value of a curve point type, `JubjubScalar` or a foreign field type.  Examples are `head()` of a `List<JubjubPoint>`, `resetToDefault()`, `insertDefault()` and `insertIndexDefault()`.  Fixes issue [#857](https://github.com/LFDT-Minokawa/compact/issues/857).
 
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]
 
