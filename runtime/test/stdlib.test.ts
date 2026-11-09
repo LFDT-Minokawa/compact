@@ -116,8 +116,7 @@ describe('__compact.convertBigintToBytes', () => {
 describe('__compact.convertBytesToUint for Field', () => {
   test('Check for success', () => {
     const a = new Uint8Array([0, 1]);
-    const x = compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, a.length, a, 'Field',
-                                                'source');
+    const x = compactRuntime.convertBytesToUint(compactRuntime.MAX_FIELD, a.length, a, 'Field', 'source');
     expect(x).toBe(256n);
   });
 
