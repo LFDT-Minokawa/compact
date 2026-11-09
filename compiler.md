@@ -194,7 +194,7 @@ A target is referred to by name in several places, and they have to agree.  Take
 | 1 | The target's directory | `compiler/targets/<target>/`, named `ocrt-<M>_<m>-zkir-<N>_<n>`.  Everything below is derived from or compared with this name, including the record of the target (its name and its on-chain runtime `<M>.<m>` and ZKIR `<N>.<n>` versions) | `flake.nix` (`target-input-problems`) when it evaluates; `make-current-target` (`compiler/target.ss`) when the compiler is built | `compiler/targets/<dir> is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>` |
 | 2 | The default target, `default-compactc-target` in `flake.nix` | a target of 1 | nothing: the build fails when it cannot find the libraries of the target | a Chez error that a library of the target is not found: `Exception: library (ledger) not found` |
 | 3 | The `compiler/targets/<target>` entry of `CHEZSCHEMELIBDIRS` (set by `flake.nix` from 2, or by hand): exactly one | a target of 1 | `compiler/go`; `make-current-target` when the compiler is built | `error: CHEZSCHEMELIBDIRS has no compiler/targets/<target> entry, so there is no target to test`; `expected exactly one target directory, compiler/targets/<target>, on the library path (CHEZSCHEMELIBDIRS) but found ...` |
-| 4 | The flake inputs of `flake.nix`: `onchain-runtime-v<M>` and `zkir-v<N>` | for every target `ocrt-<M>_<m>-zkir-<N>_<n>`: both exist, `onchain-runtime-v<M>` provides on-chain runtime `<M>.<m>` and `zkir-v<N>` provides ZKIR `<N>.<n>` (the version of the input's package, e.g., `4.0.0-rc.3`); and every such input is for some target | `flake.nix` (`target-inputs-checked`) whenever a package or shell is evaluated: the library path of all of them is made from `default-compactc-target`, which asserts it | `The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:` followed by, for example, `target ocrt-5_0-zkir-3_1 needs the flake input onchain-runtime-v5, ... but flake.nix has none`, `target ocrt-4_1-zkir-3_1 is for on-chain runtime 4.1 but the flake input onchain-runtime-v4 provides 4.0`, or `the flake input onchain-runtime-v5 is used by no target` |
+| 4 | The flake inputs of `flake.nix`: `onchain-runtime-v<M>`, `zkir-v<N>` and `zkir-v<N>-wasm` | for every target `ocrt-<M>_<m>-zkir-<N>_<n>`: all three exist, `onchain-runtime-v<M>` provides on-chain runtime `<M>.<m>` and `zkir-v<N>` and `zkir-v<N>-wasm` provide ZKIR `<N>.<n>` (the version of the input's package, e.g., `4.0.0-rc.3`); and every such input is for some target | `flake.nix` (`target-inputs-checked`) whenever a package or shell is evaluated: the library path of all of them is made from `default-compactc-target`, which asserts it | `The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:` followed by, for example, `target ocrt-5_0-zkir-3_1 needs the flake input onchain-runtime-v5, ... but flake.nix has none`, `target ocrt-4_1-zkir-3_1 is for on-chain runtime 4.1 but the flake input onchain-runtime-v4 provides 4.0`, `target ocrt-4_0-zkir-3_2 is for ZKIR (wasm) 3.2 but the flake input zkir-v3-wasm provides 3.1`, or `the flake input onchain-runtime-v5 is used by no target` |
 
 Not checked: the on-chain runtime of the target against `runtime/package.json`.
 Until the runtime is restructured (CoIP 5, phase 1) there is a single
@@ -229,7 +229,7 @@ the name of the target.
    by copying an existing one:
    `cp -R compiler/targets/<target> compiler/targets/<new-target>`.
 2. Make `flake.nix` agree with the new name (row 4).  The flake needs the inputs
-   `onchain-runtime-v<M>` and `zkir-v<N>`, providing the versions in the name.
+   `onchain-runtime-v<M>`, `zkir-v<N>` and `zkir-v<N>-wasm`, providing the versions in the name.
    So the versions of the new target have to be the ones the existing inputs
    provide, unless the inputs are changed, and a new on-chain runtime or ZKIR
    *major* version needs a new input, e.g., `onchain-runtime-v5` or `zkir-v4`, next
@@ -366,7 +366,7 @@ only announces it.
    them. Alternatively and in the future, the team could provide a workflow to remove
    or archive these files.
 3. Make `flake.nix` agree with the targets that remain (row 4): an input
-   `onchain-runtime-v<M>` or `zkir-v<N>` that no remaining target uses has to be
+   `onchain-runtime-v<M>`, `zkir-v<N>` or `zkir-v<N>-wasm` that no remaining target uses has to be
    removed, and the evaluation fails, naming it, until it is.  Conversely, an input a
    remaining target needs must stay.  Check the places that use an input by name, such
    as `nixDependenciesMap`.

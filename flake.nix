@@ -123,17 +123,19 @@
           (pkgs.lib.filterAttrs (name: type: type == "directory") (builtins.readDir ./compiler/targets));
 
         # A target ocrt-<M>_<m>-zkir-<N>_<n> needs
-        # the inputs onchain-runtime-v<M> and zkir-v<N>, providing M.m and N.n, and an
+        # the inputs onchain-runtime-v<M>, zkir-v<N>, and zkir-v<N>-wasm providing M.m and N.n, and an
         # input is there for a target.
         input-names = builtins.attrNames inputs;
         ocrt-inputs = builtins.filter (n: builtins.match "onchain-runtime-v[0-9]+" n != null) input-names;
         zkir-inputs = builtins.filter (n: builtins.match "zkir-v[0-9]+" n != null) input-names;
+        zkir-wasm-inputs = builtins.filter (n: builtins.match "zkir-v[0-9]+-wasm" n != null) input-names;
         # the major.minor of "4.0.0-rc.3"
         major-minor = version:
           let m = builtins.match "([0-9]+)\\.([0-9]+)\\..*" version;
           in if m == null then "(unreadable version ${version})" else "${builtins.elemAt m 0}.${builtins.elemAt m 1}";
         ocrt-input-version = n: major-minor inputs.${n}.packages.${system}.onchain-runtime-wasm.version;
         zkir-input-version = n: major-minor inputs.${n}.packages.${system}.zkir.version;
+        zkir-wasm-input-version = n: major-minor inputs.${n}.packages.${system}.zkir-wasm.version;
         parse-target = target: builtins.match "ocrt-([0-9]+)_([0-9]+)-zkir-([0-9]+)_([0-9]+)" target;
 
         target-input-problems =
@@ -143,11 +145,11 @@
             ocrt-of = target: { major = part target 0; version = "${part target 0}.${part target 1}"; };
             zkir-of = target: { major = part target 2; version = "${part target 2}.${part target 3}"; };
             # what a target needs from the inputs of one kind
-            problems-of-kind = { kind, prefix, inputs-of-kind, input-version, of }:
+            problems-of-kind = { kind, prefix, suffix ? "", inputs-of-kind, input-version, of }:
               builtins.concatMap (target:
                 let
                   need = of target;
-                  name = "${prefix}${need.major}";
+                  name = "${prefix}${need.major}${suffix}";
                 in
                   if !(builtins.elem name inputs-of-kind)
                   then [ "target ${target} needs the flake input ${name}, which provides ${kind} ${need.major}.x, but flake.nix has none (it has: ${builtins.concatStringsSep ", " inputs-of-kind})" ]
@@ -156,7 +158,7 @@
                   else []
               ) parsed
               ++ builtins.concatMap (name:
-                if builtins.any (target: "${prefix}${(of target).major}" == name) parsed
+                if builtins.any (target: "${prefix}${(of target).major}${suffix}" == name) parsed
                 then []
                 else [ "the flake input ${name} is used by no target in compiler/targets/ (the targets are: ${builtins.concatStringsSep ", " targets})" ]
               ) inputs-of-kind;
@@ -164,7 +166,8 @@
             builtins.concatMap (target: [ "compiler/targets/${target} is not named like a target, ocrt-<major>_<minor>-zkir-<major>_<minor>" ])
               (builtins.filter (t: parse-target t == null) targets)
             ++ problems-of-kind { kind = "on-chain runtime"; prefix = "onchain-runtime-v"; inputs-of-kind = ocrt-inputs; input-version = ocrt-input-version; of = ocrt-of; }
-            ++ problems-of-kind { kind = "ZKIR"; prefix = "zkir-v"; inputs-of-kind = zkir-inputs; input-version = zkir-input-version; of = zkir-of; };
+            ++ problems-of-kind { kind = "ZKIR"; prefix = "zkir-v"; inputs-of-kind = zkir-inputs; input-version = zkir-input-version; of = zkir-of; }
+            ++ problems-of-kind { kind = "ZKIR (wasm)"; prefix = "zkir-v"; suffix = "-wasm"; inputs-of-kind = zkir-wasm-inputs; input-version = zkir-wasm-input-version; of = zkir-of; };
 
         target-inputs-checked =
           if target-input-problems == []
@@ -173,8 +176,8 @@
             The targets of compiler/targets/ and the flake inputs of flake.nix do not agree:
             ${builtins.concatStringsSep "\n" (map (p: "  - " + p) target-input-problems)}
             A target ocrt-<M>_<m>-zkir-<N>_<n> needs the flake inputs onchain-runtime-v<M> (providing
-            on-chain runtime <M>.<m>) and zkir-v<N> (providing ZKIR <N>.<n>), and every such input is
-            for a target.  See "Names that must agree" in compiler.md.
+            on-chain runtime <M>.<m>), zkir-v<N> and zkir-v<N>-wasm (providing ZKIR <N>.<n>), and every
+            such input is for a target.  See "Names that must agree" in compiler.md.
           '';
 
         combined-shell-hook =
