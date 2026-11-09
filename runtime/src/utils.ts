@@ -56,6 +56,16 @@ export function assertIsContractAddress(x: unknown): asserts x is ContractAddres
   }
 }
 
+/**
+ * Returns the lowercase spelling of a contract address, the one `decodeContractAddress` produces. Every
+ * spelling names the same contract, but per-contract state and the re-entrancy guard are keyed by the
+ * string, so an address must reach them in one spelling.
+ */
+export function canonicalContractAddress(x: unknown): ContractAddress {
+  assertIsContractAddress(x);
+  return x.toLowerCase();
+}
+
 export const fromHex = (s: string): Uint8Array => Buffer.from(s, 'hex');
 
 export const toHex = (s: Uint8Array): string => Buffer.from(s).toString('hex');
