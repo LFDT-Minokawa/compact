@@ -141,7 +141,6 @@ The following flags, if present, affect the compiler's behavior as follows:
              [(--version) $ (exit-flag! 'version)]
              [(--language-version) $ (exit-flag! 'language-version)]
              [(--target) $ (exit-flag! 'target)]
-             [(--list-targets) $ (exit-flag! 'list-targets)]
              [(--runtime-version) $ (exit-flag! 'runtime-version)]
              [(--verbose)])
       (string arg) ...)

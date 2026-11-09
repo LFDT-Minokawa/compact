@@ -22,6 +22,5 @@
           (inline-support))
 
   (define (inline-declarations)
-    (capture-inline-declarations
-      "midnight-inlines.ss"))
+    (capture-inline-declarations "midnight-inlines.ss"))
 )

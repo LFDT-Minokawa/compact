@@ -103,7 +103,7 @@ mkdir coverage
             a))
       a*)))
 (compile-library-handler
-  ; enable profiling for and only for code redirected to obj/profiled-compiler
+  ; enable profiling for and only for code redirected to obj/profiled
   (lambda (src-path obj-path)
     (parameterize ([compile-profile
                     (and (string=? (path-first obj-path) "obj")

@@ -28,8 +28,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   files listed among the `sources` of generated source maps (`.js.map`) have
   new paths, e.g.,
   `compiler/targets/ocrt-4_0-zkir-3_1/standard-library.compact`.
-- `--ledger-version` now prints the ledger version recorded for the target
-  rather than the version of the `zkir-v3` dependency.
 - **Release assets are renamed.**  The internal release now releases every target:
   one `compactc` binary per operating system and target, named
   `compactc_v<compiler-version>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`, e.g.,
@@ -68,6 +66,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `onchain-runtime-v<M>` and `zkir-v<N>` 
   and an input `onchain-runtime-v<M>` or `zkir-v<N>` that no target uses is
   an error.
+- Object files are written to `obj/<target>` (`obj/profiled/<target>` by `compiler/go`)
+  instead of `obj/compiler`, so each target has its own and switching targets needs no
+  cleaning.
 - `compiler/go --build-for-all-targets` runs the tests for every target in
   `compiler/targets/` and so regenerates the ledger ADT documentation of every
   target.
@@ -77,7 +78,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   publishes one binary per selected operating system and target, with the same
   asset names as the internal release
   (`compactc_dev-<sha>_<os>_ocrt_v<M.m>-zkir_v<M.m>.zip`).
-- ./compact.md now contains detailed information about targets and how to create
+- `./compact.md` now contains detailed information about targets and how to create
   new ones.
 
 ## [Toolchain 0.36.102, language 0.28.0, runtime 0.21.100]

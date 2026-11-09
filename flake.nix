@@ -110,7 +110,12 @@
             fi
           '';
         # The target built by packages.compactc and used by the dev shells.
-        default-compactc-target = "ocrt-4_0-zkir-3_1";
+        # The library path of every package and shell is made from it, so using any of
+        # them evaluates `target-inputs-checked`: that is what makes the check of the
+        # targets against the flake inputs run.
+        default-compactc-target =
+          assert target-inputs-checked;
+          "ocrt-4_0-zkir-3_1";
 
         # Other targets in compiler/targets/ are built with packages.compactc-<target>, which
         # are generated for every target below.

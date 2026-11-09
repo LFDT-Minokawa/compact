@@ -16,18 +16,21 @@
 #!chezscheme
 
 ;;; A target is the pair of the on-chain runtime and ZKIR versions that a
-;;; compactc build is built for.  This library only defines the
-;;; shape of a target; each directory under compiler/targets/ instantiates it in
-;;; a library named (current-target).  Which instance a build uses is fixed at
-;;; build time by which target directory is on the library path.
+;;; compactc build is built for.
 ;;;
-;;; The ledger version is informational as the compiler is not directly configured by it.
+;;; current-target is the record of the target of this build.  It is made when this
+;;; library is compiled, from the name of the one directory compiler/targets/<target>/
+;;; that is on the library path (CHEZSCHEMELIBDIRS): the name of a target is
+;;; ocrt-<major>_<minor>-zkir-<major>_<minor>, e.g., ocrt-4_0-zkir-3_1, and its
+;;; on-chain runtime and ZKIR versions are the ones the name says, so they cannot
+;;; disagree.  It is an error for no directory, or more than one, of
+;;; compiler/targets/ to be on the library path, and for the directory not to be
+;;; named like a target.  The libraries that depend on the target (e.g.,
+;;; typescript-passes) are found in that directory, which is how a build gets the
+;;; ones of its target.
 ;;;
-;;; A target is named ocrt-<major>_<minor>-zkir-<major>_<minor>, e.g.,
-;;; ocrt-4_0-zkir-3_1, and the name has to agree with the versions of the record:
-;;; make-target rejects a record whose on-chain runtime or ZKIR version is not the
-;;; one its name says (and a name that is not of that form).  The record of a
-;;; target is made from the name of its directory.
+;;; (target-pathname f) is the pathname of the file f in the directory of the
+;;; current target.
 
 (library (target)
   (export target? target-name target-onchain-runtime-version target-zkir-version
