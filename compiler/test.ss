@@ -18656,6 +18656,165 @@ groups than for single tests.
   (test
     '(
       "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return id(b); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { return b ? id(a) : a; }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator): Accumulator { if (b) { return a; } return id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (succeeds))
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 11" "Accumulator ~s is never used on the path through the return at ~a" (a "line 3 char 1")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { const b = a; return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 62" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit f(a: Accumulator): Accumulator { return g(a, a); }"
+      "circuit g(a: Accumulator, c: Accumulator): Accumulator { return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 2 char 54" "Accumulator ~s is used more than once" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a1: Accumulator, a2: Accumulator): Accumulator { return b ? a1 : a2; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 79" "Accumulator ~s is used on some paths through this if but not on others" (a1)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(b: Boolean, a: Accumulator, c: Accumulator): Accumulator { if (b) { return a; } return c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 39" "Accumulator ~s is never used on the path through the return at ~a" (c "line 3 char 79")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { id(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 33" "this Accumulator is never used" ()))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator, c: Accumulator): Boolean { return a == c; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 61" "an Accumulator cannot be used as ~a" ("an operand of ==")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { return disclose(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 58" "an Accumulator cannot be used as ~a" ("the argument of disclose")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): [] { const t = [a, 1]; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 44" "an Accumulator cannot be used as ~a" ("a tuple element")))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Accumulator { for (const i of 0..2) { id(a); } return a; }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 69" "Accumulator ~s cannot be used inside a for loop, map, or fold" (a)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
+      "circuit id(a: Accumulator): Accumulator { return a; }"
+      "circuit f(a: Accumulator): Field { return transientHash<Accumulator>(a); }"
+      "export circuit main(): [] { }"
+      )
+    (oops
+      message: "~a:\n  ~?"
+      irritants: '("testfile.compact line 3 char 70" "an Accumulator cannot be passed to ~a ~s" (native transientHash)))
+    )
+
+  (test
+    '(
+      "import CompactStandardLibrary;"
       "export circuit foo(c: JubjubPoint): JubjubPoint {"
       "  return ecAdd(c, ecMul(c, 3 as JubjubScalar));"
       "}"
@@ -85129,7 +85288,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "serialization is not supported for type ~a" ("Accumulator")))
+      irritants: '("<standard library>" "an Accumulator cannot be used as ~a" ("the argument of serialize")))
     )
 
   (test
@@ -85144,7 +85303,7 @@ groups than for single tests.
       )
     (oops
       message: "~a:\n  ~?"
-      irritants: '("<standard library>" "deserialization is not supported for type ~a" ("Accumulator")))
+      irritants: '("<standard library>" "an Accumulator cannot be deserialized" ()))
     )
 
   (test

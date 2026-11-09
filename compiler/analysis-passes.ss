@@ -39,6 +39,8 @@
 
   (include "analysis-passes/infer-types.ss")
 
+  (include "analysis-passes/check-accumulator-usage.ss")
+
   (include "analysis-passes/remove-tundeclared.ss")
 
   (include "analysis-passes/combine-ledger-declarations.ss")

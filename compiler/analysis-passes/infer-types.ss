@@ -997,8 +997,8 @@
                   (let ([ht (make-hashtable symbol-hash eq?)])
                     (for-each (lambda (n t) (hashtable-set! ht n t)) struct-name* type*)
                     ht)])
-       (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
-         (maplr Program-Element unused-pelt*))
+       (let ([unused-pelt* (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
+                             (maplr Program-Element unused-pelt*))])
        (fluid-let ([contract-type-ht (make-contract-type-hashtable)])
          (let* ([pelt* (maplr Program-Element pelt*)]
                 [contract-type*
@@ -1009,7 +1009,8 @@
                        (symbol->string (contract-name ct2))))
                    (vector->list (hashtable-keys contract-type-ht)))])
            (for-each (contract-implements! pelt* export-name* name*) cidecl*)
-           `(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...))))])
+           (check-accumulator-usage! (append unused-pelt* pelt*))
+           `(program ,src (,contract-type* ...) ((,struct-name* ,type*) ...) ((,export-name* ,name*) ...) ,pelt* ...)))))])
   (Set-Program-Element-Type! : Program-Element (ir) -> * (void)
     (definitions
       (define (build-function kind is-native name arg* type)
